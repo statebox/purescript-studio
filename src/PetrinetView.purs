@@ -176,3 +176,16 @@ svgArrow p q = SE.path
   , SA.fill   $ Just (SA.RGB 100 100 100)
   , SA.stroke $ Just (SA.RGB 200 200 200)
   ]
+
+--svgArrow' :: forall p i. HTML p i
+svgArrow' =
+  SE.defs [] [
+    SE.marker [ SA.id "arrow"
+              , SA.markerWidth 10.0
+              , SA.markerHeight "10"
+              , SA.refX "0"
+              , SA.refY "3"
+              , SA.orient "auto"
+              , SA.markerUnits "strokeWidth"
+              ] [ SE.path [] ]
+  ]

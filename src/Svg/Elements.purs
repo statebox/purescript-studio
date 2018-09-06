@@ -44,3 +44,16 @@ text = element (ElemName "text")
 
 foreignObject :: forall p i . Node I.SVGforeignObject p i
 foreignObject = element (ElemName "foreignObject")
+
+-- add <defs> and <marker> SVG elements
+defs :: forall p i. Node I.SVGg p i
+defs = element $ ElemName "defs"
+
+-- defs :: forall p i. Leaf I.SVGpath p i
+-- defs props = element (ElemName "defs") props []
+
+marker :: forall p i. Node I.SVGg p i
+marker = element $ ElemName "marker"
+
+-- marker :: forall p i. Leaf I.SVGpath p i
+-- marker props = element (ElemName "marker") props []
