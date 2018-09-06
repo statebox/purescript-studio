@@ -267,3 +267,10 @@ orient = attr (AttrName "orient") <<< show
 
 markerUnits :: forall r i. String -> IProp (markerUnits :: String | r) i
 markerUnits = attr (AttrName "markerUnits") <<< show
+
+--- for line element
+strokeWidth :: forall r i. Number -> IProp (strokeWidth :: Number | r) i
+strokeWidth = attr (AttrName "strokeWidth") <<< show
+
+markerEnd :: forall r i. String -> IProp (markerEnd :: String | r) i
+markerEnd = attr (AttrName "markerEnd") <<< show

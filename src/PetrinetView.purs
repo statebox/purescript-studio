@@ -77,8 +77,10 @@ type PlaceModelF pid tok label pt =
 
 netToSVG :: ∀ pid tid a. Ord pid => NetRepF pid tid Tokens -> Array (HTML a ((Query tid) Unit))
 netToSVG net =
-  svgTransitions <> svgPlaces
+  svgTransitions <> svgPlaces <> svgDefs
   where
+    svgDefs = pure (SE.g [] [ arrowHead ])
+
     svgTransitions = join $ fromMaybe [] $ traverse (uncurry drawTransitionAndArrows) $ Map.toUnfoldable $ net.transitionsDict
 
     svgPlaces = fromMaybe [] $ drawPlace1 `traverse` net.places
@@ -171,26 +173,35 @@ svgTransition p tid = SE.rect
   , HE.onClick (HE.input_ (ClickTransition tid))
   ]
 
-svgArrow p q = SE.path
-  [ svgPath p q
-  , SA.fill   $ Just (SA.RGB 100 100 100)
+-- svgArrow p q = SE.path
+--   [ svgPath p q
+--   , SA.fill   $ Just (SA.RGB 100 100 100)
+--   , SA.stroke $ Just (SA.RGB 200 200 200)
+--   ]
+
+svgArrow p q = SE.line
+  [ SA.x1 p.x
+  , SA.y1 p.y
+  , SA.x2 q.x
+  , SA.y2 q.y
   , SA.stroke $ Just (SA.RGB 200 200 200)
+  , SA.strokeWidth 5.0
+  , SA.markerEnd "url(#arrow)"
   ]
 
-svgArrow' =
-  SE.defs [] [
-    SE.marker [ SA.id "arrow"
-              , SA.markerWidth 10.0
-              , SA.markerHeight 10.0
-              , SA.refX 0.0
-              , SA.refY 3.0
-              , SA.orient "auto"
-              , SA.markerUnits "strokeWidth"
+arrowHead = SE.defs []
+  [ SE.marker
+    [ SA.id "arrow"
+    , SA.markerWidth 10.0
+    , SA.markerHeight 10.0
+    , SA.refX 0.0
+    , SA.refY 3.0
+    , SA.orient "auto"
+    , SA.markerUnits "strokeWidth"
+    ]
+    [ SE.path [ SA.d $ SA.Abs <$> [ SA.M 0.0 0.0, SA.L 0.0 6.0, SA.L 9.0 3.0, SA.Z ]
+              , SA.fill   $ Just (SA.RGB 100 100 100)
+              , SA.stroke $ Just (SA.RGB 200 200 200)
               ]
-              [ SE.path [ SA.d [ SA.M 0.0 0.0, SA.L 0.0 6.0, SA.L 9.0 3.0 "z" ]
-                        --, SA.d "M0,0 L0,6 L9,3 z"
-                        , SA.fill   $ Just (SA.RGB 100 100 100)
-                        , SA.stroke $ Just (SA.RGB 200 200 200)
-                        ]
-              ]
+    ]
   ]
