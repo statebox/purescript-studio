@@ -52,7 +52,7 @@ defs = element $ ElemName "defs"
 -- defs :: forall p i. Leaf I.SVGpath p i
 -- defs props = element (ElemName "defs") props []
 
-marker :: forall p i. Node I.SVGg p i
+marker :: forall p i. Node I.SVGmarker p i
 marker = element $ ElemName "marker"
 
 -- marker :: forall p i. Leaf I.SVGpath p i

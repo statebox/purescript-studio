@@ -182,9 +182,9 @@ svgArrow' =
   SE.defs [] [
     SE.marker [ SA.id "arrow"
               , SA.markerWidth 10.0
-              , SA.markerHeight "10"
-              , SA.refX "0"
-              , SA.refY "3"
+              , SA.markerHeight 10.0
+              , SA.refX 0.0
+              , SA.refY 3.0
               , SA.orient "auto"
               , SA.markerUnits "strokeWidth"
               ] [ SE.path [] ]

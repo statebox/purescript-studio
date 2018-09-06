@@ -62,7 +62,7 @@ instance showCSSLength :: Show CSSLength where
   show Nil = "0"
 
 
-data FontSize 
+data FontSize
   = XXSmall
   | XSmall
   | Small
@@ -248,3 +248,22 @@ class_ = attr (AttrName "class")
 
 id :: forall r i . String -> IProp (id :: String | r) i
 id = attr (AttrName "id")
+
+---
+markerWidth :: forall r i. Number -> IProp (markerWidth :: Number | r) i
+markerWidth = attr (AttrName "markerWidth") <<< show
+
+markerHeight :: forall r i. Number -> IProp (markerHeight :: Number | r) i
+markerHeight = attr (AttrName "markerHeight") <<< show
+
+refX :: forall r i. Number -> IProp (refX :: Number | r) i
+refX = attr (AttrName "refX") <<< show
+
+refY :: forall r i. Number -> IProp (refY :: Number | r) i
+refY = attr (AttrName "refY") <<< show
+
+orient :: forall r i. String -> IProp (orient :: String | r) i
+orient = attr (AttrName "orient") <<< show
+
+markerUnits :: forall r i. String -> IProp (markerUnits :: String | r) i
+markerUnits = attr (AttrName "markerUnits") <<< show

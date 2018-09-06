@@ -81,6 +81,16 @@ type SVGline = GlobalAttributes
   , transform :: String
   )
 
+type SVGmarker = GlobalAttributes
+  ( id :: String
+  , markerWidth  :: Number
+  , markerHeight :: Number
+  , refX :: Number
+  , refY :: Number
+  , orient :: String
+  , markerUnits :: String 
+  )
+
 type SVGtext = GlobalAttributes
   ( x :: Number
   , y :: Number
