@@ -185,7 +185,7 @@ svgArrow p q = SE.line
   , SA.x2 q.x
   , SA.y2 q.y
   , SA.stroke $ Just (SA.RGB 200 200 200)
-  , SA.strokeWidth 5.0
+  , SA.strokeWidth 0.5
   , SA.markerEnd "url(#arrow)"
   ]
 
