@@ -263,14 +263,14 @@ refY :: forall r i. Number -> IProp (refY :: Number | r) i
 refY = attr (AttrName "refY") <<< show
 
 orient :: forall r i. String -> IProp (orient :: String | r) i
-orient = attr (AttrName "orient") <<< show
+orient = attr (AttrName "orient")
 
 markerUnits :: forall r i. String -> IProp (markerUnits :: String | r) i
-markerUnits = attr (AttrName "markerUnits") <<< show
+markerUnits = attr (AttrName "markerUnits")
 
 --- for line element
 strokeWidth :: forall r i. Number -> IProp (strokeWidth :: Number | r) i
-strokeWidth = attr (AttrName "strokeWidth") <<< show
+strokeWidth = attr (AttrName "stroke-width") <<< show
 
 markerEnd :: forall r i. String -> IProp (markerEnd :: String | r) i
-markerEnd = attr (AttrName "markerEnd") <<< show
+markerEnd = attr (AttrName "marker-end")
