@@ -173,12 +173,6 @@ svgTransition p tid = SE.rect
   , HE.onClick (HE.input_ (ClickTransition tid))
   ]
 
--- svgArrow p q = SE.path
---   [ svgPath p q
---   , SA.fill   $ Just (SA.RGB 100 100 100)
---   , SA.stroke $ Just (SA.RGB 200 200 200)
---   ]
-
 svgArrow p q = SE.line
   [ SA.x1 p.x
   , SA.y1 p.y

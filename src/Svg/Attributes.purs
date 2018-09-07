@@ -249,7 +249,6 @@ class_ = attr (AttrName "class")
 id :: forall r i . String -> IProp (id :: String | r) i
 id = attr (AttrName "id")
 
----
 markerWidth :: forall r i. Number -> IProp (markerWidth :: Number | r) i
 markerWidth = attr (AttrName "markerWidth") <<< show
 
@@ -268,7 +267,6 @@ orient = attr (AttrName "orient")
 markerUnits :: forall r i. String -> IProp (markerUnits :: String | r) i
 markerUnits = attr (AttrName "markerUnits")
 
---- for line element
 strokeWidth :: forall r i. Number -> IProp (strokeWidth :: Number | r) i
 strokeWidth = attr (AttrName "stroke-width") <<< show
 
