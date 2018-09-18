@@ -112,10 +112,10 @@ zipWithIndexFrom :: forall v. Int -> Array v -> Array (Tuple Int v)
 zipWithIndexFrom i0 xs = mapWithIndex (\i x -> Tuple (i0+i) x) xs
 
 transitionPoints1 =
-  [ { x: 30.0, y: 20.0 }
-  , { x: 30.0, y: 40.0 }
-  , { x: 70.0, y: 20.0 }
-  , { x: 70.0, y: 40.0 }
+  [ { x: 30.0, y: 10.0 }
+  , { x: 30.0, y: 50.0 }
+  , { x: 70.0, y: 10.0 }
+  , { x: 70.0, y: 50.0 }
   ]
 
 net1Data =

@@ -9,6 +9,7 @@ import Data.Tuple (Tuple(..), uncurry, snd)
 import Data.Traversable (traverse, sequence)
 import Data.Vec2D (Vec2D)
 import Data.Vec2D (bounds) as Vec2D
+import Data.Ord
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML (div)
@@ -16,6 +17,7 @@ import Halogen.HTML (HTML)
 import Halogen.HTML.Events as HE
 import Svg.Elements as SE
 import Svg.Attributes as SA
+import Math (atan2, cos, sin)
 
 import ExampleData as Ex
 import ExampleData as Net
@@ -77,7 +79,7 @@ type PlaceModelF pid tok label pt =
 
 netToSVG :: ∀ pid tid a. Ord pid => NetRepF pid tid Tokens -> Array (HTML a ((Query tid) Unit))
 netToSVG net =
-  svgTransitions <> svgPlaces <> svgDefs
+  svgPlaces <> svgTransitions <> svgDefs
   where
     svgDefs = pure (SE.g [] [ arrowHead ])
 
@@ -101,19 +103,58 @@ netToSVG net =
 
       pure $ preArrows <> postArrows <> [ svgTransition trPos tid ]
 
+    -- arrow from transition to place
     arrowTo :: ∀a. Vec2D -> PlaceMarkingF pid Tokens -> Maybe (HTML a ((Query tid) Unit))
     arrowTo dest tp = svgArrow <$> net.findPlacePoint tp.place <*> pure dest
 
+    -- arrow from place to transition
     arrowFrom :: ∀a. Vec2D -> PlaceMarkingF pid Tokens -> Maybe (HTML a ((Query tid) Unit))
-    arrowFrom src tp = svgArrow <$> pure src                    <*> net.findPlacePoint tp.place
+    arrowFrom src tp = svgArrow <$> pure src                   <*> net.findPlacePoint tp.place
 
 --------------------------------------------------------------------------------
+
+placeLinePoint :: Vec2D -> Vec2D -> Vec2D
+placeLinePoint pV tV = { x: pV.x + px, y: pV.y + py }
+  where
+    r  = placeRadius + 2.1
+    dx = tV.x - pV.x
+    dy = tV.y - pV.y
+    α  = atan2 dy dx
+    px = cos α * r
+    py = sin α * r
+
+transitionLinePoint :: Vec2D -> Vec2D -> Vec2D
+transitionLinePoint pV tV =
+    { x: tV.x - tX, y: tV.y - tY }
+  where
+    r  = 4.3
+    dX = tV.x - pV.x
+    dY = tV.y - pV.y
+    u  = max (abs dX) (abs dY)
+    tX = dX / u * r
+    tY = dY / u * r
+
+svgArrow :: forall i p. Vec2D -> Vec2D ->  HTML i p
+svgArrow p q = SE.line
+  let
+    p' = placeLinePoint p q
+    q' = transitionLinePoint p q
+  in
+    [ SA.x1 q'.x
+    , SA.y1 q'.y
+    , SA.x2 p'.x
+    , SA.y2 p'.y
+    , SA.stroke $ Just (SA.RGB 200 200 200)
+    , SA.strokeWidth 0.5
+    , SA.markerEnd "url(#arrow)"
+    ]
+---
 
 -- TODO ported from Elm, but probably still a good idea to not use show directly
 toString = show
 
 svgPath :: Vec2D -> Vec2D -> _
-svgPath p q = SA.d $ SA.Abs <$> [ SA.M p.x p.y, SA.L q.x q.y ]
+svgPath p q = SA.d $ SA.Abs <$> [ SA.M p'.x p'.y, SA.L q'.x q'.y ]
 
 placeRadius :: Number
 placeRadius = 4.0 * tokenRadius
@@ -173,27 +214,20 @@ svgTransition p tid = SE.rect
   , HE.onClick (HE.input_ (ClickTransition tid))
   ]
 
-svgArrow p q = SE.line
-  [ SA.x1 p.x
-  , SA.y1 p.y
-  , SA.x2 q.x
-  , SA.y2 q.y
-  , SA.stroke $ Just (SA.RGB 200 200 200)
-  , SA.strokeWidth 0.5
-  , SA.markerEnd "url(#arrow)"
-  ]
 
+arrowHead :: forall i p. HTML i p
 arrowHead = SE.defs []
   [ SE.marker
     [ SA.id "arrow"
     , SA.markerWidth 10.0
     , SA.markerHeight 10.0
+    , SA.strokeWidth 0.2
     , SA.refX 0.0
     , SA.refY 3.0
     , SA.orient "auto"
     , SA.markerUnits "strokeWidth"
     ]
-    [ SE.path [ SA.d $ SA.Abs <$> [ SA.M 0.0 0.0, SA.L 0.0 6.0, SA.L 9.0 3.0, SA.Z ]
+    [ SE.path [ SA.d $ SA.Abs <$> [ SA.M 0.0 0.0, SA.L 0.0 6.0, SA.L 3.0 3.0, SA.Z ]
               , SA.fill   $ Just (SA.RGB 100 100 100)
               , SA.stroke $ Just (SA.RGB 200 200 200)
               ]

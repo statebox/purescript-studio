@@ -80,13 +80,14 @@ type SVGline = GlobalAttributes
   , y2 :: Number
   , transform :: String
   , strokeWidth :: Number
-  , markerEnd :: String 
+  , markerEnd :: String
   )
 
 type SVGmarker = GlobalAttributes
   ( id :: String
   , markerWidth  :: Number
   , markerHeight :: Number
+  , strokeWidth :: Number
   , refX :: Number
   , refY :: Number
   , orient :: String
