@@ -105,11 +105,11 @@ netToSVG net =
 
     -- arrow from transition to place
     arrowTo :: ∀a. Vec2D -> PlaceMarkingF pid Tokens -> Maybe (HTML a ((Query tid) Unit))
-    arrowTo dest tp = svgArrow <$> net.findPlacePoint tp.place <*> pure dest
+    arrowTo dest tp = transitionToPlace <$> net.findPlacePoint tp.place <*> pure dest
 
     -- arrow from place to transition
     arrowFrom :: ∀a. Vec2D -> PlaceMarkingF pid Tokens -> Maybe (HTML a ((Query tid) Unit))
-    arrowFrom src tp = svgArrow <$> pure src                   <*> net.findPlacePoint tp.place
+    arrowFrom src tp = transitionToPlace <$> pure src                   <*> net.findPlacePoint tp.place
 
 --------------------------------------------------------------------------------
 
@@ -134,8 +134,8 @@ transitionLinePoint pV tV =
     tX = dX / u * r
     tY = dY / u * r
 
-svgArrow :: forall i p. Vec2D -> Vec2D ->  HTML i p
-svgArrow p q = SE.line
+transitionToPlace :: forall i p. Vec2D -> Vec2D ->  HTML i p
+transitionToPlace p q = SE.line
   let
     p' = placeLinePoint p q
     q' = transitionLinePoint p q
@@ -154,7 +154,7 @@ svgArrow p q = SE.line
 toString = show
 
 svgPath :: Vec2D -> Vec2D -> _
-svgPath p q = SA.d $ SA.Abs <$> [ SA.M p'.x p'.y, SA.L q'.x q'.y ]
+svgPath p q = SA.d $ SA.Abs <$> [ SA.M p.x p.y, SA.L q.x q.y ]
 
 placeRadius :: Number
 placeRadius = 4.0 * tokenRadius
