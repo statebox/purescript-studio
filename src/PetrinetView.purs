@@ -17,7 +17,7 @@ import Halogen.HTML (HTML)
 import Halogen.HTML.Events as HE
 import Svg.Elements as SE
 import Svg.Attributes as SA
-import Math (atan2, cos, sin)
+import Math (atan2, cos, sin, sqrt)
 
 import ExampleData as Ex
 import ExampleData as Net
@@ -105,18 +105,18 @@ netToSVG net =
 
     -- arrow from transition to place
     arrowTo :: ∀a. Vec2D -> PlaceMarkingF pid Tokens -> Maybe (HTML a ((Query tid) Unit))
-    arrowTo dest tp = transitionToPlace <$> net.findPlacePoint tp.place <*> pure dest
+    arrowTo dest tp = transToPlace <$> net.findPlacePoint tp.place <*> pure dest
 
     -- arrow from place to transition
     arrowFrom :: ∀a. Vec2D -> PlaceMarkingF pid Tokens -> Maybe (HTML a ((Query tid) Unit))
-    arrowFrom src tp = transitionToPlace <$> pure src                   <*> net.findPlacePoint tp.place
+    arrowFrom src tp = placeToTrans <$> pure src                   <*> net.findPlacePoint tp.place
 
 --------------------------------------------------------------------------------
 
 placeLinePoint :: Vec2D -> Vec2D -> Vec2D
 placeLinePoint pV tV = { x: pV.x + px, y: pV.y + py }
   where
-    r  = placeRadius + 2.1
+    r  = placeRadius + 2.2
     dx = tV.x - pV.x
     dy = tV.y - pV.y
     α  = atan2 dy dx
@@ -124,8 +124,7 @@ placeLinePoint pV tV = { x: pV.x + px, y: pV.y + py }
     py = sin α * r
 
 transitionLinePoint :: Vec2D -> Vec2D -> Vec2D
-transitionLinePoint pV tV =
-    { x: tV.x - tX, y: tV.y - tY }
+transitionLinePoint pV tV = { x: tV.x - tX, y: tV.y - tY }
   where
     r  = 4.3
     dX = tV.x - pV.x
@@ -134,16 +133,102 @@ transitionLinePoint pV tV =
     tX = dX / u * r
     tY = dY / u * r
 
-transitionToPlace :: forall i p. Vec2D -> Vec2D ->  HTML i p
-transitionToPlace p q = SE.line
+placeLinePoint' :: Vec2D -> Vec2D -> Vec2D
+placeLinePoint' pV tV = { x: pV.x + px, y: pV.y + py }
+  where
+    r  = placeRadius
+    dx = tV.x - pV.x
+    dy = tV.y - pV.y
+    α  = atan2 dy dx
+    px = cos α * r
+    py = sin α * r
+
+transitionLinePoint' :: Vec2D -> Vec2D -> Vec2D
+transitionLinePoint' pV tV = { x: tV.x - tX, y: tV.y - tY }
+  where
+    r  = 4.3
+    dX = tV.x - pV.x
+    dY = tV.y - pV.y
+    u  = max (abs dX) (abs dY)
+    tX = dX / u * r
+    tY = dY / u * r
+
+
+sqr x = x * x
+-- \  1 /
+--  \  /
+-- 3 \/ 4
+--   /\
+--  /  \
+-- /  2 \
+
+tLP :: Vec2D -> Vec2D -> Vec2D
+tLP v1 v2 =
   let
-    p' = placeLinePoint p q
-    q' = transitionLinePoint p q
+    l  = 4.3
+    p1  = v1.x
+    p2  = v1.y
+    s1 = v2.x
+    s2 = v2.y
+
+    t = 1.8
+
+    ll = sqrt (sqr(s2 - p2) + sqr(p1 - s1))
+
   in
-    [ SA.x1 q'.x
-    , SA.y1 q'.y
-    , SA.x2 p'.x
-    , SA.y2 p'.y
+    if (abs (s2 - p2) >= abs (p1 - s1)) then
+      if (s2 - p2) >= 0.0 then -- 1
+        let
+          xs = (((p1 - s1) / (s2 - p2)) * (-s2 + p2 + l)) + p1 + (t * ((p1 - s1) / ll))
+          ys = s2 - l - t * ((s2 - p2) / ll)
+        in
+          { x: xs, y: ys }
+      else -- 2
+        let
+          xs = (((p1 - s1) / (s2 - p2)) * (-s2 + p2 - l)) + p1 + (t * ((p1 - s1) / ll))
+          ys = s2 + l - t * ((s2 - p2) / ll)
+        in
+          { x: xs, y: ys }
+    else
+      if (p1 - s1) > 0.0 then --4
+        let
+          xs = (s1 + l) + (t * ((p1 - s1) / ll))
+          ys = -(((s2 - p2) / (p1 - s1)) * (s1 + l - p1)) + p2 + t * ((p1 - s1) / ll)
+        in
+          { x: xs, y: ys }
+      else -- 3
+        let
+          xs = (s1 - l) + (t * ((p1 - s1) / ll))
+          ys = -(((s2 - p2) / (p1 - s1)) * (s1 - l - p1)) + p2 + t * ((p1 - s1) / ll)
+        in
+          { x: xs, y: ys }
+
+
+transToPlace :: forall i p. Vec2D -> Vec2D ->  HTML i p
+transToPlace p q = SE.line
+  let
+    p' = transitionLinePoint p q
+    q' = placeLinePoint p q
+  in
+    [ SA.x1 p'.x
+    , SA.y1 p'.y
+    , SA.x2 q'.x
+    , SA.y2 q'.y
+    , SA.stroke $ Just (SA.RGB 200 200 200)
+    , SA.strokeWidth 0.5
+    , SA.markerEnd "url(#arrow)"
+    ]
+
+placeToTrans :: forall i p. Vec2D -> Vec2D ->  HTML i p
+placeToTrans q p = SE.line
+  let
+    p' = placeLinePoint' p q
+    q' = tLP p q
+  in
+    [ SA.x1 p'.x
+    , SA.y1 p'.y
+    , SA.x2 q'.x
+    , SA.y2 q'.y
     , SA.stroke $ Just (SA.RGB 200 200 200)
     , SA.strokeWidth 0.5
     , SA.markerEnd "url(#arrow)"
@@ -213,7 +298,6 @@ svgTransition p tid = SE.rect
   , SA.stroke  (Just (SA.RGB 250 0   100))
   , HE.onClick (HE.input_ (ClickTransition tid))
   ]
-
 
 arrowHead :: forall i p. HTML i p
 arrowHead = SE.defs []
