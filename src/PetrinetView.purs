@@ -113,10 +113,9 @@ netToSVG net =
 
 --------------------------------------------------------------------------------
 
-placeLinePoint :: Vec2D -> Vec2D -> Vec2D
-placeLinePoint pV tV = { x: pV.x + px, y: pV.y + py }
+placeLinePoint :: Vec2D -> Vec2D -> Number -> Vec2D
+placeLinePoint pV tV r = { x: pV.x + px, y: pV.y + py }
   where
-    r  = placeRadius + 2.2
     dx = tV.x - pV.x
     dy = tV.y - pV.y
     α  = atan2 dy dx
@@ -133,28 +132,9 @@ transitionLinePoint pV tV = { x: tV.x - tX, y: tV.y - tY }
     tX = dX / u * r
     tY = dY / u * r
 
-placeLinePoint' :: Vec2D -> Vec2D -> Vec2D
-placeLinePoint' pV tV = { x: pV.x + px, y: pV.y + py }
-  where
-    r  = placeRadius
-    dx = tV.x - pV.x
-    dy = tV.y - pV.y
-    α  = atan2 dy dx
-    px = cos α * r
-    py = sin α * r
-
-transitionLinePoint' :: Vec2D -> Vec2D -> Vec2D
-transitionLinePoint' pV tV = { x: tV.x - tX, y: tV.y - tY }
-  where
-    r  = 4.3
-    dX = tV.x - pV.x
-    dY = tV.y - pV.y
-    u  = max (abs dX) (abs dY)
-    tX = dX / u * r
-    tY = dY / u * r
-
-
+sqr :: Number -> Number
 sqr x = x * x
+
 -- \  1 /
 --  \  /
 -- 3 \/ 4
@@ -162,8 +142,11 @@ sqr x = x * x
 --  /  \
 -- /  2 \
 
-tLP :: Vec2D -> Vec2D -> Vec2D
-tLP v1 v2 =
+arrowHeadHeight :: Number
+arrowHeadHeight = 1.8
+
+arrowTransLinePoint :: Vec2D -> Vec2D -> Vec2D
+arrowTransLinePoint v1 v2 =
   let
     l  = 4.3
     p1  = v1.x
@@ -171,7 +154,7 @@ tLP v1 v2 =
     s1 = v2.x
     s2 = v2.y
 
-    t = 1.8
+    t = arrowHeadHeight
 
     ll = sqrt (sqr(s2 - p2) + sqr(p1 - s1))
 
@@ -208,7 +191,7 @@ transToPlace :: forall i p. Vec2D -> Vec2D ->  HTML i p
 transToPlace p q = SE.line
   let
     p' = transitionLinePoint p q
-    q' = placeLinePoint p q
+    q' = placeLinePoint p q (placeRadius + 2.0)
   in
     [ SA.x1 p'.x
     , SA.y1 p'.y
@@ -222,8 +205,8 @@ transToPlace p q = SE.line
 placeToTrans :: forall i p. Vec2D -> Vec2D ->  HTML i p
 placeToTrans q p = SE.line
   let
-    p' = placeLinePoint' p q
-    q' = tLP p q
+    p' = placeLinePoint p q (placeRadius + 0.5)
+    q' = arrowTransLinePoint p q
   in
     [ SA.x1 p'.x
     , SA.y1 p'.y
