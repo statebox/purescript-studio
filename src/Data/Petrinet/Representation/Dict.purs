@@ -1,5 +1,8 @@
 module Data.Petrinet.Representation.Dict
-  ( NetRepF
+  ( NetObjF
+  , NetRepF
+  , NetApiF
+  , mkNetObjF
   , MarkingF
 
   , mkMarkingF
@@ -27,8 +30,8 @@ import Data.Newtype (class Newtype, un, unwrap)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec2D (Vec2D)
 import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
-import Data.Group
-import Data.Bag
+import Data.Group (class Group, ginverse)
+import Data.Bag (BagF(..))
 
 type MarkingF a n = BagF a n
 
@@ -40,21 +43,51 @@ unMarkingF (BagF dict) = dict
 
 --------------------------------------------------------------------------------
 
-type NetRepF pid tid tok =
+-- | A representation of a petri net.
+type NetRepF pid tid tok r =
   { places                :: Array pid
   , transitionsDict       :: Map tid (TransitionF pid tok)
-  , labelsDict            :: Map pid String
+  , placeLabelsDict       :: Map pid String
 
   , marking               :: MarkingF pid tok
 
   , placePointsDict       :: Map pid Vec2D
   , transitionPointsDict  :: Map tid Vec2D
+  | r
+  }
 
-  , findTransition        :: tid -> Maybe (TransitionF pid tok)
+-- | A NetRepF with some associated API operations.
+type NetObjF pid tid tok = NetRepF pid tid tok
+  ( findTransition        :: tid -> Maybe (TransitionF pid tok)
   , findPlaceLabel        :: pid -> Maybe String
 
   , findPlacePoint        :: pid -> Maybe Vec2D
   , findTransitionPoint   :: tid -> Maybe Vec2D
+  )
+
+-- TODO was the idea to converge on this one in favour of NetObjF?
+type NetApiF pid tid tok =
+  { findTokens :: pid -> tok
+  }
+
+--------------------------------------------------------------------------------
+
+mkNetObjF :: forall pid tid tok. Ord pid => Ord tid => NetRepF pid tid tok () -> NetObjF pid tid tok
+mkNetObjF x =
+  { places               : x.places
+  , transitionsDict      : x.transitionsDict
+  , marking              : x.marking
+  , transitionPointsDict : x.transitionPointsDict
+  , placeLabelsDict      : x.placeLabelsDict
+  , placePointsDict      : x.placePointsDict
+
+  -- API, sort of
+  , findTransition       : flip Map.lookup x.transitionsDict
+  , findPlaceLabel       : flip Map.lookup x.placeLabelsDict
+
+  -- rendering related
+  , findPlacePoint       : flip Map.lookup x.placePointsDict
+  , findTransitionPoint  : flip Map.lookup x.transitionPointsDict
   }
 
 --------------------------------------------------------------------------------
@@ -90,9 +123,9 @@ fire
    . Ord p
   => Semiring tok
   => Group (MarkingF p tok)
-  => NetRepF p t tok
+  => NetObjF p t tok
   -> TransitionF p tok
-  -> NetRepF p t tok
+  -> NetObjF p t tok
 fire net t = net { marking = fireAtMarking net.marking t }
 
 fireAtMarking
@@ -112,7 +145,7 @@ findTokens
   :: ∀ p t tok
    . Ord p
   => Monoid (Additive tok)
-  => NetRepF p t tok
+  => NetObjF p t tok
   -> p
   -> tok
 findTokens net = findTokens' net.marking
