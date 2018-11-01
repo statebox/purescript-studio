@@ -26,7 +26,7 @@ import Svg.Util as SvgUtil
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import ExampleData (PID, TID, Tokens, NetRep, NetApiF)
+import ExampleData (PID, TID, Tokens, NetObj, NetApi)
 
 -- config ----------------------------------------------------------------------
 
@@ -47,7 +47,7 @@ arcAnimationDuration = seconds 0.70
 data Query tid a = ClickTransition tid a
 
 type State tid =
-  { net    :: NetRepF PID tid Tokens
+  { net    :: NetObjF PID tid Tokens
   , netApi :: NetApiF PID tid Tokens
   , msg    :: String
   }
@@ -110,7 +110,7 @@ eval (ClickTransition tid next) = do
         netMaybe' = fire state.net <$> state.net.findTransition tid
         net'      = fromMaybe state.net $ netMaybe'
 
-netToSVG :: ∀ pid tid a. Ord pid => Show pid => Show tid => NetRepF pid tid Tokens -> Array (HTML a ((Query tid) Unit))
+netToSVG :: ∀ pid tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((Query tid) Unit))
 netToSVG net =
   svgTransitions <> svgPlaces
   where

@@ -2,8 +2,8 @@ module ExampleData
   ( PID
   , TID
   , Tokens
-  , NetRep
-  , NetApiF
+  , NetObj
+  , NetApi
   , net1
   , netApi1
   ) where
@@ -25,7 +25,8 @@ import Data.Vec2D (Vec2D)
 
 import Data.Petrinet.Representation.Dict
 
--- types specialised to Int index
+-- types specialised to Int index ----------------------------------------------
+
 type PID          = Int
 type TID          = Int
 type Tokens       = Int
@@ -33,11 +34,43 @@ type Transition   = TransitionF   PID Tokens
 type Marking      = MarkingF      PID Tokens
 type PlaceMarking = PlaceMarkingF PID Tokens
 
-type NetApiF pid tid tok =
-  { findTokens :: pid -> tok
-  }
+type NetRep = NetRepF PID TID Tokens ()
 
-type NetRep = NetRepF PID TID Tokens
+type NetObj = NetObjF PID TID Tokens
+
+type NetApi = NetApiF PID TID Tokens
+
+--------------------------------------------------------------------------------
+
+mkNetRep
+  :: Array PID
+  -> Array Transition
+  -> Marking
+  -> Array (PID /\ String)
+  -> Array (PID /\ Vec2D)
+  -> Array Vec2D
+  -> NetRep
+mkNetRep places transitions marking placeLabels placePoints transitionPoints =
+  { places:               places
+  , transitionsDict:      transitionsDict
+  , marking:              marking
+  , placeLabelsDict:      placeLabelsDict
+  , placePointsDict:      placePointsDict
+  , transitionPointsDict: transitionPointsDict
+  }
+  where
+    -- TODO check +1
+    firstTransitionIndex = length places + 1
+
+    transitionsDict :: Map Int Transition
+    transitionsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitions
+
+    placeLabelsDict :: Map Int String
+    placeLabelsDict = Map.fromFoldable placeLabels
+
+    placePointsDict = Map.fromFoldable placePoints
+
+    transitionPointsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
 
 --------------------------------------------------------------------------------
 
@@ -55,9 +88,6 @@ labels1 =
   , 5 /\ "queue"
   ]
 
-labelsDict1 :: Map PID String
-labelsDict1 = Map.fromFoldable labels1
-
 marking1 :: Marking
 marking1 = Bag.fromFoldable
   [ 1 /\ 1
@@ -72,8 +102,6 @@ placePoints1 =
   , 4 /\ { y: 30.0, x: 70.0 }
   , 5 /\ { y: 30.0, x: 50.0 }
   ]
-
-placePointsDict1 = Map.fromFoldable placePoints1
 
 transitions1 :: Array Transition
 transitions1 =
@@ -102,15 +130,6 @@ transitions1 =
     m p tok = { place: p, tokens: tok }
     ms      = identity
 
-leBase_TODO = 100
-transitionPointsDict1 = Map.fromFoldable $ zipWithIndexFrom leBase_TODO transitionPoints1
-
-transitionsDict1 :: Map Int Transition
-transitionsDict1 = Map.fromFoldable $ zipWithIndexFrom leBase_TODO transitions1
-
-zipWithIndexFrom :: forall v. Int -> Array v -> Array (Tuple Int v)
-zipWithIndexFrom i0 xs = mapWithIndex (\i x -> Tuple (i0+i) x) xs
-
 transitionPoints1 =
   [ { x: 30.0, y: 20.0 }
   , { x: 30.0, y: 40.0 }
@@ -118,35 +137,18 @@ transitionPoints1 =
   , { x: 70.0, y: 40.0 }
   ]
 
-net1Data =
-  { places1:               places1
-  , transitionsDict1:      transitionsDict1
-  , marking:               marking1
-  , labelsDict1:           labelsDict1
-  , placePointsDict1:      placePointsDict1
-  , transitionPointsDict1: transitionPointsDict1
-  }
+net1Data :: NetRep
+net1Data = mkNetRep places1 transitions1 marking1 labels1 placePoints1 transitionPoints1
 
--- TODO eliminate; this is a union of net1Data and some extra API-like methods
-net1 :: NetRep
-net1 =
-  { places               : net1Data.places1
-  , transitionsDict      : net1Data.transitionsDict1
-  , marking              : net1Data.marking
-  , transitionPointsDict : transitionPointsDict1
-  , labelsDict           : labelsDict1
-  , placePointsDict      : placePointsDict1
+net1 :: NetObj
+net1 = mkNetObjF net1Data
 
-  -- API, sort of
-  , findTransition       : flip Map.lookup net1Data.transitionsDict1
-  , findPlaceLabel       : flip Map.lookup net1Data.labelsDict1
-
-  -- rendering related
-  , findPlacePoint       : flip Map.lookup net1Data.placePointsDict1
-  , findTransitionPoint  : flip Map.lookup net1Data.transitionPointsDict1
-  }
-
-netApi1 :: NetApiF PID TID Tokens
+netApi1 :: NetApi
 netApi1 =
-  { findTokens           : findTokens' net1Data.marking
+  { findTokens : findTokens' net1Data.marking
   }
+
+--------------------------------------------------------------------------------
+
+zipWithIndexFrom :: forall v. Int -> Array v -> Array (Tuple Int v)
+zipWithIndexFrom i0 xs = mapWithIndex (\i x -> Tuple (i0+i) x) xs
