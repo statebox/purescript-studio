@@ -2,13 +2,13 @@ module Svg.Attributes where
 -- Like Halogen.HTML.Properties
 
 import Prelude
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.String (joinWith, toUpper)
 
 import Core as Core
 
-import Halogen.HTML.Core (Prop, AttrName(AttrName))
-import Halogen.HTML.Properties (IProp)
+import Halogen.HTML.Core (Prop, AttrName(AttrName), Namespace(Namespace))
+import Halogen.HTML.Properties (IProp, attrNS)
 import Unsafe.Coerce (unsafeCoerce)
 
 data Color = RGB Int Int Int
@@ -62,7 +62,7 @@ instance showCSSLength :: Show CSSLength where
   show Nil = "0"
 
 
-data FontSize 
+data FontSize
   = XXSmall
   | XSmall
   | Small
@@ -243,8 +243,74 @@ font_size = attr (AttrName "font-size") <<< show
 dominant_baseline :: forall r i . Baseline -> IProp (transform :: String | r) i
 dominant_baseline = attr (AttrName "dominant-baseline") <<< printBaseline
 
+-- TODO shouldn't this be 'classes' taking an (Array Classname), like the rest of Halogen?
 class_ :: forall r i . String -> IProp (class :: String | r) i
 class_ = attr (AttrName "class")
 
 id :: forall r i . String -> IProp (id :: String | r) i
 id = attr (AttrName "id")
+
+--------------------------------------------------------------------------------
+
+-- | https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/dur
+data DurationF a = Duration (Maybe a) (Maybe a) (Maybe a) (Maybe a) -- ^ TODO hours minutes seconds millis
+
+derive instance functorDurationF :: Functor DurationF
+
+printDurationF :: forall a. Show a => DurationF a -> String
+printDurationF (Duration h m s i) = f "h" h <> f "m" m <> f "s" s <> f "i" i
+  where f u = maybe "" (\v -> show v <> u)
+
+type Duration = DurationF Number
+
+-- TODO derive Show instance for DurationF
+
+printDuration :: Duration -> String
+printDuration = printDurationF
+
+-- TODO add other constructors
+seconds :: Number -> Duration
+seconds s = Duration Nothing Nothing (Just s) Nothing
+
+data FillState = Freeze | Remove
+
+printFillState :: FillState -> String
+printFillState = case _ of
+  Freeze -> "freeze"
+  Remove -> "remove"
+
+dur :: forall r i. Duration -> IProp (dur :: String | r) i
+dur = attr (AttrName "dur") <<< printDuration
+
+-- TODO ADT or free string?
+attributeName :: forall r i. String -> IProp (attributeName :: String | r) i
+attributeName = attr (AttrName "attributeName")
+
+-- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/from
+from :: forall r i. String -> IProp (from :: String | r) i
+from = attr (AttrName "from")
+
+-- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/to
+to :: forall r i. String -> IProp (to :: String | r) i
+to = attr (AttrName "to")
+
+-- https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/begin
+begin :: forall r i. String -> IProp (begin :: String | r) i
+begin = attr (AttrName "begin")
+
+repeatCount :: forall r i. Int -> IProp (repeatCount :: Int | r) i
+repeatCount = attr (AttrName "repeatCount") <<< show
+
+-- TODO this is just 'fill', but that functino is already specialised to Color in this module
+fillAnim :: forall r i. FillState -> IProp (fill :: String | r) i
+fillAnim = attr (AttrName "fill") <<< printFillState
+
+-- TODO xlink:href seems to have some issues, among others around its namespace
+xlinkHref :: forall r i. String -> IProp (xlinkHref :: String | r) i
+-- xlinkHref = attr (AttrName "xlink:href")
+-- xlinkHref = attrNS (Namespace "xlink") (AttrName "href")
+xlinkHref = attrNS (Namespace "xlink") (AttrName "xlink:href")
+
+-- TODO copied from `d`; adapt where needed
+path :: forall r i . Array D -> IProp (path :: String | r) i
+path = attr (AttrName "path") <<< joinWith " " <<< map printD

@@ -96,3 +96,22 @@ type SVGforeignObject = GlobalAttributes
   , height :: Number
   , width :: Number
   )
+
+--------------------------------------------------------------------------------
+
+type AnimationAttributes r = GlobalAttributes
+  ( from :: String
+  , to :: String
+  , begin :: String
+  , dur :: String
+  , repeatCount :: Int
+  , fill :: String -- ^ Unlike 'fill' in 'GlobalAttributes', this is intended to record a 'FillState' via 'fillAnim'.
+  | r
+  )
+
+type SVGanimate = AnimationAttributes (attributeName :: String)
+
+type SVGanimateMotion = AnimationAttributes (path :: String)
+
+-- TODO should this have GlobalAttributes?
+type SVGmpath = (xlinkHref :: String)
