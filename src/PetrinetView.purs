@@ -253,7 +253,7 @@ svgPlace { id: id, label: label, point: point, tokens: tokens } =
                  , SA.y         (point.y - 0.2 * placeRadius)
                  , SA.font_size (SA.FontSizeLength (SA.Px 2.0))
                  ]
-                 [ HH.text $ if tokens == 0 then "" else show tokens ]
+                 [ HH.text $ if tokens == 0 || tokens == 1 then "" else show tokens ]
        ]
   where
     svgTokens :: Tokens -> Vec2D -> HTML a ((Query tid) Unit)
