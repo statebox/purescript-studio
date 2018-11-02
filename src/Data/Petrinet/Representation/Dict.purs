@@ -14,14 +14,15 @@ module Data.Petrinet.Representation.Dict
   , fireAtMarking
   , findTokens
   , findTokens'
+  , isTransitionEnabled
 
   , preMarking
   , postMarking
   , trMarking
-  )
-where
+  ) where
 
 import Prelude hiding ((-))
+import Data.Foldable (all)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -32,6 +33,7 @@ import Data.Vec2D (Vec2D)
 import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
 import Data.Group (class Group, ginverse)
 import Data.Bag (BagF(..))
+import Data.Bag as Bag
 
 type MarkingF a n = BagF a n
 
@@ -158,3 +160,14 @@ findTokens'
   -> p
   -> tok
 findTokens' marking place = unwrap $ fromMaybe mempty $ map Additive $ Map.lookup place (unMarkingF marking)
+
+--------------------------------------------------------------------------------
+
+-- TODO `z` is a workaround; use `findTokens' (`mark`?) or Bag-related fns
+isTransitionEnabled :: ∀ pid tok. Ord tok => tok -> Ord pid => MarkingF pid tok -> TransitionF pid tok -> Boolean
+isTransitionEnabled z marking t = isPlaceEnabled `all` t.pre
+  where
+    isPlaceEnabled :: PlaceMarkingF pid tok -> Boolean
+    isPlaceEnabled tp = mark tp >= tp.tokens
+
+    mark tp = fromMaybe z $ Bag.lookup' marking tp.place

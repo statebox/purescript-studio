@@ -4,6 +4,7 @@ import Prelude
 import Data.Foldable (class Foldable, foldl, foldr)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Map as Map
+import Data.Monoid (guard)
 import Data.Monoid.Additive (Additive(..))
 import Data.Tuple (Tuple(..), uncurry, snd)
 import Data.Traversable (traverse)
@@ -44,7 +45,9 @@ arcAnimationDuration = seconds 0.70
 
 --------------------------------------------------------------------------------
 
-data Query tid a = ClickTransition tid a
+data Query tid a
+  = FireTransition tid a
+  | MisfireTransition tid a -- ^ for inactive transitions
 
 type State tid =
   { net    :: NetObjF PID tid Tokens
@@ -94,21 +97,20 @@ ui initialState =
         paddingY    = 4.0 * transitionHeight
 
 eval :: ∀ tid. Show tid => Query tid ~> H.ComponentDSL (State tid) (Query tid) Void Aff
-eval (ClickTransition tid next) = do
-  numElems <- H.liftAff $ SvgUtil.beginElements ("." <> arcAnimationClass tid)
-  H.modify_ (mod1 numElems)
-  pure next
-  where
-    mod1 numElems' state =
-      state { net = net'
-            , msg = "numElems = " <> show numElems' <> "\n\n"
-                 <> "transition " <> show tid <> " clicked!"
-                 <> "\n\n"
-                 <> show (_.marking <$> netMaybe')
-            }
-      where
-        netMaybe' = fire state.net <$> state.net.findTransition tid
-        net'      = fromMaybe state.net $ netMaybe'
+eval = case _ of
+  MisfireTransition tid next -> pure next
+  FireTransition    tid next -> do
+    numElems <- H.liftAff $ SvgUtil.beginElements ("." <> arcAnimationClass tid)
+    H.modify_ (mod1 tid)
+    pure next
+    where
+      mod1 tid state =
+        state { net = net'
+              , msg = "marking = " <> show (_.marking <$> netMaybe')
+              }
+        where
+          netMaybe' = fire state.net <$> state.net.findTransition tid
+          net'      = fromMaybe state.net $ netMaybe'
 
 netToSVG :: ∀ pid tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((Query tid) Unit))
 netToSVG net =
@@ -134,13 +136,15 @@ netToSVG net =
       preArcs   <- mkPreArc  tid trPos `traverse` tr.pre
       postArcs  <- mkPostArc tid trPos `traverse` tr.post
 
-      let svgPreArcs  = svgArc <$> preArcs
-      let svgPostArcs = svgArc <$> postArcs
+      let
+        svgPreArcs  = svgArc <$> preArcs
+        svgPostArcs = svgArc <$> postArcs
+        isEnabled   = Ex.isTransitionEnabled0 net.marking tr
 
       pure $
-        SE.g [ SA.class_ "css-transition"
+        SE.g [ SA.class_ $ "css-transition" <> guard isEnabled " enabled"
              , SA.id (mkTransitionIdStr tid)
-             , HE.onClick (HE.input_ (ClickTransition tid))
+             , HE.onClick (HE.input_ (if isEnabled then FireTransition tid else MisfireTransition tid))
              ]
              (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
 

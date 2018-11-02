@@ -6,6 +6,7 @@ module ExampleData
   , NetApi
   , net1
   , netApi1
+  , isTransitionEnabled0
   ) where
 
 import Prelude
@@ -71,6 +72,10 @@ mkNetRep places transitions marking placeLabels placePoints transitionPoints =
     placePointsDict = Map.fromFoldable placePoints
 
     transitionPointsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
+
+-- TODO put this specialised version in this module because it uses `Tokens`, which is defined in here as well
+isTransitionEnabled0 :: ∀ pid. Ord pid => MarkingF pid Tokens -> TransitionF pid Tokens -> Boolean
+isTransitionEnabled0 = isTransitionEnabled 0
 
 --------------------------------------------------------------------------------
 

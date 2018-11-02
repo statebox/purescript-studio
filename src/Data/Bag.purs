@@ -4,6 +4,7 @@ import Prelude
 import Data.Foldable (class Foldable)
 import Data.Map as Map
 import Data.Map (Map)
+import Data.Maybe (Maybe)
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, un, unwrap)
 import Data.Group (class Group, ginverse) -- TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
@@ -37,3 +38,9 @@ fromMap = BagF
 
 fromFoldable :: ∀ f a n. Ord a => Foldable f => f (Tuple a n) -> BagF a n
 fromFoldable = BagF <<< Map.fromFoldable
+
+lookup :: ∀ a n. Ord a => a -> BagF a n -> Maybe n
+lookup k (BagF m) = Map.lookup k m
+
+lookup' :: ∀ a n. Ord a => BagF a n -> a -> Maybe n
+lookup' = flip lookup
