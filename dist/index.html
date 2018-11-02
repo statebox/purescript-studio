@@ -45,18 +45,22 @@
     }
     .css-transition.enabled .css-transition-rect {
         fill: rgb(220,240,220);
-        /* stroke: green; */
+        cursor: pointer;
+        cursor: hand;
     }
-    .css-transition:hover .css-arc {
+    .css-transition.enabled:hover .css-arc {
+        cursor: hand;
+    }
+    .css-transition.enabled:hover .css-arc {
         stroke-width: 0.75;
         transition: stroke-width 0.5s;
         stroke-linejoin: round;
         stroke-linecap: round;
     }
-    .css-transition:hover .css-pre-arc {
+    .css-transition.enabled:hover .css-pre-arc {
         stroke: rgb(240,200,220);
     }
-    .css-transition:hover .css-post-arc {
+    .css-transition.enabled:hover .css-post-arc {
         stroke: rgb(220,240,220);
     }
     .css-token-in-place {
