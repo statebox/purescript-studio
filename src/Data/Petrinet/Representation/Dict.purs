@@ -163,11 +163,12 @@ findTokens' marking place = unwrap $ fromMaybe mempty $ map Additive $ Map.looku
 
 --------------------------------------------------------------------------------
 
--- TODO `z` is a workaround; use `findTokens' (`mark`?) or Bag-related fns
-isTransitionEnabled :: ∀ pid tok. Ord tok => tok -> Ord pid => MarkingF pid tok -> TransitionF pid tok -> Boolean
-isTransitionEnabled z marking t = isPlaceEnabled `all` t.pre
+-- TODO use `findTokens' (`mark`?) or Marking/Bag-related functions
+isTransitionEnabled :: ∀ pid tok. Ord tok => Ord pid => MarkingF pid tok -> TransitionF pid tok -> Boolean
+isTransitionEnabled marking t = isPlaceEnabled `all` t.pre
   where
     isPlaceEnabled :: PlaceMarkingF pid tok -> Boolean
-    isPlaceEnabled tp = mark tp >= tp.tokens
+    isPlaceEnabled tp = fromMaybe false $ (>=) <$> mark tp.place <*> Just tp.tokens
 
-    mark tp = fromMaybe z $ Bag.lookup' marking tp.place
+    mark :: pid -> Maybe tok
+    mark = Bag.lookup' marking

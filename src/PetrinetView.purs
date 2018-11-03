@@ -139,7 +139,7 @@ netToSVG net =
       let
         svgPreArcs  = svgArc <$> preArcs
         svgPostArcs = svgArc <$> postArcs
-        isEnabled   = Ex.isTransitionEnabled0 net.marking tr
+        isEnabled   = isTransitionEnabled net.marking tr
 
       pure $
         SE.g [ SA.class_ $ "css-transition" <> guard isEnabled " enabled"
