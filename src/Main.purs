@@ -1,6 +1,7 @@
 module Main where
 
 import Prelude
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
@@ -23,4 +24,4 @@ initialState =
 main :: Effect Unit
 main = runHalogenAff do
   body <- awaitBody
-  runUI (PetrinetView.ui initialState) unit body
+  runUI (PetrinetView.ui (Just "n1") initialState) unit body
