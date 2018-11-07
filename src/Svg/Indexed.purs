@@ -79,6 +79,8 @@ type SVGline = GlobalAttributes
   , x2 :: Number
   , y2 :: Number
   , transform :: String
+  , strokeWidth :: Number
+  , markerEnd :: String
   )
 
 type SVGtext = GlobalAttributes
@@ -95,6 +97,17 @@ type SVGforeignObject = GlobalAttributes
   , y :: Number
   , height :: Number
   , width :: Number
+  )
+
+type SVGmarker = GlobalAttributes
+  ( id :: String
+  , markerWidth  :: Number
+  , markerHeight :: Number
+  , strokeWidth :: Number
+  , refX :: Number
+  , refY :: Number
+  , orient :: String
+  , markerUnits :: String
   )
 
 --------------------------------------------------------------------------------

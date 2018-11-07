@@ -45,6 +45,12 @@ text = element (ElemName "text")
 foreignObject :: forall p i . Node I.SVGforeignObject p i
 foreignObject = element (ElemName "foreignObject")
 
+defs :: forall p i. Node I.SVGg p i
+defs = element $ ElemName "defs"
+
+marker :: forall p i. Node I.SVGmarker p i
+marker = element $ ElemName "marker"
+
 --------------------------------------------------------------------------------
 
 animate :: forall p i. Leaf I.SVGanimate p i
