@@ -50,6 +50,10 @@ data Query tid a
   = FireTransition tid a
   | MisfireTransition tid a -- ^ for inactive transitions
 
+-- | Messages sent to the outside world (i.e. parent components).
+--   TODO This is a dummy placeholder for now.
+data Msg = NetUpdated
+
 type State tid =
   { net    :: NetObjF PID tid Tokens
   , netApi :: NetApiF PID tid Tokens
@@ -79,11 +83,11 @@ type HtmlId = String
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ tid g. Show tid => Maybe HtmlId -> State tid -> H.Component HTML (Query tid) Unit Void Aff
+ui :: ∀ tid g. Show tid => Maybe HtmlId -> State tid -> H.Component HTML (Query tid) Unit Msg Aff
 ui htmlIdPrefixMaybe initialState =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
-    render :: State tid -> H.ComponentHTML (Query tid)
+    render :: State tid -> HTML Void (Query tid Unit)
     render state =
       div [ HP.classes [ ClassName "petrinet-component" ] ]
           [ div [] [ HH.text state.msg ]
@@ -99,12 +103,13 @@ ui htmlIdPrefixMaybe initialState =
         paddingX    = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
         paddingY    = 4.0 * transitionHeight
 
-    eval :: ∀ tid. Show tid => Query tid ~> H.ComponentDSL (State tid) (Query tid) Void Aff
+    eval :: ∀ tid. Show tid => Query tid ~> H.ComponentDSL (State tid) (Query tid) Msg Aff
     eval = case _ of
       MisfireTransition tid next -> pure next
       FireTransition    tid next -> do
         numElems <- H.liftAff $ SvgUtil.beginElements ("." <> arcAnimationClass tid)
         H.modify_ (mod1 tid)
+        H.raise NetUpdated -- notify parent components
         pure next
         where
           mod1 tid state =
