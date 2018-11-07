@@ -21,7 +21,7 @@ arrowHeadHeight = 1.8
 sqr :: Number -> Number
 sqr x = x * x
 
-arrowHead :: forall i p. HTML i p
+arrowHead :: forall p i. HTML p i
 arrowHead = SE.defs []
   [ SE.marker
     [ SA.id "arrow"
