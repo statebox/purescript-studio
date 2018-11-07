@@ -61,3 +61,8 @@ circleNode = element (ElemName "circle")
 -- https://developer.mozilla.org/en-US/docs/Web/SVG/Element/mpath
 mpath :: forall p i. Leaf I.SVGmpath p i
 mpath props = element (ElemName "mpath") props []
+
+--------------------------------------------------------------------------------
+
+title :: forall p i. Node I.SVGtitle p i
+title = element (ElemName "title")

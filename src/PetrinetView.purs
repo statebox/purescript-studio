@@ -17,6 +17,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Core (ClassName(..))
+import Halogen.HTML.Core as Core
 import Halogen.HTML (HTML, div)
 import Halogen.HTML.Events as HE
 import Svg.Elements as SE
@@ -243,7 +244,8 @@ ui htmlIdPrefixMaybe initialState =
     svgPlace :: ∀ a pid tid. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((Query tid) Unit)
     svgPlace { id: id, label: label, point: point, tokens: tokens } =
       SE.g [ SA.id (mkPlaceIdStr id) ]
-           [ SE.circle
+           [ SE.title [] [ Core.text label ]
+           , SE.circle
                [ SA.class_ "css-place"
                , SA.r      placeRadius
                , SA.cx     point.x

@@ -115,3 +115,7 @@ type SVGanimateMotion = AnimationAttributes (path :: String)
 
 -- TODO should this have GlobalAttributes?
 type SVGmpath = (xlinkHref :: String)
+
+--------------------------------------------------------------------------------
+
+type SVGtitle = GlobalAttributes ()
