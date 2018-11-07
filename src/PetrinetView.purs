@@ -46,7 +46,7 @@ arcAnimationDuration = seconds 0.70
 
 --------------------------------------------------------------------------------
 
-data Query tid a
+data QueryF pid tid a
   = FireTransition tid a
   | MisfireTransition tid a -- ^ for inactive transitions
 
@@ -54,9 +54,9 @@ data Query tid a
 --   TODO This is a dummy placeholder for now.
 data Msg = NetUpdated
 
-type State tid =
-  { net    :: NetObjF PID tid Tokens
-  , netApi :: NetApiF PID tid Tokens
+type StateF pid tid =
+  { net    :: NetObjF pid tid Tokens
+  , netApi :: NetApiF pid tid Tokens
   , msg    :: String
   }
 
@@ -83,11 +83,11 @@ type HtmlId = String
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ tid g. Show tid => Maybe HtmlId -> State tid -> H.Component HTML (Query tid) Unit Msg Aff
+ui :: ∀ pid tid g. Ord pid => Show pid => Show tid => Maybe HtmlId -> StateF pid tid -> H.Component HTML (QueryF pid tid) Unit Msg Aff
 ui htmlIdPrefixMaybe initialState =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
-    render :: State tid -> HTML Void (Query tid Unit)
+    render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
     render state =
       div [ HP.classes [ ClassName "petrinet-component" ] ]
           [ div [] [ HH.text state.msg ]
@@ -103,7 +103,7 @@ ui htmlIdPrefixMaybe initialState =
         paddingX    = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
         paddingY    = 4.0 * transitionHeight
 
-    eval :: ∀ tid. Show tid => Query tid ~> H.ComponentDSL (State tid) (Query tid) Msg Aff
+    eval :: ∀ tid. Show tid => QueryF pid tid ~> H.ComponentDSL (StateF pid tid) (QueryF pid tid) Msg Aff
     eval = case _ of
       MisfireTransition tid next -> pure next
       FireTransition    tid next -> do
@@ -120,7 +120,7 @@ ui htmlIdPrefixMaybe initialState =
               netMaybe' = fire state.net <$> state.net.findTransition tid
               net'      = fromMaybe state.net $ netMaybe'
 
-    netToSVG :: ∀ pid tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((Query tid) Unit))
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net =
       svgTransitions <> svgPlaces
       where
@@ -129,15 +129,15 @@ ui htmlIdPrefixMaybe initialState =
         svgPlaces = fromMaybe [] $ drawPlace1 `traverse` net.places
 
         -- TODO the do-block will fail as a whole if e.g. one findPLacePoint misses
-        drawPlace1 :: pid -> Maybe (HTML a ((Query tid) Unit))
+        drawPlace1 :: pid -> Maybe (HTML a ((QueryF pid tid) Unit))
         drawPlace1 id = do
-          label <- net.findPlaceLabel id
+          label <- Map.lookup id net.placeLabelsDict
           point <- net.findPlacePoint id
           let tokens = findTokens net id
           pure $ svgPlace { id: id, tokens: tokens, label: label, point: point }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
-        drawTransitionAndArcs :: ∀ a. tid -> TransitionF pid Tokens -> Maybe (HTML a ((Query tid) Unit))
+        drawTransitionAndArcs :: ∀ a. tid -> TransitionF pid Tokens -> Maybe (HTML a ((QueryF pid tid) Unit))
         drawTransitionAndArcs tid tr = do
           trPos <- net.findTransitionPoint tid
 
@@ -165,7 +165,7 @@ ui htmlIdPrefixMaybe initialState =
 
     --------------------------------------------------------------------------------
 
-    svgTransitionRect :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((Query tid) Unit)
+    svgTransitionRect :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionRect pos tid = SE.rect
       [ SA.class_  "css-transition-rect"
       , SA.width   transitionWidth
@@ -174,7 +174,7 @@ ui htmlIdPrefixMaybe initialState =
       , SA.y       (pos.y - transitionHeight / 2.0)
       ]
 
-    svgArc :: ∀ a tid. Show tid => ArcModel tid -> HTML a ((Query tid) Unit)
+    svgArc :: ∀ a pid tid. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
     svgArc arc =
       SE.g [ SA.class_ "css-arc-container" ]
            [ SE.path
@@ -201,7 +201,7 @@ ui htmlIdPrefixMaybe initialState =
 
     -- | A token that moves along the path of the enclosing arc. This should happen
     --   when the transition to which this arc is connected fires.
-    svgTokenAnimated :: ∀ a tid. Show tid => ArcModel tid -> HTML a ((Query tid) Unit)
+    svgTokenAnimated :: ∀ a pid tid. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
     svgTokenAnimated arc =
       SE.circleNode
         [ SA.class_ "css-token-animated"
@@ -246,7 +246,7 @@ ui htmlIdPrefixMaybe initialState =
 
     --------------------------------------------------------------------------------
 
-    svgPlace :: ∀ a pid tid. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((Query tid) Unit)
+    svgPlace :: ∀ a pid tid. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
     svgPlace { id: id, label: label, point: point, tokens: tokens } =
       SE.g [ SA.id (mkPlaceIdStr id) ]
            [ SE.title [] [ Core.text label ]
@@ -265,7 +265,7 @@ ui htmlIdPrefixMaybe initialState =
                      [ HH.text $ if tokens == 0 || tokens == 1 then "" else show tokens ]
            ]
       where
-        svgTokens :: Tokens -> Vec2D -> HTML a ((Query tid) Unit)
+        svgTokens :: Tokens -> Vec2D -> HTML a ((QueryF pid tid) Unit)
         svgTokens tokens point = if Additive tokens == mempty then HH.text "" else
           SE.circle
             [ SA.r      tokenRadius

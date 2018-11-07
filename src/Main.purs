@@ -5,16 +5,12 @@ import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
-import Svg.Elements as SE
-import Svg.Attributes as SA
 
 import ExampleData as Ex
-import ExampleData as Net
-import Data.Petrinet.Representation.Dict
-import ExampleData (TID)
+import ExampleData (PID, TID)
 import PetrinetView as PetrinetView
 
-initialState :: PetrinetView.State TID
+initialState :: PetrinetView.StateF PID TID
 initialState =
   { net:    Ex.net1
   , netApi: Ex.netApi1
