@@ -24,6 +24,7 @@ import Svg.Elements as SE
 import Svg.Attributes as SA
 import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
 import Svg.Util as SvgUtil
+import Svg.Arrow
 
 import ExampleData as Ex
 import ExampleData as Net
@@ -122,8 +123,10 @@ ui htmlIdPrefixMaybe initialState =
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net =
-      svgTransitions <> svgPlaces
+      svgPlaces <> svgTransitions <> svgDefs
       where
+        svgDefs = pure (SE.g [] [ arrowHead ])
+
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
 
         svgPlaces = fromMaybe [] $ drawPlace1 `traverse` net.places
