@@ -50,7 +50,7 @@ transitionLinePoint pV tV r = { x: tV.x - tX, y: tV.y - tY }
     tX = dX / u * r
     tY = dY / u * r
 
-transToPlace :: forall i p. Vec2D -> Vec2D ->  HTML i p
+transToPlace :: forall p i. Vec2D -> Vec2D -> HTML p i
 transToPlace p q =
   SE.line
     [ SA.class_ "css-tp"
@@ -64,7 +64,7 @@ transToPlace p q =
     p' = transitionLinePoint q p (2.0)
     q' = placeLinePoint q p (placeRadius + 1.5)
 
-placeToTrans :: forall i p. Vec2D -> Vec2D ->  HTML i p
+placeToTrans :: forall p i. Vec2D -> Vec2D -> HTML p i
 placeToTrans q p =
   SE.line
     [ SA.class_ "css-pt"
