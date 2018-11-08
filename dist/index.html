@@ -4,36 +4,39 @@
     <meta charset="utf-8"/>
     <title>Petri Net Viewer PureScript | Statebox</title>
     <style>
-     body {
-         margin: 0;
-         font-family: Verdana, Arial, sans-serif;
-     }
-     svg {
-         border: 2px solid #ddd;
-         display: block;
-         height: 100%;
-         width: 100%;
-         -moz-user-select: none;
-         -ms-user-select: none;
-         -webkit-user-select: none;
-         user-select: none;
-     }
+    body {
+        margin: 0;
+        font-family: Verdana, Arial, sans-serif;
+    }
+    svg {
+        border: 2px solid #ddd;
+        display: block;
+        height: 100%;
+        width: 100%;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
 
-     .css-place,
-     .css-transition-rect {
+    .css-place,
+    .css-transition-rect {
         stroke-width: 0.15;
         stroke: rgb(100,100,100);
         fill: rgb(200,200,200);
-     }
-     .css-place-label {
+    }
+    .css-place.focused {
+        fill: lightblue;
+    }
+    .css-place-label {
         font-size: 0.075em;
         fill: rgb(100,100,100);
-     }
-     .css-arc-label {
+    }
+    .css-arc-label {
         display: none; /* TODO development */
         font-size: 0.1em;
         fill: rgb(200,200,200);
-     }
+    }
     .css-arc,
     .css-arc-head {
         stroke-width: 0.15;
@@ -70,6 +73,7 @@
         fill: rgb(100,100,100);
     }
     </style>
+    <link rel="stylesheet" href="../node_modules/bulma/css/bulma.min.css">
   </head>
   <body>
     <script src="app.js"></script>

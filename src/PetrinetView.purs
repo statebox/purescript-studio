@@ -1,7 +1,7 @@
 module PetrinetView where
 
 import Prelude
-import Data.Foldable (class Foldable, foldl, foldr, foldMap)
+import Data.Foldable (class Foldable, foldl, foldr, foldMap, elem)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -29,6 +29,8 @@ import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
 import ExampleData (PID, TID, Tokens, NetObj, NetApi)
+import Model (QueryF(..), Msg(..))
+import PlaceEditor as PlaceEditor
 
 -- config ----------------------------------------------------------------------
 
@@ -46,25 +48,19 @@ arcAnimationDuration = seconds 0.70
 
 --------------------------------------------------------------------------------
 
-data QueryF pid tid a
-  = FireTransition tid a
-  | MisfireTransition tid a -- ^ for inactive transitions
-
--- | Messages sent to the outside world (i.e. parent components).
---   TODO This is a dummy placeholder for now.
-data Msg = NetUpdated
-
 type StateF pid tid =
-  { net    :: NetObjF pid tid Tokens
-  , netApi :: NetApiF pid tid Tokens
-  , msg    :: String
+  { net          :: NetObjF pid tid Tokens
+  , netApi       :: NetApiF pid tid Tokens
+  , focusedPlace :: Maybe pid
+  , msg          :: String
   }
 
 type PlaceModelF pid tok label pt =
-  { id     :: pid
-  , tokens :: tok
-  , label  :: label
-  , point  :: pt
+  { id        :: pid
+  , tokens    :: tok
+  , label     :: label
+  , point     :: pt
+  , isFocused :: Boolean
   }
 
 type ArcModelF tid label pt =
@@ -90,9 +86,12 @@ ui htmlIdPrefixMaybe initialState =
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
     render state =
       div [ HP.classes [ ClassName "petrinet-component" ] ]
-          [ div [] [ HH.text state.msg ]
-          , SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
-                   (netToSVG state.net)
+          [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
+                   (netToSVG state.net state.focusedPlace)
+          , div [ HP.classes [ ClassName "columns" ] ]
+                [ div [ HP.classes [ ClassName "column" ] ][ HH.text state.msg ]
+                , div [ HP.classes [ ClassName "column" ] ][ PlaceEditor.form ]
+                ]
           ]
       where
         sceneWidth  = (bounds.max.x - bounds.min.x) + paddingX
@@ -105,11 +104,25 @@ ui htmlIdPrefixMaybe initialState =
 
     eval :: ∀ tid. Show tid => QueryF pid tid ~> H.ComponentDSL (StateF pid tid) (QueryF pid tid) Msg Aff
     eval = case _ of
-      MisfireTransition tid next -> pure next
-      FireTransition    tid next -> do
+      FocusPlace pid next -> do
+        H.modify_ (\state -> state { focusedPlace = pure pid
+                                   , msg = "Focused place " <> show pid <> "."
+                                   })
+        pure next
+      UpdatePlace newLabel next -> do
+        H.modify_ $ \state ->
+          maybe state
+                (\pid -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
+                               , msg = "Updating place " <> show pid <> "."
+                               })
+                state.focusedPlace
+        H.raise NetUpdated -- notify parent components
+        pure next
+      FocusTransition tid next -> do
+        pure next -- TODO
+      FireTransition tid next -> do
         numElems <- H.liftAff $ SvgUtil.beginElements ("." <> arcAnimationClass tid)
         H.modify_ (mod1 tid)
-        H.raise NetUpdated -- notify parent components
         pure next
         where
           mod1 tid state =
@@ -120,8 +133,8 @@ ui htmlIdPrefixMaybe initialState =
               netMaybe' = fire state.net <$> state.net.findTransition tid
               net'      = fromMaybe state.net $ netMaybe'
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((QueryF pid tid) Unit))
-    netToSVG net =
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Maybe pid -> Array (HTML a ((QueryF pid tid) Unit))
+    netToSVG net focusedPlace =
       svgTransitions <> svgPlaces
       where
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
@@ -134,7 +147,7 @@ ui htmlIdPrefixMaybe initialState =
           label <- Map.lookup id net.placeLabelsDict
           point <- net.findPlacePoint id
           let tokens = findTokens net id
-          pure $ svgPlace { id: id, tokens: tokens, label: label, point: point }
+          pure $ svgPlace { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
         drawTransitionAndArcs :: ∀ a. tid -> TransitionF pid Tokens -> Maybe (HTML a ((QueryF pid tid) Unit))
@@ -152,7 +165,7 @@ ui htmlIdPrefixMaybe initialState =
           pure $
             SE.g [ SA.class_ $ "css-transition" <> guard isEnabled " enabled"
                  , SA.id (mkTransitionIdStr tid)
-                 , HE.onClick (HE.input_ (if isEnabled then FireTransition tid else MisfireTransition tid))
+                 , HE.onClick (HE.input_ (if isEnabled then FireTransition tid else FocusTransition tid))
                  ]
                  (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
 
@@ -247,11 +260,13 @@ ui htmlIdPrefixMaybe initialState =
     --------------------------------------------------------------------------------
 
     svgPlace :: ∀ a pid tid. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgPlace { id: id, label: label, point: point, tokens: tokens } =
-      SE.g [ SA.id (mkPlaceIdStr id) ]
+    svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
+      SE.g [ SA.id (mkPlaceIdStr id)
+           , HE.onClick (HE.input_ (FocusPlace id))
+           ]
            [ SE.title [] [ Core.text label ]
            , SE.circle
-               [ SA.class_ "css-place"
+               [ SA.class_ ("css-place" <> guard isFocused " focused")
                , SA.r      placeRadius
                , SA.cx     point.x
                , SA.cy     point.y
