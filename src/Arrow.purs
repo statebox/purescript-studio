@@ -10,8 +10,33 @@ import Math (atan2, cos, sin, sqrt)
 import Data.Maybe (Maybe(..))
 import Data.Ord (abs)
 
-markerTag :: String
-markerTag = "arrow"
+transToPlace :: forall p i. Vec2D -> Vec2D -> HTML p i
+transToPlace p q =
+  SE.line
+    [ SA.class_ "css-tp"
+    , SA.x1 p'.x
+    , SA.y1 p'.y
+    , SA.x2 q'.x
+    , SA.y2 q'.y
+    , SA.markerEnd $ "url(#" <> markerTag <> ")"
+    ]
+  where
+    p' = transitionLinePoint q p (2.0)
+    q' = placeLinePoint q p (placeRadius + 1.5)
+
+placeToTrans :: forall p i. Vec2D -> Vec2D -> HTML p i
+placeToTrans q p =
+  SE.line
+    [ SA.class_ "css-pt"
+    , SA.x1 p'.x
+    , SA.y1 p'.y
+    , SA.x2 q'.x
+    , SA.y2 q'.y
+    , SA.markerEnd $ "url(#" <> markerTag <> ")"
+    ]
+  where
+    p' = placeLinePoint q p (placeRadius)
+    q' = transitionLinePoint q p (3.5)
 
 arrowHead :: forall p i. HTML p i
 arrowHead = SE.defs []
@@ -50,35 +75,10 @@ transitionLinePoint pV tV r = { x: tV.x - tX, y: tV.y - tY }
     tX = dX / u * r
     tY = dY / u * r
 
-transToPlace :: forall p i. Vec2D -> Vec2D -> HTML p i
-transToPlace p q =
-  SE.line
-    [ SA.class_ "css-tp"
-    , SA.x1 p'.x
-    , SA.y1 p'.y
-    , SA.x2 q'.x
-    , SA.y2 q'.y
-    , SA.markerEnd $ "url(#" <> markerTag <> ")"
-    ]
-  where
-    p' = transitionLinePoint q p (2.0)
-    q' = placeLinePoint q p (placeRadius + 1.5)
-
-placeToTrans :: forall p i. Vec2D -> Vec2D -> HTML p i
-placeToTrans q p =
-  SE.line
-    [ SA.class_ "css-pt"
-    , SA.x1 p'.x
-    , SA.y1 p'.y
-    , SA.x2 q'.x
-    , SA.y2 q'.y
-    , SA.markerEnd $ "url(#" <> markerTag <> ")"
-    ]
-  where
-    p' = placeLinePoint q p (placeRadius)
-    q' = transitionLinePoint q p (3.5)
-
 --------------------------------------------------------------------------------
+
+markerTag :: String
+markerTag = "arrow"
 
 sqr :: Number -> Number
 sqr x = x * x
