@@ -1,6 +1,7 @@
 module Main where
 
 import Prelude
+import Control.MonadZero (empty)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Halogen.Aff (awaitBody, runHalogenAff)
@@ -12,9 +13,10 @@ import PetrinetView as PetrinetView
 
 initialState :: PetrinetView.StateF PID TID
 initialState =
-  { net:    Ex.net1
-  , netApi: Ex.netApi1
-  , msg:    "No transition clicked"
+  { net:          Ex.net1
+  , netApi:       Ex.netApi1
+  , msg:          "Click enabled transitions to fire them."
+  , focusedPlace: empty
   }
 
 main :: Effect Unit
