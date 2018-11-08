@@ -1,6 +1,7 @@
 module PetrinetView where
 
 import Prelude
+import Config
 import Data.Foldable (class Foldable, foldl, foldr, foldMap)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
@@ -30,22 +31,6 @@ import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
 import ExampleData (PID, TID, Tokens, NetObj, NetApi)
-
--- config ----------------------------------------------------------------------
-
-placeRadius :: Number
-placeRadius = 4.0 * tokenRadius
-
-tokenRadius :: Number
-tokenRadius = 0.5
-
-transitionHeight = 2.0 * placeRadius
-transitionWidth  = 2.0 * placeRadius
-
-arcAnimationDuration :: Duration
-arcAnimationDuration = seconds 0.70
-
---------------------------------------------------------------------------------
 
 data QueryF pid tid a
   = FireTransition tid a
