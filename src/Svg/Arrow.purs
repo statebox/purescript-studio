@@ -1,6 +1,6 @@
 module Svg.Arrow where
 
-import Prelude (max, negate, ($), (*), (+), (-), (/), (<$>), (>), (>=))
+import Prelude (max, negate, ($), (*), (+), (-), (/), (<$>), (>), (>=), (<>))
 import Config
 import Data.Vec2D (Vec2D)
 import Halogen.HTML (HTML)
@@ -10,10 +10,13 @@ import Math (atan2, cos, sin, sqrt)
 import Data.Maybe (Maybe(..))
 import Data.Ord (abs)
 
+markerTag :: String
+markerTag = "arrow"
+
 arrowHead :: forall p i. HTML p i
 arrowHead = SE.defs []
   [ SE.marker
-    [ SA.id "arrow"
+    [ SA.id markerTag
     , SA.markerWidth 10.0
     , SA.markerHeight 10.0
     , SA.strokeWidth 0.2
@@ -38,83 +41,42 @@ placeLinePoint pV tV r = { x: pV.x + px, y: pV.y + py }
     px = cos α * r
     py = sin α * r
 
-transitionLinePoint :: Vec2D -> Vec2D -> Vec2D
-transitionLinePoint pV tV = { x: tV.x - tX, y: tV.y - tY }
+transitionLinePoint :: Vec2D -> Vec2D -> Number -> Vec2D
+transitionLinePoint pV tV r = { x: tV.x - tX, y: tV.y - tY }
   where
-    r  = 4.3
     dX = tV.x - pV.x
     dY = tV.y - pV.y
     u  = max (abs dX) (abs dY)
     tX = dX / u * r
     tY = dY / u * r
 
--- | \  1 /
---    \  /
---   3 \/ 4
---     /\
---    /  \
---   /  2 \
-
-arrowTransLinePoint :: Vec2D -> Vec2D -> Vec2D
-arrowTransLinePoint v1 v2 =
-  if (abs (s2 - p2) >= abs (p1 - s1)) then
-    if (s2 - p2) >= 0.0 then -- 1
-      let
-        xs = (((p1 - s1) / (s2 - p2)) * (-s2 + p2 + l)) + p1 + (t * ((p1 - s1) / ll))
-        ys = s2 - l - t * ((s2 - p2) / ll)
-      in
-        { x: xs, y: ys }
-    else -- 2
-      let
-        xs = (((p1 - s1) / (s2 - p2)) * (-s2 + p2 - l)) + p1 + (t * ((p1 - s1) / ll))
-        ys = s2 + l - t * ((s2 - p2) / ll)
-      in
-        { x: xs, y: ys }
-  else
-    if (p1 - s1) > 0.0 then --4
-      let
-        xs = (s1 + l) + (t * ((p1 - s1) / ll))
-        ys = -(((s2 - p2) / (p1 - s1)) * (s1 + l - p1)) + p2 + t * ((p1 - s1) / ll)
-      in
-        { x: xs, y: ys }
-    else -- 3
-      let
-        xs = (s1 - l) + (t * ((p1 - s1) / ll))
-        ys = -(((s2 - p2) / (p1 - s1)) * (s1 - l - p1)) + p2 + t * ((p1 - s1) / ll)
-      in
-        { x: xs, y: ys }
-  where
-    l  = 4.3
-    p1  = v1.x
-    p2  = v1.y
-    s1 = v2.x
-    s2 = v2.y
-    t = arrowHeadHeight
-    ll = sqrt (sqr(s2 - p2) + sqr(p1 - s1))
-
 transToPlace :: forall i p. Vec2D -> Vec2D ->  HTML i p
 transToPlace p q =
   SE.line
-    [ SA.x1 p'.x
+    [ SA.class_ "css-tp"
+    , SA.x1 p'.x
     , SA.y1 p'.y
     , SA.x2 q'.x
     , SA.y2 q'.y
+    , SA.markerEnd $ "url(#" <> markerTag <> ")"
     ]
   where
-    p' = transitionLinePoint p q
-    q' = placeLinePoint p q (placeRadius + 2.0)
+    p' = transitionLinePoint q p (2.0)
+    q' = placeLinePoint q p (placeRadius + 1.5)
 
 placeToTrans :: forall i p. Vec2D -> Vec2D ->  HTML i p
 placeToTrans q p =
   SE.line
-    [ SA.x1 p'.x
+    [ SA.class_ "css-pt"
+    , SA.x1 p'.x
     , SA.y1 p'.y
     , SA.x2 q'.x
     , SA.y2 q'.y
+    , SA.markerEnd $ "url(#" <> markerTag <> ")"
     ]
   where
-    p' = placeLinePoint p q (placeRadius + 0.5)
-    q' = arrowTransLinePoint p q
+    p' = placeLinePoint q p (placeRadius)
+    q' = transitionLinePoint q p (3.5)
 
 --------------------------------------------------------------------------------
 

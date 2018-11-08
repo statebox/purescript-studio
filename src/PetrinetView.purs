@@ -137,12 +137,19 @@ ui htmlIdPrefixMaybe initialState =
             svgPostArcs = svgArc <$> postArcs
             isEnabled   = isTransitionEnabled net.marking tr
 
+            svgPreArrows  = (\arc -> placeToTrans arc.src arc.dest) <$> preArcs
+            svgPostArrows = (\arc -> transToPlace arc.src arc.dest) <$> postArcs
+
           pure $
             SE.g [ SA.class_ $ "css-transition" <> guard isEnabled " enabled"
                  , SA.id (mkTransitionIdStr tid)
                  , HE.onClick (HE.input_ (if isEnabled then FireTransition tid else MisfireTransition tid))
                  ]
-                 (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
+                 (
+                   -- (svgPreArcs <> svgPostArcs <>
+                   [svgTransitionRect trPos tid]
+                   <> svgPreArrows <> svgPostArrows
+                 )
 
         -- TODO simplify, especially (src, dest) order given isPost
         mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
