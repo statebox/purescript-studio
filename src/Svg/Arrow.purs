@@ -10,7 +10,7 @@ import Math (atan2, cos, sin, sqrt)
 import Data.Maybe (Maybe(..))
 import Data.Ord (abs)
 
-arrowHead :: forall i p. HTML i p
+arrowHead :: forall p i. HTML p i
 arrowHead = SE.defs []
   [ SE.marker
     [ SA.id "arrow"
