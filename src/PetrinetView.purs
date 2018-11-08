@@ -25,7 +25,7 @@ import Svg.Elements as SE
 import Svg.Attributes as SA
 import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
 import Svg.Util as SvgUtil
-import Svg.Arrow
+import Arrow
 
 import ExampleData as Ex
 import ExampleData as Net

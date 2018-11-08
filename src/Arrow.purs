@@ -1,4 +1,4 @@
-module Svg.Arrow where
+module Arrow where
 
 import Prelude (max, negate, ($), (*), (+), (-), (/), (<$>), (>), (>=), (<>))
 import Config
