@@ -46,11 +46,11 @@ marking1 = Bag.fromFoldable
 
 placePoints1 :: Array (Int /\ Vec2D)
 placePoints1 =
-  [ 1 /\ { y: 30.0, x: 10.0 }
-  , 2 /\ { y: 30.0, x: 30.0 }
-  , 3 /\ { y: 30.0, x: 90.0 }
-  , 4 /\ { y: 30.0, x: 70.0 }
-  , 5 /\ { y: 30.0, x: 50.0 }
+  [ 1 /\ { x: 10.0, y: 30.0 }
+  , 2 /\ { x: 30.0, y: 30.0 }
+  , 3 /\ { x: 90.0, y: 30.0 }
+  , 4 /\ { x: 70.0, y: 30.0 }
+  , 5 /\ { x: 50.0, y: 30.0 }
   ]
 
 transitions1 :: Array Transition

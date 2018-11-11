@@ -22,6 +22,7 @@ import Halogen as H
 import Halogen (ComponentDSL)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Core as Core
 import Halogen.HTML (HTML, div)
@@ -102,13 +103,13 @@ ui initialState' =
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
     render state =
       div [ HP.id_ componentHtmlId
-          , HP.classes [ componentClass ]
+          , classes [ componentClass, ClassName "css-petrinet-component" ]
           ]
           [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
                    (netToSVG state.net state.focusedPlace)
-          , div [ HP.classes [ ClassName "columns" ] ]
-                [ div [ HP.classes [ ClassName "column" ] ][ HH.text state.msg ]
-                , div [ HP.classes [ ClassName "column" ] ][ PlaceEditor.form ]
+          , div [ classes [ ClassName "columns" ] ]
+                [ div [ classes [ ClassName "column" ] ] [ HH.text state.msg ]
+                , div [ classes [ ClassName "column" ] ] [ PlaceEditor.form ]
                 ]
           ]
       where
@@ -134,7 +135,7 @@ ui initialState' =
         H.modify_ $ \state ->
           maybe state
                 (\pid -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
-                               , msg = "Updating place " <> show pid <> "."
+                               , msg = "Updated place " <> show pid <> "."
                                })
                 state.focusedPlace
         pure next
@@ -147,7 +148,7 @@ ui initialState' =
         where
           mod1 tid state =
             state { net = net'
-                  , msg = "marking = " <> show (_.marking <$> netMaybe')
+                  , msg = "Fired transition " <> show tid <> "."
                   }
             where
               netMaybe' = fire state.net <$> state.net.findTransition tid
@@ -159,11 +160,11 @@ ui initialState' =
       where
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
 
-        svgPlaces = fromMaybe [] $ drawPlace1 `traverse` net.places
+        svgPlaces = fromMaybe [] $ drawPlace `traverse` net.places
 
-        -- TODO the do-block will fail as a whole if e.g. one findPLacePoint misses
-        drawPlace1 :: pid -> Maybe (HTML a ((QueryF pid tid) Unit))
-        drawPlace1 id = do
+        -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
+        drawPlace :: pid -> Maybe (HTML a ((QueryF pid tid) Unit))
+        drawPlace id = do
           label <- Map.lookup id net.placeLabelsDict
           point <- net.findPlacePoint id
           let tokens = findTokens net id

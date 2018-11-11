@@ -3,10 +3,11 @@ module Data.Petrinet.Representation.Dict
   , NetRepF
   , NetApiF
   , mkNetObjF
-  , MarkingF
 
+  , MarkingF
   , mkMarkingF
   , unMarkingF
+
   , TransitionF
   , PlaceMarkingF
 
