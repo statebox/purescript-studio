@@ -1,19 +1,25 @@
 module PetrinetView where
 
 import Prelude
-import Data.Foldable (class Foldable, foldl, foldr, foldMap, elem)
+import Control.MonadZero (empty)
+import Data.Array (cons)
+import Data.Newtype (un)
+import Data.Bag (BagF)
+import Data.Foldable (foldMap, elem)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Monoid.Additive (Additive(..))
 import Data.Tuple (Tuple(..), uncurry, snd)
+import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Vec2D (Vec2D)
 import Data.Vec2D (bounds) as Vec2D
-import Effect.Aff.Class (liftAff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff(..))
 import Halogen as H
+import Halogen (ComponentDSL)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Core (ClassName(..))
@@ -28,8 +34,7 @@ import Svg.Util as SvgUtil
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import ExampleData (PID, TID, Tokens, NetObj, NetApi)
-import Model (QueryF(..), Msg(..))
+import Model (PID, TID, Tokens, NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), Msg(..))
 import PlaceEditor as PlaceEditor
 
 -- config ----------------------------------------------------------------------
@@ -49,10 +54,9 @@ arcAnimationDuration = seconds 0.70
 --------------------------------------------------------------------------------
 
 type StateF pid tid =
-  { net          :: NetObjF pid tid Tokens
-  , netApi       :: NetApiF pid tid Tokens
-  , focusedPlace :: Maybe pid
+  { focusedPlace :: Maybe pid
   , msg          :: String
+  |                 NetInfoFRow pid tid ()
   }
 
 type PlaceModelF pid tok label pt =
@@ -79,13 +83,27 @@ type HtmlId = String
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid g. Ord pid => Show pid => Show tid => Maybe HtmlId -> StateF pid tid -> H.Component HTML (QueryF pid tid) Unit Msg Aff
-ui htmlIdPrefixMaybe initialState =
+ui :: ∀ m pid tid r. MonadAff m => Ord pid => Show pid => Show tid => NetInfoF pid tid r -> H.Component HTML (QueryF pid tid) Unit Msg m
+ui initialState' =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
+    -- TODO should come from component state
+    htmlIdPrefixMaybe = Just "todo_net_prefix"
+
+    initialState :: StateF pid tid
+    initialState =
+      { name:         ""
+      , net:          initialState'.net
+      , netApi:       initialState'.netApi
+      , msg:          "Click enabled transitions to fire them."
+      , focusedPlace: empty
+      }
+
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
     render state =
-      div [ HP.classes [ ClassName "petrinet-component" ] ]
+      div [ HP.id_ componentHtmlId
+          , HP.classes [ componentClass ]
+          ]
           [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
                    (netToSVG state.net state.focusedPlace)
           , div [ HP.classes [ ClassName "columns" ] ]
@@ -102,8 +120,11 @@ ui htmlIdPrefixMaybe initialState =
         paddingX    = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
         paddingY    = 4.0 * transitionHeight
 
-    eval :: ∀ tid. Show tid => QueryF pid tid ~> H.ComponentDSL (StateF pid tid) (QueryF pid tid) Msg Aff
+    eval :: ∀ tid. Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
+      LoadNet newNet next -> do
+        H.modify_ (\state -> state { net = newNet })
+        pure next
       FocusPlace pid next -> do
         H.modify_ (\state -> state { focusedPlace = pure pid
                                    , msg = "Focused place " <> show pid <> "."
@@ -116,12 +137,11 @@ ui htmlIdPrefixMaybe initialState =
                                , msg = "Updating place " <> show pid <> "."
                                })
                 state.focusedPlace
-        H.raise NetUpdated -- notify parent components
         pure next
       FocusTransition tid next -> do
         pure next -- TODO
       FireTransition tid next -> do
-        numElems <- H.liftAff $ SvgUtil.beginElements ("." <> arcAnimationClass tid)
+        numElems <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid)
         H.modify_ (mod1 tid)
         pure next
         where
@@ -290,6 +310,12 @@ ui htmlIdPrefixMaybe initialState =
             ]
 
     --------------------------------------------------------------------------------
+
+    componentClass :: ClassName
+    componentClass = ClassName "petrinet-component"
+
+    componentHtmlId :: HtmlId
+    componentHtmlId = netPrefix <> un ClassName componentClass
 
     -- | Provide distinct id's for distinct nets in a webpage.
     netPrefix :: String
