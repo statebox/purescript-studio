@@ -108,7 +108,9 @@ ui initialState' =
           [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
                    (netToSVG state.net state.focusedPlace)
           , div [ classes [ ClassName "columns" ] ]
-                [ div [ classes [ ClassName "column" ] ] [ HH.text state.msg ]
+                [ div [ classes [ ClassName "column" ] ] [ HH.text state.msg
+                                                         , htmlMarking state.net.marking
+                                                         ]
                 , div [ classes [ ClassName "column" ] ] [ PlaceEditor.form ]
                 ]
           ]
@@ -348,8 +350,23 @@ ui initialState' =
     mkPlaceIdStr :: ∀ pid. Show pid => pid -> HtmlId
     mkPlaceIdStr = append netPrefix <<< prefixPlace
 
-    --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
+htmlMarking :: ∀ a n pid tid. Show a => Show n => BagF a n -> HTML Void (QueryF pid tid Unit)
+htmlMarking bag =
+  HH.table [ classes [ ClassName "table", ClassName "is-striped", ClassName "is-narrow", ClassName "is-hoverable" ] ]
+           [ HH.thead []
+                      [ HH.tr [] [ HH.th [] [ HH.text "place" ]
+                                 , HH.th [] [ HH.text "tokens" ]
+                                 ]
+                      ]
+           , HH.tbody [] rows
+           ]
+  where
+    rows = map (uncurry tr) <<< Map.toUnfoldable <<< unMarkingF $ bag
+    tr k v = HH.tr [] [ HH.td [] [ HH.text $ show k ]
+                      , HH.td [] [ HH.text $ show v ]
+                      ]
 
 --------------------------------------------------------------------------------
 
