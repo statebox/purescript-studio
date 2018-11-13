@@ -33,6 +33,8 @@ type PresentationAttributes r = (stroke :: String, fill :: String | r)
 
 type GlobalAttributes r = (PresentationAttributes (GlobalEventAttributes (StyleAttributes (CoreAttributes r))))
 
+type MarkerAttributes r = (PresentationAttributes (StyleAttributes (CoreAttributes r)))
+
 type SVGsvg = GlobalAttributes
   ( width :: Number
   , height :: Number
@@ -99,8 +101,8 @@ type SVGforeignObject = GlobalAttributes
   , width :: Number
   )
 
-type SVGmarker = GlobalAttributes
-  ( markerWidth  :: Number
+type SVGmarker r = MarkerAttributes
+  ( markerWidth :: Number
   , markerHeight :: Number
   , strokeWidth :: Number
   , refX :: Number
