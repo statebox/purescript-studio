@@ -41,24 +41,22 @@ arrowHead = SE.defs []
   ]
 
 placeLinePoint :: Vec2D -> Vec2D -> Vec2D
-placeLinePoint pV tV = { x: pV.x + px, y: pV.y + py }
+placeLinePoint p t = { x: p.x + px, y: p.y + py }
   where
-    r  = placeRadius
-    dx = tV.x - pV.x
-    dy = tV.y - pV.y
+    dx = t.x - p.x
+    dy = t.y - p.y
     α  = atan2 dy dx
-    px = cos α * r
-    py = sin α * r
+    px = cos α * placeRadius
+    py = sin α * placeRadius
 
 transitionLinePoint :: Vec2D -> Vec2D -> Vec2D
-transitionLinePoint pV tV = { x: tV.x - tX, y: tV.y - tY }
+transitionLinePoint p t = { x: t.x - tx, y: t.y - ty }
   where
-    r  = placeRadius
-    dX = tV.x - pV.x
-    dY = tV.y - pV.y
-    u  = max (abs dX) (abs dY)
-    tX = dX / u * r
-    tY = dY / u * r
+    dx = t.x - p.x
+    dy = t.y - p.y
+    u  = max (abs dx) (abs dy)
+    tx = dx / u * placeRadius
+    ty = dy / u * placeRadius
 
 --------------------------------------------------------------------------------
 

@@ -107,7 +107,7 @@ ui htmlIdPrefixMaybe initialState =
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net =
-      svgPlaces <> svgTransitions
+      svgTransitions <> svgPlaces
       where
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
 
@@ -139,7 +139,7 @@ ui htmlIdPrefixMaybe initialState =
                  , SA.id (mkTransitionIdStr tid)
                  , HE.onClick (HE.input_ (if isEnabled then FireTransition tid else MisfireTransition tid))
                  ]
-                  (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
+                 (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
 
         -- TODO simplify, especially (src, dest) order given isPost
         mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
