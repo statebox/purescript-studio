@@ -108,10 +108,12 @@ ui initialState' =
           [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
                    (netToSVG state.net state.focusedPlace)
           , div [ classes [ ClassName "columns" ] ]
-                [ div [ classes [ ClassName "column" ] ] [ HH.text state.msg
-                                                         , htmlMarking state.net.marking
-                                                         ]
-                , div [ classes [ ClassName "column" ] ] [ PlaceEditor.form ]
+                [ div [ classes [ ClassName "column" ] ]
+                      [ HH.text state.msg
+                      , htmlMarking state.net.marking
+                      ]
+                , div [ classes [ ClassName "column" ] ]
+                      [ PlaceEditor.form $ { label: _, isWriteable: false } <$> ((flip Map.lookup state.net.placeLabelsDict) =<< state.focusedPlace) ]
                 ]
           ]
       where
@@ -129,9 +131,11 @@ ui initialState' =
         H.modify_ (\state -> state { net = newNet })
         pure next
       FocusPlace pid next -> do
-        H.modify_ (\state -> state { focusedPlace = pure pid
-                                   , msg = "Focused place " <> show pid <> "."
-                                   })
+        state <- H.get
+        let focusedPlace' = toggleMaybe pid state.focusedPlace
+        H.put $ state { focusedPlace = focusedPlace'
+                      , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> "."
+                      }
         pure next
       UpdatePlace newLabel next -> do
         H.modify_ $ \state ->
@@ -372,3 +376,10 @@ htmlMarking bag =
 
 svgPath :: ∀ r i. Vec2D -> Vec2D -> HP.IProp (d :: String | r) i
 svgPath p q = SA.d $ SA.Abs <$> [ SA.M p.x p.y, SA.L q.x q.y ]
+
+--------------------------------------------------------------------------------
+
+toggleMaybe :: ∀ m a b. b -> Maybe a -> Maybe b
+toggleMaybe z mx = case mx of
+  Nothing -> Just z
+  Just mx -> Nothing

@@ -4,7 +4,7 @@ import Prelude hiding (div)
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, find, elem, foldMap)
 import Data.Map as Map
-import Data.Maybe (Maybe(..), maybe, fromMaybe)
+import Data.Maybe (Maybe(..), maybe, isNothing)
 import Halogen as H
 import Halogen.HTML (HTML, div, text, a, br, hr, form, button, input, textarea, select, option, label, fieldset, legend)
 import Halogen.HTML.Events (input_, onClick, onChecked, onValueInput, onValueChange)
@@ -14,7 +14,14 @@ import Halogen.HTML.Core (ClassName(..))
 
 import Model (QueryF(..), Msg(..))
 
-form =
+-- TODO this may end up being the same place model we use in elsewhere
+type PlaceEditorFormModel =
+  { label       :: String
+  , isWriteable :: Boolean
+  }
+
+form :: ∀ pid tid a. Maybe PlaceEditorFormModel -> HTML a ((QueryF pid tid) Unit)
+form mm =
   div []
       [ div [ classes [ ClassName "field", ClassName "is-horizontal" ] ]
             [ div [ classes [ ClassName "field-label" ] ]
@@ -25,8 +32,9 @@ form =
                   [ div [ classes [ ClassName "field" ] ]
                         [ div [ classes [ ClassName "control" ] ]
                               [ input [ classes [ ClassName "input" ]
-                                      , value ""
+                                      , value (maybe "" (_.label) mm)
                                       , onValueChange (HE.input UpdatePlace)
+                                      , disabled (isNothing mm)
                                       ]
                               ]
                         ]
