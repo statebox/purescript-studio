@@ -13,7 +13,7 @@ import Data.Ord (abs)
 svgArrow :: forall p i. Vec2D -> Vec2D -> HTML p i
 svgArrow q p =
   SE.line
-    [ SA.class_ "css-post-arrow"
+    [ SA.class_ "css-arrow"
     , SA.x1 p'.x
     , SA.y1 p'.y
     , SA.x2 q'.x
