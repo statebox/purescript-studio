@@ -101,7 +101,7 @@ type SVGforeignObject = GlobalAttributes
   , width :: Number
   )
 
-type SVGmarker r = MarkerAttributes
+type SVGmarker = MarkerAttributes
   ( markerWidth :: Number
   , markerHeight :: Number
   , strokeWidth :: Number
