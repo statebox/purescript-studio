@@ -25,7 +25,6 @@ import Svg.Elements as SE
 import Svg.Attributes as SA
 import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
 import Svg.Util as SvgUtil
-import Arrow
 
 import ExampleData as Ex
 import ExampleData as Net
@@ -108,10 +107,8 @@ ui htmlIdPrefixMaybe initialState =
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net =
-      svgPlaces <> svgTransitions <> svgDefs
+      svgPlaces <> svgTransitions
       where
-        svgDefs = pure (SE.g [] [ arrowHead ])
-
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
 
         svgPlaces = fromMaybe [] $ drawPlace1 `traverse` net.places
@@ -137,19 +134,12 @@ ui htmlIdPrefixMaybe initialState =
             svgPostArcs = svgArc <$> postArcs
             isEnabled   = isTransitionEnabled net.marking tr
 
-            svgPreArrows  = (\arc -> placeToTrans arc.src arc.dest) <$> preArcs
-            svgPostArrows = (\arc -> transToPlace arc.src arc.dest) <$> postArcs
-
           pure $
             SE.g [ SA.class_ $ "css-transition" <> guard isEnabled " enabled"
                  , SA.id (mkTransitionIdStr tid)
                  , HE.onClick (HE.input_ (if isEnabled then FireTransition tid else MisfireTransition tid))
                  ]
-                 (
-                   -- (svgPreArcs <> svgPostArcs <>
-                   [svgTransitionRect trPos tid]
-                   <> svgPreArrows <> svgPostArrows
-                 )
+                  (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
 
         -- TODO simplify, especially (src, dest) order given isPost
         mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)

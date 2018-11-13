@@ -17,6 +17,3 @@ transitionWidth  = 2.0 * placeRadius
 
 arcAnimationDuration :: Duration
 arcAnimationDuration = seconds 0.70
-
-arrowHeadHeight :: Number
-arrowHeadHeight = 1.8
