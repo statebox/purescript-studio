@@ -149,16 +149,14 @@ ui initialState' =
         pure next -- TODO
       FireTransition tid next -> do
         numElems <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid)
-        H.modify_ (mod1 tid)
+        state <- H.get
+        let
+          netMaybe' = fire state.net <$> state.net.findTransition tid
+          net'      = fromMaybe state.net netMaybe'
+        H.put $ state { net = net'
+                      , msg = "Fired transition " <> show tid <> "."
+                      }
         pure next
-        where
-          mod1 tid state =
-            state { net = net'
-                  , msg = "Fired transition " <> show tid <> "."
-                  }
-            where
-              netMaybe' = fire state.net <$> state.net.findTransition tid
-              net'      = fromMaybe state.net $ netMaybe'
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Maybe pid -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net focusedPlace =
