@@ -21,16 +21,16 @@ import Data.Ring
 import Data.Vec2D (Vec2D)
 
 import Data.Petrinet.Representation.Dict
-import Model (PID, TID, Tokens, Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
+import Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
 
 -- traffic lights net ----------------------------------------------------------
 
 places1 = 1 .. numPlaces1
   where
-    numPlaces1 = length labels1
+    numPlaces1 = length placeLabels1
 
-labels1 :: Array (PID /\ String)
-labels1 =
+placeLabels1 :: Array (PID /\ String)
+placeLabels1 =
   [ 1 /\ "a"
   , 2 /\ "b"
   , 3 /\ "c"
@@ -80,6 +80,22 @@ transitions1 =
     m p tok = { place: p, tokens: tok }
     ms      = identity
 
+transitionLabels1 :: Array String
+transitionLabels1 =
+  [ "T1"
+  , "T2"
+  , "T3"
+  , "T4"
+  ]
+
+transitionTypes1 :: Array Typedef
+transitionTypes1 =
+  [ Typedef "1"
+  , Typedef "(* 1 1)"
+  , Typedef "(+ 1 1)"
+  , Typedef "(* 1 (* 0 1))"
+  ]
+
 transitionPoints1 =
   [ { x: 30.0, y: 20.0 }
   , { x: 30.0, y: 40.0 }
@@ -88,7 +104,7 @@ transitionPoints1 =
   ]
 
 net1Data :: NetRep
-net1Data = mkNetRep places1 transitions1 marking1 labels1 placePoints1 transitionPoints1
+net1Data = mkNetRep places1 transitions1 marking1 placeLabels1 placePoints1 transitionLabels1  transitionTypes1 transitionPoints1
 
 net1 :: NetObj
 net1 = mkNetObjF net1Data
@@ -105,10 +121,10 @@ netInfo1 = { name: "Traffic lights", net: net1, netApi: netApi1 }
 
 places2 = 1 .. numPlaces2
   where
-    numPlaces2 = length labels2
+    numPlaces2 = length placeLabels2
 
-labels2 :: Array (PID /\ String)
-labels2 =
+placeLabels2 :: Array (PID /\ String)
+placeLabels2 =
   [ 1 /\ "P0"
   , 2 /\ "P1"
   , 3 /\ "P2"
@@ -158,6 +174,22 @@ transitions2 =
     m p tok = { place: p, tokens: tok }
     ms      = identity
 
+transitionTypes2 :: Array Typedef
+transitionTypes2 =
+  [ Typedef "1"
+  , Typedef "(* 1 1)"
+  , Typedef "(+ 1 1)"
+  , Typedef "(* 1 (* 0 1))"
+  ]
+
+transitionLabels2 :: Array String
+transitionLabels2 =
+  [ "T1"
+  , "T2"
+  , "T3"
+  , "T4"
+  ]
+
 transitionPoints2 =
   [ { x: -10.0, y: mid2 }
   , { x:  30.0, y: mid2 }
@@ -166,7 +198,7 @@ transitionPoints2 =
   ]
 
 net2Data :: NetRep
-net2Data = mkNetRep places2 transitions2 marking2 labels2 placePoints2 transitionPoints2
+net2Data = mkNetRep places2 transitions2 marking2 placeLabels2 placePoints2 transitionLabels2 transitionTypes2 transitionPoints2
 
 net2 :: NetObj
 net2 = mkNetObjF net2Data

@@ -12,11 +12,11 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, value, rows, placeholder, InputType(..), checked, name)
 import Halogen.HTML.Core (ClassName(..))
 
-import Model (QueryF(..), Msg(..))
+import Model (QueryF(..), PlaceUpdate(..), Typedef, Msg(..))
 
--- TODO this may end up being the same place model we use in elsewhere
 type PlaceEditorFormModel =
   { label       :: String
+  , typedef     :: Typedef
   , isWriteable :: Boolean
   }
 
@@ -26,24 +26,18 @@ form mm =
       [ div [ classes [ ClassName "field", ClassName "is-horizontal" ] ]
             [ div [ classes [ ClassName "field-label" ] ]
                   [ label [ classes [ ClassName "label" ] ]
-                          [ text "place label" ]
+                          [ text "label" ]
                   ]
             , div [ classes [ ClassName "field-body" ] ]
                   [ div [ classes [ ClassName "field" ] ]
                         [ div [ classes [ ClassName "control" ] ]
                               [ input [ classes [ ClassName "input" ]
                                       , value (maybe "" (_.label) mm)
-                                      , onValueChange (HE.input UpdatePlace)
+                                      , onValueChange (HE.input (\str -> UpdatePlace (PlaceLabel str)))
                                       , disabled (isNothing mm)
                                       ]
                               ]
                         ]
-                  ]
-            ]
-      , div [ classes [ ClassName "field", ClassName "is-horizontal" ] ]
-            [ div [ classes [ ClassName "field-label" ] ]
-                  [ label [ classes [ ClassName "label" ] ]
-                          [ text "writeable" ]
                   ]
             ]
       ]
