@@ -35,8 +35,9 @@ import Svg.Util as SvgUtil
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import Model (PID, TID, Tokens, NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), Msg(..))
+import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceUpdate(..), TransitionUpdate(..), Msg(..))
 import PlaceEditor as PlaceEditor
+import TransitionEditor as TransitionEditor
 
 -- config ----------------------------------------------------------------------
 
@@ -55,9 +56,10 @@ arcAnimationDuration = seconds 0.70
 --------------------------------------------------------------------------------
 
 type StateF pid tid =
-  { focusedPlace :: Maybe pid
-  , msg          :: String
-  |                 NetInfoFRow pid tid ()
+  { focusedPlace      :: Maybe pid
+  , focusedTransition :: Maybe tid
+  , msg               :: String
+  |                      NetInfoFRow pid tid ()
   }
 
 type PlaceModelF pid tok label pt =
@@ -84,7 +86,7 @@ type HtmlId = String
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ m pid tid r. MonadAff m => Ord pid => Show pid => Show tid => NetInfoF pid tid r -> H.Component HTML (QueryF pid tid) Unit Msg m
+ui :: ∀ m pid tid r. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => NetInfoF pid tid r -> H.Component HTML (QueryF pid tid) Unit Msg m
 ui initialState' =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
@@ -93,11 +95,12 @@ ui initialState' =
 
     initialState :: StateF pid tid
     initialState =
-      { name:         ""
-      , net:          initialState'.net
-      , netApi:       initialState'.netApi
-      , msg:          "Click enabled transitions to fire them."
-      , focusedPlace: empty
+      { name:              ""
+      , net:               initialState'.net
+      , netApi:            initialState'.netApi
+      , msg:               "Select places or transitions by clicking on them. Double-click enabled transitions to fire them."
+      , focusedPlace:      empty
+      , focusedTransition: empty
       }
 
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
@@ -106,14 +109,26 @@ ui initialState' =
           , classes [ componentClass, ClassName "css-petrinet-component" ]
           ]
           [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
-                   (netToSVG state.net state.focusedPlace)
+                   (netToSVG state.net state.focusedPlace state.focusedTransition)
+          , HH.text state.msg
+          , HH.br []
+          , HH.br []
           , div [ classes [ ClassName "columns" ] ]
                 [ div [ classes [ ClassName "column" ] ]
-                      [ HH.text state.msg
-                      , htmlMarking state.net.marking
+                      [ htmlMarking state.net.marking ]
+                , div [ classes [ ClassName "column" ] ]
+                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit place" ]
+                      , PlaceEditor.form $ { label: _, typedef: Typedef "Unit", isWriteable: false } <$> ((flip Map.lookup state.net.placeLabelsDict) =<< state.focusedPlace)
                       ]
                 , div [ classes [ ClassName "column" ] ]
-                      [ PlaceEditor.form $ { label: _, isWriteable: false } <$> ((flip Map.lookup state.net.placeLabelsDict) =<< state.focusedPlace) ]
+                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit transition" ]
+                      , TransitionEditor.form $
+                          (\tid -> { label:       fromMaybe "" $ Map.lookup tid state.net.transitionLabelsDict
+                                   , typedef:     fromMaybe (Typedef "TODO empty typedef") (Map.lookup tid state.net.transitionTypesDict)
+                                   , isWriteable: false
+                                   }
+                          ) <$> state.focusedTransition
+                      ]
                 ]
           ]
       where
@@ -125,7 +140,7 @@ ui initialState' =
         paddingX    = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
         paddingY    = 4.0 * transitionHeight
 
-    eval :: ∀ tid. Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
+    eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
       LoadNet newNet next -> do
         H.modify_ (\state -> state { net = newNet })
@@ -137,7 +152,7 @@ ui initialState' =
                       , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> "."
                       }
         pure next
-      UpdatePlace newLabel next -> do
+      UpdatePlace (PlaceLabel newLabel) next -> do
         H.modify_ $ \state ->
           maybe state
                 (\pid -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
@@ -145,23 +160,42 @@ ui initialState' =
                                })
                 state.focusedPlace
         pure next
+      UpdateTransition (TransitionLabel newLabel) next -> do
+        H.modify_ $ \state ->
+          maybe state
+                (\tid -> state { net = state.net { transitionLabelsDict = Map.insert tid newLabel state.net.transitionLabelsDict }
+                               , msg = "Updated transition " <> show tid <> "."
+                               })
+                state.focusedTransition
+        pure next
+      UpdateTransition (TransitionType newType) next -> do
+        H.modify_ $ \state ->
+          maybe state
+                (\tid -> state { net = state.net { transitionTypesDict = Map.insert tid newType state.net.transitionTypesDict }
+                               , msg = "Updated transition " <> show tid <> "."
+                               })
+                state.focusedTransition
+        pure next
       FocusTransition tid next -> do
-        pure next -- TODO
+        state <- H.get
+        let focusedTransition' = toggleMaybe tid state.focusedTransition
+        H.put $ state { focusedTransition = focusedTransition'
+                      , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <>" transition " <> show tid <> "."
+                      }
+        pure next
       FireTransition tid next -> do
         numElems <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid)
-        H.modify_ (mod1 tid)
+        state <- H.get
+        let
+          netMaybe' = fire state.net <$> state.net.findTransition tid
+          net'      = fromMaybe state.net netMaybe'
+        H.put $ state { net = net'
+                      , msg = "Fired transition " <> show tid <> "."
+                      }
         pure next
-        where
-          mod1 tid state =
-            state { net = net'
-                  , msg = "Fired transition " <> show tid <> "."
-                  }
-            where
-              netMaybe' = fire state.net <$> state.net.findTransition tid
-              net'      = fromMaybe state.net $ netMaybe'
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Maybe pid -> Array (HTML a ((QueryF pid tid) Unit))
-    netToSVG net focusedPlace =
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
+    netToSVG net focusedPlace focusedTransition =
       svgTransitions <> svgPlaces
       where
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
@@ -192,7 +226,8 @@ ui initialState' =
           pure $
             SE.g [ SA.class_ $ "css-transition" <> guard isEnabled " enabled"
                  , SA.id (mkTransitionIdStr tid)
-                 , HE.onClick (HE.input_ (if isEnabled then FireTransition tid else FocusTransition tid))
+                 , HE.onClick (HE.input_ (FocusTransition tid))
+                 , HE.onDoubleClick (HE.input_ (if isEnabled then FireTransition tid else FocusTransition tid))
                  ]
                  (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
 
