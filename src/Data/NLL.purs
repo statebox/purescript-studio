@@ -28,23 +28,17 @@ splitOn sep xs = finish $ foldl (f1 sep) { acc: [], lip: [] } xs
     finish {acc, lip} =
       if null lip then acc else acc `snoc` lip
 
+-- Approaches to sliding window maps:
+--
+-- - https://stackoverflow.com/questions/27726739/implementing-an-efficient-sliding-window-algorithm-in-haskell
+-- - https://twitter.com/gabrielg439/status/701460899589017600?lang=en
+-- - 2-lists interpreted as Pairs: https://pursuit.purescript.org/packages/purescript-pairs/6.0.0/docs/Data.Pair
+--
+--   TODO
+--   - stack safety
+--   - better name?
 
-
-{-
-sliding window:
-
-- https://stackoverflow.com/questions/27726739/implementing-an-efficient-sliding-window-algorithm-in-haskell
-- https://twitter.com/gabrielg439/status/701460899589017600?lang=en
-- 2-lists interpreted as Pairs: https://pursuit.purescript.org/packages/purescript-pairs/6.0.0/docs/Data.Pair
-- lens? https://pursuit.purescript.org/packages/purescript-profunctor-lenses/4.0.0
-
-net encoding:
-
-https://github.com/statebox/stbx-js/blob/master/spec/net-encoding.png
-
--}
-
--- TODO stack safety
+-- | A map on `Arrays` with a 2-element wide sliding window.
 mapWindow2 :: ∀ a b. (a -> a -> b) -> Array a -> Array b
 mapWindow2 f xs = case xs of
   [] -> []
@@ -55,7 +49,7 @@ mapWindow2 f xs = case xs of
 
 -- TODO handle illegal cases nicely (in type)
 map2aryTo2elemList :: ∀ a b. (a -> a -> b) -> Array a -> Maybe b
-map2aryTo2elemList f xs = case uncons xs of 
+map2aryTo2elemList f xs = case uncons xs of
   Nothing                           -> Nothing
   Just { head: head0, tail: tail0 } -> case uncons tail0 of
                                          Nothing                        -> Nothing

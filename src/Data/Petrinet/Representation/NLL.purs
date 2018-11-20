@@ -12,8 +12,11 @@ import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Traversable
 
--- | A Petri net encoding based on https://github.com/statebox/stbx-js/blob/master/spec/net-encoding.png
+-- | A Petri net encoding based on NLL (Number List List).
+-- | See https://github.com/statebox/stbx-js/blob/master/spec for more info.
 type NetF p = Array (Array p /\ Array p)
+
+--------------------------------------------------------------------------------
 
 data ErrNetEncoding = ErrOddLength
 
@@ -21,6 +24,8 @@ instance showErrNetEncoding :: Show ErrNetEncoding where
   show ErrOddLength = "ErrOddLength"
 
 derive instance eqErrNetEncoding :: Eq ErrNetEncoding
+
+--------------------------------------------------------------------------------
 
 mapNetF :: forall a b. (a -> b) -> NetF a -> NetF b
 mapNetF f = map (bimap (map f) (map f))
