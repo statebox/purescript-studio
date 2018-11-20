@@ -241,12 +241,22 @@ ui initialState' =
     --------------------------------------------------------------------------------
 
     svgTransitionRect :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionRect pos tid = SE.rect
-      [ SA.class_  "css-transition-rect"
-      , SA.width   transitionWidth
-      , SA.height  transitionHeight
-      , SA.x       (pos.x - transitionWidth / 2.0)
-      , SA.y       (pos.y - transitionHeight / 2.0)
+    svgTransitionRect pos tid =
+      SE.g [] [
+        SE.rect
+          [ SA.class_  "css-transition-rect"
+          , SA.width   transitionWidth
+          , SA.height  transitionHeight
+          , SA.x       (pos.x - transitionWidth / 2.0)
+          , SA.y       (pos.y - transitionHeight / 2.0)
+          ]
+        , SE.text
+          [ SA.class_    "css-place-label"
+          , SA.x         (pos.x + 1.5 * placeRadius)
+          , SA.y         (pos.y + 0.3)
+          , SA.font_size (SA.FontSizeLength (SA.Px 2.0))
+          ]
+          [ HH.text $ mkTransitionIdStr tid ]
       ]
 
     svgArc :: ∀ a pid tid. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
@@ -334,6 +344,12 @@ ui initialState' =
                , SA.cy     point.y
                ]
            , svgTokens tokens point
+           , SE.text [ SA.class_    "css-place-label"
+                     , SA.x         (point.x + 1.5 * placeRadius)
+                     , SA.y         (point.y + 0.3)
+                     , SA.font_size (SA.FontSizeLength (SA.Px 2.0))
+                     ]
+                     [ HH.text label ]
            , SE.text [ SA.class_    "css-place-label"
                      , SA.x         (point.x + 0.2 * placeRadius)
                      , SA.y         (point.y - 0.2 * placeRadius)
