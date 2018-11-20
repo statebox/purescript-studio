@@ -1,3 +1,4 @@
+-- | The Number List List encoding described in https://github.com/statebox/nll-spec.
 module Data.NLL where
 
 import Prelude

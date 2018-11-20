@@ -1,3 +1,7 @@
+-- | A Petri net encoding based on NLL (Number List List).
+-- |
+-- | See https://github.com/statebox/stbx-js/blob/master/spec for more info.
+-- | Details on NLL are here: https://github.com/statebox/nll-spec.
 module Data.Petrinet.Representation.NLL where
 
 import Prelude
