@@ -41,13 +41,22 @@ import TransitionEditor as TransitionEditor
 
 -- config ----------------------------------------------------------------------
 
+fontSize :: Number
+fontSize = 0.1
+
+tokenPadding :: Number
+tokenPadding = placeRadius * 0.2
+
 placeRadius :: Number
 placeRadius = 4.0 * tokenRadius
 
 tokenRadius :: Number
 tokenRadius = 0.5
 
+transitionHeight :: Number
 transitionHeight = 2.0 * placeRadius
+
+transitionWidth :: Number
 transitionWidth  = 2.0 * placeRadius
 
 arcAnimationDuration :: Duration
@@ -241,20 +250,20 @@ ui initialState' =
     --------------------------------------------------------------------------------
 
     svgTransitionRect :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionRect pos tid =
+    svgTransitionRect point tid =
       SE.g [] [
         SE.rect
           [ SA.class_  "css-transition-rect"
           , SA.width   transitionWidth
           , SA.height  transitionHeight
-          , SA.x       (pos.x - transitionWidth / 2.0)
-          , SA.y       (pos.y - transitionHeight / 2.0)
+          , SA.x       (point.x - transitionWidth / 2.0)
+          , SA.y       (point.y - transitionHeight / 2.0)
           ]
         , SE.text
-          [ SA.class_    "css-place-label"
-          , SA.x         (pos.x + 1.5 * placeRadius)
-          , SA.y         (pos.y + 0.3)
-          , SA.font_size (SA.FontSizeLength (SA.Px 2.0))
+          [ SA.class_    "css-transition-name-label"
+          , SA.x         (point.x + 1.5 * placeRadius)
+          , SA.y         (point.y + 4.0 * fontSize)
+          , SA.font_size (SA.FontSizeLength $ Em fontSize)
           ]
           [ HH.text $ mkTransitionIdStr tid ]
       ]
@@ -277,7 +286,7 @@ ui initialState' =
                [ SA.class_    "css-arc-label"
                , SA.x         arc.src.x
                , SA.y         arc.src.y
-               , SA.font_size (FontSizeLength $ Px 2.0)
+               , SA.font_size (FontSizeLength $ Em fontSize)
                  -- TODO add SVG.textPath prop, refer to the svg path using xlink:href="#<arc id here>"
                ]
                [ HH.text arc.htmlId ]
@@ -344,16 +353,16 @@ ui initialState' =
                , SA.cy     point.y
                ]
            , svgTokens tokens point
-           , SE.text [ SA.class_    "css-place-label"
-                     , SA.x         (point.x + 1.5 * placeRadius)
-                     , SA.y         (point.y + 0.3)
-                     , SA.font_size (SA.FontSizeLength (SA.Px 2.0))
+           , SE.text [ SA.class_    "css-place-name-label"
+                     , SA.x         (point.x + placeRadius + placeRadius / 2.0)
+                     , SA.y         (point.y + 4.0 * fontSize)
+                     , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
                      [ HH.text label ]
            , SE.text [ SA.class_    "css-place-label"
-                     , SA.x         (point.x + 0.2 * placeRadius)
-                     , SA.y         (point.y - 0.2 * placeRadius)
-                     , SA.font_size (SA.FontSizeLength (SA.Px 2.0))
+                     , SA.x         (point.x + tokenPadding)
+                     , SA.y         (point.y - tokenPadding)
+                     , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
                      [ HH.text $ if tokens == 0 || tokens == 1 then "" else show tokens ]
            ]
