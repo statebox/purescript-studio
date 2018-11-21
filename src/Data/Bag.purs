@@ -10,7 +10,7 @@ import Data.Newtype (class Newtype, un, unwrap)
 import Data.Group (class Group, ginverse) -- TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
 import Data.Tuple (Tuple)
 
--- | `n` is the cardinality of the element type `a`
+-- | A bag or multiset where `n` is the multiplicity of the element type `a`.
 newtype BagF a n = BagF (Map a n)
 
 derive instance newtypeBagF :: Newtype (BagF a n)  _

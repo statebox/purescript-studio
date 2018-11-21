@@ -2,21 +2,28 @@ module PetrinetView where
 
 import Prelude
 import Config
-import Data.Foldable (class Foldable, foldl, foldr, foldMap)
+import Control.MonadZero (empty)
+import Data.Array (cons)
+import Data.Newtype (un)
+import Data.Bag (BagF)
+import Data.Foldable (class Foldable, foldMap, elem)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Monoid.Additive (Additive(..))
 import Data.Tuple (Tuple(..), uncurry, snd)
+import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Vec2D (Vec2D)
 import Data.Vec2D (bounds) as Vec2D
-import Effect.Aff.Class (liftAff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff(..))
 import Halogen as H
+import Halogen (ComponentDSL)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
+import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Core as Core
 import Halogen.HTML (HTML, div)
@@ -31,27 +38,23 @@ import Arrow as Arrow
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import ExampleData (PID, TID, Tokens, NetObj, NetApi)
-
-data QueryF pid tid a
-  = FireTransition tid a
-  | MisfireTransition tid a -- ^ for inactive transitions
-
--- | Messages sent to the outside world (i.e. parent components).
---   TODO This is a dummy placeholder for now.
-data Msg = NetUpdated
+import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceUpdate(..), TransitionUpdate(..), Msg(..))
+import PlaceEditor as PlaceEditor
+import TransitionEditor as TransitionEditor
 
 type StateF pid tid =
-  { net    :: NetObjF pid tid Tokens
-  , netApi :: NetApiF pid tid Tokens
-  , msg    :: String
+  { focusedPlace      :: Maybe pid
+  , focusedTransition :: Maybe tid
+  , msg               :: String
+  |                      NetInfoFRow pid tid ()
   }
 
 type PlaceModelF pid tok label pt =
-  { id     :: pid
-  , tokens :: tok
-  , label  :: label
-  , point  :: pt
+  { id        :: pid
+  , tokens    :: tok
+  , label     :: label
+  , point     :: pt
+  , isFocused :: Boolean
   }
 
 type ArcModelF tid label pt =
@@ -70,16 +73,50 @@ type HtmlId = String
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid g. Ord pid => Show pid => Show tid => Maybe HtmlId -> StateF pid tid -> H.Component HTML (QueryF pid tid) Unit Msg Aff
-ui htmlIdPrefixMaybe initialState =
+ui :: ∀ m pid tid r. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => NetInfoF pid tid r -> H.Component HTML (QueryF pid tid) Unit Msg m
+ui initialState' =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
+    -- TODO should come from component state
+    htmlIdPrefixMaybe = Just "todo_net_prefix"
+
+    initialState :: StateF pid tid
+    initialState =
+      { name:              ""
+      , net:               initialState'.net
+      , netApi:            initialState'.netApi
+      , msg:               "Select places or transitions by clicking on them. Double-click enabled transitions to fire them."
+      , focusedPlace:      empty
+      , focusedTransition: empty
+      }
+
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
     render state =
-      div [ HP.classes [ ClassName "petrinet-component" ] ]
-          [ div [] [ HH.text state.msg ]
-          , SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
-                   (netToSVG state.net)
+      div [ HP.id_ componentHtmlId
+          , classes [ componentClass, ClassName "css-petrinet-component" ]
+          ]
+          [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
+                   (netToSVG state.net state.focusedPlace state.focusedTransition)
+          , HH.text state.msg
+          , HH.br []
+          , HH.br []
+          , div [ classes [ ClassName "columns" ] ]
+                [ div [ classes [ ClassName "column" ] ]
+                      [ htmlMarking state.net.marking ]
+                , div [ classes [ ClassName "column" ] ]
+                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit place" ]
+                      , PlaceEditor.form $ { label: _, typedef: Typedef "Unit", isWriteable: false } <$> ((flip Map.lookup state.net.placeLabelsDict) =<< state.focusedPlace)
+                      ]
+                , div [ classes [ ClassName "column" ] ]
+                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit transition" ]
+                      , TransitionEditor.form $
+                          (\tid -> { label:       fromMaybe "" $ Map.lookup tid state.net.transitionLabelsDict
+                                   , typedef:     fromMaybe (Typedef "TODO empty typedef") (Map.lookup tid state.net.transitionTypesDict)
+                                   , isWriteable: false
+                                   }
+                          ) <$> state.focusedTransition
+                      ]
+                ]
           ]
       where
         sceneWidth  = (bounds.max.x - bounds.min.x) + paddingX
@@ -90,40 +127,77 @@ ui htmlIdPrefixMaybe initialState =
         paddingX    = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
         paddingY    = 4.0 * transitionHeight
 
-    eval :: ∀ tid. Show tid => QueryF pid tid ~> H.ComponentDSL (StateF pid tid) (QueryF pid tid) Msg Aff
+    eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
-      MisfireTransition tid next -> pure next
-      FireTransition    tid next -> do
-        numElems <- H.liftAff $ SvgUtil.beginElements ("." <> arcAnimationClass tid)
-        H.modify_ (mod1 tid)
-        H.raise NetUpdated -- notify parent components
+      LoadNet newNet next -> do
+        H.modify_ (\state -> state { net = newNet })
         pure next
-        where
-          mod1 tid state =
-            state { net = net'
-                  , msg = "marking = " <> show (_.marking <$> netMaybe')
-                  }
-            where
-              netMaybe' = fire state.net <$> state.net.findTransition tid
-              net'      = fromMaybe state.net $ netMaybe'
+      FocusPlace pid next -> do
+        state <- H.get
+        let focusedPlace' = toggleMaybe pid state.focusedPlace
+        H.put $ state { focusedPlace = focusedPlace'
+                      , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> "."
+                      }
+        pure next
+      UpdatePlace (PlaceLabel newLabel) next -> do
+        H.modify_ $ \state ->
+          maybe state
+                (\pid -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
+                               , msg = "Updated place " <> show pid <> "."
+                               })
+                state.focusedPlace
+        pure next
+      UpdateTransition (TransitionLabel newLabel) next -> do
+        H.modify_ $ \state ->
+          maybe state
+                (\tid -> state { net = state.net { transitionLabelsDict = Map.insert tid newLabel state.net.transitionLabelsDict }
+                               , msg = "Updated transition " <> show tid <> "."
+                               })
+                state.focusedTransition
+        pure next
+      UpdateTransition (TransitionType newType) next -> do
+        H.modify_ $ \state ->
+          maybe state
+                (\tid -> state { net = state.net { transitionTypesDict = Map.insert tid newType state.net.transitionTypesDict }
+                               , msg = "Updated transition " <> show tid <> "."
+                               })
+                state.focusedTransition
+        pure next
+      FocusTransition tid next -> do
+        state <- H.get
+        let focusedTransition' = toggleMaybe tid state.focusedTransition
+        H.put $ state { focusedTransition = focusedTransition'
+                      , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <>" transition " <> show tid <> "."
+                      }
+        pure next
+      FireTransition tid next -> do
+        numElems <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid)
+        state <- H.get
+        let
+          netMaybe' = fire state.net <$> state.net.findTransition tid
+          net'      = fromMaybe state.net netMaybe'
+        H.put $ state { net = net'
+                      , msg = "Fired transition " <> show tid <> "."
+                      }
+        pure next
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((QueryF pid tid) Unit))
-    netToSVG net =
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
+    netToSVG net focusedPlace focusedTransition =
       svgDefs <> svgTransitions <> svgPlaces
       where
         svgDefs = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
 
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
 
-        svgPlaces = fromMaybe [] $ drawPlace1 `traverse` net.places
+        svgPlaces = fromMaybe [] $ drawPlace `traverse` net.places
 
-        -- TODO the do-block will fail as a whole if e.g. one findPLacePoint misses
-        drawPlace1 :: pid -> Maybe (HTML a ((QueryF pid tid) Unit))
-        drawPlace1 id = do
+        -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
+        drawPlace :: pid -> Maybe (HTML a ((QueryF pid tid) Unit))
+        drawPlace id = do
           label <- Map.lookup id net.placeLabelsDict
           point <- net.findPlacePoint id
           let tokens = findTokens net id
-          pure $ svgPlace { id: id, tokens: tokens, label: label, point: point }
+          pure $ svgPlace { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
         drawTransitionAndArcs :: ∀ a. tid -> TransitionF pid Tokens -> Maybe (HTML a ((QueryF pid tid) Unit))
@@ -141,7 +215,8 @@ ui htmlIdPrefixMaybe initialState =
           pure $
             SE.g [ SA.class_ $ "css-transition" <> guard isEnabled " enabled"
                  , SA.id (mkTransitionIdStr tid)
-                 , HE.onClick (HE.input_ (if isEnabled then FireTransition tid else MisfireTransition tid))
+                 , HE.onClick (HE.input_ (FocusTransition tid))
+                 , HE.onDoubleClick (HE.input_ (if isEnabled then FireTransition tid else FocusTransition tid))
                  ]
                  (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
 
@@ -231,11 +306,13 @@ ui htmlIdPrefixMaybe initialState =
     --------------------------------------------------------------------------------
 
     svgPlace :: ∀ a pid tid. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgPlace { id: id, label: label, point: point, tokens: tokens } =
-      SE.g [ SA.id (mkPlaceIdStr id) ]
+    svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
+      SE.g [ SA.id (mkPlaceIdStr id)
+           , HE.onClick (HE.input_ (FocusPlace id))
+           ]
            [ SE.title [] [ Core.text label ]
            , SE.circle
-               [ SA.class_ "css-place"
+               [ SA.class_ ("css-place" <> guard isFocused " focused")
                , SA.r      placeRadius
                , SA.cx     point.x
                , SA.cy     point.y
@@ -259,6 +336,12 @@ ui htmlIdPrefixMaybe initialState =
             ]
 
     --------------------------------------------------------------------------------
+
+    componentClass :: ClassName
+    componentClass = ClassName "petrinet-component"
+
+    componentHtmlId :: HtmlId
+    componentHtmlId = netPrefix <> un ClassName componentClass
 
     -- | Provide distinct id's for distinct nets in a webpage.
     netPrefix :: String
@@ -290,10 +373,32 @@ ui htmlIdPrefixMaybe initialState =
     mkPlaceIdStr :: ∀ pid. Show pid => pid -> HtmlId
     mkPlaceIdStr = append netPrefix <<< prefixPlace
 
-    --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
+htmlMarking :: ∀ a n pid tid. Show a => Show n => BagF a n -> HTML Void (QueryF pid tid Unit)
+htmlMarking bag =
+  HH.table [ classes [ ClassName "table", ClassName "is-striped", ClassName "is-narrow", ClassName "is-hoverable" ] ]
+           [ HH.thead []
+                      [ HH.tr [] [ HH.th [] [ HH.text "place" ]
+                                 , HH.th [] [ HH.text "tokens" ]
+                                 ]
+                      ]
+           , HH.tbody [] rows
+           ]
+  where
+    rows = map (uncurry tr) <<< Map.toUnfoldable <<< unMarkingF $ bag
+    tr k v = HH.tr [] [ HH.td [] [ HH.text $ show k ]
+                      , HH.td [] [ HH.text $ show v ]
+                      ]
 
 --------------------------------------------------------------------------------
 
 svgPath :: ∀ r i. Vec2D -> Vec2D -> HP.IProp (d :: String | r) i
 svgPath p q = SA.d $ SA.Abs <$> [ SA.M p.x p.y, SA.L q.x q.y ]
+
+--------------------------------------------------------------------------------
+
+toggleMaybe :: ∀ m a b. b -> Maybe a -> Maybe b
+toggleMaybe z mx = case mx of
+  Nothing -> Just z
+  Just mx -> Nothing

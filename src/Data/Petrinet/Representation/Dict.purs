@@ -3,10 +3,11 @@ module Data.Petrinet.Representation.Dict
   , NetRepF
   , NetApiF
   , mkNetObjF
-  , MarkingF
 
+  , MarkingF
   , mkMarkingF
   , unMarkingF
+
   , TransitionF
   , PlaceMarkingF
 
@@ -46,20 +47,22 @@ unMarkingF (BagF dict) = dict
 --------------------------------------------------------------------------------
 
 -- | A representation of a petri net.
-type NetRepF pid tid tok r =
+type NetRepF pid tid tok typ r =
   { places                :: Array pid
-  , transitionsDict       :: Map tid (TransitionF pid tok)
-  , placeLabelsDict       :: Map pid String
-
   , marking               :: MarkingF pid tok
 
+  , placeLabelsDict       :: Map pid String
   , placePointsDict       :: Map pid Vec2D
+
+  , transitionsDict       :: Map tid (TransitionF pid tok)
+  , transitionLabelsDict  :: Map tid String
+  , transitionTypesDict   :: Map tid typ
   , transitionPointsDict  :: Map tid Vec2D
   | r
   }
 
 -- | A NetRepF with some associated API operations.
-type NetObjF pid tid tok = NetRepF pid tid tok
+type NetObjF pid tid tok typ = NetRepF pid tid tok typ
   ( findTransition        :: tid -> Maybe (TransitionF pid tok)
   , findPlaceLabel        :: pid -> Maybe String
 
@@ -74,14 +77,18 @@ type NetApiF pid tid tok =
 
 --------------------------------------------------------------------------------
 
-mkNetObjF :: forall pid tid tok. Ord pid => Ord tid => NetRepF pid tid tok () -> NetObjF pid tid tok
+mkNetObjF :: forall pid tid tok typ. Ord pid => Ord tid => NetRepF pid tid tok typ () -> NetObjF pid tid tok typ
 mkNetObjF x =
   { places               : x.places
   , transitionsDict      : x.transitionsDict
   , marking              : x.marking
-  , transitionPointsDict : x.transitionPointsDict
+
   , placeLabelsDict      : x.placeLabelsDict
   , placePointsDict      : x.placePointsDict
+
+  , transitionLabelsDict : x.transitionLabelsDict
+  , transitionTypesDict  : x.transitionTypesDict
+  , transitionPointsDict : x.transitionPointsDict
 
   -- API, sort of
   , findTransition       : flip Map.lookup x.transitionsDict
@@ -121,13 +128,13 @@ trMarking pms = mkMarkingF $ Map.fromFoldable $ fromPlaceMarking <$> pms
 --------------------------------------------------------------------------------
 
 fire
-  :: ∀ p t tok
+  :: ∀ p t tok typ
    . Ord p
   => Semiring tok
   => Group (MarkingF p tok)
-  => NetObjF p t tok
+  => NetObjF p t tok typ
   -> TransitionF p tok
-  -> NetObjF p t tok
+  -> NetObjF p t tok typ
 fire net t = net { marking = fireAtMarking net.marking t }
 
 fireAtMarking
@@ -144,10 +151,10 @@ fireAtMarking marking t =
 --------------------------------------------------------------------------------
 
 findTokens
-  :: ∀ p t tok
+  :: ∀ p t tok typ
    . Ord p
   => Monoid (Additive tok)
-  => NetObjF p t tok
+  => NetObjF p t tok typ
   -> p
   -> tok
 findTokens net = findTokens' net.marking

@@ -1,7 +1,7 @@
 module Config where
 
 import Prelude
-import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
+import Svg.Attributes (Duration, seconds)
 
 placeRadius :: Number
 placeRadius = 4.0 * tokenRadius
