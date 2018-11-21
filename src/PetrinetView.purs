@@ -1,11 +1,12 @@
 module PetrinetView where
 
 import Prelude
+import Config
 import Control.MonadZero (empty)
 import Data.Array (cons)
 import Data.Newtype (un)
 import Data.Bag (BagF)
-import Data.Foldable (foldMap, elem)
+import Data.Foldable (class Foldable, foldMap, elem)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -32,28 +33,14 @@ import Svg.Attributes as SA
 import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
 import Svg.Util as SvgUtil
 
+import Arrow
+import Arrow as Arrow
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
 import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceUpdate(..), TransitionUpdate(..), Msg(..))
 import PlaceEditor as PlaceEditor
 import TransitionEditor as TransitionEditor
-
--- config ----------------------------------------------------------------------
-
-placeRadius :: Number
-placeRadius = 4.0 * tokenRadius
-
-tokenRadius :: Number
-tokenRadius = 0.5
-
-transitionHeight = 2.0 * placeRadius
-transitionWidth  = 2.0 * placeRadius
-
-arcAnimationDuration :: Duration
-arcAnimationDuration = seconds 0.70
-
---------------------------------------------------------------------------------
 
 type StateF pid tid =
   { focusedPlace      :: Maybe pid
@@ -196,8 +183,10 @@ ui initialState' =
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net focusedPlace focusedTransition =
-      svgTransitions <> svgPlaces
+      svgDefs <> svgTransitions <> svgPlaces
       where
+        svgDefs = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
+
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
 
         svgPlaces = fromMaybe [] $ drawPlace `traverse` net.places
@@ -257,12 +246,7 @@ ui initialState' =
                , SA.id arc.htmlId -- we refer to this as the path of our animation and label, among others
                , svgPath arc.src arc.dest
                ]
-           , SE.circle
-               [ SA.class_ "css-arc-head" -- TODO yah, this should be a triangle
-               , SA.cx      arc.dest.x
-               , SA.cy      arc.dest.y
-               , SA.r       1.5
-               ]
+           , svgArrow arc.src arc.dest
            , SE.text
                [ SA.class_    "css-arc-label"
                , SA.x         arc.src.x
