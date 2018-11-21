@@ -31,9 +31,14 @@ type GlobalEventAttributes r =
 -- These can also be done with CSS
 type PresentationAttributes r = (stroke :: String, fill :: String | r)
 
-type GlobalAttributes r = (PresentationAttributes (GlobalEventAttributes (StyleAttributes (CoreAttributes r))))
+type MarkerAttributes r =
+  ( markerStart :: String
+  , markerMid :: String
+  , markerEnd :: String
+  | r
+  )
 
-type MarkerAttributes r = (PresentationAttributes (StyleAttributes (CoreAttributes r)))
+type GlobalAttributes r = (PresentationAttributes (GlobalEventAttributes (StyleAttributes (CoreAttributes r))))
 
 type SVGsvg = GlobalAttributes
   ( width :: Number
@@ -70,20 +75,19 @@ type SVGrect = GlobalAttributes
 type SVGg = GlobalAttributes
   ( transform :: String )
 
-type SVGpath = GlobalAttributes
+type SVGpath = MarkerAttributes (GlobalAttributes
   ( d :: String
   , transform :: String
-  )
+  ))
 
-type SVGline = GlobalAttributes
+type SVGline = MarkerAttributes (GlobalAttributes
   ( x1 :: Number
   , y1 :: Number
   , x2 :: Number
   , y2 :: Number
   , transform :: String
   , strokeWidth :: Number
-  , markerEnd :: String
-  )
+  ))
 
 type SVGtext = GlobalAttributes
   ( x :: Number
@@ -101,7 +105,7 @@ type SVGforeignObject = GlobalAttributes
   , width :: Number
   )
 
-type SVGmarker = MarkerAttributes
+type SVGmarker = (PresentationAttributes (StyleAttributes (CoreAttributes
   ( markerWidth :: Number
   , markerHeight :: Number
   , strokeWidth :: Number
@@ -109,7 +113,7 @@ type SVGmarker = MarkerAttributes
   , refY :: Number
   , orient :: String
   , markerUnits :: String
-  )
+  ))))
 
 --------------------------------------------------------------------------------
 

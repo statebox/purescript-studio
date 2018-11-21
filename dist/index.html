@@ -18,14 +18,6 @@
         -webkit-user-select: none;
         user-select: none;
     }
-    #arrow {
-       stroke: rgb(255 20 147);
-    }
-    .css-arrow {
-       stroke-width: 0.35;
-       stroke: rgb(255 20 147);
-       z-index: -100;
-    }
     .css-place,
     .css-transition-rect {
         stroke-width: 0.15;
@@ -41,14 +33,18 @@
         font-size: 0.1em;
         fill: rgb(200,200,200);
     }
-    .css-arc,
-    .css-arc-head {
+    .css-arc {
         stroke-width: 0.15;
         stroke: rgb(100,100,100);
         fill: rgb(100,100,100);
     }
-    .css-arc-head {
-        display: none; /* TODO development */
+    .css-arrow {
+        stroke-width: 0.15;
+        stroke: rgb(100,100,100);
+    }
+    .css-arrowhead {
+        stroke: none;
+        fill: rgb(100,100,100);
     }
     .css-transition.enabled .css-transition-rect {
         fill: rgb(220,240,220);

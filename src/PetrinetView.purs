@@ -26,6 +26,8 @@ import Svg.Attributes as SA
 import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
 import Svg.Util as SvgUtil
 
+import Arrow
+import Arrow as Arrow
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
@@ -107,8 +109,10 @@ ui htmlIdPrefixMaybe initialState =
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net =
-      svgTransitions <> svgPlaces
+      svgDefs <> svgTransitions <> svgPlaces
       where
+        svgDefs = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
+
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
 
         svgPlaces = fromMaybe [] $ drawPlace1 `traverse` net.places
@@ -167,12 +171,7 @@ ui htmlIdPrefixMaybe initialState =
                , SA.id arc.htmlId -- we refer to this as the path of our animation and label, among others
                , svgPath arc.src arc.dest
                ]
-           , SE.circle
-               [ SA.class_ "css-arc-head" -- TODO yah, this should be a triangle
-               , SA.cx      arc.dest.x
-               , SA.cy      arc.dest.y
-               , SA.r       1.5
-               ]
+           , svgArrow arc.src arc.dest
            , SE.text
                [ SA.class_    "css-arc-label"
                , SA.x         arc.src.x
