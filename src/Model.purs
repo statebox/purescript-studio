@@ -23,7 +23,7 @@ data QueryF pid tid a
   | UpdateTransition (TransitionQueryF tid a)
 
 data PlaceQueryF pid a
-  = UpdatePlaceLabel String a
+  = UpdatePlaceLabel pid String a
 
 data TransitionQueryF tid a
   = UpdateTransitionName String a

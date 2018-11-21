@@ -105,7 +105,10 @@ ui initialState' =
                       [ htmlMarking state.net.marking ]
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit place" ]
-                      , map UpdatePlace <<< PlaceEditor.form $ { label: _, typedef: Typedef "Unit", isWriteable: false } <$> ((flip Map.lookup state.net.placeLabelsDict) =<< state.focusedPlace)
+                      , map UpdatePlace <<< PlaceEditor.form $ do
+                          pid <- state.focusedPlace
+                          label <- Map.lookup pid state.net.placeLabelsDict
+                          pure { pid: pid, label: label, typedef: Typedef "Unit", isWriteable: false }
                       ]
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit transition" ]
@@ -139,13 +142,10 @@ ui initialState' =
                       , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> "."
                       }
         pure next
-      UpdatePlace (UpdatePlaceLabel newLabel next) -> do
-        H.modify_ $ \state ->
-          maybe state
-                (\pid -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
-                               , msg = "Updated place " <> show pid <> "."
-                               })
-                state.focusedPlace
+      UpdatePlace (UpdatePlaceLabel pid newLabel next) -> do
+        H.modify_ $ \state -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
+                                    , msg = "Updated place " <> show pid <> "."
+                                    }
         pure next
       UpdateTransition (UpdateTransitionName newLabel next) -> do
         H.modify_ $ \state ->
