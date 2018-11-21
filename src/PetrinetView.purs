@@ -112,12 +112,11 @@ ui initialState' =
                       ]
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit transition" ]
-                      , map UpdateTransition <<< TransitionEditor.form $
-                          (\tid -> { label:       fromMaybe "" $ Map.lookup tid state.net.transitionLabelsDict
-                                   , typedef:     fromMaybe (Typedef "TODO empty typedef") (Map.lookup tid state.net.transitionTypesDict)
-                                   , isWriteable: false
-                                   }
-                          ) <$> state.focusedTransition
+                      , map UpdateTransition <<< TransitionEditor.form $ do
+                          tid   <- state.focusedTransition
+                          label <- Map.lookup tid state.net.transitionLabelsDict
+                          typ   <- Map.lookup tid state.net.transitionTypesDict
+                          pure { tid: tid, label: label, typedef: typ, isWriteable: false }
                       ]
                 ]
           ]
@@ -147,21 +146,15 @@ ui initialState' =
                                     , msg = "Updated place " <> show pid <> "."
                                     }
         pure next
-      UpdateTransition (UpdateTransitionName newLabel next) -> do
-        H.modify_ $ \state ->
-          maybe state
-                (\tid -> state { net = state.net { transitionLabelsDict = Map.insert tid newLabel state.net.transitionLabelsDict }
-                               , msg = "Updated transition " <> show tid <> "."
-                               })
-                state.focusedTransition
+      UpdateTransition (UpdateTransitionName tid newLabel next) -> do
+        H.modify_ $ \state -> state { net = state.net { transitionLabelsDict = Map.insert tid newLabel state.net.transitionLabelsDict }
+                                    , msg = "Updated transition " <> show tid <> "."
+                                    }
         pure next
-      UpdateTransition (UpdateTransitionType newType next) -> do
-        H.modify_ $ \state ->
-          maybe state
-                (\tid -> state { net = state.net { transitionTypesDict = Map.insert tid newType state.net.transitionTypesDict }
-                               , msg = "Updated transition " <> show tid <> "."
-                               })
-                state.focusedTransition
+      UpdateTransition (UpdateTransitionType tid newType next) -> do
+        H.modify_ $ \state -> state { net = state.net { transitionTypesDict = Map.insert tid newType state.net.transitionTypesDict }
+                                    , msg = "Updated transition " <> show tid <> "."
+                                    }
         pure next
       FocusTransition tid next -> do
         state <- H.get

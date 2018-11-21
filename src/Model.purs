@@ -26,8 +26,8 @@ data PlaceQueryF pid a
   = UpdatePlaceLabel pid String a
 
 data TransitionQueryF tid a
-  = UpdateTransitionName String a
-  | UpdateTransitionType Typedef a
+  = UpdateTransitionName tid String a
+  | UpdateTransitionType tid Typedef a
 
 newtype Typedef = Typedef String
 

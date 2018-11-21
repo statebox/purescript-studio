@@ -15,13 +15,14 @@ import Halogen.HTML.Core (ClassName(..))
 
 import Model (TransitionQueryF(..), Typedef(..))
 
-type TransitionEditorFormModel =
-  { label       :: String
+type TransitionEditorFormModel tid =
+  { tid         :: tid
+  , label       :: String
   , typedef     :: Typedef
   , isWriteable :: Boolean
   }
 
-form :: ∀ tid a. Maybe TransitionEditorFormModel -> HTML a ((TransitionQueryF tid) Unit)
+form :: ∀ tid a. Maybe (TransitionEditorFormModel tid) -> HTML a ((TransitionQueryF tid) Unit)
 form mm =
   div []
       [ div [ classes [ ClassName "field", ClassName "is-horizontal" ] ]
@@ -34,8 +35,9 @@ form mm =
                         [ div [ classes [ ClassName "control" ] ]
                               [ input [ classes [ ClassName "input" ]
                                       , value (maybe "" (_.label) mm)
-                                      , onValueChange (HE.input UpdateTransitionName)
-                                      , disabled (isNothing mm)
+                                      , maybe (disabled true)
+                                              (\tid -> onValueChange (HE.input (UpdateTransitionName tid)))
+                                              (mm <#> _.tid)
                                       ]
                               ]
                         ]
@@ -54,8 +56,9 @@ form mm =
                         [ div [ classes [ ClassName "control" ] ]
                               [ input [ classes [ ClassName "input" ]
                                       , value (maybe "" (un Typedef <<< _.typedef) mm)
-                                      , onValueChange (HE.input (UpdateTransitionType <<< Typedef))
-                                      , disabled (isNothing mm)
+                                      , maybe (disabled true)
+                                              (\tid -> onValueChange (HE.input (UpdateTransitionType tid <<< Typedef)))
+                                              (mm <#> _.tid)
                                       ]
                               ]
                         ]
