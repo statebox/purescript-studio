@@ -85,7 +85,7 @@ ui initialState' =
       { name:              ""
       , net:               initialState'.net
       , netApi:            initialState'.netApi
-      , msg:               "Select places or transitions by clicking on them. Double-click enabled transitions to fire them."
+      , msg:               "Please select a net."
       , focusedPlace:      empty
       , focusedTransition: empty
       }
@@ -132,7 +132,9 @@ ui initialState' =
     eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
       LoadNet newNet next -> do
-        H.modify_ (\state -> state { net = newNet })
+        H.modify_ (\state -> state { net = newNet
+                                   , msg = "Select places or transitions by clicking on them. Double-click enabled transitions to fire them."
+                                   })
         pure next
       FocusPlace pid next -> do
         state <- H.get
