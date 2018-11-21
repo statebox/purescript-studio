@@ -13,7 +13,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, value, rows, placeholder, InputType(..), checked, name)
 import Halogen.HTML.Core (ClassName(..))
 
-import Model (QueryF(..), TransitionUpdate(..), Typedef(..), Msg(..))
+import Model (TransitionQueryF(..), Typedef(..))
 
 type TransitionEditorFormModel =
   { label       :: String
@@ -21,7 +21,7 @@ type TransitionEditorFormModel =
   , isWriteable :: Boolean
   }
 
-form :: ∀ pid tid a. Maybe TransitionEditorFormModel -> HTML a ((QueryF pid tid) Unit)
+form :: ∀ tid a. Maybe TransitionEditorFormModel -> HTML a ((TransitionQueryF tid) Unit)
 form mm =
   div []
       [ div [ classes [ ClassName "field", ClassName "is-horizontal" ] ]
@@ -34,7 +34,7 @@ form mm =
                         [ div [ classes [ ClassName "control" ] ]
                               [ input [ classes [ ClassName "input" ]
                                       , value (maybe "" (_.label) mm)
-                                      , onValueChange (HE.input (\str -> UpdateTransition (TransitionLabel str)))
+                                      , onValueChange (HE.input UpdateTransitionName)
                                       , disabled (isNothing mm)
                                       ]
                               ]
@@ -54,13 +54,11 @@ form mm =
                         [ div [ classes [ ClassName "control" ] ]
                               [ input [ classes [ ClassName "input" ]
                                       , value (maybe "" (un Typedef <<< _.typedef) mm)
-                                      , onValueChange (HE.input (\str -> UpdateTransition (TransitionType (Typedef str))))
+                                      , onValueChange (HE.input (UpdateTransitionType <<< Typedef))
                                       , disabled (isNothing mm)
                                       ]
                               ]
                         ]
                   ]
             ]
-
-
       ]

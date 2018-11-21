@@ -38,7 +38,7 @@ import Arrow as Arrow
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionUpdate(..), Msg(..))
+import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..))
 import PlaceEditor as PlaceEditor
 import TransitionEditor as TransitionEditor
 
@@ -109,7 +109,7 @@ ui initialState' =
                       ]
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit transition" ]
-                      , TransitionEditor.form $
+                      , map UpdateTransition <<< TransitionEditor.form $
                           (\tid -> { label:       fromMaybe "" $ Map.lookup tid state.net.transitionLabelsDict
                                    , typedef:     fromMaybe (Typedef "TODO empty typedef") (Map.lookup tid state.net.transitionTypesDict)
                                    , isWriteable: false
@@ -147,7 +147,7 @@ ui initialState' =
                                })
                 state.focusedPlace
         pure next
-      UpdateTransition (TransitionLabel newLabel) next -> do
+      UpdateTransition (UpdateTransitionName newLabel next) -> do
         H.modify_ $ \state ->
           maybe state
                 (\tid -> state { net = state.net { transitionLabelsDict = Map.insert tid newLabel state.net.transitionLabelsDict }
@@ -155,7 +155,7 @@ ui initialState' =
                                })
                 state.focusedTransition
         pure next
-      UpdateTransition (TransitionType newType) next -> do
+      UpdateTransition (UpdateTransitionType newType next) -> do
         H.modify_ $ \state ->
           maybe state
                 (\tid -> state { net = state.net { transitionTypesDict = Map.insert tid newType state.net.transitionTypesDict }
