@@ -19,11 +19,11 @@ data QueryF pid tid a
   | FireTransition tid a
   | FocusTransition tid a
   | FocusPlace pid a
-  | UpdatePlace PlaceUpdate a
+  | UpdatePlace (PlaceQueryF pid a)
   | UpdateTransition TransitionUpdate a
 
-data PlaceUpdate
-  = PlaceLabel String
+data PlaceQueryF pid a
+  = UpdatePlaceLabel String a
 
 data TransitionUpdate
   = TransitionLabel String

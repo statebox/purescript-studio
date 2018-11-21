@@ -38,7 +38,7 @@ import Arrow as Arrow
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceUpdate(..), TransitionUpdate(..), Msg(..))
+import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionUpdate(..), Msg(..))
 import PlaceEditor as PlaceEditor
 import TransitionEditor as TransitionEditor
 
@@ -105,7 +105,7 @@ ui initialState' =
                       [ htmlMarking state.net.marking ]
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit place" ]
-                      , PlaceEditor.form $ { label: _, typedef: Typedef "Unit", isWriteable: false } <$> ((flip Map.lookup state.net.placeLabelsDict) =<< state.focusedPlace)
+                      , map UpdatePlace <<< PlaceEditor.form $ { label: _, typedef: Typedef "Unit", isWriteable: false } <$> ((flip Map.lookup state.net.placeLabelsDict) =<< state.focusedPlace)
                       ]
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit transition" ]
@@ -139,7 +139,7 @@ ui initialState' =
                       , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> "."
                       }
         pure next
-      UpdatePlace (PlaceLabel newLabel) next -> do
+      UpdatePlace (UpdatePlaceLabel newLabel next) -> do
         H.modify_ $ \state ->
           maybe state
                 (\pid -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
