@@ -1,11 +1,12 @@
 module PetrinetView where
 
 import Prelude
+import Config
 import Control.MonadZero (empty)
 import Data.Array (cons)
 import Data.Newtype (un)
 import Data.Bag (BagF)
-import Data.Foldable (foldMap, elem)
+import Data.Foldable (class Foldable, foldMap, elem)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -32,14 +33,14 @@ import Svg.Attributes as SA
 import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
 import Svg.Util as SvgUtil
 
+import Arrow
+import Arrow as Arrow
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceUpdate(..), TransitionUpdate(..), Msg(..))
+import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..))
 import PlaceEditor as PlaceEditor
 import TransitionEditor as TransitionEditor
-
--- config ----------------------------------------------------------------------
 
 fontSize :: Number
 fontSize = 0.1
@@ -107,7 +108,7 @@ ui initialState' =
       { name:              ""
       , net:               initialState'.net
       , netApi:            initialState'.netApi
-      , msg:               "Select places or transitions by clicking on them. Double-click enabled transitions to fire them."
+      , msg:               "Please select a net."
       , focusedPlace:      empty
       , focusedTransition: empty
       }
@@ -127,16 +128,18 @@ ui initialState' =
                       [ htmlMarking state.net.marking ]
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit place" ]
-                      , PlaceEditor.form $ { label: _, typedef: Typedef "Unit", isWriteable: false } <$> ((flip Map.lookup state.net.placeLabelsDict) =<< state.focusedPlace)
+                      , map UpdatePlace <<< PlaceEditor.form $ do
+                          pid <- state.focusedPlace
+                          label <- Map.lookup pid state.net.placeLabelsDict
+                          pure { pid: pid, label: label, typedef: Typedef "Unit", isWriteable: false }
                       ]
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit transition" ]
-                      , TransitionEditor.form $
-                          (\tid -> { label:       fromMaybe "" $ Map.lookup tid state.net.transitionLabelsDict
-                                   , typedef:     fromMaybe (Typedef "TODO empty typedef") (Map.lookup tid state.net.transitionTypesDict)
-                                   , isWriteable: false
-                                   }
-                          ) <$> state.focusedTransition
+                      , map UpdateTransition <<< TransitionEditor.form $ do
+                          tid   <- state.focusedTransition
+                          label <- Map.lookup tid state.net.transitionLabelsDict
+                          typ   <- Map.lookup tid state.net.transitionTypesDict
+                          pure { tid: tid, label: label, typedef: typ, isWriteable: false }
                       ]
                 ]
           ]
@@ -152,7 +155,9 @@ ui initialState' =
     eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
       LoadNet newNet next -> do
-        H.modify_ (\state -> state { net = newNet })
+        H.modify_ (\state -> state { net = newNet
+                                   , msg = "Select places or transitions by clicking on them. Double-click enabled transitions to fire them."
+                                   })
         pure next
       FocusPlace pid next -> do
         state <- H.get
@@ -161,29 +166,20 @@ ui initialState' =
                       , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> "."
                       }
         pure next
-      UpdatePlace (PlaceLabel newLabel) next -> do
-        H.modify_ $ \state ->
-          maybe state
-                (\pid -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
-                               , msg = "Updated place " <> show pid <> "."
-                               })
-                state.focusedPlace
+      UpdatePlace (UpdatePlaceLabel pid newLabel next) -> do
+        H.modify_ $ \state -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
+                                    , msg = "Updated place " <> show pid <> "."
+                                    }
         pure next
-      UpdateTransition (TransitionLabel newLabel) next -> do
-        H.modify_ $ \state ->
-          maybe state
-                (\tid -> state { net = state.net { transitionLabelsDict = Map.insert tid newLabel state.net.transitionLabelsDict }
-                               , msg = "Updated transition " <> show tid <> "."
-                               })
-                state.focusedTransition
+      UpdateTransition (UpdateTransitionName tid newLabel next) -> do
+        H.modify_ $ \state -> state { net = state.net { transitionLabelsDict = Map.insert tid newLabel state.net.transitionLabelsDict }
+                                    , msg = "Updated transition " <> show tid <> "."
+                                    }
         pure next
-      UpdateTransition (TransitionType newType) next -> do
-        H.modify_ $ \state ->
-          maybe state
-                (\tid -> state { net = state.net { transitionTypesDict = Map.insert tid newType state.net.transitionTypesDict }
-                               , msg = "Updated transition " <> show tid <> "."
-                               })
-                state.focusedTransition
+      UpdateTransition (UpdateTransitionType tid newType next) -> do
+        H.modify_ $ \state -> state { net = state.net { transitionTypesDict = Map.insert tid newType state.net.transitionTypesDict }
+                                    , msg = "Updated transition " <> show tid <> "."
+                                    }
         pure next
       FocusTransition tid next -> do
         state <- H.get
@@ -205,8 +201,10 @@ ui initialState' =
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net focusedPlace focusedTransition =
-      svgTransitions <> svgPlaces
+      svgDefs <> svgTransitions <> svgPlaces
       where
+        svgDefs = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
+
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
 
         svgPlaces = fromMaybe [] $ drawPlace `traverse` net.places
@@ -275,12 +273,7 @@ ui initialState' =
                , SA.id arc.htmlId -- we refer to this as the path of our animation and label, among others
                , svgPath arc.src arc.dest
                ]
-           , SE.circle
-               [ SA.class_ "css-arc-head" -- TODO yah, this should be a triangle
-               , SA.cx      arc.dest.x
-               , SA.cy      arc.dest.y
-               , SA.r       1.5
-               ]
+           , svgArrow arc.src arc.dest
            , SE.text
                [ SA.class_    "css-arc-label"
                , SA.x         arc.src.x

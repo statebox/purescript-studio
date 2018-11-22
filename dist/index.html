@@ -17,7 +17,6 @@
         -webkit-user-select: none;
         user-select: none;
     }
-
     .css-petrinet-component svg {
         background: #eee;
     }
@@ -40,14 +39,18 @@
         display: none; /* TODO development */
         fill: rgb(200,200,200);
     }
-    .css-arc,
-    .css-arc-head {
+    .css-arc {
         stroke-width: 0.15;
         stroke: rgb(100,100,100);
         fill: rgb(100,100,100);
     }
-    .css-arc-head {
-        display: none; /* TODO development */
+    .css-arrow {
+        stroke-width: 0.15;
+        stroke: rgb(100,100,100);
+    }
+    .css-arrowhead {
+        stroke: none;
+        fill: rgb(100,100,100);
     }
     .css-transition.enabled .css-transition-rect {
         fill: rgb(220,240,220);

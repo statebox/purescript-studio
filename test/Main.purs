@@ -1,20 +1,25 @@
 module Test.Main where
 
 import Prelude
-import Data.Maybe (Maybe)
-import Data.Petrinet.Representation.Dict
+
+import Data.Either (Either(..))
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Class.Console (log)
 
-import ExampleData as Ex
+import Test.Spec (pending, describe, it)
+import Test.Spec.Assertions (shouldEqual)
+import Test.Spec.Reporter.Console (consoleReporter)
+import Test.Spec.Runner (run)
+
+import Data.Petrinet.Representation.NLL as Net
+import Data.Petrinet.Representation.NLL (ErrNetEncoding(..))
 
 main :: Effect Unit
-main = do
-  log $ "pre  =     " <> (show $ preMarking                            <$> transition 100)
-  log $ "post =     " <> (show $ postMarking                           <$> transition 100)
-  log $ "sum  =     " <> (show $ (\t -> postMarking t <> preMarking t) <$> transition 100)
-  log $ "m    =     " <> (show $ Ex.net1.marking)
-  log $ "m'   =     " <> (show $ fireAtMarking Ex.net1.marking         <$> transition 100)
-  where
-    transition :: Ex.TID -> Maybe _
-    transition = Ex.net1.findTransition
+main = run [consoleReporter] do
+  describe "NLL Petri net encoding" do
+    it "accept even length encodings" do
+      Net.fromNLL 0 [1,2,0,3,0,3,0,4,5,5,0] `shouldEqual` Right [Tuple [1,2] [3], Tuple [3] [4,5,5]]
+    it "reject odd length encodings" do
+      Net.fromNLL 0 [1,2,0,3,0,3,0] `shouldEqual` Left ErrOddLength
+    pending "infer a single trailing zero?"
