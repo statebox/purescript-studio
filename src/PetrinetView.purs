@@ -238,7 +238,7 @@ ui initialState' =
                  , HE.onClick (HE.input_ (FocusTransition tid))
                  , HE.onDoubleClick (HE.input_ (if isEnabled then FireTransition tid else FocusTransition tid))
                  ]
-                 (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
+                 (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid] <> [svgTransitionLabel trPos tid])
 
         -- TODO simplify, especially (src, dest) order given isPost
         mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
@@ -251,22 +251,21 @@ ui initialState' =
 
     svgTransitionRect :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionRect point tid =
-      SE.g [] [
-        SE.rect
-          [ SA.class_  "css-transition-rect"
-          , SA.width   transitionWidth
-          , SA.height  transitionHeight
-          , SA.x       (point.x - transitionWidth / 2.0)
-          , SA.y       (point.y - transitionHeight / 2.0)
-          ]
-        , SE.text
-          [ SA.class_    "css-transition-name-label"
-          , SA.x         (point.x + 1.5 * placeRadius)
-          , SA.y         (point.y + 4.0 * fontSize)
-          , SA.font_size (SA.FontSizeLength $ Em fontSize)
-          ]
-          [ HH.text $ mkTransitionIdStr tid ]
-      ]
+      SE.rect [ SA.class_  "css-transition-rect"
+        , SA.width   transitionWidth
+        , SA.height  transitionHeight
+        , SA.x       (point.x - transitionWidth / 2.0)
+        , SA.y       (point.y - transitionHeight / 2.0)
+        ]
+
+    svgTransitionLabel :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionLabel point tid =
+      SE.text [ SA.class_    "css-transition-name-label"
+              , SA.x         (point.x + 1.5 * placeRadius)
+              , SA.y         (point.y + 4.0 * fontSize)
+              , SA.font_size (SA.FontSizeLength $ Em fontSize)
+              ]
+              [ HH.text $ mkTransitionIdStr tid ]
 
     svgArc :: ∀ a pid tid. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
     svgArc arc =
