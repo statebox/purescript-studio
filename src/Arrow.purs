@@ -33,8 +33,8 @@ svgArrowheadMarker =
   SE.marker
     [ SA.id arrowheadMarkerId
     , SA.class_ "css-arrowhead"
-    , SA.orient "auto"
-    , SA.markerUnits "strokeWidth"
+    , SA.orient SA.AutoOrient
+    , SA.markerUnits SA.StrokeWidth 
     , SA.strokeWidth 0.0
     , SA.markerWidth 6.0
     , SA.markerHeight 6.0

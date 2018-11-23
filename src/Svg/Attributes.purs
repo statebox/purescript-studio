@@ -61,7 +61,6 @@ instance showCSSLength :: Show CSSLength where
   show (Pct i) = (show i) <> "%"
   show Nil = "0"
 
-
 data FontSize
   = XXSmall
   | XSmall
@@ -73,6 +72,30 @@ data FontSize
   | Smaller
   | Larger
   | FontSizeLength CSSLength
+
+data Orient
+  = AutoOrient
+  | AutoStartReverse
+
+instance showOrient :: Show Orient where
+  show AutoOrient = "auto"
+  show AutoStartReverse = "auto-start-reverse"
+
+printOrient :: Orient -> String
+printOrient AutoOrient = "auto"
+printOrient AutoStartReverse = "auto-start-reverse"
+
+data MarkerUnit
+  = UserSpaceOnUse
+  | StrokeWidth
+
+instance showMarkerUnit :: Show MarkerUnit where
+  show UserSpaceOnUse = "userSpaceOnUse"
+  show StrokeWidth = "strokeWidth"
+
+printMarkerUnit :: MarkerUnit -> String
+printMarkerUnit UserSpaceOnUse = "userSpaceOnUse"
+printMarkerUnit StrokeWidth = "strokeWidth"
 
 instance showFontSize :: Show FontSize where
   show XXSmall = "xx-small"
@@ -94,6 +117,7 @@ printTextAnchor End = "end"
 data Baseline
   = Auto | UseScript | NoChange | ResetSize | Ideographic | Alphabetic | Hanging
   | Mathematical | Central | BaselineMiddle | TextAfterEdge | TextBeforeEdge
+
 printBaseline :: Baseline -> String
 printBaseline Auto = "auto"
 printBaseline UseScript = "use-script"
@@ -262,11 +286,11 @@ refX = attr (AttrName "refX") <<< show
 refY :: forall r i. Number -> IProp (refY :: Number | r) i
 refY = attr (AttrName "refY") <<< show
 
-orient :: forall r i. String -> IProp (orient :: String | r) i
-orient = attr (AttrName "orient")
+orient :: forall r i. Orient -> IProp (orient :: String | r) i
+orient = attr (AttrName "orient") <<< printOrient
 
-markerUnits :: forall r i. String -> IProp (markerUnits :: String | r) i
-markerUnits = attr (AttrName "markerUnits")
+markerUnits :: forall r i. MarkerUnit -> IProp (markerUnits :: String | r) i
+markerUnits = attr (AttrName "markerUnits") <<< printMarkerUnit
 
 strokeWidth :: forall r i. Number -> IProp (strokeWidth :: Number | r) i
 strokeWidth = attr (AttrName "stroke-width") <<< show
