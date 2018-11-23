@@ -1,6 +1,7 @@
 module PetrinetView where
 
 import Prelude
+import Config
 import Control.MonadZero (empty)
 import Data.Array (cons)
 import Data.Newtype (un)
@@ -38,31 +39,6 @@ import Data.Petrinet.Representation.Dict
 import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceUpdate(..), TransitionUpdate(..), Msg(..))
 import PlaceEditor as PlaceEditor
 import TransitionEditor as TransitionEditor
-
--- config ----------------------------------------------------------------------
-
-fontSize :: Number
-fontSize = 0.1
-
-tokenPadding :: Number
-tokenPadding = placeRadius * 0.2
-
-placeRadius :: Number
-placeRadius = 4.0 * tokenRadius
-
-tokenRadius :: Number
-tokenRadius = 0.5
-
-transitionHeight :: Number
-transitionHeight = 2.0 * placeRadius
-
-transitionWidth :: Number
-transitionWidth  = 2.0 * placeRadius
-
-arcAnimationDuration :: Duration
-arcAnimationDuration = seconds 0.70
-
---------------------------------------------------------------------------------
 
 type StateF pid tid =
   { focusedPlace      :: Maybe pid
