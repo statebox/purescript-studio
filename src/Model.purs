@@ -19,15 +19,15 @@ data QueryF pid tid a
   | FireTransition tid a
   | FocusTransition tid a
   | FocusPlace pid a
-  | UpdatePlace PlaceUpdate a
-  | UpdateTransition TransitionUpdate a
+  | UpdatePlace (PlaceQueryF pid a)
+  | UpdateTransition (TransitionQueryF tid a)
 
-data PlaceUpdate
-  = PlaceLabel String
+data PlaceQueryF pid a
+  = UpdatePlaceLabel pid String a
 
-data TransitionUpdate
-  = TransitionLabel String
-  | TransitionType Typedef
+data TransitionQueryF tid a
+  = UpdateTransitionName tid String a
+  | UpdateTransitionType tid Typedef a
 
 newtype Typedef = Typedef String
 

@@ -250,6 +250,30 @@ class_ = attr (AttrName "class")
 id :: forall r i . String -> IProp (id :: String | r) i
 id = attr (AttrName "id")
 
+markerWidth :: forall r i. Number -> IProp (markerWidth :: Number | r) i
+markerWidth = attr (AttrName "markerWidth") <<< show
+
+markerHeight :: forall r i. Number -> IProp (markerHeight :: Number | r) i
+markerHeight = attr (AttrName "markerHeight") <<< show
+
+refX :: forall r i. Number -> IProp (refX :: Number | r) i
+refX = attr (AttrName "refX") <<< show
+
+refY :: forall r i. Number -> IProp (refY :: Number | r) i
+refY = attr (AttrName "refY") <<< show
+
+orient :: forall r i. String -> IProp (orient :: String | r) i
+orient = attr (AttrName "orient")
+
+markerUnits :: forall r i. String -> IProp (markerUnits :: String | r) i
+markerUnits = attr (AttrName "markerUnits")
+
+strokeWidth :: forall r i. Number -> IProp (strokeWidth :: Number | r) i
+strokeWidth = attr (AttrName "stroke-width") <<< show
+
+markerEnd :: forall r i. String -> IProp (markerEnd :: String | r) i
+markerEnd = attr (AttrName "marker-end")
+
 --------------------------------------------------------------------------------
 
 -- | https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/dur

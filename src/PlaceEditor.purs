@@ -12,15 +12,16 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, value, rows, placeholder, InputType(..), checked, name)
 import Halogen.HTML.Core (ClassName(..))
 
-import Model (QueryF(..), PlaceUpdate(..), Typedef, Msg(..))
+import Model (PlaceQueryF(..), Typedef, Msg(..))
 
-type PlaceEditorFormModel =
-  { label       :: String
+type PlaceEditorFormModel pid =
+  { pid         :: pid
+  , label       :: String
   , typedef     :: Typedef
   , isWriteable :: Boolean
   }
 
-form :: ∀ pid tid a. Maybe PlaceEditorFormModel -> HTML a ((QueryF pid tid) Unit)
+form :: ∀ pid a. Maybe (PlaceEditorFormModel pid) -> HTML a ((PlaceQueryF pid) Unit)
 form mm =
   div []
       [ div [ classes [ ClassName "field", ClassName "is-horizontal" ] ]
@@ -33,8 +34,9 @@ form mm =
                         [ div [ classes [ ClassName "control" ] ]
                               [ input [ classes [ ClassName "input" ]
                                       , value (maybe "" (_.label) mm)
-                                      , onValueChange (HE.input (\str -> UpdatePlace (PlaceLabel str)))
-                                      , disabled (isNothing mm)
+                                      , maybe (disabled true)
+                                              (\pid -> onValueChange (HE.input (UpdatePlaceLabel pid)))
+                                              (mm <#> _.pid)
                                       ]
                               ]
                         ]
