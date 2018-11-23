@@ -38,13 +38,15 @@ import Arrow as Arrow
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..))
+import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), ArcQueryF(..), Guard(..), Msg(..))
 import PlaceEditor as PlaceEditor
 import TransitionEditor as TransitionEditor
+import ArcEditor as ArcEditor
 
 type StateF pid tid =
   { focusedPlace      :: Maybe pid
   , focusedTransition :: Maybe tid
+  , focusedArc        :: Maybe tid
   , msg               :: String
   |                      NetInfoFRow pid tid ()
   }
@@ -62,7 +64,7 @@ type ArcModelF tid label pt =
   , dest   :: pt
   , label  :: label -- TODO String?
   , tid    :: tid
-  , isPost :: Boolean
+  , isPost :: Boolean -- TODO: `data arcType = Pre | Post`?
   , htmlId :: HtmlId
   }
 
@@ -88,6 +90,7 @@ ui initialState' =
       , msg:               "Please select a net."
       , focusedPlace:      empty
       , focusedTransition: empty
+      , focusedArc:        empty
       }
 
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
@@ -117,6 +120,12 @@ ui initialState' =
                           label <- Map.lookup tid state.net.transitionLabelsDict
                           typ   <- Map.lookup tid state.net.transitionTypesDict
                           pure { tid: tid, label: label, typedef: typ, isWriteable: false }
+                      ]
+                , div [ classes [ ClassName "column" ] ]
+                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit arc" ]
+                      , map UpdateArc <<< ArcEditor.form $ do
+                          tid   <- state.focusedArc
+                          pure { tid: tid, guard: "", label: "" }
                       ]
                 ]
           ]
@@ -175,6 +184,23 @@ ui initialState' =
                       , msg = "Fired transition " <> show tid <> "."
                       }
         pure next
+      FocusArc tid next -> do
+        state <- H.get
+        let focusedArc' = toggleMaybe tid state.focusedArc
+        H.put $ state { focusedArc = focusedArc'
+                      , msg = (maybe "Focused" (const "Unfocused") state.focusedArc) <>" arc " <> show tid <> "."
+                      }
+        pure next
+      UpdateArc (UpdateArcLabel tid label next) -> do
+        state <- H.get
+        let
+          focusedArc' = toggleMaybe tid state.focusedArc
+          netMaybe' = fire state.net <$> state.net.findTransition tid
+          net'      = fromMaybe state.net netMaybe'
+        H.put $ state { net = net'
+                      , msg = ""
+                      }
+        pure next
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net focusedPlace focusedTransition =
@@ -210,7 +236,6 @@ ui initialState' =
           pure $
             SE.g [ SA.class_ $ "css-transition" <> guard isEnabled " enabled"
                  , SA.id (mkTransitionIdStr tid)
-                 , HE.onClick (HE.input_ (FocusTransition tid))
                  , HE.onDoubleClick (HE.input_ (if isEnabled then FireTransition tid else FocusTransition tid))
                  ]
                  (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid])
@@ -226,7 +251,8 @@ ui initialState' =
 
     svgTransitionRect :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionRect pos tid = SE.rect
-      [ SA.class_  "css-transition-rect"
+      [ HE.onClick (HE.input_ (FocusTransition tid))
+      , SA.class_  "css-transition-rect"
       , SA.width   transitionWidth
       , SA.height  transitionHeight
       , SA.x       (pos.x - transitionWidth / 2.0)
@@ -235,7 +261,8 @@ ui initialState' =
 
     svgArc :: ∀ a pid tid. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
     svgArc arc =
-      SE.g [ SA.class_ "css-arc-container" ]
+      SE.g [ SA.class_ "css-arc-container"
+           , HE.onClick (HE.input_ (FocusArc arc.tid))]
            [ SE.path
                [ SA.class_ $ "css-arc " <> if arc.isPost then "css-post-arc" else "css-pre-arc"
                , SA.id arc.htmlId -- we refer to this as the path of our animation and label, among others

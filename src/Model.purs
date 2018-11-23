@@ -21,6 +21,8 @@ data QueryF pid tid a
   | FocusPlace pid a
   | UpdatePlace (PlaceQueryF pid a)
   | UpdateTransition (TransitionQueryF tid a)
+  | FocusArc tid a
+  | UpdateArc (ArcQueryF tid a)
 
 data PlaceQueryF pid a
   = UpdatePlaceLabel pid String a
@@ -28,6 +30,12 @@ data PlaceQueryF pid a
 data TransitionQueryF tid a
   = UpdateTransitionName tid String a
   | UpdateTransitionType tid Typedef a
+
+
+newtype Guard = Guard String
+
+data ArcQueryF tid a
+  = UpdateArcLabel tid String a
 
 newtype Typedef = Typedef String
 
