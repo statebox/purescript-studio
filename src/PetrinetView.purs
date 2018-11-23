@@ -124,7 +124,7 @@ ui initialState' =
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit arc" ]
                       , map UpdateArc <<< ArcEditor.form $ do
-                          tid   <- state.focusedArc
+                          tid <- state.focusedArc
                           pure { tid: tid, guard: "", label: "" }
                       ]
                 ]
@@ -193,11 +193,7 @@ ui initialState' =
         pure next
       UpdateArc (UpdateArcLabel tid label next) -> do
         state <- H.get
-        let
-          focusedArc' = toggleMaybe tid state.focusedArc
-          netMaybe' = fire state.net <$> state.net.findTransition tid
-          net'      = fromMaybe state.net netMaybe'
-        H.put $ state { net = net'
+        H.put $ state { net = state.net 
                       , msg = ""
                       }
         pure next
