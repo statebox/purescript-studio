@@ -125,7 +125,7 @@ ui initialState' =
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit arc" ]
                       , map UpdateArc <<< ArcEditor.form $ do
                           tid <- state.focusedArc
-                          pure { tid: tid, guard: "", label: "" }
+                          pure { tid: tid, guard: Guard "", label: "" }
                       ]
                 ]
           ]
@@ -193,7 +193,7 @@ ui initialState' =
         pure next
       UpdateArc (UpdateArcLabel tid label next) -> do
         state <- H.get
-        H.put $ state { net = state.net 
+        H.put $ state { net = state.net
                       , msg = ""
                       }
         pure next

@@ -31,7 +31,6 @@ data TransitionQueryF tid a
   = UpdateTransitionName tid String a
   | UpdateTransitionType tid Typedef a
 
-
 newtype Guard = Guard String
 
 data ArcQueryF tid a

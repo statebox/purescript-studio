@@ -16,7 +16,7 @@ import Model (ArcQueryF(..), Guard(..), Msg(..))
 
 type ArcEditorFormModel tid =
   { tid   :: tid
-  , guard :: String 
+  , guard :: Guard 
   , label :: String
   }
 
