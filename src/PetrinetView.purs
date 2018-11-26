@@ -227,11 +227,11 @@ ui initialState' =
     svgTransitionRect :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionRect point tid =
       SE.rect [ SA.class_  "css-transition-rect"
-        , SA.width   transitionWidth
-        , SA.height  transitionHeight
-        , SA.x       (point.x - transitionWidth / 2.0)
-        , SA.y       (point.y - transitionHeight / 2.0)
-        ]
+              , SA.width   transitionWidth
+              , SA.height  transitionHeight
+              , SA.x       (point.x - transitionWidth / 2.0)
+              , SA.y       (point.y - transitionHeight / 2.0)
+              ]
 
     svgTransitionLabel :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionLabel point tid =
