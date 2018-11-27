@@ -92,8 +92,8 @@ mkNetRep
   -> Array Typedef
   -> Array Vec2D
   -> NetRep
-mkNetRep places transitions marking placeLabels placePoints transitionLabels transitionTypes transitionPoints =
-  { places:               places
+mkNetRep pids transitions marking placeLabels placePoints transitionLabels transitionTypes transitionPoints =
+  { places:               pids
   , transitionsDict:      transitionsDict
   , marking:              marking
   , placeLabelsDict:      placeLabelsDict
@@ -103,8 +103,7 @@ mkNetRep places transitions marking placeLabels placePoints transitionLabels tra
   , transitionPointsDict: transitionPointsDict
   }
   where
-    -- TODO check +1
-    firstTransitionIndex = length places + 1
+    firstTransitionIndex = length pids + 1
 
     transitionsDict :: Map Int Transition
     transitionsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitions
@@ -119,6 +118,11 @@ mkNetRep places transitions marking placeLabels placePoints transitionLabels tra
     transitionTypesDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionTypes
 
     transitionPointsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
+
+mkNetApi :: NetRep -> NetApi
+mkNetApi rep =
+  { findTokens : findTokens' rep.marking
+  }
 
 --------------------------------------------------------------------------------
 

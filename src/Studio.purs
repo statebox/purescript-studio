@@ -45,6 +45,7 @@ ui =
       , nets: [ { name: "Traffic lights"    , net: Ex.net1, netApi: Ex.netApi1 }
               , { name: "Producer-consumer" , net: Ex.net2, netApi: Ex.netApi2 }
               ]
+              <> Ex.pnproNetInfos1
       }
 
     eval :: Query ~> ParentDSL State Query (QueryF PID TID) Slot Void m

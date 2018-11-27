@@ -3,6 +3,7 @@ module ExampleData
   , netApi1
   , net2
   , netApi2
+  , pnproNetInfos1
   ) where
 
 import Prelude
@@ -21,6 +22,7 @@ import Data.Ring
 import Data.Vec2D (Vec2D)
 
 import Data.Petrinet.Representation.Dict
+import Data.Petrinet.Representation.PNPRO as PNPRO
 import Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
 
 -- traffic lights net ----------------------------------------------------------
@@ -44,7 +46,7 @@ marking1 = Bag.fromFoldable
   , 4 /\ 1
   ]
 
-placePoints1 :: Array (Int /\ Vec2D)
+placePoints1 :: Array (PID /\ Vec2D)
 placePoints1 =
   [ 1 /\ { x: 10.0, y: 30.0 }
   , 2 /\ { x: 30.0, y: 30.0 }
@@ -142,7 +144,7 @@ top2 = 10.0
 mid2 = 30.0
 bot2 = 50.0
 
-placePoints2 :: Array (Int /\ Vec2D)
+placePoints2 :: Array (TID /\ Vec2D)
 placePoints2 =
   [ 1 /\ { x: 10.0, y: top2 }
   , 2 /\ { x: 10.0, y: bot2 }
@@ -210,3 +212,68 @@ netApi2 =
 
 netInfo2 :: NetInfo
 netInfo2 = { name: "Producer-consumer", net: net2, netApi: netApi2 }
+
+--------------------------------------------------------------------------------
+
+pnproNetInfos1 :: Array NetInfo
+pnproNetInfos1 = PNPRO.mkNetInfo <$> pnproProject1.project.gspn
+  where
+    pnproProject1 :: PNPRO.Document
+    pnproProject1 = PNPRO.fromStringUnsafe pnproXml1
+
+pnproXml1 =
+  """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project name="webshop" version="121">
+  <gspn name="Enrico's Pizza Palazzo" show-color-cmd="false" show-fluid-cmd="false" show-timed-cmd="false" view-rates="false">
+    <nodes>
+      <place name="loggedIn" superposition-tags="Cart" x="12.0" y="16.0"/>
+      <transition name="selectItem" nservers-x="0.5" type="EXP" x="7.55" y="9.0"/>
+      <transition name="sendCart" nservers-x="0.5" superposition-tags="Cart" type="EXP" x="17.55" y="16.0"/>
+      <place name="reviewCart" x="21.0" y="16.0"/>
+      <transition name="checkout" nservers-x="0.5" superposition-tags="Unit" type="EXP" x="26.55" y="16.0"/>
+      <transition name="startPayment" nservers-x="0.5" type="EXP" x="35.55" y="16.0"/>
+      <transition name="selectPaymentMethod" nservers-x="0.5" type="EXP" x="45.55" y="16.0"/>
+      <transition name="pay" nservers-x="0.5" type="EXP" x="55.55" y="16.0"/>
+      <place name="reviewPayment" superposition-tags="Unit" x="31.0" y="16.0"/>
+      <place name="paymentForm" superposition-tags="PaymentInfo" x="40.0" y="16.0"/>
+      <place name="confirmPayment" superposition-tags="Unit" x="50.0" y="16.0"/>
+      <transition name="login" nservers-x="0.5" type="EXP" x="7.55" y="16.0"/>
+      <text-box bold="true" border-color="none" fill-color="none" height="2.5" name="__textBox0" shadow="true" shape="ROUND_RECTANGLE" text-color="#000000" vert-pos="0" width="19.0" x="1.5" y="24.75">Cart = (Qty \times ItemId)^*</text-box>
+      <text-box bold="true" border-color="none" fill-color="none" height="3.0" name="__textBox1" shadow="true" shape="ROUND_RECTANGLE" text-color="#000000" vert-pos="0" width="27.5" x="23.25" y="24.5">PaymentInfo  = PaymentMethod \times Amount\\CustomerInfo = String \times PrivateKey </text-box>
+      <place marking="1" name="loginForm" superposition-tags="Credentials" x="3.0" y="16.0"/>
+      <place name="itemSelected" superposition-tags="ItemId" x="12.0" y="2.0"/>
+      <transition name="addItem" nservers-x="0.5" type="EXP" x="17.55" y="9.0"/>
+      <transition name="removeItem" nservers-x="0.5" type="EXP" x="12.55" y="9.0"/>
+    </nodes>
+    <edges>
+      <arc head="reviewCart" kind="OUTPUT" tail="sendCart"/>
+      <arc head="checkout" kind="INPUT" tail="reviewCart"/>
+      <arc head="reviewPayment" kind="OUTPUT" tail="checkout"/>
+      <arc head="startPayment" kind="INPUT" tail="reviewPayment"/>
+      <arc head="paymentForm" kind="OUTPUT" tail="startPayment"/>
+      <arc head="selectPaymentMethod" kind="INPUT" tail="paymentForm"/>
+      <arc head="confirmPayment" kind="OUTPUT" tail="selectPaymentMethod"/>
+      <arc head="pay" kind="INPUT" tail="confirmPayment"/>
+      <arc head="loggedIn" kind="OUTPUT" tail="login"/>
+      <arc head="sendCart" kind="INPUT" tail="loggedIn"/>
+      <arc head="selectItem" kind="INPUT" tail="loggedIn">
+        <point x="9.0" y="14.0"/>
+      </arc>
+      <arc head="login" kind="INPUT" tail="loginForm"/>
+      <arc head="itemSelected" kind="OUTPUT" tail="selectItem"/>
+      <arc head="addItem" kind="INPUT" tail="itemSelected"/>
+      <arc head="loggedIn" kind="OUTPUT" tail="addItem">
+        <point x="16.5" y="14.0"/>
+      </arc>
+      <arc head="removeItem" kind="INPUT" tail="itemSelected"/>
+      <arc head="loggedIn" kind="OUTPUT" tail="removeItem"/>
+    </edges>
+  </gspn>
+  <measures gspn-name="PT" name="Measures" simplified-UI="false">
+    <assignments/>
+    <greatspn/>
+    <formulas>
+      <formula comment="Basic statistics of the toolchain execution." language="STAT"/>
+    </formulas>
+  </measures>
+</project>"""
