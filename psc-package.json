@@ -3,6 +3,6 @@
   "set": "psc-0.12.0-20180819",
   "source": "https://github.com/purescript/package-sets.git",
   "depends": [
-    "prelude", "halogen", "strings", "web-uievents", "effect", "group", "spec"
+    "prelude", "halogen", "strings", "web-uievents", "effect", "group", "spec", "psci-support"
   ]
 }
