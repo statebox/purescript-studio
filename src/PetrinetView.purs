@@ -195,6 +195,7 @@ ui initialState' =
           pure $ svgPlace { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
+        -- | Arcs are contained within a transition in the generated SVG.
         drawTransitionAndArcs :: ∀ a. tid -> TransitionF pid Tokens -> Maybe (HTML a ((QueryF pid tid) Unit))
         drawTransitionAndArcs tid tr = do
           trPos <- net.findTransitionPoint tid
@@ -263,7 +264,7 @@ ui initialState' =
            ]
 
     -- | A token that moves along the path of the enclosing arc. This should happen
-    --   when the transition to which this arc is connected fires.
+    -- | when the transition to which this arc is connected fires.
     svgTokenAnimated :: ∀ a pid tid. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
     svgTokenAnimated arc =
       SE.circleNode

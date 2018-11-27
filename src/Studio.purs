@@ -27,8 +27,9 @@ data Query a
   | SendViewerMsg (QueryF PID TID a) a
 
 data Slot = PetrinetViewSlot
-derive instance eqButtonSlot :: Eq Slot
-derive instance ordButtonSlot :: Ord Slot
+
+derive instance eqPetrinetViewSlot  :: Eq  Slot
+derive instance ordPetrinetViewSlot :: Ord Slot
 
 ui :: forall m. MonadAff m => H.Component HH.HTML Query Unit Void m
 ui =

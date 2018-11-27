@@ -46,7 +46,7 @@ unMarkingF (BagF dict) = dict
 
 --------------------------------------------------------------------------------
 
--- | A representation of a petri net.
+-- | A representation of a Petri net.
 type NetRepF pid tid tok typ r =
   { places                :: Array pid
   , marking               :: MarkingF pid tok

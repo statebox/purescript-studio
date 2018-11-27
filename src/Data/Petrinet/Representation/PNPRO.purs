@@ -18,7 +18,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec2D (Vec2D)
 
 import Data.Petrinet.Representation.Dict (mkNetObjF)
-import Model (PID, TID, Typedef(..),  NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
+import Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
 import Model as Model
 
 --------------------------------------------------------------------------------
@@ -80,12 +80,9 @@ type Arc =
 
 --------------------------------------------------------------------------------
 
--- TODO don't use emptyNetApi
 mkNetInfo :: GSPN -> NetInfo
-mkNetInfo gspn = { name: gspn.name, net: mkNetObjF netRep, netApi: netApi }
+mkNetInfo gspn = { name: gspn.name, net: mkNetObjF netRep, netApi: mkNetApi netRep }
   where
-    -- TODO should be netApi = mkNetApi netRep
-    netApi = emptyNetApi
     netRep = toNetRep gspn
 
 toNetRep :: GSPN -> NetRep
