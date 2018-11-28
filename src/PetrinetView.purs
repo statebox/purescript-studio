@@ -3,7 +3,7 @@ module PetrinetView where
 import Prelude
 import Config
 import Control.MonadZero (empty)
-import Data.Array (cons)
+import Data.Array (catMaybes)
 import Data.Newtype (un)
 import Data.Bag (BagF)
 import Data.Foldable (class Foldable, foldMap, elem)
@@ -184,15 +184,15 @@ ui initialState' =
 
         svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
 
-        svgPlaces = fromMaybe [] $ drawPlace `traverse` net.places
+        -- TODO catMaybes will cause this to fail silently on `Nothing`s
+        svgPlaces = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
 
-        -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
-        drawPlace :: pid -> Maybe (HTML a ((QueryF pid tid) Unit))
-        drawPlace id = do
+        mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
+        mkPlaceModel id = do
           label <- Map.lookup id net.placeLabelsDict
           point <- net.findPlacePoint id
           let tokens = findTokens net id
-          pure $ svgPlace { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
+          pure $ { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
         -- | Arcs are contained within a transition in the generated SVG.
