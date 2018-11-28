@@ -249,7 +249,7 @@ ui initialState' =
            [ SE.path
                [ SA.class_ $ "css-arc " <> if arc.isPost then "css-post-arc" else "css-pre-arc"
                , SA.id arc.htmlId -- we refer to this as the path of our animation and label, among others
-               , svgPath arc.src arc.dest
+               , SA.d (svgPath arc.src arc.dest)
                ]
            , svgArrow arc.src arc.dest
            , SE.text
@@ -280,7 +280,7 @@ ui initialState' =
             , SA.dur         arcAnimationDuration
             , SA.repeatCount 1
             -- TODO we reproduce the path here as a workaround because the mpath with the xlink:href doesn't work yet
-            , SA.path        $ SA.Abs <$> [ SA.M arc.src.x arc.src.y, SA.L arc.dest.x arc.dest.y ]
+            , SA.path        (svgPath arc.src arc.dest)
             ]
             [ -- TODO doesn't work, possibly due to xlink attribute namespace issue
               -- SE.mpath [ SA.xlinkHref $ "#" <> arc.htmlId ] -- token will move along this referenced path
@@ -404,8 +404,8 @@ htmlMarking bag =
 
 --------------------------------------------------------------------------------
 
-svgPath :: ∀ r i. Vec2D -> Vec2D -> HP.IProp (d :: String | r) i
-svgPath p q = SA.d $ SA.Abs <$> [ SA.M p.x p.y, SA.L q.x q.y ]
+svgPath :: ∀ r i. Vec2D -> Vec2D -> Array SA.D
+svgPath p q = SA.Abs <$> [ SA.M p.x p.y, SA.L q.x q.y ]
 
 --------------------------------------------------------------------------------
 
