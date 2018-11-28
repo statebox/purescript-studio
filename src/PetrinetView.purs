@@ -85,7 +85,7 @@ type HtmlId = String
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ m pid tid r. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => NetInfoF pid tid r -> H.Component HTML (QueryF pid tid) Unit Msg m
+ui :: ∀ pid tid r m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => NetInfoF pid tid r -> H.Component HTML (QueryF pid tid) Unit Msg m
 ui initialState' =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
@@ -206,19 +206,18 @@ ui initialState' =
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
         mkTransitionAndArcsModel :: tid -> TransitionF pid Tokens -> Maybe (TransitionModelF tid String Vec2D)
         mkTransitionAndArcsModel tid tr = do
-          trPos    <- net.findTransitionPoint tid
-          preArcs  <- mkPreArc  tid trPos `traverse` tr.pre
-          postArcs <- mkPostArc tid trPos `traverse` tr.post
-          pure $
-            { id        : tid
-            , label     : fromMaybe "" (Map.lookup tid net.transitionLabelsDict)
-            , isEnabled : isTransitionEnabled net.marking tr
-            , preArcs   : preArcs
-            , postArcs  : postArcs
-            , htmlId    : mkTransitionIdStr tid
-            , point     : trPos
-            , isFocused : false -- TODO
-            }
+          trPoint  <- net.findTransitionPoint tid
+          preArcs  <- mkPreArc  tid trPoint `traverse` tr.pre
+          postArcs <- mkPostArc tid trPoint `traverse` tr.post
+          pure { id        : tid
+               , label     : fold (Map.lookup tid net.transitionLabelsDict)
+               , isEnabled : isTransitionEnabled net.marking tr
+               , preArcs   : preArcs
+               , postArcs  : postArcs
+               , htmlId    : mkTransitionIdStr tid
+               , point     : trPoint
+               , isFocused : false -- TODO
+               }
           where
             mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
             mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> net.findPlacePoint tp.place
@@ -228,7 +227,7 @@ ui initialState' =
 
     --------------------------------------------------------------------------------
 
-    svgTransitionAndArcs :: ∀ a tid. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionAndArcs :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
     svgTransitionAndArcs t =
       SE.g [ SA.class_ $ "css-transition" <> guard t.isEnabled " enabled"
            , SA.id t.htmlId
@@ -237,7 +236,7 @@ ui initialState' =
            ]
            ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel t])
 
-    svgTransitionRect :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionRect :: ∀ tid a. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionRect point tid =
       SE.rect [ SA.class_  "css-transition-rect"
               , SA.width   transitionWidth
@@ -246,7 +245,7 @@ ui initialState' =
               , SA.y       (point.y - transitionHeight / 2.0)
               ]
 
-    svgTransitionLabel :: ∀ a tid. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionLabel :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
               , SA.x         (t.point.x + 1.5 * placeRadius)
@@ -255,7 +254,7 @@ ui initialState' =
               ]
               [ HH.text t.label ]
 
-    svgArc :: ∀ a pid tid. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
+    svgArc :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
     svgArc arc =
       SE.g [ SA.class_ "css-arc-container" ]
            [ SE.path
@@ -277,7 +276,7 @@ ui initialState' =
 
     -- | A token that moves along the path of the enclosing arc. This should happen
     -- | when the transition to which this arc is connected fires.
-    svgTokenAnimated :: ∀ a pid tid. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
+    svgTokenAnimated :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
     svgTokenAnimated arc =
       SE.circleNode
         [ SA.class_ "css-token-animated"
@@ -322,7 +321,7 @@ ui initialState' =
 
     --------------------------------------------------------------------------------
 
-    svgPlace :: ∀ a pid tid. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgPlace :: ∀ pid tid a. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
     svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
       SE.g [ SA.id (mkPlaceIdStr id)
            , HE.onClick (HE.input_ (FocusPlace id))
@@ -421,7 +420,7 @@ svgPath p q = SA.Abs <$> [ SA.M p.x p.y, SA.L q.x q.y ]
 
 --------------------------------------------------------------------------------
 
-toggleMaybe :: ∀ m a b. b -> Maybe a -> Maybe b
+toggleMaybe :: ∀ a b. b -> Maybe a -> Maybe b
 toggleMaybe z mx = case mx of
   Nothing -> Just z
   Just mx -> Nothing
