@@ -57,6 +57,18 @@ type PlaceModelF pid tok label pt =
   , isFocused :: Boolean
   }
 
+-- TODO unify with TransitionEditor.TransitionEditorFormModel?
+type TransitionModelF tid label pt =
+  { id        :: tid
+  , preArcs   :: Array (ArcModelF tid label pt)
+  , postArcs  :: Array (ArcModelF tid label pt)
+  , isEnabled :: Boolean
+  , label     :: label
+  , htmlId    :: HtmlId
+  , isFocused :: Boolean
+  , point     :: Vec2D
+  }
+
 type ArcModelF tid label pt =
   { src    :: pt
   , dest   :: pt
@@ -176,16 +188,13 @@ ui initialState' =
                       }
         pure next
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net focusedPlace focusedTransition =
       svgDefs <> svgTransitions <> svgPlaces
       where
-        svgDefs = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
-
-        svgTransitions = fromMaybe [] $ traverse (uncurry drawTransitionAndArcs) $ Map.toUnfoldable $ net.transitionsDict
-
-        -- TODO catMaybes will cause this to fail silently on `Nothing`s
-        svgPlaces = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
+        svgDefs        = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
+        svgTransitions = catMaybes $ map (map svgTransitionAndArcs <<< uncurry mkTransitionAndArcsModel) $ Map.toUnfoldable $ net.transitionsDict
+        svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
 
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
@@ -195,35 +204,38 @@ ui initialState' =
           pure $ { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
-        -- | Arcs are contained within a transition in the generated SVG.
-        drawTransitionAndArcs :: ∀ a. tid -> TransitionF pid Tokens -> Maybe (HTML a ((QueryF pid tid) Unit))
-        drawTransitionAndArcs tid tr = do
-          trPos <- net.findTransitionPoint tid
-
-          preArcs   <- mkPreArc  tid trPos `traverse` tr.pre
-          postArcs  <- mkPostArc tid trPos `traverse` tr.post
-
-          let
-            svgPreArcs  = svgArc <$> preArcs
-            svgPostArcs = svgArc <$> postArcs
-            isEnabled   = isTransitionEnabled net.marking tr
-
+        mkTransitionAndArcsModel :: tid -> TransitionF pid Tokens -> Maybe (TransitionModelF tid String Vec2D)
+        mkTransitionAndArcsModel tid tr = do
+          trPos    <- net.findTransitionPoint tid
+          preArcs  <- mkPreArc  tid trPos `traverse` tr.pre
+          postArcs <- mkPostArc tid trPos `traverse` tr.post
           pure $
-            SE.g [ SA.class_ $ "css-transition" <> guard isEnabled " enabled"
-                 , SA.id (mkTransitionIdStr tid)
-                 , HE.onClick (HE.input_ (FocusTransition tid))
-                 , HE.onDoubleClick (HE.input_ (if isEnabled then FireTransition tid else FocusTransition tid))
-                 ]
-                 (svgPreArcs <> svgPostArcs <> [svgTransitionRect trPos tid] <> [svgTransitionLabel trPos tid])
+            { id        : tid
+            , label     : fromMaybe "" (Map.lookup tid net.transitionLabelsDict)
+            , isEnabled : isTransitionEnabled net.marking tr
+            , preArcs   : preArcs
+            , postArcs  : postArcs
+            , htmlId    : mkTransitionIdStr tid
+            , point     : trPos
+            , isFocused : false -- TODO
+            }
+          where
+            mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
+            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> net.findPlacePoint tp.place
 
-        -- TODO simplify, especially (src, dest) order given isPost
-        mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-        mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> net.findPlacePoint tp.place
-
-        mkPreArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-        mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> net.findPlacePoint tp.place
+            mkPreArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
+            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> net.findPlacePoint tp.place
 
     --------------------------------------------------------------------------------
+
+    svgTransitionAndArcs :: ∀ a tid. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionAndArcs t =
+      SE.g [ SA.class_ $ "css-transition" <> guard t.isEnabled " enabled"
+           , SA.id t.htmlId
+           , HE.onClick (HE.input_ (FocusTransition t.id))
+           , HE.onDoubleClick (HE.input_ (if t.isEnabled then FireTransition t.id else FocusTransition t.id))
+           ]
+           ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel t])
 
     svgTransitionRect :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionRect point tid =
@@ -234,14 +246,14 @@ ui initialState' =
               , SA.y       (point.y - transitionHeight / 2.0)
               ]
 
-    svgTransitionLabel :: ∀ a tid. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionLabel point tid =
+    svgTransitionLabel :: ∀ a tid. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
-              , SA.x         (point.x + 1.5 * placeRadius)
-              , SA.y         (point.y + 4.0 * fontSize)
+              , SA.x         (t.point.x + 1.5 * placeRadius)
+              , SA.y         (t.point.y + 4.0 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
-              [ HH.text $ mkTransitionIdStr tid ]
+              [ HH.text t.label ]
 
     svgArc :: ∀ a pid tid. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
     svgArc arc =
