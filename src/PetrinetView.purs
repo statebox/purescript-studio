@@ -6,7 +6,7 @@ import Control.MonadZero (empty)
 import Data.Array (catMaybes)
 import Data.Newtype (un)
 import Data.Bag (BagF)
-import Data.Foldable (class Foldable, foldMap, elem)
+import Data.Foldable (class Foldable, fold, foldMap, elem)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -152,7 +152,7 @@ ui initialState' =
         state <- H.get
         let focusedPlace' = toggleMaybe pid state.focusedPlace
         H.put $ state { focusedPlace = focusedPlace'
-                      , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> "."
+                      , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> " (" <> (fold $ Map.lookup pid state.net.placeLabelsDict) <> ")."
                       }
         pure next
       UpdatePlace (UpdatePlaceLabel pid newLabel next) -> do
@@ -174,7 +174,7 @@ ui initialState' =
         state <- H.get
         let focusedTransition' = toggleMaybe tid state.focusedTransition
         H.put $ state { focusedTransition = focusedTransition'
-                      , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <>" transition " <> show tid <> "."
+                      , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <> " transition " <> show tid <> " (" <> (fold $ Map.lookup tid state.net.transitionLabelsDict) <> ")."
                       }
         pure next
       FireTransition tid next -> do
@@ -184,7 +184,7 @@ ui initialState' =
           netMaybe' = fire state.net <$> state.net.findTransition tid
           net'      = fromMaybe state.net netMaybe'
         H.put $ state { net = net'
-                      , msg = "Fired transition " <> show tid <> "."
+                      , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
                       }
         pure next
 
