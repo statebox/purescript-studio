@@ -6,11 +6,13 @@ import Control.MonadZero (empty)
 import Data.Array (catMaybes)
 import Data.Newtype (un)
 import Data.Bag (BagF)
-import Data.Foldable (class Foldable, fold, foldMap, elem)
+import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Monoid.Additive (Additive(..))
+import Data.Set (Set)
+import Data.Set as Set
 import Data.Tuple (Tuple(..), uncurry, snd)
 import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
@@ -35,12 +37,14 @@ import Svg.Util as SvgUtil
 
 import Arrow
 import Arrow as Arrow
+import Auth
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
 import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..))
 import PlaceEditor as PlaceEditor
 import TransitionEditor as TransitionEditor
+import View.Common (HtmlId)
 
 type StateF pid tid =
   { focusedPlace      :: Maybe pid
@@ -67,6 +71,7 @@ type TransitionModelF tid label pt =
   , htmlId    :: HtmlId
   , isFocused :: Boolean
   , point     :: Vec2D
+  , auths     :: Roles
   }
 
 type ArcModelF tid label pt =
@@ -81,12 +86,10 @@ type ArcModelF tid label pt =
 -- TODO drat, we didn't want type parameters here
 type ArcModel tid = ArcModelF tid String Vec2D
 
-type HtmlId = String
-
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid r m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => NetInfoF pid tid r -> H.Component HTML (QueryF pid tid) Unit Msg m
-ui initialState' =
+ui :: ∀ pid tid r m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => Array RoleInfo -> NetInfoF pid tid r -> H.Component HTML (QueryF pid tid) Unit Msg m
+ui allRoleInfos initialState' =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
     -- TODO should come from component state
@@ -124,11 +127,12 @@ ui initialState' =
                       ]
                 , div [ classes [ ClassName "column" ] ]
                       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit transition" ]
-                      , map UpdateTransition <<< TransitionEditor.form $ do
+                      , map UpdateTransition <<< TransitionEditor.form allRoleInfos $ do
                           tid   <- state.focusedTransition
                           label <- Map.lookup tid state.net.transitionLabelsDict
                           typ   <- Map.lookup tid state.net.transitionTypesDict
-                          pure { tid: tid, label: label, typedef: typ, isWriteable: false }
+                          let auths = fromMaybe mempty (Map.lookup tid state.net.transitionAuthsDict)
+                          pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
                       ]
                 ]
           ]
@@ -209,11 +213,13 @@ ui initialState' =
           trPoint  <- net.findTransitionPoint tid
           preArcs  <- mkPreArc  tid trPoint `traverse` tr.pre
           postArcs <- mkPostArc tid trPoint `traverse` tr.post
+          let auths = fromMaybe (Roles mempty) (Map.lookup tid net.transitionAuthsDict)
           pure { id        : tid
                , label     : fold (Map.lookup tid net.transitionLabelsDict)
                , isEnabled : isTransitionEnabled net.marking tr
                , preArcs   : preArcs
                , postArcs  : postArcs
+               , auths     : auths
                , htmlId    : mkTransitionIdStr tid
                , point     : trPoint
                , isFocused : false -- TODO
@@ -229,12 +235,15 @@ ui initialState' =
 
     svgTransitionAndArcs :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
     svgTransitionAndArcs t =
-      SE.g [ SA.class_ $ "css-transition" <> guard t.isEnabled " enabled"
+      SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
            , HE.onClick (HE.input_ (FocusTransition t.id))
            , HE.onDoubleClick (HE.input_ (if t.isEnabled then FireTransition t.id else FocusTransition t.id))
            ]
            ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel t])
+           where
+             roleClasses :: Array String
+             roleClasses = map (\r -> "css-role-" <> show r) <<< Set.toUnfoldable <<< un Roles $ t.auths
 
     svgTransitionRect :: ∀ tid a. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionRect point tid =

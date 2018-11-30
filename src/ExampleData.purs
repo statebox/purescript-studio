@@ -1,5 +1,6 @@
 module ExampleData
-  ( net1
+  ( project1
+  , net1
   , netApi1
   , net2
   , netApi2
@@ -21,9 +22,25 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ring
 import Data.Vec2D (Vec2D)
 
+import Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
+
+project1 =
+  { name: "Example nets"
+  , nets: [ { name: "Traffic lights"    , net: net1, netApi: netApi1 }
+          , { name: "Producer-consumer" , net: net2, netApi: netApi2 }
+          ]
+    <> pnproNetInfos1
+  , allRoleInfos: project1Roles
+  }
+
+project1Roles =
+  [ { id: Role 0, name: "admin"   , bgColor: CSSColor "orange", textColor: CSSColor "white" }
+  , { id: Role 1, name: "producer", bgColor: CSSColor "purple", textColor: CSSColor "white" }
+  , { id: Role 2, name: "consumer", bgColor: CSSColor "pink"  , textColor: CSSColor "white" }
+  ]
 
 -- traffic lights net ----------------------------------------------------------
 
@@ -105,8 +122,15 @@ transitionPoints1 =
   , { x: 70.0, y: 40.0 }
   ]
 
+transitionRoles1 = rolesFromFoldable <$>
+  [ []
+  , [ Role 1 ]
+  , []
+  , []
+  ]
+
 net1Data :: NetRep
-net1Data = mkNetRep places1 transitions1 marking1 placeLabels1 placePoints1 transitionLabels1  transitionTypes1 transitionPoints1
+net1Data = mkNetRep places1 transitions1 marking1 placeLabels1 placePoints1 transitionLabels1 transitionTypes1 transitionPoints1 transitionRoles1
 
 net1 :: NetObj
 net1 = mkNetObjF net1Data
@@ -199,8 +223,15 @@ transitionPoints2 =
   , { x: 110.0, y: mid2 }
   ]
 
+transitionRoles2 = rolesFromFoldable <$>
+  [ []
+  , [ Role 1 ]
+  , [ Role 2 ]
+  , []
+  ]
+
 net2Data :: NetRep
-net2Data = mkNetRep places2 transitions2 marking2 placeLabels2 placePoints2 transitionLabels2 transitionTypes2 transitionPoints2
+net2Data = mkNetRep places2 transitions2 marking2 placeLabels2 placePoints2 transitionLabels2 transitionTypes2 transitionPoints2 transitionRoles2
 
 net2 :: NetObj
 net2 = mkNetObjF net2Data

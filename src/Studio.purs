@@ -13,13 +13,13 @@ import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, src)
 import Effect.Aff.Class (class MonadAff)
 
-import Model (PID, TID, NetInfo, emptyNetInfo, QueryF(..), Msg(NetUpdated))
+import Model (Project, PID, TID, NetInfo, emptyNetInfo, QueryF(..), Msg(NetUpdated))
 import PetrinetView as PetrinetView
 import ExampleData as Ex
 
 type State =
-  { nets :: Array NetInfo
-  , msg  :: String
+  { project1 :: Project
+  , msg      :: String
   }
 
 data Query a
@@ -42,11 +42,8 @@ ui =
   where
     initialState :: State
     initialState =
-      { msg:  "Welcome to Statebox Studio!"
-      , nets: [ { name: "Traffic lights"    , net: Ex.net1, netApi: Ex.netApi1 }
-              , { name: "Producer-consumer" , net: Ex.net2, netApi: Ex.netApi2 }
-              ]
-              <> Ex.pnproNetInfos1
+      { msg:     "Welcome to Statebox Studio!"
+      , project1: Ex.project1
       }
 
     eval :: Query ~> ParentDSL State Query (QueryF PID TID) Slot Void m
@@ -68,9 +65,9 @@ ui =
         [ navBar
         , div [ classes [ ClassName "columns" ] ]
               [ div [ classes [ ClassName "column", ClassName "is-2" ] ]
-                    [ netChooser state.nets ]
+                    [ netChooser state.project1.nets ]
               , div [ classes [ ClassName "column" ] ]
-                    [ HH.slot PetrinetViewSlot (PetrinetView.ui emptyNetInfo) unit (HE.input HandleViewerMsg) ]
+                    [ HH.slot PetrinetViewSlot (PetrinetView.ui state.project1.allRoleInfos emptyNetInfo) unit (HE.input HandleViewerMsg) ]
               ]
         ]
 
@@ -78,7 +75,7 @@ ui =
         netChooser :: Array NetInfo -> ParentHTML Query (QueryF PID TID) Slot m
         netChooser items =
           nav [ classes [ ClassName "panel" ] ] $
-              [ p [ classes [ ClassName "panel-heading" ] ] [ text "Petri nets" ] ]
+              [ p [ classes [ ClassName "panel-heading" ] ] [ text state.project1.name ] ]
               <> (instanceListItem isSelected <$> items)
           where
             isSelected :: NetInfo -> Boolean
