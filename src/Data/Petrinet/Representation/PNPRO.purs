@@ -17,6 +17,7 @@ import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec2D (Vec2D)
 
+import Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
 import Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
 import Model as Model
@@ -96,6 +97,7 @@ toNetRep gspn =
     transitionLabels
     (const (Typedef "Unit") <$> transitions)
     (toVec2D <$> transitions)
+    transitionAuthsDict
   where
     firstPlaceIndex      = 1
     numPlaces            = length places
@@ -155,6 +157,8 @@ toNetRep gspn =
       { pre:  fromMaybe [] <<< flip Map.lookup preArcsDict  $ tr.name
       , post: fromMaybe [] <<< flip Map.lookup postArcsDict $ tr.name
       }
+
+    transitionAuthsDict = mempty
 
 --------------------------------------------------------------------------------
 

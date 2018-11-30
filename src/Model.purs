@@ -7,10 +7,10 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe)
-import Data.Monoid (mempty)
 import Data.Newtype (class Newtype)
 import Data.Tuple.Nested (type (/\), (/\))
 
+import Auth (Role, Roles, RoleInfo)
 import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, findTokens', NetRepF, NetObjF, NetApiF, mkNetObjF)
 import Data.Vec2D (Vec2D)
 
@@ -29,14 +29,27 @@ data TransitionQueryF tid a
   = UpdateTransitionName tid String a
   | UpdateTransitionType tid Typedef a
 
+--------------------------------------------------------------------------------
+
 newtype Typedef = Typedef String
 
 derive instance newtypeTypedef :: Newtype (Typedef)  _
+
+--------------------------------------------------------------------------------
 
 -- | Messages sent to the outside world (i.e. parent components).
 --   TODO This is a dummy placeholder for now.
 data Msg = NetUpdated
 
+--------------------------------------------------------------------------------
+
+type Project =
+  { name         :: String
+  , nets         :: Array NetInfo
+  , allRoleInfos :: Array RoleInfo
+  }
+
+--------------------------------------------------------------------------------
 type NetInfoFRow pid tid r =
   ( name   :: String
   , net    :: NetObjF pid tid Tokens Typedef
@@ -67,7 +80,7 @@ type NetInfo = Record (NetInfoFRow PID TID ())
 -- empty net -------------------------------------------------------------------
 
 emptyNetData :: NetRep
-emptyNetData = mkNetRep mempty mempty (BagF mempty) mempty mempty mempty mempty mempty
+emptyNetData = mkNetRep mempty mempty (BagF mempty) mempty mempty mempty mempty mempty mempty
 
 emptyNet :: NetObj
 emptyNet = mkNetObjF emptyNetData
@@ -91,8 +104,9 @@ mkNetRep
   -> Array String
   -> Array Typedef
   -> Array Vec2D
+  -> Array Roles
   -> NetRep
-mkNetRep pids transitions marking placeLabels placePoints transitionLabels transitionTypes transitionPoints =
+mkNetRep pids transitions marking placeLabels placePoints transitionLabels transitionTypes transitionPoints transitionAuths =
   { places:               pids
   , transitionsDict:      transitionsDict
   , marking:              marking
@@ -101,6 +115,7 @@ mkNetRep pids transitions marking placeLabels placePoints transitionLabels trans
   , transitionLabelsDict: transitionLabelsDict
   , transitionTypesDict:  transitionTypesDict
   , transitionPointsDict: transitionPointsDict
+  , transitionAuthsDict:  transitionAuthsDict
   }
   where
     firstTransitionIndex = length pids + 1
@@ -118,6 +133,8 @@ mkNetRep pids transitions marking placeLabels placePoints transitionLabels trans
     transitionTypesDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionTypes
 
     transitionPointsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
+
+    transitionAuthsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionAuths
 
 mkNetApi :: NetRep -> NetApi
 mkNetApi rep =

@@ -56,8 +56,11 @@ type NetRepF pid tid tok typ r =
 
   , transitionsDict       :: Map tid (TransitionF pid tok)
   , transitionLabelsDict  :: Map tid String
-  , transitionTypesDict   :: Map tid typ
   , transitionPointsDict  :: Map tid Vec2D
+
+  -- Statebox-specific fields
+  , transitionTypesDict   :: Map tid typ
+  , transitionAuthsDict   :: Map tid Auth.Roles
   | r
   }
 
@@ -89,6 +92,7 @@ mkNetObjF x =
   , transitionLabelsDict : x.transitionLabelsDict
   , transitionTypesDict  : x.transitionTypesDict
   , transitionPointsDict : x.transitionPointsDict
+  , transitionAuthsDict  : x.transitionAuthsDict
 
   -- API, sort of
   , findTransition       : flip Map.lookup x.transitionsDict
