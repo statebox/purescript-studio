@@ -35,6 +35,7 @@ import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is
 import Data.Group (class Group, ginverse)
 import Data.Bag (BagF(..))
 import Data.Bag as Bag
+import Auth as Auth
 
 type MarkingF a n = BagF a n
 
