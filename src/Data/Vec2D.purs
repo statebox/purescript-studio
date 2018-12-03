@@ -3,8 +3,29 @@ module Data.Vec2D where
 import Prelude (min, max)
 import Data.Ring (negate)
 import Data.Foldable (class Foldable, foldl)
+import Data.Semiring
 
 type Vec2D = { x :: Number, y :: Number }
+
+newtype Vec2 a = Vec2 { x :: a, y :: a }
+
+addVec :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a
+addVec (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 + x2, y: y1 + y2 }
+
+mulVec :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a
+mulVec (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 * x2, y: y1 * y2 }
+
+zeroVec :: forall a. Semiring a => Vec2 a
+zeroVec = Vec2 { x: zero, y: zero }
+
+oneVec :: forall a. Semiring a => Vec2 a
+oneVec = Vec2 { x: zero, y: zero }
+
+instance semiringVec :: Semiring a => Semiring (Vec2 a) where
+  zero = zeroVec
+  add = addVec
+  mul = mulVec
+  one = oneVec
 
 -- minMax2 :: { min :: Vec2D, max :: Vec2D }
 --         -> { min :: Vec2D, max :: Vec2D }
