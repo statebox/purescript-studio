@@ -21,6 +21,7 @@ data QueryF pid tid a
   | FocusPlace pid a
   | UpdatePlace (PlaceQueryF pid a)
   | UpdateTransition (TransitionQueryF tid a)
+  | ToggleLabelVisibility Toggle a
 
 data PlaceQueryF pid a
   = UpdatePlaceLabel pid String a
@@ -30,6 +31,8 @@ data TransitionQueryF tid a
   | UpdateTransitionType tid Typedef a
 
 --------------------------------------------------------------------------------
+
+data Toggle = Arc | Place | Transition
 
 newtype Typedef = Typedef String
 
