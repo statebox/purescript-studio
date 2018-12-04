@@ -47,13 +47,13 @@ import TransitionEditor as TransitionEditor
 import View.Common (HtmlId)
 
 type StateF pid tid =
-  { focusedPlace         :: Maybe pid
-  , focusedTransition    :: Maybe tid
-  , msg                  :: String
-  , showArcLabels        :: Boolean
-  , showPlaceLabels      :: Boolean
-  , showTransitionLabels :: Boolean
-  |                      NetInfoFRow pid tid ()
+  { focusedPlace            :: Maybe pid
+  , focusedTransition       :: Maybe tid
+  , msg                     :: String
+  , arcLabelsVisible        :: Boolean
+  , placeLabelsVisible      :: Boolean
+  , transitionLabelsVisible :: Boolean
+  |                            NetInfoFRow pid tid ()
   }
 
 type PlaceModelF pid tok label pt =
@@ -100,15 +100,15 @@ ui allRoleInfos initialState' =
 
     initialState :: StateF pid tid
     initialState =
-      { name:                 ""
-      , net:                  initialState'.net
-      , netApi:               initialState'.netApi
-      , msg:                  "Please select a net."
-      , focusedPlace:         empty
-      , focusedTransition:    empty
-      , showArcLabels:        false
-      , showPlaceLabels:      false
-      , showTransitionLabels: false
+      { name:                    ""
+      , net:                     initialState'.net
+      , netApi:                  initialState'.netApi
+      , msg:                     "Please select a net."
+      , focusedPlace:            empty
+      , focusedTransition:       empty
+      , arcLabelsVisible:        false
+      , placeLabelsVisible:      false
+      , transitionLabelsVisible: false
       }
 
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
@@ -141,8 +141,10 @@ ui allRoleInfos initialState' =
                           pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
                       ]
                 , div []
-                      [ HH.text "Toggle place and tx labels"
+                      [ HH.text "Toggle labels"
                       , HH. br []
+                      , HH.button [] [ HH.text "Toggle Arc Labels"]
+                      , HH.br []
                       , HH.button [] [ HH.text "Toggle Place Labels"]
                       , HH.br []
                       , HH.button [] [ HH.text "Toggle Transition Labels"]
@@ -206,11 +208,10 @@ ui allRoleInfos initialState' =
         pure next
       ToggleLabelVisibility obj next -> do
         state <- H.get
-        H.put $
-        case obj of
-          Arc ->        state { showArcLabels = state.showArcLabels }
-          Place ->      state { showPlaceLabels = state.showPlaceLabels }
-          Transition -> state { showTransitionLabels = state.showTransitionLabels }
+        H.put $ case obj of
+          Arc ->        state { arcLabelsVisible = state.arcLabelsVisible }
+          Place ->      state { placeLabelsVisible = state.placeLabelsVisible }
+          Transition -> state { transitionLabelsVisible = state.transitionLabelsVisible }
         pure next
 
 
