@@ -7,6 +7,7 @@ import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 
 import ExampleData as Ex
+import DiagramEditor.DiagramEditor as DiagramEditor
 import PetrinetView as PetrinetView
 import Studio as Studio
 
@@ -24,3 +25,6 @@ main = runHalogenAff do
 
   -- Use case 2: embedded in Studio.ui as an editor component:
   runUI Studio.ui unit body
+
+  -- Use case 99: standalone string diagram editor
+  -- runUI DiagramEditor.ui unit body

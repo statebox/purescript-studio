@@ -12,9 +12,11 @@ import Halogen.HTML.Properties (IProp, attrNS)
 import Unsafe.Coerce (unsafeCoerce)
 
 data Color = RGB Int Int Int
+           | RGBA Int Int Int Number
 
 printColor :: Maybe Color -> String
 printColor (Just (RGB r g b)) = "rgb(" <> (joinWith "," $ map show [r, g, b]) <> ")"
+printColor (Just (RGBA r g b o)) = "rgba(" <> (joinWith "," $ map show [r, g, b]) <> "," <> show o <> ")"
 printColor Nothing = "None"
 
 data Transform
