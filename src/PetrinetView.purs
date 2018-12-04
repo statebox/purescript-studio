@@ -41,16 +41,19 @@ import Auth
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..))
+import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..), NetElemKind(..))
 import PlaceEditor as PlaceEditor
 import TransitionEditor as TransitionEditor
 import View.Common (HtmlId)
 
 type StateF pid tid =
-  { focusedPlace      :: Maybe pid
-  , focusedTransition :: Maybe tid
-  , msg               :: String
-  |                      NetInfoFRow pid tid ()
+  { focusedPlace            :: Maybe pid
+  , focusedTransition       :: Maybe tid
+  , msg                     :: String
+  , arcLabelsVisible        :: Boolean
+  , placeLabelsVisible      :: Boolean
+  , transitionLabelsVisible :: Boolean
+  |                            NetInfoFRow pid tid ()
   }
 
 type PlaceModelF pid tok label pt =
@@ -97,12 +100,15 @@ ui allRoleInfos initialState' =
 
     initialState :: StateF pid tid
     initialState =
-      { name:              ""
-      , net:               initialState'.net
-      , netApi:            initialState'.netApi
-      , msg:               "Please select a net."
-      , focusedPlace:      empty
-      , focusedTransition: empty
+      { name:                    ""
+      , net:                     initialState'.net
+      , netApi:                  initialState'.netApi
+      , msg:                     "Please select a net."
+      , focusedPlace:            empty
+      , focusedTransition:       empty
+      , arcLabelsVisible:        false
+      , placeLabelsVisible:      false
+      , transitionLabelsVisible: false
       }
 
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
@@ -133,6 +139,15 @@ ui allRoleInfos initialState' =
                           typ   <- Map.lookup tid state.net.transitionTypesDict
                           let auths = fromMaybe mempty (Map.lookup tid state.net.transitionAuthsDict)
                           pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
+                      ]
+                , div []
+                      [ HH.text "Toggle labels"
+                      , HH. br []
+                      , HH.button [] [ HH.text "Toggle Arc Labels"]
+                      , HH.br []
+                      , HH.button [] [ HH.text "Toggle Place Labels"]
+                      , HH.br []
+                      , HH.button [] [ HH.text "Toggle Transition Labels"]
                       ]
                 ]
           ]
@@ -191,6 +206,14 @@ ui allRoleInfos initialState' =
                       , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
                       }
         pure next
+      ToggleLabelVisibility obj next -> do
+        state <- H.get
+        H.put $ case obj of
+          Arc ->        state { arcLabelsVisible = state.arcLabelsVisible }
+          Place ->      state { placeLabelsVisible = state.placeLabelsVisible }
+          Transition -> state { transitionLabelsVisible = state.transitionLabelsVisible }
+        pure next
+
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
     netToSVG net focusedPlace focusedTransition =
