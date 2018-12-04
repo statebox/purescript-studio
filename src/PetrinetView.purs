@@ -24,11 +24,11 @@ import Effect.Aff (Aff(..))
 import Halogen as H
 import Halogen (ComponentDSL)
 import Halogen.HTML as HH
+import Halogen.HTML (HTML, div, br)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Core as Core
-import Halogen.HTML (HTML, div)
 import Halogen.HTML.Events as HE
 import Svg.Elements as SE
 import Svg.Attributes as SA
@@ -455,4 +455,4 @@ svgPath p q = SA.Abs <$> [ SA.M p.x p.y, SA.L q.x q.y ]
 toggleMaybe :: ∀ a b. b -> Maybe a -> Maybe b
 toggleMaybe z mx = case mx of
   Nothing -> Just z
-  Just mx -> Nothing
+  Just _  -> Nothing
