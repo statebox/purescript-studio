@@ -1,4 +1,4 @@
-module DiagramEditor.Inspector where
+module View.Diagram.Inspector where
 
 import Prelude hiding (div)
 
@@ -13,9 +13,9 @@ import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
 
-import DiagramEditor.Model
-import DiagramEditor.Update (Query, State)
-import DiagramEditor.Common (snap, showVec2, showVec3)
+import View.Diagram.Model
+import View.Diagram.Update (Query, State)
+import View.Diagram.Common (snap, showVec2, showVec3)
 
 view :: State -> HTML Void (Query Unit)
 view state@{model} =

@@ -1,4 +1,4 @@
-module DiagramEditor.Common where
+module View.Diagram.Common where
 
 import Prelude
 import Data.Tuple.Nested (type (/\), (/\))

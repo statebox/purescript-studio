@@ -1,4 +1,4 @@
-module Config where
+module View.Petrinet.Config where
 
 import Prelude
 import Svg.Attributes (Duration, seconds)

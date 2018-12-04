@@ -1,4 +1,4 @@
-module Model where
+module View.Petrinet.Model where
 
 import Prelude
 import Data.Array ((..), length)
@@ -10,7 +10,7 @@ import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Tuple.Nested (type (/\), (/\))
 
-import Auth (Role, Roles, RoleInfo)
+import Data.Auth (Role, Roles, RoleInfo)
 import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, findTokens', NetRepF, NetObjF, NetApiF, mkNetObjF)
 import Data.Vec2D (Vec2D)
 

@@ -1,10 +1,10 @@
-module DiagramEditor.Model where
+module View.Diagram.Model where
 
 import Prelude
 import Data.Maybe
 import Data.Tuple.Nested (type (/\), (/\))
 
-import DiagramEditor.Common (snap, dxdy, showVec2, showVec3)
+import View.Diagram.Common (snap, dxdy, showVec2, showVec3)
 
 type Operator =
   { identifier :: String -- must be unique; problematic, want to lenses instead

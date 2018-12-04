@@ -22,10 +22,10 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ring
 import Data.Vec2D (Vec2D)
 
-import Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
+import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
+import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
 
 project1 =
   { name: "Example nets"
@@ -50,9 +50,9 @@ places1 = 1 .. numPlaces1
 
 placeLabels1 :: Array (PID /\ String)
 placeLabels1 =
-  [ 1 /\ "a"
+  [ 1 /\ "green_1"
   , 2 /\ "b"
-  , 3 /\ "c"
+  , 3 /\ "green_2"
   , 4 /\ "d"
   , 5 /\ "queue"
   ]

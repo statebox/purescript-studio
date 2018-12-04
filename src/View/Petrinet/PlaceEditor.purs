@@ -1,4 +1,4 @@
-module PlaceEditor where
+module View.Petrinet.PlaceEditor where
 
 import Prelude hiding (div)
 import Data.Either (Either(..))
@@ -12,7 +12,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, value, rows, placeholder, InputType(..), checked, name)
 import Halogen.HTML.Core (ClassName(..))
 
-import Model (PlaceQueryF(..), Typedef, Msg(..))
+import View.Petrinet.Model (PlaceQueryF(..), Typedef, Msg(..))
 
 type PlaceEditorFormModel pid =
   { pid         :: pid

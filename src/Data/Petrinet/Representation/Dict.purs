@@ -37,7 +37,7 @@ import Data.Bag (BagF(..))
 import Data.Bag as Bag
 
 -- TODO this dependency should probably be eliminated in favour of a type parameter
-import Auth as Auth
+import Data.Auth as Auth
 
 type MarkingF a n = BagF a n
 
