@@ -18,6 +18,7 @@ import Effect.Aff.Class (class MonadAff)
 
 import Model (Project, PID, TID, NetInfo, emptyNetInfo, QueryF(..), Msg(NetUpdated))
 import DiagramEditor.DiagramEditor as DiagramEditor
+import DiagramEditor.Update as DiagramEditor
 import PetrinetView as PetrinetView
 import ExampleData as Ex
 
@@ -72,7 +73,7 @@ ui =
       HandlePetrinetEditorMsg NetUpdated next -> do
         -- TODO
         pure next
-      
+
       SendPetrinetEditorMsg kidQuery next -> case kidQuery of
         LoadNet net _ -> do
           x <- H.query' petrinetViewSlotPath unit $ H.action (LoadNet net)

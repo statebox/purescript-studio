@@ -3,8 +3,8 @@
 .css-diagram-editor svg {
   /* background: #eee; */
   background-image:
-      linear-gradient(to top, pink, rgba(0,0,255,0.5)),
-      url(logo-statebox-white.svg);
+    linear-gradient(to top, pink, rgba(0,0,255,0.5)),
+    url(logo-statebox-white.svg);
 }
 .css-operator-container {
 }
@@ -14,8 +14,6 @@
 .css-operator-center {
   fill: #eee;
   stroke: #aaa;
-
-
 }
 .css-operator-left,
 .css-operator-right {
