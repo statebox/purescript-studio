@@ -41,7 +41,7 @@ import Auth
 import ExampleData as Ex
 import ExampleData as Net
 import Data.Petrinet.Representation.Dict
-import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..), Toggle(..))
+import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..), NetElemKind(..))
 import PlaceEditor as PlaceEditor
 import TransitionEditor as TransitionEditor
 import View.Common (HtmlId)
@@ -206,10 +206,11 @@ ui allRoleInfos initialState' =
         pure next
       ToggleLabelVisibility obj next -> do
         state <- H.get
+        H.put $
         case obj of
-          Arc ->        H.put $ state { showArcLabels: state.showArcLabels }
-          Place ->      H.put $ state { showPlaceLabels: state.showPlaceLabels }
-          Transition -> H.put $ state { showTransitionLabels: state.showTransitionLabels }
+          Arc ->        state { showArcLabels = state.showArcLabels }
+          Place ->      state { showPlaceLabels = state.showPlaceLabels }
+          Transition -> state { showTransitionLabels = state.showTransitionLabels }
         pure next
 
 
