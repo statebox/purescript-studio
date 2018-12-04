@@ -1,7 +1,6 @@
-module PetrinetView where
+module View.Petrinet.PetrinetEditor where
 
 import Prelude
-import Config
 import Control.MonadZero (empty)
 import Data.Array (catMaybes)
 import Data.Newtype (un)
@@ -35,16 +34,17 @@ import Svg.Attributes as SA
 import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
 import Svg.Util as SvgUtil
 
-import Arrow
-import Arrow as Arrow
-import Auth
+import Data.Auth
+import Data.Petrinet.Representation.Dict
 import ExampleData as Ex
 import ExampleData as Net
-import Data.Petrinet.Representation.Dict
-import Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..), NetElemKind(..))
-import PlaceEditor as PlaceEditor
-import TransitionEditor as TransitionEditor
 import View.Common (HtmlId)
+import View.Petrinet.Arrow
+import View.Petrinet.Arrow as Arrow
+import View.Petrinet.Config
+import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..), NetElemKind(..))
+import View.Petrinet.PlaceEditor as PlaceEditor
+import View.Petrinet.TransitionEditor as TransitionEditor
 
 type StateF pid tid =
   { focusedPlace            :: Maybe pid

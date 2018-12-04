@@ -16,10 +16,11 @@ import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, src)
 import Effect.Aff.Class (class MonadAff)
 
-import Model (Project, PID, TID, NetInfo, emptyNetInfo, QueryF(..), Msg(NetUpdated))
-import DiagramEditor.DiagramEditor as DiagramEditor
-import DiagramEditor.Update as DiagramEditor
-import PetrinetView as PetrinetView
+import View.Petrinet.Model (Project, PID, TID, NetInfo, emptyNetInfo, QueryF(..), Msg(NetUpdated))
+import View.Diagram.DiagramEditor as DiagramEditor
+import View.Diagram.Update as DiagramEditor
+import View.Petrinet.PetrinetEditor as PetrinetEditor
+import View.Petrinet.Model as PetrinetEditor
 import ExampleData as Ex
 
 type State =
@@ -31,7 +32,7 @@ type State =
 data Query a
   = ShowView ActiveView a
   | HandlePetrinetEditorMsg Msg a
-  | SendPetrinetEditorMsg (QueryF PID TID a) a
+  | SendPetrinetEditorMsg (PetrinetEditor.QueryF PID TID a) a
   | HandleDiagramEditorMsg Unit a
 
 -- TODO this is probably doable with one of the slot-like things, or Childpath or sth
@@ -39,11 +40,11 @@ data ActiveView = PetrinetEditor | DiagramEditor
 
 --------------------------------------------------------------------------------
 
-type ChildQuery = Coproduct2 (QueryF PID TID) DiagramEditor.Query
+type ChildQuery = Coproduct2 (PetrinetEditor.QueryF PID TID) DiagramEditor.Query
 
 type ChildSlot = Either2 Unit Unit
 
-petrinetViewSlotPath = ChildPath.cp1
+petrinetEditorSlotPath = ChildPath.cp1
 diagramEditorSlotPath = ChildPath.cp2
 
 --------------------------------------------------------------------------------
@@ -76,7 +77,7 @@ ui =
 
       SendPetrinetEditorMsg kidQuery next -> case kidQuery of
         LoadNet net _ -> do
-          x <- H.query' petrinetViewSlotPath unit $ H.action (LoadNet net)
+          x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet net)
           pure next
         _ -> do
           pure next -- TODO do we need to handle other cases?
@@ -94,7 +95,7 @@ ui =
               , div [ classes [ ClassName "column" ] ]
                     [ case state.activeView of
                         PetrinetEditor ->
-                          HH.slot' petrinetViewSlotPath unit (PetrinetView.ui state.project1.allRoleInfos emptyNetInfo) unit (HE.input HandlePetrinetEditorMsg)
+                          HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui state.project1.allRoleInfos emptyNetInfo) unit (HE.input HandlePetrinetEditorMsg)
                         DiagramEditor  ->
                           HH.slot' diagramEditorSlotPath unit DiagramEditor.ui unit (HE.input HandleDiagramEditorMsg)
                     ]
@@ -131,7 +132,7 @@ ui =
               , div [ classes [ ClassName "navbar-menu" ] ]
                     [ div [ classes [ ClassName "navbar-start" ] ]
                           [ div [ classes [ ClassName "navbar-item" ] ]
-                                [ h1 [] [ text "Statebox Studio" ] ]
+                                [ h1 [ classes [ ClassName "subtitle" ] ] [ text "Statebox Studio" ] ]
                           , a [ classes [ ClassName "navbar-item" ]
                               , onClick (HE.input_ (ShowView PetrinetEditor))
                               ]

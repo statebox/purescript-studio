@@ -1,4 +1,4 @@
-module Auth where
+module Data.Auth where
 
 import Prelude
 import Data.Foldable (elem)
