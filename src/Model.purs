@@ -21,7 +21,7 @@ data QueryF pid tid a
   | FocusPlace pid a
   | UpdatePlace (PlaceQueryF pid a)
   | UpdateTransition (TransitionQueryF tid a)
-  | ToggleLabelVisibility Toggle a
+  | ToggleLabelVisibility NetElemKind a
 
 data PlaceQueryF pid a
   = UpdatePlaceLabel pid String a
@@ -32,7 +32,7 @@ data TransitionQueryF tid a
 
 --------------------------------------------------------------------------------
 
-data Toggle = Arc | Place | Transition
+data NetElemKind = Arc | Place | Transition
 
 newtype Typedef = Typedef String
 
