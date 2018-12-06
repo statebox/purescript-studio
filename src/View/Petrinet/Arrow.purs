@@ -1,7 +1,6 @@
-module Arrow where
+module View.Petrinet.Arrow where
 
 import Prelude (max, negate, ($), (*), (+), (-), (/), (<$>), (>), (>=), (<>))
-import Config
 import Data.Vec2D (Vec2D)
 import Halogen.HTML (HTML)
 import Svg.Elements as SE
@@ -9,6 +8,8 @@ import Svg.Attributes as SA
 import Math (atan2, cos, sin, sqrt)
 import Data.Maybe (Maybe(..))
 import Data.Ord (abs)
+
+import View.Petrinet.Config
 
 -- | This refers to an `arrowheadMarkerId`, for which a marker must be defined in the `<defs>`.
 -- | Such a marker is defined provided here as `svgArrowheadMarker`.

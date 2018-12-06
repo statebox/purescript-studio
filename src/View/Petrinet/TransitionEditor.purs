@@ -1,4 +1,4 @@
-module TransitionEditor where
+module View.Petrinet.TransitionEditor where
 
 import Prelude hiding (div)
 import Data.Either (Either(..))
@@ -15,9 +15,9 @@ import Halogen.HTML.Events (input_, onClick, onChecked, onValueInput, onValueCha
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, value, rows, placeholder, InputType(..), checked, name)
 
-import Model (TransitionQueryF(..), Typedef(..))
-import Auth (Role(..), Roles(..), Privilege(..), RoleInfo, rolesElem, isPrivileged, toPrivilege, CSSColor(..))
-import Auth as Auth
+import Data.Auth (Role(..), Roles(..), Privilege(..), RoleInfo, rolesElem, isPrivileged, toPrivilege, CSSColor(..))
+import Data.Auth as Auth
+import View.Petrinet.Model (TransitionQueryF(..), Typedef(..))
 import View.Common (styleStr)
 
 

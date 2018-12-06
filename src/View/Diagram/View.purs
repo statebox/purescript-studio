@@ -1,4 +1,4 @@
-module DiagramEditor.View where
+module View.Diagram.View where
 
 import Prelude
 import Data.Int (toNumber)
@@ -17,9 +17,9 @@ import Svg.Elements as SE
 import Svg.Elements (rect)
 import Web.UIEvent.MouseEvent (clientX, clientY)
 
-import DiagramEditor.Common
-import DiagramEditor.Update
-import DiagramEditor.Model
+import View.Diagram.Common
+import View.Diagram.Update
+import View.Diagram.Model
 import View.Common (styleStr)
 
 -- TODO eliminate?

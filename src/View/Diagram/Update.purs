@@ -1,4 +1,4 @@
-module DiagramEditor.Update where
+module View.Diagram.Update where
 
 import Prelude
 
@@ -6,8 +6,8 @@ import Data.Maybe
 import Data.Tuple.Nested (type (/\), (/\))
 import Web.HTML.HTMLElement (DOMRect)
 
-import DiagramEditor.Model
-import DiagramEditor.Common (snap)
+import View.Diagram.Model
+import View.Diagram.Common (snap)
 
 type State =
   { model                   :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified

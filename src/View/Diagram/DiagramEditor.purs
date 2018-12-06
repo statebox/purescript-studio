@@ -1,4 +1,4 @@
-module DiagramEditor.DiagramEditor where
+module View.Diagram.DiagramEditor where
 
 import Prelude hiding (div)
 
@@ -25,12 +25,12 @@ import Web.DOM (Element)
 import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.HTMLElement (HTMLElement, DOMRect, getBoundingClientRect)
 
-import DiagramEditor.Model
-import DiagramEditor.Update as Update
-import DiagramEditor.Update
-import DiagramEditor.Common
-import DiagramEditor.View as View
-import DiagramEditor.Inspector as Inspector
+import View.Diagram.Model
+import View.Diagram.Update as Update
+import View.Diagram.Update
+import View.Diagram.Common
+import View.Diagram.View as View
+import View.Diagram.Inspector as Inspector
 
 initialState :: State
 initialState =

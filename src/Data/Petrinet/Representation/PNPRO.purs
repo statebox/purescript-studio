@@ -17,10 +17,10 @@ import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec2D (Vec2D)
 
-import Auth as Auth
+import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
-import Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
-import Model as Model
+import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
+import View.Petrinet.Model as Model
 
 --------------------------------------------------------------------------------
 
