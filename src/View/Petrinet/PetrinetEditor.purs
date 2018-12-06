@@ -47,9 +47,9 @@ import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
 
 type StateF pid tid =
-  { focusedPlace            :: Maybe pid
+  { msg                     :: String
+  , focusedPlace            :: Maybe pid
   , focusedTransition       :: Maybe tid
-  , msg                     :: String
   , arcLabelsVisible        :: Boolean
   , placeLabelsVisible      :: Boolean
   , transitionLabelsVisible :: Boolean

@@ -1,6 +1,7 @@
 module Studio where
 
 import Prelude hiding (div)
+import Data.Array (catMaybes)
 import Data.Either.Nested (Either2)
 import Data.Functor.Coproduct.Nested (Coproduct2)
 import Data.Maybe (Maybe(..))
@@ -9,14 +10,15 @@ import Halogen as H
 import Halogen (ParentDSL, ParentHTML)
 import Halogen.Component.ChildPath as ChildPath
 import Halogen.HTML as HH
-import Halogen.HTML (HTML, nav, div, h1, p, a, img, text)
+import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, li)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Events (onClick)
-import Halogen.HTML.Properties (classes, src)
+import Halogen.HTML.Properties (classes, src, href)
+import Halogen.HTML.Properties.ARIA as ARIA
 import Effect.Aff.Class (class MonadAff)
 
-import View.Petrinet.Model (Project, PID, TID, NetInfo, emptyNetInfo, QueryF(..), Msg(NetUpdated))
+import View.Petrinet.Model (Project, PID, TID, NetInfo, emptyNetInfo, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.PetrinetEditor as PetrinetEditor
@@ -25,14 +27,15 @@ import ExampleData as Ex
 
 type State =
   { project1   :: Project
-  , msg        :: String
+  , focusedNet :: Maybe NetInfo
   , activeView :: ActiveView
+  , msg        :: String
   }
 
 data Query a
   = ShowView ActiveView a
+  | SelectNet NetInfo a
   | HandlePetrinetEditorMsg Msg a
-  | SendPetrinetEditorMsg (PetrinetEditor.QueryF PID TID a) a
   | HandleDiagramEditorMsg Unit a
 
 -- TODO this is probably doable with one of the slot-like things, or Childpath or sth
@@ -62,6 +65,7 @@ ui =
     initialState =
       { msg:        "Welcome to Statebox Studio!"
       , project1:   Ex.project1
+      , focusedNet: Nothing
       , activeView: PetrinetEditor
       }
 
@@ -75,12 +79,10 @@ ui =
         -- TODO
         pure next
 
-      SendPetrinetEditorMsg kidQuery next -> case kidQuery of
-        LoadNet net _ -> do
-          x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet net)
-          pure next
-        _ -> do
-          pure next -- TODO do we need to handle other cases?
+      SelectNet netInfo next -> do
+        H.modify_ (\state -> state { focusedNet = pure netInfo })
+        x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet netInfo.net)
+        pure next
 
       HandleDiagramEditorMsg unit next -> do
         pure next
@@ -91,9 +93,10 @@ ui =
         [ navBar
         , div [ classes [ ClassName "columns" ] ]
               [ div [ classes [ ClassName "column", ClassName "is-2" ] ]
-                    [ netChooser state.project1.nets ]
+                    [ netChooser (\ni -> Just ni.name == (state.focusedNet <#> _.name)) state.project1.nets ]
               , div [ classes [ ClassName "column" ] ]
-                    [ case state.activeView of
+                    [ pathBreadcrumbs
+                    , case state.activeView of
                         PetrinetEditor ->
                           HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui state.project1.allRoleInfos emptyNetInfo) unit (HE.input HandlePetrinetEditorMsg)
                         DiagramEditor  ->
@@ -103,23 +106,31 @@ ui =
         ]
 
       where
-        netChooser :: Array NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-        netChooser items =
+        pathBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
+        pathBreadcrumbs =
+          nav [ classes [ ClassName "breadcrumb has-arrow-separator", ClassName "is-small" ]
+              , ARIA.label "breadcrumbs"
+              ]
+              [ ul [] (crumb <$> catMaybes  [ Just state.project1.name
+                                            , state.focusedNet <#> _.name
+                                            ]) ]
+          where
+            crumb str = li [] [ a [ href "" ] [ text str ] ]
+
+        netChooser :: (NetInfo -> Boolean) -> Array NetInfo -> ParentHTML Query ChildQuery ChildSlot m
+        netChooser isSelected items =
           nav [ classes [ ClassName "panel" ] ] $
               [ p [ classes [ ClassName "panel-heading" ] ] [ text state.project1.name ] ]
               <> (instanceListItem isSelected <$> items)
           where
-            isSelected :: NetInfo -> Boolean
-            isSelected = const false -- TODO
-
-        instanceListItem :: (NetInfo -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-        instanceListItem isSelected netInfo =
-          a [ classes [ ClassName "panel-block"
-                      , ClassName $ guard (isSelected netInfo) "is-active"
-                      ]
-            , onClick (HE.input_ (SendPetrinetEditorMsg (LoadNet netInfo.net unit)))
-            ]
-            [ text netInfo.name ]
+            instanceListItem :: (NetInfo -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
+            instanceListItem isSelected netInfo =
+              a [ classes [ ClassName "panel-block"
+                          , ClassName $ guard (isSelected netInfo) "is-active"
+                          ]
+                , onClick (HE.input_ (SelectNet netInfo))
+                ]
+                [ text netInfo.name ]
 
         navBar :: ParentHTML Query ChildQuery ChildSlot m
         navBar =
