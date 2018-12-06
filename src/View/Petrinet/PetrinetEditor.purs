@@ -292,7 +292,7 @@ ui allRoleInfos initialState' =
                ]
            , svgArrow arc.src arc.dest
            , SE.text
-               [ SA.class_    "css-arc-label"
+               [ SA.class_    "css-arc-name-label"
                , SA.x         arc.src.x
                , SA.y         arc.src.y
                , SA.font_size (FontSizeLength $ Em fontSize)
