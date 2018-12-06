@@ -141,7 +141,10 @@ ui allRoleInfos initialState' =
                           let auths = fromMaybe mempty (Map.lookup tid state.net.transitionAuthsDict)
                           pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
                       ]
-                , labelVisibilityButtons
+                , div [ classes [ ClassName "column "] ]
+                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "toggle labels" ]
+                      , labelVisibilityButtons
+                      ]
                 ]
           ]
       where
@@ -445,26 +448,22 @@ htmlMarking bag =
 
 labelVisibilityButtons :: ∀ pid tid. HTML Void (QueryF tid pid Unit)
 labelVisibilityButtons =
-  div [ classes [ ClassName "column" ] ]
-      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ]
-              [ HH.text "toggle labels" ]
-      , div [ classes [ ClassName "field has-addons" ] ]
-            [ HH.p [ classes [ ClassName "control" ] ]
-                   [ HH.a [ classes [ ClassName "button" ]
-                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Arc ]
-                          [ HH.span [] [ HH.text "Arcs" ] ]
-                   ]
-            , HH.p [ classes [ ClassName "control" ] ]
-                   [ HH.a [ classes [ ClassName "button" ]
-                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Place ]
-                          [ HH.span [] [ HH.text "Places" ] ]
-                   ]
-            , HH.p [ classes [ ClassName "control" ] ]
-                   [ HH.a [ classes [ ClassName "button" ]
-                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Transition ]
-                          [ HH.span [] [ HH.text "Transitions" ] ]
-                   ]
-            ]
+  div [ classes [ ClassName "field has-addons" ] ]
+      [ HH.p [ classes [ ClassName "control" ] ]
+             [ HH.a [ classes [ ClassName "button" ]
+                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Arc ]
+                    [ HH.span [] [ HH.text "Arcs" ] ]
+             ]
+      , HH.p [ classes [ ClassName "control" ] ]
+             [ HH.a [ classes [ ClassName "button" ]
+                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Place ]
+                    [ HH.span [] [ HH.text "Places" ] ]
+             ]
+      , HH.p [ classes [ ClassName "control" ] ]
+             [ HH.a [ classes [ ClassName "button" ]
+                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Transition ]
+                    [ HH.span [] [ HH.text "Transitions" ] ]
+             ]
       ]
 
 --------------------------------------------------------------------------------
