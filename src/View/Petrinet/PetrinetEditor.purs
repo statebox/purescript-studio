@@ -443,7 +443,7 @@ htmlMarking bag =
 
 --------------------------------------------------------------------------------
 
-labelVisibilityButtons :: forall pid tid. HTML Void (QueryF tid pid Unit)
+labelVisibilityButtons :: ∀ pid tid. HTML Void (QueryF tid pid Unit)
 labelVisibilityButtons =
   div [ classes [ ClassName "column" ] ]
       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ]
