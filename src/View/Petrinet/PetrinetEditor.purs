@@ -141,28 +141,8 @@ ui allRoleInfos initialState' =
                           let auths = fromMaybe mempty (Map.lookup tid state.net.transitionAuthsDict)
                           pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
                       ]
-                , div [ classes [ ClassName "column" ] ]
-                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ]
-                              [ HH.text "toggle labels" ]
-                      , div [ classes [ ClassName "field has-addons" ] ]
-                            [ HH.p [ classes [ ClassName "control" ] ]
-                                   [ HH.a [ classes [ ClassName "button" ]
-                                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Arc ]
-                                          [ HH.span [] [ HH.text "Arcs" ] ]
-                                   ]
-                            , HH.p [ classes [ ClassName "control" ] ]
-                                   [ HH.a [ classes [ ClassName "button" ]
-                                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Place ]
-                                          [ HH.span [] [ HH.text "Places" ] ]
-                                   ]
-                            , HH.p [ classes [ ClassName "control" ] ]
-                                   [ HH.a [ classes [ ClassName "button" ]
-                                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Transition ]
-                                          [ HH.span [] [ HH.text "Transitions" ] ]
-                                   ]
-                            ]
-                      ]
-                    ]
+                , toggleLabelVisibility
+                ]
           ]
       where
         sceneWidth  = (bounds.max.x - bounds.min.x) + paddingX
@@ -457,6 +437,32 @@ htmlMarking bag =
     tr k v = HH.tr [] [ HH.td [] [ HH.text $ show k ]
                       , HH.td [] [ HH.text $ show v ]
                       ]
+
+--------------------------------------------------------------------------------
+
+toggleLabelVisibility :: forall pid tid. HTML Void (QueryF tid pid Unit)
+toggleLabelVisibility =
+  div [ classes [ ClassName "column" ] ]
+      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ]
+              [ HH.text "toggle labels" ]
+      , div [ classes [ ClassName "field has-addons" ] ]
+            [ HH.p [ classes [ ClassName "control" ] ]
+                   [ HH.a [ classes [ ClassName "button" ]
+                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Arc ]
+                          [ HH.span [] [ HH.text "Arcs" ] ]
+                   ]
+            , HH.p [ classes [ ClassName "control" ] ]
+                   [ HH.a [ classes [ ClassName "button" ]
+                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Place ]
+                          [ HH.span [] [ HH.text "Places" ] ]
+                   ]
+            , HH.p [ classes [ ClassName "control" ] ]
+                   [ HH.a [ classes [ ClassName "button" ]
+                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Transition ]
+                          [ HH.span [] [ HH.text "Transitions" ] ]
+                   ]
+            ]
+      ]
 
 --------------------------------------------------------------------------------
 
