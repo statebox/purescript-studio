@@ -7,6 +7,7 @@ import Data.Array (catMaybes)
 import Data.Newtype (un)
 import Data.Bag (BagF)
 import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
+import Data.HeytingAlgebra (not)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -117,7 +118,7 @@ ui allRoleInfos initialState' =
           , classes [ componentClass, ClassName "css-petrinet-component" ]
           ]
           [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
-                   (netToSVG state.net state.focusedPlace state.focusedTransition)
+                   (netToSVG state state.net state.focusedPlace state.focusedTransition)
           , HH.text state.msg
           , HH.br []
           , HH.br []
@@ -140,16 +141,28 @@ ui allRoleInfos initialState' =
                           let auths = fromMaybe mempty (Map.lookup tid state.net.transitionAuthsDict)
                           pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
                       ]
-                , div []
-                      [ HH.text "Toggle labels"
-                      , HH. br []
-                      , HH.button [] [ HH.text "Toggle Arc Labels"]
-                      , HH.br []
-                      , HH.button [] [ HH.text "Toggle Place Labels"]
-                      , HH.br []
-                      , HH.button [] [ HH.text "Toggle Transition Labels"]
+                , div [ classes [ ClassName "column" ] ]
+                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ]
+                              [ HH.text "toggle labels" ]
+                      , div [ classes [ ClassName "field has-addons" ] ]
+                            [ HH.p [ classes [ ClassName "control" ] ]
+                                   [ HH.a [ classes [ ClassName "button" ]
+                                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Arc ]
+                                          [ HH.span [] [ HH.text "Arcs" ] ]
+                                   ]
+                            , HH.p [ classes [ ClassName "control" ] ]
+                                   [ HH.a [ classes [ ClassName "button" ]
+                                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Place ]
+                                          [ HH.span [] [ HH.text "Places" ] ]
+                                   ]
+                            , HH.p [ classes [ ClassName "control" ] ]
+                                   [ HH.a [ classes [ ClassName "button" ]
+                                          , HE.onClick $ HE.input_ $ ToggleLabelVisibility Transition ]
+                                          [ HH.span [] [ HH.text "Transitions" ] ]
+                                   ]
+                            ]
                       ]
-                ]
+                    ]
           ]
       where
         sceneWidth  = (bounds.max.x - bounds.min.x) + paddingX
@@ -209,19 +222,19 @@ ui allRoleInfos initialState' =
       ToggleLabelVisibility obj next -> do
         state <- H.get
         H.put $ case obj of
-          Arc ->        state { arcLabelsVisible = state.arcLabelsVisible }
-          Place ->      state { placeLabelsVisible = state.placeLabelsVisible }
-          Transition -> state { transitionLabelsVisible = state.transitionLabelsVisible }
+          Arc ->        state { arcLabelsVisible        = not state.arcLabelsVisible }
+          Place ->      state { placeLabelsVisible      = not state.placeLabelsVisible }
+          Transition -> state { transitionLabelsVisible = not state.transitionLabelsVisible }
         pure next
 
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
-    netToSVG net focusedPlace focusedTransition =
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => StateF pid tid -> NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
+    netToSVG { arcLabelsVisible, placeLabelsVisible, transitionLabelsVisible } net focusedPlace focusedTransition =
       svgDefs <> svgTransitions <> svgPlaces
       where
         svgDefs        = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
-        svgTransitions = catMaybes $ map (map svgTransitionAndArcs <<< uncurry mkTransitionAndArcsModel) $ Map.toUnfoldable $ net.transitionsDict
-        svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
+        svgTransitions = catMaybes $ map (map (svgTransitionAndArcs arcLabelsVisible transitionLabelsVisible) <<< uncurry mkTransitionAndArcsModel) $ Map.toUnfoldable $ net.transitionsDict
+        svgPlaces      = catMaybes $ (map (svgPlace placeLabelsVisible) <<< mkPlaceModel) <$> net.places
 
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
@@ -256,14 +269,14 @@ ui allRoleInfos initialState' =
 
     --------------------------------------------------------------------------------
 
-    svgTransitionAndArcs :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionAndArcs t =
+    svgTransitionAndArcs :: ∀ tid a. Show tid => Boolean -> Boolean -> TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionAndArcs arcVisible transitionVisible t =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
            , HE.onClick (HE.input_ (FocusTransition t.id))
            , HE.onDoubleClick (HE.input_ (if t.isEnabled then FireTransition t.id else FocusTransition t.id))
            ]
-           ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel t])
+           ((svgArc arcVisible <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel transitionVisible t])
            where
              roleClasses :: Array String
              roleClasses = map (\r -> "css-role-" <> show r) <<< Set.toUnfoldable <<< un Roles $ t.auths
@@ -277,17 +290,17 @@ ui allRoleInfos initialState' =
               , SA.y       (point.y - transitionHeight / 2.0)
               ]
 
-    svgTransitionLabel :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionLabel t =
-      SE.text [ SA.class_    "css-transition-name-label"
+    svgTransitionLabel :: ∀ tid a. Show tid => Boolean -> TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionLabel transitionVisible t =
+      SE.text [ SA.class_    $ "css-transition-name-label" <> if transitionVisible then "" else " hidden"
               , SA.x         (t.point.x + 1.5 * placeRadius)
               , SA.y         (t.point.y + 4.0 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
               [ HH.text t.label ]
 
-    svgArc :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
-    svgArc arc =
+    svgArc :: ∀ pid tid a. Show tid => Boolean -> ArcModel tid -> HTML a ((QueryF pid tid) Unit)
+    svgArc labelVisible arc =
       SE.g [ SA.class_ "css-arc-container" ]
            [ SE.path
                [ SA.class_ $ "css-arc " <> if arc.isPost then "css-post-arc" else "css-pre-arc"
@@ -296,7 +309,7 @@ ui allRoleInfos initialState' =
                ]
            , svgArrow arc.src arc.dest
            , SE.text
-               [ SA.class_    "css-arc-label"
+               [ SA.class_    $ "css-arc-label" <> if labelVisible then "" else " hidden"
                , SA.x         arc.src.x
                , SA.y         arc.src.y
                , SA.font_size (FontSizeLength $ Em fontSize)
@@ -353,8 +366,8 @@ ui allRoleInfos initialState' =
 
     --------------------------------------------------------------------------------
 
-    svgPlace :: ∀ pid tid a. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
+    svgPlace :: ∀ pid tid a. Show pid => Boolean -> PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgPlace placeVisible { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
       SE.g [ SA.id (mkPlaceIdStr id)
            , HE.onClick (HE.input_ (FocusPlace id))
            ]
@@ -366,7 +379,7 @@ ui allRoleInfos initialState' =
                , SA.cy     point.y
                ]
            , svgTokens tokens point
-           , SE.text [ SA.class_    "css-place-name-label"
+           , SE.text [ SA.class_    $ "css-place-name-label" <> if placeVisible then "" else " hidden"
                      , SA.x         (point.x + placeRadius + placeRadius / 2.0)
                      , SA.y         (point.y + 4.0 * fontSize)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
