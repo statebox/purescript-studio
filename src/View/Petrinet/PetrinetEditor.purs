@@ -270,13 +270,13 @@ ui allRoleInfos initialState' =
     --------------------------------------------------------------------------------
 
     svgTransitionAndArcs :: ∀ tid a. Show tid => Boolean -> Boolean -> TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionAndArcs arcLabelVisible transitionLabelVisible t =
+    svgTransitionAndArcs arcLabelsVisible transitionLabelsVisible t =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
            , HE.onClick (HE.input_ (FocusTransition t.id))
            , HE.onDoubleClick (HE.input_ (if t.isEnabled then FireTransition t.id else FocusTransition t.id))
            ]
-           ((svgArc arcLabelVisible <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel transitionLabelVisible t])
+           ((svgArc arcLabelsVisible <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel transitionLabelsVisible t])
            where
              roleClasses :: Array String
              roleClasses = map (\r -> "css-role-" <> show r) <<< Set.toUnfoldable <<< un Roles $ t.auths
@@ -291,8 +291,8 @@ ui allRoleInfos initialState' =
               ]
 
     svgTransitionLabel :: ∀ tid a. Show tid => Boolean -> TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionLabel transitionLabelVisible t =
-      SE.text [ SA.class_    $ "css-transition-name-label" <> (guard (not transitionLabelVisible) " hidden")
+    svgTransitionLabel transitionLabelsVisible t =
+      SE.text [ SA.class_    $ "css-transition-name-label" <> (guard (not transitionLabelsVisible) " hidden")
               , SA.x         (t.point.x + 1.5 * placeRadius)
               , SA.y         (t.point.y + 4.0 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
@@ -300,7 +300,7 @@ ui allRoleInfos initialState' =
               [ HH.text t.label ]
 
     svgArc :: ∀ pid tid a. Show tid => Boolean -> ArcModel tid -> HTML a ((QueryF pid tid) Unit)
-    svgArc arcLabelVisible arc =
+    svgArc arcLabelsVisible arc =
       SE.g [ SA.class_ "css-arc-container" ]
            [ SE.path
                [ SA.class_ $ "css-arc " <> if arc.isPost then "css-post-arc" else "css-pre-arc"
@@ -309,7 +309,7 @@ ui allRoleInfos initialState' =
                ]
            , svgArrow arc.src arc.dest
            , SE.text
-               [ SA.class_    $ "css-arc-label" <> (guard (not arcLabelVisible) " hidden")
+               [ SA.class_    $ "css-arc-label" <> (guard (not arcLabelsVisible) " hidden")
                , SA.x         arc.src.x
                , SA.y         arc.src.y
                , SA.font_size (FontSizeLength $ Em fontSize)
