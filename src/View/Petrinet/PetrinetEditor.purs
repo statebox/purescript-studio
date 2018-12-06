@@ -115,10 +115,10 @@ ui allRoleInfos initialState' =
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
     render state =
       div [ HP.id_ componentHtmlId
-          , classes [ componentClass, ClassName "css-petrinet-component" ]
+          , classes [ componentClass, ClassName $ "css-petrinet-component" <> arcLabelsVisibilityClass <> transitionLabelsVisibilityClass <> placeLabelsVisibilityClass ]
           ]
           [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
-                   (netToSVG state state.net state.focusedPlace state.focusedTransition)
+                   (netToSVG state.net state.focusedPlace state.focusedTransition)
           , HH.text state.msg
           , HH.br []
           , HH.br []
@@ -141,17 +141,20 @@ ui allRoleInfos initialState' =
                           let auths = fromMaybe mempty (Map.lookup tid state.net.transitionAuthsDict)
                           pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
                       ]
-                , toggleLabelVisibility
+                , labelVisibilityButtons
                 ]
           ]
       where
-        sceneWidth  = (bounds.max.x - bounds.min.x) + paddingX
-        sceneHeight = (bounds.max.y - bounds.min.y) + paddingY
-        sceneLeft   = bounds.min.x - (paddingX / 2.0)
-        sceneTop    = bounds.min.y - (paddingY / 2.0)
-        bounds      = Vec2D.bounds (Map.values state.net.placePointsDict <> Map.values state.net.transitionPointsDict)
-        paddingX    = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
-        paddingY    = 4.0 * transitionHeight
+        sceneWidth                      = (bounds.max.x - bounds.min.x) + paddingX
+        sceneHeight                     = (bounds.max.y - bounds.min.y) + paddingY
+        sceneLeft                       = bounds.min.x - (paddingX / 2.0)
+        sceneTop                        = bounds.min.y - (paddingY / 2.0)
+        bounds                          = Vec2D.bounds (Map.values state.net.placePointsDict <> Map.values state.net.transitionPointsDict)
+        paddingX                        = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
+        paddingY                        = 4.0 * transitionHeight
+        arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible) " css-hide-arc-labels "
+        placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible) " css-hide-place-labels "
+        transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) " css-hide-transition-labels "
 
     eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
@@ -208,13 +211,13 @@ ui allRoleInfos initialState' =
         pure next
 
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => StateF pid tid -> NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
-    netToSVG { arcLabelsVisible, placeLabelsVisible, transitionLabelsVisible } net focusedPlace focusedTransition =
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
+    netToSVG net focusedPlace focusedTransition =
       svgDefs <> svgTransitions <> svgPlaces
       where
         svgDefs        = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
-        svgTransitions = catMaybes $ map (map (svgTransitionAndArcs arcLabelsVisible transitionLabelsVisible) <<< uncurry mkTransitionAndArcsModel) $ Map.toUnfoldable $ net.transitionsDict
-        svgPlaces      = catMaybes $ (map (svgPlace placeLabelsVisible) <<< mkPlaceModel) <$> net.places
+        svgTransitions = catMaybes $ map (map svgTransitionAndArcs <<< uncurry mkTransitionAndArcsModel) $ Map.toUnfoldable $ net.transitionsDict
+        svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
 
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
@@ -249,9 +252,9 @@ ui allRoleInfos initialState' =
 
     --------------------------------------------------------------------------------
 
-    svgTransitionAndArcs :: ∀ tid a. Show tid => Boolean -> Boolean -> TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionAndArcs arcLabelsVisible transitionLabelsVisible t =
-      SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> arcLabelsVisibilityClass <> transitionLabelsVisibilityClass <> intercalate " " roleClasses
+    svgTransitionAndArcs :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionAndArcs t =
+      SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
            , HE.onClick (HE.input_ (FocusTransition t.id))
            , HE.onDoubleClick (HE.input_ (if t.isEnabled then FireTransition t.id else FocusTransition t.id))
@@ -260,12 +263,6 @@ ui allRoleInfos initialState' =
            where
              roleClasses :: Array String
              roleClasses = map (\r -> "css-role-" <> show r) <<< Set.toUnfoldable <<< un Roles $ t.auths
-
-             arcLabelsVisibilityClass :: String
-             arcLabelsVisibilityClass = guard (not arcLabelsVisible) " hide-arc-labels "
-
-             transitionLabelsVisibilityClass :: String
-             transitionLabelsVisibilityClass = guard (not transitionLabelsVisible) " hide-transition-labels "
 
     svgTransitionRect :: ∀ tid a. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionRect point tid =
@@ -352,8 +349,8 @@ ui allRoleInfos initialState' =
 
     --------------------------------------------------------------------------------
 
-    svgPlace :: ∀ pid tid a. Show pid => Boolean -> PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgPlace placeLabelVisible { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
+    svgPlace :: ∀ pid tid a. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
       SE.g [ SA.id (mkPlaceIdStr id)
            , HE.onClick (HE.input_ (FocusPlace id))
            ]
@@ -365,7 +362,7 @@ ui allRoleInfos initialState' =
                , SA.cy     point.y
                ]
            , svgTokens tokens point
-           , SE.text [ SA.class_    $ "css-place-name-label" <> (guard (not placeLabelVisible) " hidden")
+           , SE.text [ SA.class_    "css-place-name-label"
                      , SA.x         (point.x + placeRadius + placeRadius / 2.0)
                      , SA.y         (point.y + 4.0 * fontSize)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
@@ -446,8 +443,8 @@ htmlMarking bag =
 
 --------------------------------------------------------------------------------
 
-toggleLabelVisibility :: forall pid tid. HTML Void (QueryF tid pid Unit)
-toggleLabelVisibility =
+labelVisibilityButtons :: forall pid tid. HTML Void (QueryF tid pid Unit)
+labelVisibilityButtons =
   div [ classes [ ClassName "column" ] ]
       [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ]
               [ HH.text "toggle labels" ]
