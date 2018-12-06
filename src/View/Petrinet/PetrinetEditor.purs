@@ -251,15 +251,21 @@ ui allRoleInfos initialState' =
 
     svgTransitionAndArcs :: ∀ tid a. Show tid => Boolean -> Boolean -> TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
     svgTransitionAndArcs arcLabelsVisible transitionLabelsVisible t =
-      SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
+      SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> arcLabelsVisibilityClass <> transitionLabelsVisibilityClass <> intercalate " " roleClasses
            , SA.id t.htmlId
            , HE.onClick (HE.input_ (FocusTransition t.id))
            , HE.onDoubleClick (HE.input_ (if t.isEnabled then FireTransition t.id else FocusTransition t.id))
            ]
-           ((svgArc arcLabelsVisible <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel transitionLabelsVisible t])
+           ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel t])
            where
              roleClasses :: Array String
              roleClasses = map (\r -> "css-role-" <> show r) <<< Set.toUnfoldable <<< un Roles $ t.auths
+
+             arcLabelsVisibilityClass :: String
+             arcLabelsVisibilityClass = guard (not arcLabelsVisible) " hide-arc-labels "
+
+             transitionLabelsVisibilityClass :: String
+             transitionLabelsVisibilityClass = guard (not transitionLabelsVisible) " hide-transition-labels "
 
     svgTransitionRect :: ∀ tid a. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
     svgTransitionRect point tid =
@@ -270,17 +276,17 @@ ui allRoleInfos initialState' =
               , SA.y       (point.y - transitionHeight / 2.0)
               ]
 
-    svgTransitionLabel :: ∀ tid a. Show tid => Boolean -> TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionLabel transitionLabelsVisible t =
-      SE.text [ SA.class_    $ "css-transition-name-label" <> (guard (not transitionLabelsVisible) " hidden")
+    svgTransitionLabel :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionLabel t =
+      SE.text [ SA.class_    "css-transition-name-label"
               , SA.x         (t.point.x + 1.5 * placeRadius)
               , SA.y         (t.point.y + 4.0 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
               [ HH.text t.label ]
 
-    svgArc :: ∀ pid tid a. Show tid => Boolean -> ArcModel tid -> HTML a ((QueryF pid tid) Unit)
-    svgArc arcLabelsVisible arc =
+    svgArc :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
+    svgArc arc =
       SE.g [ SA.class_ "css-arc-container" ]
            [ SE.path
                [ SA.class_ $ "css-arc " <> if arc.isPost then "css-post-arc" else "css-pre-arc"
@@ -289,7 +295,7 @@ ui allRoleInfos initialState' =
                ]
            , svgArrow arc.src arc.dest
            , SE.text
-               [ SA.class_    $ "css-arc-label" <> (guard (not arcLabelsVisible) " hidden")
+               [ SA.class_    "css-arc-label"
                , SA.x         arc.src.x
                , SA.y         arc.src.y
                , SA.font_size (FontSizeLength $ Em fontSize)

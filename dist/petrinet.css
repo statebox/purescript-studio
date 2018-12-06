@@ -1,6 +1,12 @@
 .hidden {
   display: none;
 }
+.hide-arc-labels .css-arc-label {
+  display: none;
+}
+.hide-transition-labels .css-transition-name-label {
+  display: none;
+}
 .css-petrinet-component svg {
     background: #eee;
 }
