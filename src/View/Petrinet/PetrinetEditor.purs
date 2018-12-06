@@ -6,6 +6,7 @@ import Data.Array (catMaybes)
 import Data.Newtype (un)
 import Data.Bag (BagF)
 import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
+import Data.HeytingAlgebra (not)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -114,7 +115,7 @@ ui allRoleInfos initialState' =
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
     render state =
       div [ HP.id_ componentHtmlId
-          , classes [ componentClass, ClassName "css-petrinet-component" ]
+          , classes [ componentClass, ClassName $ "css-petrinet-component" <> arcLabelsVisibilityClass <> transitionLabelsVisibilityClass <> placeLabelsVisibilityClass ]
           ]
           [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
                    (netToSVG state.net state.focusedPlace state.focusedTransition)
@@ -140,25 +141,23 @@ ui allRoleInfos initialState' =
                           let auths = fromMaybe mempty (Map.lookup tid state.net.transitionAuthsDict)
                           pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
                       ]
-                , div []
-                      [ HH.text "Toggle labels"
-                      , HH. br []
-                      , HH.button [] [ HH.text "Toggle Arc Labels"]
-                      , HH.br []
-                      , HH.button [] [ HH.text "Toggle Place Labels"]
-                      , HH.br []
-                      , HH.button [] [ HH.text "Toggle Transition Labels"]
+                , div [ classes [ ClassName "column "] ]
+                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "toggle labels" ]
+                      , labelVisibilityButtons
                       ]
                 ]
           ]
       where
-        sceneWidth  = (bounds.max.x - bounds.min.x) + paddingX
-        sceneHeight = (bounds.max.y - bounds.min.y) + paddingY
-        sceneLeft   = bounds.min.x - (paddingX / 2.0)
-        sceneTop    = bounds.min.y - (paddingY / 2.0)
-        bounds      = Vec2D.bounds (Map.values state.net.placePointsDict <> Map.values state.net.transitionPointsDict)
-        paddingX    = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
-        paddingY    = 4.0 * transitionHeight
+        sceneWidth                      = (bounds.max.x - bounds.min.x) + paddingX
+        sceneHeight                     = (bounds.max.y - bounds.min.y) + paddingY
+        sceneLeft                       = bounds.min.x - (paddingX / 2.0)
+        sceneTop                        = bounds.min.y - (paddingY / 2.0)
+        bounds                          = Vec2D.bounds (Map.values state.net.placePointsDict <> Map.values state.net.transitionPointsDict)
+        paddingX                        = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
+        paddingY                        = 4.0 * transitionHeight
+        arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible) " css-hide-arc-labels "
+        placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible) " css-hide-place-labels "
+        transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) " css-hide-transition-labels "
 
     eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
@@ -209,9 +208,9 @@ ui allRoleInfos initialState' =
       ToggleLabelVisibility obj next -> do
         state <- H.get
         H.put $ case obj of
-          Arc ->        state { arcLabelsVisible = state.arcLabelsVisible }
-          Place ->      state { placeLabelsVisible = state.placeLabelsVisible }
-          Transition -> state { transitionLabelsVisible = state.transitionLabelsVisible }
+          Arc ->        state { arcLabelsVisible        = not state.arcLabelsVisible }
+          Place ->      state { placeLabelsVisible      = not state.placeLabelsVisible }
+          Transition -> state { transitionLabelsVisible = not state.transitionLabelsVisible }
         pure next
 
 
@@ -296,7 +295,7 @@ ui allRoleInfos initialState' =
                ]
            , svgArrow arc.src arc.dest
            , SE.text
-               [ SA.class_    "css-arc-label"
+               [ SA.class_    "css-arc-name-label"
                , SA.x         arc.src.x
                , SA.y         arc.src.y
                , SA.font_size (FontSizeLength $ Em fontSize)
@@ -444,6 +443,28 @@ htmlMarking bag =
     tr k v = HH.tr [] [ HH.td [] [ HH.text $ show k ]
                       , HH.td [] [ HH.text $ show v ]
                       ]
+
+--------------------------------------------------------------------------------
+
+labelVisibilityButtons :: ∀ pid tid. HTML Void (QueryF tid pid Unit)
+labelVisibilityButtons =
+  div [ classes [ ClassName "field has-addons" ] ]
+      [ HH.p [ classes [ ClassName "control" ] ]
+             [ HH.a [ classes [ ClassName "button" ]
+                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Arc ]
+                    [ HH.span [] [ HH.text "Arcs" ] ]
+             ]
+      , HH.p [ classes [ ClassName "control" ] ]
+             [ HH.a [ classes [ ClassName "button" ]
+                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Place ]
+                    [ HH.span [] [ HH.text "Places" ] ]
+             ]
+      , HH.p [ classes [ ClassName "control" ] ]
+             [ HH.a [ classes [ ClassName "button" ]
+                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Transition ]
+                    [ HH.span [] [ HH.text "Transitions" ] ]
+             ]
+      ]
 
 --------------------------------------------------------------------------------
 

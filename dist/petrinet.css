@@ -4,6 +4,11 @@
         linear-gradient(to top, pink, rgba(0,0,255,0.5)),
         url(logo-statebox-white.svg);
 }
+.css-petrinet-component.css-hide-arc-labels .css-arc-name-label,
+.css-petrinet-component.css-hide-place-labels .css-place-name-label,
+.css-petrinet-component.css-hide-transition-labels .css-transition-name-label {
+    display: none;
+}
 .css-place,
 .css-transition-rect {
     stroke-width: 0.15;
@@ -20,7 +25,6 @@
     fill: rgb(100,100,100);
 }
 .css-arc-label {
-    display: none; /* TODO development */
     fill: rgb(200,200,200);
 }
 .css-arc {
