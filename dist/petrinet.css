@@ -1,14 +1,10 @@
 .css-petrinet-component svg {
     background: #eee;
 }
-.css-petrinet-component.css-hide-arc-labels .css-arc-name-label {
-  display: none;
-}
-.css-petrinet-component.css-hide-place-labels .css-place-name-label {
-  display: none;
-}
+.css-petrinet-component.css-hide-arc-labels .css-arc-name-label,
+.css-petrinet-component.css-hide-place-labels .css-place-name-label,
 .css-petrinet-component.css-hide-transition-labels .css-transition-name-label {
-  display: none;
+    display: none;
 }
 .css-place,
 .css-transition-rect {
