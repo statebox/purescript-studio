@@ -1,5 +1,8 @@
 .css-petrinet-component svg {
     background: #eee;
+    background-image:
+        linear-gradient(to top, pink, rgba(0,0,255,0.5)),
+        url(logo-statebox-white.svg);
 }
 .css-place,
 .css-transition-rect {
