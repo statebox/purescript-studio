@@ -1,3 +1,7 @@
+    .hidden {
+      display: none !important;
+    }
+
     .css-petrinet-component svg {
         background: #eee;
     }
@@ -17,7 +21,7 @@
         fill: rgb(100,100,100);
     }
     .css-arc-label {
-        display: none; /* TODO development */
+        /*display: none; /* TODO development */*/
         fill: rgb(200,200,200);
     }
     .css-arc {
