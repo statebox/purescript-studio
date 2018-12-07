@@ -117,21 +117,6 @@ ui =
           where
             crumb str = li [] [ a [ href "" ] [ text str ] ]
 
-        netChooser :: (NetInfo -> Boolean) -> Array NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-        netChooser isSelected items =
-          nav [ classes [ ClassName "panel" ] ] $
-              [ p [ classes [ ClassName "panel-heading" ] ] [ text state.project1.name ] ]
-              <> (instanceListItem isSelected <$> items)
-          where
-            instanceListItem :: (NetInfo -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-            instanceListItem isSelected netInfo =
-              a [ classes [ ClassName "panel-block"
-                          , ClassName $ guard (isSelected netInfo) "is-active"
-                          ]
-                , onClick (HE.input_ (SelectNet netInfo))
-                ]
-                [ text netInfo.name ]
-
         navBar :: ParentHTML Query ChildQuery ChildSlot m
         navBar =
           nav [ classes [ ClassName "navbar" ] ]
@@ -157,3 +142,18 @@ ui =
                           [ a   [ classes [ ClassName "navbar-item" ] ] [ text "Development" ] ]
                     ]
               ]
+
+        netChooser :: (NetInfo -> Boolean) -> Array NetInfo -> ParentHTML Query ChildQuery ChildSlot m
+        netChooser isSelected items =
+          nav [ classes [ ClassName "panel" ] ] $
+              [ p [ classes [ ClassName "panel-heading" ] ] [ text state.project1.name ] ]
+              <> (instanceListItem isSelected <$> items)
+          where
+            instanceListItem :: (NetInfo -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
+            instanceListItem isSelected netInfo =
+              a [ classes [ ClassName "panel-block"
+                          , ClassName $ guard (isSelected netInfo) "is-active"
+                          ]
+                , onClick (HE.input_ (SelectNet netInfo))
+                ]
+                [ text netInfo.name ]
