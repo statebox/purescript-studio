@@ -15,7 +15,7 @@ import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, 
 import Data.Vec2D (Vec2D)
 
 data QueryF pid tid a
-  = LoadNet (NetObjF pid tid Tokens Typedef) a
+  = LoadNet (NetInfoF pid tid ()) a
   | FireTransition tid a
   | FocusTransition tid a
   | FocusPlace pid a

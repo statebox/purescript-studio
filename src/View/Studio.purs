@@ -81,7 +81,7 @@ ui =
 
       SelectNet netInfo next -> do
         H.modify_ (\state -> state { focusedNet = pure netInfo })
-        x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet netInfo.net)
+        x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet netInfo)
         pure next
 
       HandleDiagramEditorMsg unit next -> do

@@ -6,7 +6,7 @@ import Data.Foldable (class Foldable, find, elem, foldMap)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe, isNothing)
 import Halogen as H
-import Halogen.HTML (HTML, div, text, a, br, hr, form, button, input, textarea, select, option, label, fieldset, legend)
+import Halogen.HTML (HTML, div, text, a, br, hr, button, input, textarea, select, option, label, fieldset, legend)
 import Halogen.HTML.Events (input_, onClick, onChecked, onValueInput, onValueChange)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, value, rows, placeholder, InputType(..), checked, name)
@@ -20,6 +20,9 @@ type PlaceEditorFormModel pid =
   , typedef     :: Typedef
   , isWriteable :: Boolean
   }
+
+form' :: ∀ pid a. PlaceEditorFormModel pid -> HTML a ((PlaceQueryF pid) Unit)
+form' = form <<< Just
 
 form :: ∀ pid a. Maybe (PlaceEditorFormModel pid) -> HTML a ((PlaceQueryF pid) Unit)
 form mm =

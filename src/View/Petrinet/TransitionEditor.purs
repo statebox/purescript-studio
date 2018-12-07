@@ -9,7 +9,7 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe, isNothing)
 import Data.Newtype (class Newtype, un, unwrap)
 import Data.Tuple.Nested (type (/\), (/\))
 import Halogen as H
-import Halogen.HTML (HTML, div, span, text, a, br, hr, form, button, input, textarea, select, option, label, fieldset, legend)
+import Halogen.HTML (HTML, div, span, text, a, br, hr, button, input, textarea, select, option, label, fieldset, legend)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (input_, onClick, onChecked, onValueInput, onValueChange)
 import Halogen.HTML.Events as HE
@@ -28,6 +28,9 @@ type TransitionEditorFormModel tid =
   , isWriteable :: Boolean
   , auths       :: Roles
   }
+
+form' :: ∀ tid a. Array RoleInfo -> TransitionEditorFormModel tid -> HTML a ((TransitionQueryF tid) Unit)
+form' allRoleInfos m = form allRoleInfos (Just m)
 
 form :: ∀ tid a. Array RoleInfo -> Maybe (TransitionEditorFormModel tid) -> HTML a ((TransitionQueryF tid) Unit)
 form allRoleInfos mm =

@@ -39,7 +39,7 @@ import Data.Auth
 import Data.Petrinet.Representation.Dict
 import ExampleData as Ex
 import ExampleData as Net
-import View.Common (HtmlId)
+import View.Common (HtmlId, emptyHtml)
 import View.Petrinet.Arrow
 import View.Petrinet.Arrow as Arrow
 import View.Petrinet.Config
@@ -49,12 +49,12 @@ import View.Petrinet.TransitionEditor as TransitionEditor
 
 type StateF pid tid =
   { msg                     :: String
+  , netInfo                 :: NetInfoF pid tid ()
   , focusedPlace            :: Maybe pid
   , focusedTransition       :: Maybe tid
   , arcLabelsVisible        :: Boolean
   , placeLabelsVisible      :: Boolean
   , transitionLabelsVisible :: Boolean
-  |                            NetInfoFRow pid tid ()
   }
 
 type PlaceModelF pid tok label pt =
@@ -92,8 +92,8 @@ type ArcModel tid = ArcModelF tid String Vec2D
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid r m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => Array RoleInfo -> NetInfoF pid tid r -> H.Component HTML (QueryF pid tid) Unit Msg m
-ui allRoleInfos initialState' =
+ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => Array RoleInfo -> NetInfoF pid tid () -> H.Component HTML (QueryF pid tid) Unit Msg m
+ui allRoleInfos initialNetInfo =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
     -- TODO should come from component state
@@ -101,9 +101,7 @@ ui allRoleInfos initialState' =
 
     initialState :: StateF pid tid
     initialState =
-      { name:                    ""
-      , net:                     initialState'.net
-      , netApi:                  initialState'.netApi
+      { netInfo:                 initialNetInfo
       , msg:                     "Please select a net."
       , focusedPlace:            empty
       , focusedTransition:       empty
@@ -115,36 +113,30 @@ ui allRoleInfos initialState' =
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
     render state =
       div [ HP.id_ componentHtmlId
-          , classes [ componentClass, ClassName $ "css-petrinet-component" <> arcLabelsVisibilityClass <> transitionLabelsVisibilityClass <> placeLabelsVisibilityClass ]
+          , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
           ]
           [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
-                   (netToSVG state.net state.focusedPlace state.focusedTransition)
+                   (netToSVG state.netInfo.net state.focusedPlace state.focusedTransition)
           , HH.text state.msg
           , HH.br []
           , HH.br []
           , div [ classes [ ClassName "columns" ] ]
                 [ div [ classes [ ClassName "column" ] ]
-                      [ htmlMarking state.net.marking ]
+                      [ htmlMarking state.netInfo.net.marking ]
                 , div [ classes [ ClassName "column" ] ]
-                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit place" ]
-                      , map UpdatePlace <<< PlaceEditor.form $ do
+                      [ maybe emptyHtml (map UpdatePlace <<< PlaceEditor.form <<< Just) do
                           pid <- state.focusedPlace
-                          label <- Map.lookup pid state.net.placeLabelsDict
+                          label <- Map.lookup pid state.netInfo.net.placeLabelsDict
                           pure { pid: pid, label: label, typedef: Typedef "Unit", isWriteable: false }
-                      ]
-                , div [ classes [ ClassName "column" ] ]
-                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "edit transition" ]
-                      , map UpdateTransition <<< TransitionEditor.form allRoleInfos $ do
+                      , maybe emptyHtml (map UpdateTransition <<< TransitionEditor.form' allRoleInfos) do
                           tid   <- state.focusedTransition
-                          label <- Map.lookup tid state.net.transitionLabelsDict
-                          typ   <- Map.lookup tid state.net.transitionTypesDict
-                          let auths = fromMaybe mempty (Map.lookup tid state.net.transitionAuthsDict)
+                          label <- Map.lookup tid state.netInfo.net.transitionLabelsDict
+                          typ   <- Map.lookup tid state.netInfo.net.transitionTypesDict
+                          let auths = fromMaybe mempty (Map.lookup tid state.netInfo.net.transitionAuthsDict)
                           pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
                       ]
                 , div [ classes [ ClassName "column "] ]
-                      [ HH.h1 [ classes [ ClassName "title", ClassName "is-6" ] ] [ HH.text "toggle labels" ]
-                      , labelVisibilityButtons
-                      ]
+                      [ labelVisibilityButtons ]
                 ]
           ]
       where
@@ -152,17 +144,17 @@ ui allRoleInfos initialState' =
         sceneHeight                     = (bounds.max.y - bounds.min.y) + paddingY
         sceneLeft                       = bounds.min.x - (paddingX / 2.0)
         sceneTop                        = bounds.min.y - (paddingY / 2.0)
-        bounds                          = Vec2D.bounds (Map.values state.net.placePointsDict <> Map.values state.net.transitionPointsDict)
+        bounds                          = Vec2D.bounds (Map.values state.netInfo.net.placePointsDict <> Map.values state.netInfo.net.transitionPointsDict)
         paddingX                        = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
         paddingY                        = 4.0 * transitionHeight
-        arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible) " css-hide-arc-labels "
-        placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible) " css-hide-place-labels "
-        transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) " css-hide-transition-labels "
+        arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible)        "css-hide-arc-labels"
+        placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible)      "css-hide-place-labels"
+        transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
 
     eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
-      LoadNet newNet next -> do
-        H.modify_ (\state -> state { net = newNet
+      LoadNet newNetInfo next -> do
+        H.modify_ (\state -> state { netInfo = newNetInfo
                                    , msg = "Select places or transitions by clicking on them. Double-click enabled transitions to fire them."
                                    })
         pure next
@@ -170,21 +162,21 @@ ui allRoleInfos initialState' =
         state <- H.get
         let focusedPlace' = toggleMaybe pid state.focusedPlace
         H.put $ state { focusedPlace = focusedPlace'
-                      , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> " (" <> (fold $ Map.lookup pid state.net.placeLabelsDict) <> ")."
+                      , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> " (" <> (fold $ Map.lookup pid state.netInfo.net.placeLabelsDict) <> ")."
                       }
         pure next
       UpdatePlace (UpdatePlaceLabel pid newLabel next) -> do
-        H.modify_ $ \state -> state { net = state.net { placeLabelsDict = Map.insert pid newLabel state.net.placeLabelsDict }
+        H.modify_ $ \state -> state { netInfo = state.netInfo { net = state.netInfo.net {  placeLabelsDict = Map.insert pid newLabel state.netInfo.net.placeLabelsDict } }
                                     , msg = "Updated place " <> show pid <> "."
                                     }
         pure next
       UpdateTransition (UpdateTransitionName tid newLabel next) -> do
-        H.modify_ $ \state -> state { net = state.net { transitionLabelsDict = Map.insert tid newLabel state.net.transitionLabelsDict }
+        H.modify_ $ \state -> state { netInfo = state.netInfo { net = state.netInfo.net { transitionLabelsDict = Map.insert tid newLabel state.netInfo.net.transitionLabelsDict } }
                                     , msg = "Updated transition " <> show tid <> "."
                                     }
         pure next
       UpdateTransition (UpdateTransitionType tid newType next) -> do
-        H.modify_ $ \state -> state { net = state.net { transitionTypesDict = Map.insert tid newType state.net.transitionTypesDict }
+        H.modify_ $ \state -> state { netInfo = state.netInfo { net = state.netInfo.net { transitionTypesDict = Map.insert tid newType state.netInfo.net.transitionTypesDict } }
                                     , msg = "Updated transition " <> show tid <> "."
                                     }
         pure next
@@ -192,16 +184,16 @@ ui allRoleInfos initialState' =
         state <- H.get
         let focusedTransition' = toggleMaybe tid state.focusedTransition
         H.put $ state { focusedTransition = focusedTransition'
-                      , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <> " transition " <> show tid <> " (" <> (fold $ Map.lookup tid state.net.transitionLabelsDict) <> ")."
+                      , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <> " transition " <> show tid <> " (" <> (fold $ Map.lookup tid state.netInfo.net.transitionLabelsDict) <> ")."
                       }
         pure next
       FireTransition tid next -> do
         numElems <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid)
         state <- H.get
         let
-          netMaybe' = fire state.net <$> state.net.findTransition tid
-          net'      = fromMaybe state.net netMaybe'
-        H.put $ state { net = net'
+          netMaybe' = fire state.netInfo.net <$> state.netInfo.net.findTransition tid
+          net'      = fromMaybe state.netInfo.net netMaybe'
+        H.put $ state { netInfo = state.netInfo { net = net'}
                       , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
                       }
         pure next
@@ -450,19 +442,19 @@ labelVisibilityButtons :: ∀ pid tid. HTML Void (QueryF tid pid Unit)
 labelVisibilityButtons =
   div [ classes [ ClassName "field has-addons" ] ]
       [ HH.p [ classes [ ClassName "control" ] ]
-             [ HH.a [ classes [ ClassName "button" ]
-                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Arc ]
-                    [ HH.span [] [ HH.text "Arcs" ] ]
-             ]
-      , HH.p [ classes [ ClassName "control" ] ]
-             [ HH.a [ classes [ ClassName "button" ]
+             [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
                     , HE.onClick $ HE.input_ $ ToggleLabelVisibility Place ]
-                    [ HH.span [] [ HH.text "Places" ] ]
+                    [ HH.span [] [ HH.text "Place labels" ] ]
              ]
       , HH.p [ classes [ ClassName "control" ] ]
-             [ HH.a [ classes [ ClassName "button" ]
+             [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
                     , HE.onClick $ HE.input_ $ ToggleLabelVisibility Transition ]
-                    [ HH.span [] [ HH.text "Transitions" ] ]
+                    [ HH.span [] [ HH.text "Transition labels" ] ]
+             ]
+      , HH.p [ classes [ ClassName "control" ] ]
+             [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
+                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Arc ]
+                    [ HH.span [] [ HH.text "Arc labels" ] ]
              ]
       ]
 
