@@ -6,6 +6,8 @@ import Data.Tuple.Nested (type (/\), (/\))
 
 import View.Diagram.Common (snap, dxdy, showVec2, showVec3)
 
+type DiagramInfo = { name :: String }
+
 type Operator =
   { identifier :: String -- must be unique; problematic, want to lenses instead
   , x          :: Int

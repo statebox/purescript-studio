@@ -5,6 +5,7 @@ module ExampleData
   , net2
   , netApi2
   , pnproNetInfos1
+  , diagrams
   ) where
 
 import Prelude
@@ -26,6 +27,7 @@ import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColo
 import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
+import View.Diagram.Model (DiagramInfo)
 
 project1 =
   { name: "Example nets"
@@ -308,3 +310,8 @@ pnproXml1 =
     </formulas>
   </measures>
 </project>"""
+
+--------------------------------------------------------------------------------
+
+diagrams :: Array DiagramInfo
+diagrams = [{ name: "Foo Bar Quux" }]

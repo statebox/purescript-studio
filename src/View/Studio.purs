@@ -20,6 +20,7 @@ import Effect.Aff.Class (class MonadAff)
 
 import View.Petrinet.Model (Project, PID, TID, NetInfo, emptyNetInfo, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
+import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
@@ -33,8 +34,8 @@ type State =
   }
 
 data Query a
-  = ShowView ActiveView a
-  | SelectNet NetInfo a
+  = SelectNet NetInfo a
+  | SelectDiagram a
   | HandlePetrinetEditorMsg Msg a
   | HandleDiagramEditorMsg Unit a
 
@@ -71,17 +72,17 @@ ui =
 
     eval :: Query ~> ParentDSL State Query ChildQuery ChildSlot Void m
     eval = case _ of
-      ShowView v next -> do
-        H.modify_ (\state -> state { activeView = v })
-        pure next
-
       HandlePetrinetEditorMsg NetUpdated next -> do
         -- TODO
         pure next
 
       SelectNet netInfo next -> do
-        H.modify_ (\state -> state { focusedNet = pure netInfo })
+        H.modify_ (\state -> state { focusedNet = pure netInfo, activeView = PetrinetEditor })
         x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet netInfo)
+        pure next
+
+      SelectDiagram next -> do
+        H.modify_ (\state -> state { activeView = DiagramEditor })
         pure next
 
       HandleDiagramEditorMsg unit next -> do
@@ -93,7 +94,7 @@ ui =
         [ navBar
         , div [ classes [ ClassName "columns" ] ]
               [ div [ classes [ ClassName "column", ClassName "is-2" ] ]
-                    [ netChooser (\ni -> Just ni.name == (state.focusedNet <#> _.name)) state.project1.nets ]
+                    [ objectChooser (\ni -> Just ni.name == (state.focusedNet <#> _.name)) state.project1.nets ]
               , div [ classes [ ClassName "column" ] ]
                     [ pathBreadcrumbs
                     , case state.activeView of
@@ -129,31 +130,34 @@ ui =
                     [ div [ classes [ ClassName "navbar-start" ] ]
                           [ div [ classes [ ClassName "navbar-item" ] ]
                                 [ h1 [ classes [ ClassName "subtitle" ] ] [ text "Statebox Studio" ] ]
-                          , a [ classes [ ClassName "navbar-item" ]
-                              , onClick (HE.input_ (ShowView PetrinetEditor))
-                              ]
-                              [ text "Petri net editor" ]
-                          , a [ classes [ ClassName "navbar-item" ]
-                              , onClick (HE.input_ (ShowView DiagramEditor))
-                              ]
-                              [ text "String diagram editor" ]
                           ]
                     , div [ classes [ ClassName "navbar-end" ] ]
                           [ a   [ classes [ ClassName "navbar-item" ] ] [ text "Development" ] ]
                     ]
               ]
 
-        netChooser :: (NetInfo -> Boolean) -> Array NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-        netChooser isSelected items =
+        objectChooser :: (NetInfo -> Boolean) -> Array NetInfo -> ParentHTML Query ChildQuery ChildSlot m
+        objectChooser isSelected nets =
           nav [ classes [ ClassName "panel" ] ] $
               [ p [ classes [ ClassName "panel-heading" ] ] [ text state.project1.name ] ]
-              <> (instanceListItem isSelected <$> items)
+              <> (netItem isSelected <$> nets)
+              <> [ p [ classes [ ClassName "panel-heading" ] ] [ text "Diagrams" ] ]
+              <> (diagramItem (const false) <$> Ex.diagrams)
           where
-            instanceListItem :: (NetInfo -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-            instanceListItem isSelected netInfo =
+            netItem :: (NetInfo -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
+            netItem isSelected netInfo =
               a [ classes [ ClassName "panel-block"
                           , ClassName $ guard (isSelected netInfo) "is-active"
                           ]
                 , onClick (HE.input_ (SelectNet netInfo))
                 ]
                 [ text netInfo.name ]
+
+            diagramItem :: (DiagramInfo -> Boolean) -> DiagramInfo -> ParentHTML Query ChildQuery ChildSlot m
+            diagramItem isSelected d =
+              a [ classes [ ClassName "panel-block"
+                          , ClassName $ guard (isSelected d) "is-active"
+                          ]
+                , onClick (HE.input_ (SelectDiagram))
+                ]
+                [ text d.name ]
