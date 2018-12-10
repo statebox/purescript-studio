@@ -236,7 +236,7 @@ ui allRoleInfos initialNetInfo =
                , auths     : auths
                , htmlId    : mkTransitionIdStr tid
                , point     : trPoint
-               , isFocused : false -- TODO
+               , isFocused : focusedTransition == Just tid
                }
           where
             mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
@@ -254,18 +254,18 @@ ui allRoleInfos initialNetInfo =
            , HE.onClick (HE.input_ (FocusTransition t.id))
            , HE.onDoubleClick (HE.input_ (if t.isEnabled then FireTransition t.id else FocusTransition t.id))
            ]
-           ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t.point t.id] <> [svgTransitionLabel t])
+           ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t] <> [svgTransitionLabel t])
            where
              roleClasses :: Array String
              roleClasses = map (\r -> "css-role-" <> show r) <<< Set.toUnfoldable <<< un Roles $ t.auths
 
-    svgTransitionRect :: ∀ tid a. Show tid => Vec2D -> tid -> HTML a ((QueryF pid tid) Unit)
-    svgTransitionRect point tid =
-      SE.rect [ SA.class_  "css-transition-rect"
+    svgTransitionRect :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionRect t =
+      SE.rect [ SA.class_  ("css-transition-rect" <> guard t.isFocused " focused")
               , SA.width   transitionWidth
               , SA.height  transitionHeight
-              , SA.x       (point.x - transitionWidth / 2.0)
-              , SA.y       (point.y - transitionHeight / 2.0)
+              , SA.x       (t.point.x - transitionWidth / 2.0)
+              , SA.y       (t.point.y - transitionHeight / 2.0)
               ]
 
     svgTransitionLabel :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)

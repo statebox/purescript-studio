@@ -18,6 +18,9 @@
 .css-place.focused {
     fill: lightblue;
 }
+.css-transition-rect.focused {
+    fill: lightblue;
+}
 .css-place-name-label, .css-transition-name-label {
     fill: rgb(100,100,100);
 }
