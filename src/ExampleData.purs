@@ -53,9 +53,9 @@ places1 = 1 .. numPlaces1
 placeLabels1 :: Array (PID /\ String)
 placeLabels1 =
   [ 1 /\ "green_1"
-  , 2 /\ "b"
+  , 2 /\ "red_1"
   , 3 /\ "green_2"
-  , 4 /\ "d"
+  , 4 /\ "red_2"
   , 5 /\ "queue"
   ]
 
