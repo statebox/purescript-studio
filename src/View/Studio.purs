@@ -28,19 +28,19 @@ import View.Petrinet.Model as PetrinetEditor
 import ExampleData as Ex
 
 type State =
-  { project1   :: Project
-  , route      :: Route -- TODO add 'nothing selected' case, meaning we're on the 'home page'
+  { route      :: Route -- TODO Encode 'nothing selected' and 'project' cases. #59
+  , project1   :: Project
   , msg        :: String
   }
+
+data Route
+  = Net NetInfo
+  | Diagram DiagramInfo
 
 data Query a
   = SelectRoute Route a
   | HandlePetrinetEditorMsg Msg a
   | HandleDiagramEditorMsg Unit a
-
-data Route
-  = Net NetInfo
-  | Diagram DiagramInfo
 
 --------------------------------------------------------------------------------
 
