@@ -105,9 +105,9 @@ ui allRoleInfos initialNetInfo =
       , msg:                     "Please select a net."
       , focusedPlace:            empty
       , focusedTransition:       empty
+      , placeLabelsVisible:      true
+      , transitionLabelsVisible: true
       , arcLabelsVisible:        false
-      , placeLabelsVisible:      false
-      , transitionLabelsVisible: false
       }
 
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
