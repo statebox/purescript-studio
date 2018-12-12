@@ -18,7 +18,8 @@ import Halogen.HTML.Properties (classes, src, href)
 import Halogen.HTML.Properties.ARIA as ARIA
 import Effect.Aff.Class (class MonadAff)
 
-import View.Petrinet.Model (Project, PID, TID, NetInfo, emptyNetInfo, NetObj, QueryF(..), Msg(NetUpdated))
+import View.Model (Project)
+import View.Petrinet.Model (PID, TID, NetInfo, emptyNetInfo, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
@@ -28,19 +29,18 @@ import ExampleData as Ex
 
 type State =
   { project1   :: Project
-  , focusedNet :: Maybe NetInfo
-  , activeView :: ActiveView
+  , route      :: Route -- TODO add 'nothing selected' case, meaning we're on the 'home page'
   , msg        :: String
   }
 
 data Query a
-  = SelectNet NetInfo a
-  | SelectDiagram a
+  = SelectRoute Route a
   | HandlePetrinetEditorMsg Msg a
   | HandleDiagramEditorMsg Unit a
 
--- TODO this is probably doable with one of the slot-like things, or Childpath or sth
-data ActiveView = PetrinetEditor | DiagramEditor
+data Route
+  = Net NetInfo
+  | Diagram DiagramInfo
 
 --------------------------------------------------------------------------------
 
@@ -66,8 +66,7 @@ ui =
     initialState =
       { msg:        "Welcome to Statebox Studio!"
       , project1:   Ex.project1
-      , focusedNet: Nothing
-      , activeView: PetrinetEditor
+      , route:      Net emptyNetInfo
       }
 
     eval :: Query ~> ParentDSL State Query ChildQuery ChildSlot Void m
@@ -76,14 +75,15 @@ ui =
         -- TODO
         pure next
 
-      SelectNet netInfo next -> do
-        H.modify_ (\state -> state { focusedNet = pure netInfo, activeView = PetrinetEditor })
-        x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet netInfo)
-        pure next
-
-      SelectDiagram next -> do
-        H.modify_ (\state -> state { activeView = DiagramEditor })
-        pure next
+      SelectRoute route next -> do
+        case route of
+          Net netInfo -> do
+            H.modify_ (\state -> state { route = Net netInfo })
+            x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet netInfo)
+            pure next
+          r@(Diagram diagramInfo) -> do
+            H.modify_ (\state -> state { route = r })
+            pure next
 
       HandleDiagramEditorMsg unit next -> do
         pure next
@@ -94,27 +94,33 @@ ui =
         [ navBar
         , div [ classes [ ClassName "columns" ] ]
               [ div [ classes [ ClassName "column", ClassName "is-2" ] ]
-                    [ objectChooser (\ni -> Just ni.name == (state.focusedNet <#> _.name)) state.project1.nets ]
+                    [ objectChooser (\netInfo -> case state.route of
+                                                   Net     n -> n.name == netInfo.name
+                                                   Diagram d -> false
+                                    )
+                                    state.project1 ]
               , div [ classes [ ClassName "column" ] ]
-                    [ pathBreadcrumbs
-                    , case state.activeView of
-                        PetrinetEditor ->
-                          HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui state.project1.allRoleInfos emptyNetInfo) unit (HE.input HandlePetrinetEditorMsg)
-                        DiagramEditor  ->
+                    [ routeBreadcrumbs
+                    , case state.route of
+                        Net netInfo ->
+                          HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui state.project1.allRoleInfos netInfo) unit (HE.input HandlePetrinetEditorMsg)
+                        Diagram diagramInfo ->
                           HH.slot' diagramEditorSlotPath unit DiagramEditor.ui unit (HE.input HandleDiagramEditorMsg)
                     ]
               ]
         ]
 
       where
-        pathBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
-        pathBreadcrumbs =
+        routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
+        routeBreadcrumbs =
           nav [ classes [ ClassName "breadcrumb has-arrow-separator", ClassName "is-small" ]
               , ARIA.label "breadcrumbs"
               ]
-              [ ul [] (crumb <$> catMaybes  [ Just state.project1.name
-                                            , state.focusedNet <#> _.name
-                                            ]) ]
+              [ ul [] (crumb <$> [ state.project1.name
+                                 , case state.route of
+                                     Net     { name } -> name
+                                     Diagram { name } -> name
+                                 ]) ]
           where
             crumb str = li [] [ a [ href "" ] [ text str ] ]
 
@@ -136,8 +142,8 @@ ui =
                     ]
               ]
 
-        objectChooser :: (NetInfo -> Boolean) -> Array NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-        objectChooser isSelected nets =
+        objectChooser :: (NetInfo -> Boolean) -> Project -> ParentHTML Query ChildQuery ChildSlot m
+        objectChooser isSelected { nets } =
           nav [ classes [ ClassName "panel" ] ] $
               [ p [ classes [ ClassName "panel-heading" ] ] [ text state.project1.name ] ]
               <> (netItem isSelected <$> nets)
@@ -149,7 +155,7 @@ ui =
               a [ classes [ ClassName "panel-block"
                           , ClassName $ guard (isSelected netInfo) "is-active"
                           ]
-                , onClick (HE.input_ (SelectNet netInfo))
+                , onClick (HE.input_ (SelectRoute (Net netInfo)))
                 ]
                 [ text netInfo.name ]
 
@@ -158,6 +164,6 @@ ui =
               a [ classes [ ClassName "panel-block"
                           , ClassName $ guard (isSelected d) "is-active"
                           ]
-                , onClick (HE.input_ (SelectDiagram))
+                , onClick (HE.input_ (SelectRoute (Diagram d)))
                 ]
                 [ text d.name ]

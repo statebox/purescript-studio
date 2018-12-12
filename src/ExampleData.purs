@@ -35,6 +35,7 @@ project1 =
           , { name: "Producer-consumer" , net: net2, netApi: netApi2 }
           ]
     <> pnproNetInfos1
+  , diagrams: diagrams
   , allRoleInfos: project1Roles
   }
 

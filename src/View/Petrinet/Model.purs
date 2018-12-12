@@ -46,13 +46,6 @@ data Msg = NetUpdated
 
 --------------------------------------------------------------------------------
 
-type Project =
-  { name         :: String
-  , nets         :: Array NetInfo
-  , allRoleInfos :: Array RoleInfo
-  }
-
---------------------------------------------------------------------------------
 type NetInfoFRow pid tid r =
   ( name   :: String
   , net    :: NetObjF pid tid Tokens Typedef
