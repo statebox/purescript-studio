@@ -35,14 +35,14 @@ svgArrowheadMarker =
     [ SA.id arrowheadMarkerId
     , SA.class_ "css-arrowhead"
     , SA.orient SA.AutoOrient
-    , SA.markerUnits SA.StrokeWidth 
+    , SA.markerUnits SA.StrokeWidth
     , SA.strokeWidth 0.0
-    , SA.markerWidth 6.0
-    , SA.markerHeight 6.0
-    , SA.refX 1.6
-    , SA.refY 2.0
+    , SA.markerWidth 12.0
+    , SA.markerHeight 12.0
+    , SA.refX 6.0
+    , SA.refY 6.0
     ]
-    [ SE.path [ SA.d $ SA.Abs <$> [ SA.M 0.0 0.0, SA.L 0.0 4.0, SA.L 2.0 2.0, SA.Z ] ] ]
+    [ SE.path [ SA.d $ SA.Abs <$> [ SA.M 0.0 0.0, SA.L 0.0 12.0, SA.L 6.0 6.0, SA.Z ] ] ]
 
 placeLinePoint :: Vec2D -> Vec2D -> Vec2D
 placeLinePoint p t = { x: p.x + px, y: p.y + py }
