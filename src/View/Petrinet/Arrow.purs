@@ -13,33 +13,28 @@ import View.Petrinet.Config
 
 -- | This refers to an `arrowheadMarkerId`, for which a marker must be defined in the `<defs>`.
 -- | Such a marker is defined provided here as `svgArrowheadMarker`.
-svgPreArrow :: forall p i. Vec2D -> Vec2D -> HTML p i
-svgPreArrow src dest =
-  SE.line
-    [ SA.class_ "css-arrow"
-    , SA.x1 src'.x
-    , SA.y1 src'.y
-    , SA.x2 dest'.x
-    , SA.y2 dest'.y
-    , SA.markerEnd $ "url(#" <> arrowheadMarkerId <> ")"
-    ]
-  where
-    src'  = placeLinePoint      src dest
-    dest' = transitionLinePoint src dest
 
-svgPostArrow :: forall p i. Vec2D -> Vec2D -> HTML p i
-svgPostArrow src dest =
+svgArrow :: forall p i. Vec2D -> Vec2D -> Boolean -> HTML p i
+svgArrow src dest isPost =
+  case isPost of
+    true  -> let src'  = transitionLinePoint dest src
+                 dest' = placeLinePoint      dest src
+             in  svgArrowLine src' dest'
+    false -> let src'  = placeLinePoint      src dest
+                 dest' = transitionLinePoint src dest
+             in  svgArrowLine src' dest'
+
+svgArrowLine :: forall p i. Vec2D -> Vec2D -> HTML p i
+svgArrowLine src dest =
   SE.line
     [ SA.class_ "css-arrow"
-    , SA.x1 src'.x
-    , SA.y1 src'.y
-    , SA.x2 dest'.x
-    , SA.y2 dest'.y
+    , SA.x1 src.x
+    , SA.y1 src.y
+    , SA.x2 dest.x
+    , SA.y2 dest.y
     , SA.markerEnd $ "url(#" <> arrowheadMarkerId <> ")"
     ]
-  where
-    src'  = transitionLinePoint dest src
-    dest' = placeLinePoint      dest src
+
 
 -- | An arrowhead shape that can be attached to other SVG elements such as lines and paths.
 -- | SVG takes care of rotating this marker so that it will be orientated according to that shape.
