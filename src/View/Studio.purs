@@ -10,7 +10,7 @@ import Halogen as H
 import Halogen (ParentDSL, ParentHTML)
 import Halogen.Component.ChildPath as ChildPath
 import Halogen.HTML as HH
-import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, li)
+import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, li, aside)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Events (onClick)
@@ -27,6 +27,9 @@ import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import ExampleData as Ex
 
+-- TODO let's hang onto the old flat version for a little bit
+showObjectChooserAsTree = true
+
 type State =
   { route      :: Route -- TODO Encode 'nothing selected' and 'project' cases. #59
   , project1   :: Project
@@ -36,6 +39,12 @@ type State =
 data Route
   = Net NetInfo
   | Diagram DiagramInfo
+
+routesObjNameEq :: Route -> Route -> Boolean
+routesObjNameEq r1 r2 = case r1, r2 of
+  Net     n, Net n'     -> n.name == n'.name
+  Diagram d, Diagram d' -> d.name == d'.name
+  _        , _          -> false
 
 data Query a
   = SelectRoute Route a
@@ -94,11 +103,14 @@ ui =
         [ navBar
         , div [ classes [ ClassName "columns" ] ]
               [ div [ classes [ ClassName "column", ClassName "is-2" ] ]
-                    [ objectChooser (\netInfo -> case state.route of
-                                                   Net     n -> n.name == netInfo.name
-                                                   Diagram d -> false
-                                    )
-                                    state.project1 ]
+                    [ if showObjectChooserAsTree
+                      then objectChooserTree (routesObjNameEq state.route) state.project1
+                      else objectChooserFlat (\netInfo -> case state.route of
+                                                            Net     n -> n.name == netInfo.name
+                                                            Diagram d -> false
+                                             )
+                                             state.project1
+                    ]
               , div [ classes [ ClassName "column" ] ]
                     [ routeBreadcrumbs
                     , case state.route of
@@ -142,8 +154,51 @@ ui =
                     ]
               ]
 
-        objectChooser :: (NetInfo -> Boolean) -> Project -> ParentHTML Query ChildQuery ChildSlot m
-        objectChooser isSelected { nets } =
+        -- TODO should take (Array Project)
+        -- TODO stick this in a panel?
+        objectChooserTree :: (Route -> Boolean) -> Project -> ParentHTML Query ChildQuery ChildSlot m
+        objectChooserTree isSelected { nets } =
+          aside [ classes [ ClassName "menu", ClassName "css-object-chooser" ] ] $
+                [ p  [ classes [ ClassName "menu-label" ] ] [ text state.project1.name ]
+                , p  [ classes [ ClassName "menu-label" ] ] [ text "Petri nets" ]
+                , ul [ classes [ ClassName "menu-list" ] ]
+                     (netItem isSelected <$> nets)
+                , p  [ classes [ ClassName "menu-label" ] ] [ text "Wiring Diagrams" ]
+                , ul [ classes [ ClassName "menu-list" ] ]
+                     (diagramItem isSelected <$> Ex.diagrams)
+                , p  [ classes [ ClassName "menu-label" ] ] [ text "Types" ]
+                , p  [ classes [ ClassName "menu-label" ] ] [ text "Roles" ]
+                , ul [ classes [ ClassName "menu-list" ] ]
+                     (roleItem <$> state.project1.allRoleInfos)
+                ]
+          where
+            netItem :: (Route -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
+            netItem isSelected netInfo =
+              li []
+                 [ a [ classes [ ClassName $ guard (isSelected $ Net netInfo) "is-active" ]
+                     , onClick (HE.input_ (SelectRoute (Net netInfo)))
+                     ]
+                     [ text netInfo.name ]
+                 ]
+
+            diagramItem :: (Route -> Boolean) -> DiagramInfo -> ParentHTML Query ChildQuery ChildSlot m
+            diagramItem isSelected d =
+              li []
+                 [ a [ classes [ ClassName $ guard (isSelected $ Diagram d) "is-active" ]
+                     , onClick (HE.input_ (SelectRoute (Diagram d)))
+                     ]
+                     [ text d.name ]
+                 ]
+
+            roleItem roleInfo =
+              li []
+                 [ a [ classes []
+                     ]
+                     [ text roleInfo.name ]
+                 ]
+
+        objectChooserFlat :: (NetInfo -> Boolean) -> Project -> ParentHTML Query ChildQuery ChildSlot m
+        objectChooserFlat isSelected { nets } =
           nav [ classes [ ClassName "panel" ] ] $
               [ p [ classes [ ClassName "panel-heading" ] ] [ text state.project1.name ] ]
               <> (netItem isSelected <$> nets)
