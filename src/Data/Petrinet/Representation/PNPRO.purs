@@ -22,15 +22,6 @@ import Data.Petrinet.Representation.Dict (mkNetObjF)
 import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
 import View.Petrinet.Model as Model
 
---------------------------------------------------------------------------------
-
--- | TODO Token weight should be configurable; find out how token weights > 1
--- | are stored in PNPRO XML (I would expect as a 'marking' attr on an <arc/>).
-hardcodedArcWeightTodo :: Tokens
-hardcodedArcWeightTodo = 1
-
---------------------------------------------------------------------------------
-
 -- | TODO return some effect type, reify exceptions, etc.
 foreign import fromStringUnsafe :: String -> Document
 
@@ -77,6 +68,7 @@ type Arc =
   , tail   :: PidOrTid
   , kind   :: String -- ^ TODO should be an ADT: "INPUT", "OUTPUT", ...?
   , isPost :: Boolean
+  , mult   :: Int
   }
 
 --------------------------------------------------------------------------------
@@ -134,7 +126,7 @@ toNetRep gspn =
           where
             -- TODO token weight should be configurable; find out how token weights > 1 are stored in PNPRO XML (I would expect as a 'marking' attr on an <arc/>)
             preArcMaybe :: _ -> Maybe (PidOrTid /\ PlaceMarking)
-            preArcMaybe arc = if not arc.isPost then (\pid -> arc.head /\ { place: pid, tokens: hardcodedArcWeightTodo }) <$> Map.lookup arc.tail pidIndex
+            preArcMaybe arc = if not arc.isPost then (\pid -> arc.head /\ { place: pid, tokens: arc.mult }) <$> Map.lookup arc.tail pidIndex
                                                 else Nothing
 
     postArcsDict :: Map PidOrTid  (Array PlaceMarking)
@@ -144,7 +136,7 @@ toNetRep gspn =
         postTransitions = catMaybes $ postArcMaybe <$> gspn.edges.arc
           where
             postArcMaybe :: _ -> Maybe (PidOrTid /\ PlaceMarking)
-            postArcMaybe arc = if arc.isPost then (\p -> arc.tail /\ { place: p, tokens: hardcodedArcWeightTodo }) <$> Map.lookup arc.head pidIndex
+            postArcMaybe arc = if arc.isPost then (\p -> arc.tail /\ { place: p, tokens: arc.mult }) <$> Map.lookup arc.head pidIndex
                                              else Nothing
 
     transitionLabels = (_.name <$> transitions)

@@ -116,6 +116,7 @@ function mutateGSPNJson1 (rawGspn) {
     gspn.edges.arc.forEach(function(arc) {
       // TODO is this correct, or are there more members that "INPUT" and "OUTPUT"?
       arc.isPost = arc.kind == "OUTPUT" // "INPUT" or other values give false
+      arc.mult = parseInt(arc.mult, 10) || 1 // default weight is 1
     })
 
     // TODO handle <points> nested inside arcs:
