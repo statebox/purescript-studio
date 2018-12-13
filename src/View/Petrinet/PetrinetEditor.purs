@@ -285,7 +285,7 @@ ui allRoleInfos initialNetInfo =
                , SA.id arc.htmlId -- we refer to this as the path of our animation and label, among others
                , SA.d (svgPath arc.src arc.dest)
                ]
-           , svgArrow arc.src arc.dest
+           , if arc.isPost then svgPostArrow arc.src arc.dest else svgPreArrow arc.src arc.dest
            , SE.text
                [ SA.class_    "css-arc-name-label"
                , SA.x         arc.src.x
