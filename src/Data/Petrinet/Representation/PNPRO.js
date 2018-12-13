@@ -109,8 +109,8 @@ function mutateGSPNJson1 (rawGspn) {
     })
 
     // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
-    if (!Array.isArray(gspn.nodes.arc)) {
-      gspn.nodes.arc = [gspn.nodes.arc];
+    if (!Array.isArray(gspn.edges.arc)) {
+      gspn.edges.arc = [gspn.edges.arc];
     }
 
     gspn.edges.arc.forEach(function(arc) {
