@@ -109,6 +109,25 @@ function mutateGSPNJson1 (rawGspn) {
     })
 
     // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
+    if (!Array.isArray(gspn.nodes["text-box"]) {
+      gspn.nodes["text-box"] = [gspn.nodes["text-box"]];
+    }
+
+    gspn.nodes["text-box"].forEach(function (textBox) {
+      textBox.name        = textBox.name
+      textBox.x           = parseFloat(textBox.x)
+      textBox.y           = parseFloat(textBox.y)
+      textBox.height      = parseFloat(textBox.height)
+      textBox.width       = parseFloat(textBox.width)
+      textBox.bold        = textBox.bold
+      textBox.borderColor = textBox["border-color"]
+      textBox.fillColor   = textBox["fill-color"]
+      textBox.shadow      = textBox.shadow
+      textBox.shape       = textBox.shape
+      textBox.textColor   = textBox["text-color"]
+    })
+
+    // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
     if (!Array.isArray(gspn.edges.arc)) {
       gspn.edges.arc = [gspn.edges.arc];
     }
