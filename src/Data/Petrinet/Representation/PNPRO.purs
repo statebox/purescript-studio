@@ -53,6 +53,7 @@ type GSPN =
 type Nodes =
   { place      :: Array Place
   , transition :: Array Transition
+  , textBox    :: Array TextBox
   }
 
 type Node r =
@@ -68,6 +69,11 @@ type Place = Node
 
 type Transition = Node
   ( "type" :: String -- ^ TODO should be an ADT: "EXP", ...?
+  )
+
+type TextBox = Node
+  ( height :: Number
+  , width  :: Number
   )
 
 type PidOrTid = String
