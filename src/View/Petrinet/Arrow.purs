@@ -13,7 +13,6 @@ import View.Petrinet.Config
 
 -- | This refers to an `arrowheadMarkerId`, for which a marker must be defined in the `<defs>`.
 -- | Such a marker is defined provided here as `svgArrowheadMarker`.
-
 svgArrow :: forall p i. Vec2D -> Vec2D -> Boolean -> HTML p i
 svgArrow src dest isPost =
   case isPost of
