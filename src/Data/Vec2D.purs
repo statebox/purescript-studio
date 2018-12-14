@@ -9,6 +9,9 @@ type Vec2D = { x :: Number, y :: Number }
 
 newtype Vec2 a = Vec2 { x :: a, y :: a }
 
+scalarMulVec2D :: Number -> Vec2D -> Vec2D
+scalarMulVec2D a {x, y} = { x: a*x, y: a*y }
+
 addVec :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a
 addVec (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 + x2, y: y1 + y2 }
 

@@ -15,12 +15,19 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D)
+import Data.Vec2D (Vec2D, scalarMulVec2D)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
 import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
 import View.Petrinet.Model as Model
+
+--------------------------------------------------------------------------------
+
+-- | TODO Remove this. It is a temporary fix to make most nets from GSPN render more nicely.
+scaleGspnHack = scalarMulVec2D 2.0
+
+--------------------------------------------------------------------------------
 
 -- | TODO return some effect type, reify exceptions, etc.
 foreign import fromStringUnsafe :: String -> Document
@@ -161,4 +168,4 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 -- TODO It'd be faster to make the Vec2D row type extensible, so it can include other
 -- fields. Will that work if Vec2D is/becomes a newtype though?
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
-toVec2D v = { x: v.x, y: v.y }
+toVec2D v = scaleGspnHack { x: v.x, y: v.y }
