@@ -32,7 +32,7 @@ import Halogen.HTML.Core as Core
 import Halogen.HTML.Events as HE
 import Svg.Elements as SE
 import Svg.Attributes as SA
-import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
+import Svg.Attributes (Duration, DurationF(..), seconds, FillState(..), FontSize(..), CSSLength(..))
 import Svg.Util as SvgUtil
 
 import Data.Auth
@@ -334,6 +334,14 @@ ui allRoleInfos initialNetInfo =
             , SA.to            (show $ 1.5 * tokenRadius)
             , SA.begin         (animationId <> ".begin")
             , SA.dur           tokenFadeDuration
+            , SA.fillAnim      Freeze
+            , SA.repeatCount   0
+            ]
+        , SE.animate -- hide the token after the animation completes
+            [ SA.attributeName "r"
+            , SA.to            (show 0.0)
+            , SA.begin         (animationId <> ".end")
+            , SA.dur           (seconds 0.0001) -- we want this immediately after the animation ends
             , SA.fillAnim      Freeze
             , SA.repeatCount   0
             ]
