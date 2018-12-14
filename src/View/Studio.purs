@@ -37,7 +37,8 @@ type State =
   }
 
 data Route
-  = Net NetInfo
+  = Home
+  | Net NetInfo
   | Diagram DiagramInfo
 
 routesObjNameEq :: Route -> Route -> Boolean
@@ -75,7 +76,7 @@ ui =
     initialState =
       { msg:        "Welcome to Statebox Studio!"
       , project1:   Ex.project1
-      , route:      Net emptyNetInfo
+      , route:      Home
       }
 
     eval :: Query ~> ParentDSL State Query ChildQuery ChildSlot Void m
@@ -86,6 +87,9 @@ ui =
 
       SelectRoute route next -> do
         case route of
+          Home -> do
+            H.modify_ (\state -> state { route = Home })
+            pure next
           Net netInfo -> do
             H.modify_ (\state -> state { route = Net netInfo })
             x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet netInfo)
@@ -106,6 +110,7 @@ ui =
                     [ if showObjectChooserAsTree
                       then objectChooserTree (routesObjNameEq state.route) state.project1
                       else objectChooserFlat (\netInfo -> case state.route of
+                                                            Home      -> false
                                                             Net     n -> n.name == netInfo.name
                                                             Diagram d -> false
                                              )
@@ -114,6 +119,8 @@ ui =
               , div [ classes [ ClassName "column" ] ]
                     [ routeBreadcrumbs
                     , case state.route of
+                        Home ->
+                          text "Please select an object from the menu, such as a Petri net or a diagram."
                         Net netInfo ->
                           HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui state.project1.allRoleInfos netInfo) unit (HE.input HandlePetrinetEditorMsg)
                         Diagram diagramInfo ->
@@ -128,11 +135,11 @@ ui =
           nav [ classes [ ClassName "breadcrumb has-arrow-separator", ClassName "is-small" ]
               , ARIA.label "breadcrumbs"
               ]
-              [ ul [] (crumb <$> [ state.project1.name
-                                 , case state.route of
-                                     Net     { name } -> name
-                                     Diagram { name } -> name
-                                 ]) ]
+              [ ul [] $ crumb <$> case state.route of
+                                    Home             -> [ "Home" ]
+                                    Net     { name } -> [ state.project1.name, name ]
+                                    Diagram { name } -> [ state.project1.name, name ]
+              ]
           where
             crumb str = li [] [ a [ href "" ] [ text str ] ]
 
