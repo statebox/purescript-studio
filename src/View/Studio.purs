@@ -19,7 +19,7 @@ import Halogen.HTML.Properties.ARIA as ARIA
 import Effect.Aff.Class (class MonadAff)
 
 import View.Model (Project)
-import View.Petrinet.Model (PID, TID, NetInfo, emptyNetInfo, NetObj, QueryF(..), Msg(NetUpdated))
+import View.Petrinet.Model (PID, TID, TBID, NetInfo, emptyNetInfo, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
@@ -44,7 +44,7 @@ data Query a
 
 --------------------------------------------------------------------------------
 
-type ChildQuery = Coproduct2 (PetrinetEditor.QueryF PID TID) DiagramEditor.Query
+type ChildQuery = Coproduct2 (PetrinetEditor.QueryF PID TID TBID) DiagramEditor.Query
 
 type ChildSlot = Either2 Unit Unit
 

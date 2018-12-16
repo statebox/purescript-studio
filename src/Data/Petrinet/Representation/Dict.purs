@@ -30,7 +30,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, un, unwrap)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D)
+import Data.Vec2D (Vec2D, Vec4D)
 import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
 import Data.Group (class Group, ginverse)
 import Data.Bag (BagF(..))
@@ -50,12 +50,15 @@ unMarkingF (BagF dict) = dict
 --------------------------------------------------------------------------------
 
 -- | A representation of a Petri net.
-type NetRepF pid tid tok typ r =
+type NetRepF pid tid tok tbid typ r =
   { places                :: Array pid
   , marking               :: MarkingF pid tok
 
   , placeLabelsDict       :: Map pid String
   , placePointsDict       :: Map pid Vec2D
+
+  , textBoxLabelsDict     :: Map tbid String
+  , textBoxesDict         :: Map tbid Vec4D
 
   , transitionsDict       :: Map tid (TransitionF pid tok)
   , transitionLabelsDict  :: Map tid String
@@ -68,12 +71,14 @@ type NetRepF pid tid tok typ r =
   }
 
 -- | A NetRepF with some associated API operations.
-type NetObjF pid tid tok typ = NetRepF pid tid tok typ
-  ( findTransition        :: tid -> Maybe (TransitionF pid tok)
-  , findPlaceLabel        :: pid -> Maybe String
+type NetObjF pid tid tok tbid typ = NetRepF pid tid tok tbid typ
+  ( findTransition        :: tid  -> Maybe (TransitionF pid tok)
+  , findPlaceLabel        :: pid  -> Maybe String
+  , findTextBoxLabel      :: tbid -> Maybe String
 
-  , findPlacePoint        :: pid -> Maybe Vec2D
-  , findTransitionPoint   :: tid -> Maybe Vec2D
+  , findPlacePoint        :: pid  -> Maybe Vec2D
+  , findTransitionPoint   :: tid  -> Maybe Vec2D
+  , findTextBox           :: tbid -> Maybe Vec4D
   )
 
 -- TODO was the idea to converge on this one in favour of NetObjF?
@@ -83,7 +88,7 @@ type NetApiF pid tid tok =
 
 --------------------------------------------------------------------------------
 
-mkNetObjF :: forall pid tid tok typ. Ord pid => Ord tid => NetRepF pid tid tok typ () -> NetObjF pid tid tok typ
+mkNetObjF :: forall pid tid tok tbid typ. Ord pid => Ord tid => Ord tbid => NetRepF pid tid tok tbid typ () -> NetObjF pid tid tok tbid typ
 mkNetObjF x =
   { places               : x.places
   , transitionsDict      : x.transitionsDict
@@ -91,6 +96,9 @@ mkNetObjF x =
 
   , placeLabelsDict      : x.placeLabelsDict
   , placePointsDict      : x.placePointsDict
+
+  , textBoxLabelsDict    : x.textBoxLabelsDict
+  , textBoxesDict        : x.textBoxesDict
 
   , transitionLabelsDict : x.transitionLabelsDict
   , transitionTypesDict  : x.transitionTypesDict
@@ -100,10 +108,12 @@ mkNetObjF x =
   -- API, sort of
   , findTransition       : flip Map.lookup x.transitionsDict
   , findPlaceLabel       : flip Map.lookup x.placeLabelsDict
+  , findTextBoxLabel     : flip Map.lookup x.textBoxLabelsDict
 
   -- rendering related
   , findPlacePoint       : flip Map.lookup x.placePointsDict
   , findTransitionPoint  : flip Map.lookup x.transitionPointsDict
+  , findTextBox          : flip Map.lookup x.textBoxesDict
   }
 
 --------------------------------------------------------------------------------
@@ -135,13 +145,13 @@ trMarking pms = mkMarkingF $ Map.fromFoldable $ fromPlaceMarking <$> pms
 --------------------------------------------------------------------------------
 
 fire
-  :: ∀ p t tok typ
+  :: ∀ p t tok tbid typ
    . Ord p
   => Semiring tok
   => Group (MarkingF p tok)
-  => NetObjF p t tok typ
+  => NetObjF p t tok tbid typ
   -> TransitionF p tok
-  -> NetObjF p t tok typ
+  -> NetObjF p t tok tbid typ
 fire net t = net { marking = fireAtMarking net.marking t }
 
 fireAtMarking
@@ -158,10 +168,10 @@ fireAtMarking marking t =
 --------------------------------------------------------------------------------
 
 findTokens
-  :: ∀ p t tok typ
+  :: ∀ p t tok tbid typ
    . Ord p
   => Monoid (Additive tok)
-  => NetObjF p t tok typ
+  => NetObjF p t tok tbid typ
   -> p
   -> tok
 findTokens net = findTokens' net.marking

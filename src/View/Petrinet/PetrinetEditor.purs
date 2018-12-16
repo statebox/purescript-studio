@@ -47,9 +47,9 @@ import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetIn
 import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
 
-type StateF pid tid =
+type StateF pid tid tbid =
   { msg                     :: String
-  , netInfo                 :: NetInfoF pid tid ()
+  , netInfo                 :: NetInfoF pid tid tbid ()
   , focusedPlace            :: Maybe pid
   , focusedTransition       :: Maybe tid
   , arcLabelsVisible        :: Boolean
@@ -92,14 +92,14 @@ type ArcModel tid = ArcModelF tid String Vec2D
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => Array RoleInfo -> NetInfoF pid tid () -> H.Component HTML (QueryF pid tid) Unit Msg m
+ui :: ∀ pid tid tbid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => Array RoleInfo -> NetInfoF pid tid tbid () -> H.Component HTML (QueryF pid tid tbid) Unit Msg m
 ui allRoleInfos initialNetInfo =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
     -- TODO should come from component state
     htmlIdPrefixMaybe = Just "todo_net_prefix"
 
-    initialState :: StateF pid tid
+    initialState :: StateF pid tid tbid
     initialState =
       { netInfo:                 initialNetInfo
       , msg:                     "Please select a net."
@@ -110,7 +110,7 @@ ui allRoleInfos initialNetInfo =
       , arcLabelsVisible:        false
       }
 
-    render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
+    render :: StateF pid tid tbid -> HTML Void (QueryF pid tid tbid Unit)
     render state =
       div [ HP.id_ componentHtmlId
           , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
@@ -151,7 +151,7 @@ ui allRoleInfos initialNetInfo =
         placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible)      "css-hide-place-labels"
         transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
 
-    eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
+    eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid tbid ~> ComponentDSL (StateF pid tid tbid) (QueryF pid tid tbid) Msg m
     eval = case _ of
       LoadNet newNetInfo next -> do
         H.modify_ (\state -> state { netInfo = newNetInfo
@@ -206,7 +206,7 @@ ui allRoleInfos initialNetInfo =
         pure next
 
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetObjF pid tid Tokens tbid Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid tbid) Unit))
     netToSVG net focusedPlace focusedTransition =
       svgDefs <> svgTransitions <> svgPlaces
       where
@@ -247,7 +247,7 @@ ui allRoleInfos initialNetInfo =
 
     --------------------------------------------------------------------------------
 
-    svgTransitionAndArcs :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionAndArcs :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid tbid) Unit)
     svgTransitionAndArcs t =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
@@ -259,7 +259,7 @@ ui allRoleInfos initialNetInfo =
              roleClasses :: Array String
              roleClasses = map (\r -> "css-role-" <> show r) <<< Set.toUnfoldable <<< un Roles $ t.auths
 
-    svgTransitionRect :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionRect :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid tbid) Unit)
     svgTransitionRect t =
       SE.rect [ SA.class_  ("css-transition-rect" <> guard t.isFocused " focused")
               , SA.width   transitionWidth
@@ -268,7 +268,7 @@ ui allRoleInfos initialNetInfo =
               , SA.y       (t.point.y - transitionHeight / 2.0)
               ]
 
-    svgTransitionLabel :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgTransitionLabel :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid tbid) Unit)
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
               , SA.x         (t.point.x + 1.5 * placeRadius)
@@ -277,7 +277,7 @@ ui allRoleInfos initialNetInfo =
               ]
               [ HH.text t.label ]
 
-    svgArc :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
+    svgArc :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid tbid) Unit)
     svgArc arc =
       SE.g [ SA.class_ "css-arc-container" ]
            [ SE.path
@@ -299,7 +299,7 @@ ui allRoleInfos initialNetInfo =
 
     -- | A token that moves along the path of the enclosing arc. This should happen
     -- | when the transition to which this arc is connected fires.
-    svgTokenAnimated :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid) Unit)
+    svgTokenAnimated :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid tbid) Unit)
     svgTokenAnimated arc =
       SE.circleNode
         [ SA.class_ "css-token-animated"
@@ -344,7 +344,7 @@ ui allRoleInfos initialNetInfo =
 
     --------------------------------------------------------------------------------
 
-    svgPlace :: ∀ pid tid a. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid) Unit)
+    svgPlace :: ∀ pid tid a. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid tbid) Unit)
     svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
       SE.g [ SA.id (mkPlaceIdStr id)
            , HE.onClick (HE.input_ (FocusPlace id))
@@ -371,7 +371,7 @@ ui allRoleInfos initialNetInfo =
                      [ HH.text $ if tokens == 0 || tokens == 1 then "" else show tokens ]
            ]
       where
-        svgTokens :: Tokens -> Vec2D -> HTML a ((QueryF pid tid) Unit)
+        svgTokens :: Tokens -> Vec2D -> HTML a ((QueryF pid tid tbid) Unit)
         svgTokens tokens point = if Additive tokens == mempty then HH.text "" else
           SE.circle
             [ SA.r      tokenRadius
@@ -420,7 +420,7 @@ ui allRoleInfos initialNetInfo =
 
 --------------------------------------------------------------------------------
 
-htmlMarking :: ∀ a n pid tid. Show a => Show n => BagF a n -> HTML Void (QueryF pid tid Unit)
+htmlMarking :: ∀ a n pid tid tbid. Show a => Show n => BagF a n -> HTML Void (QueryF pid tid tbid Unit)
 htmlMarking bag =
   HH.table [ classes [ ClassName "table", ClassName "is-striped", ClassName "is-narrow", ClassName "is-hoverable" ] ]
            [ HH.thead []
@@ -438,7 +438,7 @@ htmlMarking bag =
 
 --------------------------------------------------------------------------------
 
-labelVisibilityButtons :: ∀ pid tid. HTML Void (QueryF tid pid Unit)
+labelVisibilityButtons :: ∀ pid tid tbid. HTML Void (QueryF tid pid tbid Unit)
 labelVisibilityButtons =
   div [ classes [ ClassName "field has-addons" ] ]
       [ HH.p [ classes [ ClassName "control" ] ]

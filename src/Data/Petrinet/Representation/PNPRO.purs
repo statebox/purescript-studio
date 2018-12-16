@@ -15,11 +15,11 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D)
+import Data.Vec2D (Vec2D, Vec4D)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
-import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
+import View.Petrinet.Model (PID, TID, TBID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
 import View.Petrinet.Model as Model
 
 --------------------------------------------------------------------------------
@@ -100,22 +100,31 @@ toNetRep gspn =
     marking
     placeLabels
     placePoints
+    textBoxLabels
+    textBoxes'
     transitionLabels
     (const (Typedef "Unit") <$> transitions)
     (toVec2D <$> transitions)
     transitionAuthsDict
   where
     firstPlaceIndex      = 1
+    firstTextBoxIndex    = 1
     numPlaces            = length places
+    numTextBoxes         = length textBoxes
     pids                 = firstPlaceIndex .. numPlaces
+    tbids                = firstTextBoxIndex .. numTextBoxes
     places               = gspn.nodes.place
     firstTransitionIndex = firstPlaceIndex + numPlaces
     numTransitions       = length transitions
     tids                 = firstTransitionIndex .. (firstTransitionIndex + numTransitions -1)
     transitions          = gspn.nodes.transition
+    textBoxes            = gspn.nodes.textBox
 
     placesIndexed :: Array (PID /\ Place)
     placesIndexed = zipWithIndexFrom firstPlaceIndex places
+
+    textBoxesIndexed :: Array (TBID /\ TextBox)
+    textBoxesIndexed = zipWithIndexFrom firstTextBoxIndex textBoxes
 
     marking :: BagF PID Tokens
     marking = Bag.fromFoldable $ (map _.marking) <$> filter (\(_ /\ p) -> p.marking > 0) placesIndexed
@@ -123,8 +132,14 @@ toNetRep gspn =
     placeLabels :: Array (PID /\ PidOrTid)
     placeLabels = map _.name <$> placesIndexed
 
+    textBoxLabels :: Array (TBID /\ PidOrTid)
+    textBoxLabels = map _.name <$> textBoxesIndexed
+
     placePoints :: Array (PID /\ Vec2D)
     placePoints = map toVec2D <$> placesIndexed
+
+    textBoxes' :: Array (TBID /\ Vec4D)
+    textBoxes' = map toVec4D <$> textBoxesIndexed
 
     -- TODO StrMap?
     pidIndex :: Map PidOrTid Int
@@ -176,3 +191,6 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 -- fields. Will that work if Vec2D is/becomes a newtype though?
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
 toVec2D v = { x: v.x, y: v.y }
+
+toVec4D :: forall r. { x :: Number, y :: Number, width :: Number, height :: Number | r } -> Vec4D
+toVec4D v = { x: v.x, y: v.y, width: v.width, height: v.height }

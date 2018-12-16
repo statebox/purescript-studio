@@ -21,12 +21,12 @@ import Data.Newtype (un, over)
 import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ring
-import Data.Vec2D (Vec2D)
+import Data.Vec2D (Vec2D, Vec4D)
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
+import View.Petrinet.Model (PID, TID, TBID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
 import View.Diagram.Model (DiagramInfo)
 
 project1 =
@@ -60,6 +60,15 @@ placeLabels1 =
   , 5 /\ "queue"
   ]
 
+textBoxLabels1 :: Array (TBID /\ String)
+textBoxLabels1 =
+  [ 1 /\ "green_1"
+  , 2 /\ "red_1"
+  , 3 /\ "green_2"
+  , 4 /\ "red_2"
+  , 5 /\ "queue"
+  ]
+
 marking1 :: Marking
 marking1 = Bag.fromFoldable
   [ 1 /\ 1
@@ -73,6 +82,15 @@ placePoints1 =
   , 3 /\ { x: 90.0, y: 30.0 }
   , 4 /\ { x: 70.0, y: 30.0 }
   , 5 /\ { x: 50.0, y: 30.0 }
+  ]
+
+textBoxes1 :: Array (TBID /\ Vec4D)
+textBoxes1 =
+  [ 1 /\ { x: 10.0, y: 30.0, height: 200.0, width: 200.0 }
+  , 2 /\ { x: 30.0, y: 30.0, height: 200.0, width: 200.0 }
+  , 3 /\ { x: 90.0, y: 30.0, height: 200.0, width: 200.0 }
+  , 4 /\ { x: 70.0, y: 30.0, height: 200.0, width: 200.0 }
+  , 5 /\ { x: 50.0, y: 30.0, height: 200.0, width: 200.0 }
   ]
 
 transitions1 :: Array Transition
@@ -133,7 +151,7 @@ transitionRoles1 = rolesFromFoldable <$>
   ]
 
 net1Data :: NetRep
-net1Data = mkNetRep places1 transitions1 marking1 placeLabels1 placePoints1 transitionLabels1 transitionTypes1 transitionPoints1 transitionRoles1
+net1Data = mkNetRep places1 transitions1 marking1 placeLabels1 placePoints1 textBoxLabels1 textBoxes1 transitionLabels1 transitionTypes1 transitionPoints1 transitionRoles1
 
 net1 :: NetObj
 net1 = mkNetObjF net1Data
@@ -234,7 +252,7 @@ transitionRoles2 = rolesFromFoldable <$>
   ]
 
 net2Data :: NetRep
-net2Data = mkNetRep places2 transitions2 marking2 placeLabels2 placePoints2 transitionLabels2 transitionTypes2 transitionPoints2 transitionRoles2
+net2Data = mkNetRep places2 transitions2 marking2 placeLabels2 placePoints2 textBoxLabels1 textBoxes1 transitionLabels2 transitionTypes2 transitionPoints2 transitionRoles2
 
 net2 :: NetObj
 net2 = mkNetObjF net2Data

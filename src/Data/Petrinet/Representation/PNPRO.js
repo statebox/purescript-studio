@@ -110,10 +110,11 @@ function mutateGSPNJson1 (rawGspn) {
 
     // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
     if (!Array.isArray(gspn.nodes["text-box"])) {
-      gspn.nodes["text-box"] = [gspn.nodes["text-box"]];
+      gspn.nodes.textBox = [gspn.nodes["text-box"]];
     }
 
-    gspn.nodes["text-box"].forEach(function (textBox) {
+    gspn.nodes.textBox = gspn.nodes["text-box"]
+    gspn.nodes.textBox.forEach(function (textBox) {
       textBox.name        = textBox.name
       textBox.x           = parseFloat(textBox.x)
       textBox.y           = parseFloat(textBox.y)
