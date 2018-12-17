@@ -55,6 +55,7 @@ project1Typedefs :: Array (String /\ Typedef2)
 project1Typedefs =
   [ "ItemId"       /\ TRef "Int"
   , "Person"       /\ TProd [TRef "String", TRef "Date"]
+  , "Foo"          /\ TProd [TRef "String", TSum  [TUnit, TUnit, TProd [TRef "Int", TRef "Int", TRef "Int"]]]
   , "TrafficLight" /\ TSum  [TUnit, TUnit, TUnit]
   , "Date"         /\ TProd [TRef "Int", TRef "Int", TRef "Int"]
   , "Int"          /\ TSum (TRef <$> ["Bit", "Bit", "Bit", "Bit", "Bit", "Bit", "Bit", "Bit" ])
