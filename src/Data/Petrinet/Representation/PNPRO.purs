@@ -19,7 +19,7 @@ import Data.Vec2D (Vec2D, Vec4D)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
-import View.Petrinet.Model (PID, TID, TBID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
+import View.Petrinet.Model (PID, TID, TextBoxId, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
 import View.Petrinet.Model as Model
 
 --------------------------------------------------------------------------------
@@ -123,7 +123,7 @@ toNetRep gspn =
     placesIndexed :: Array (PID /\ Place)
     placesIndexed = zipWithIndexFrom firstPlaceIndex places
 
-    textBoxesIndexed :: Array (TBID /\ TextBox)
+    textBoxesIndexed :: Array (TextBoxId /\ TextBox)
     textBoxesIndexed = zipWithIndexFrom firstTextBoxIndex textBoxes
 
     marking :: BagF PID Tokens
@@ -132,13 +132,13 @@ toNetRep gspn =
     placeLabels :: Array (PID /\ PidOrTid)
     placeLabels = map _.name <$> placesIndexed
 
-    textBoxLabels :: Array (TBID /\ PidOrTid)
+    textBoxLabels :: Array (TextBoxId /\ PidOrTid)
     textBoxLabels = map _.name <$> textBoxesIndexed
 
     placePoints :: Array (PID /\ Vec2D)
     placePoints = map toVec2D <$> placesIndexed
 
-    textBoxes' :: Array (TBID /\ Vec4D)
+    textBoxes' :: Array (TextBoxId /\ Vec4D)
     textBoxes' = map toVec4D <$> textBoxesIndexed
 
     -- TODO StrMap?

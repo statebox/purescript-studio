@@ -26,7 +26,7 @@ import Data.Vec2D (Vec2D, Vec4D)
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import View.Petrinet.Model (PID, TID, TBID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
+import View.Petrinet.Model (PID, TID, TextBoxId, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
 import View.Diagram.Model (DiagramInfo)
 
 project1 =
@@ -60,7 +60,7 @@ placeLabels1 =
   , 5 /\ "queue"
   ]
 
-textBoxLabels1 :: Array (TBID /\ String)
+textBoxLabels1 :: Array (TextBoxId /\ String)
 textBoxLabels1 =
   [ 1 /\ "green_1"
   , 2 /\ "red_1"
@@ -84,7 +84,7 @@ placePoints1 =
   , 5 /\ { x: 50.0, y: 30.0 }
   ]
 
-textBoxes1 :: Array (TBID /\ Vec4D)
+textBoxes1 :: Array (TextBoxId /\ Vec4D)
 textBoxes1 =
   [ 1 /\ { x: 10.0, y: 30.0, height: 200.0, width: 200.0 }
   , 2 /\ { x: 30.0, y: 30.0, height: 200.0, width: 200.0 }
