@@ -1,0 +1,99 @@
+.css-typedef-list .css-typedef-name,
+.css-typedef-list .css-leaf-type {
+  font-family: monospace;
+}
+
+.css-leaf-type:hover {
+  background: pink;
+}
+
+div.col0 {
+/*   position:absolute; */
+}
+
+div.col1 {
+  position:relative;
+  background: #ddd;
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+div.col1.css-sum {
+  background: pink;
+}
+div.col1.css-product {
+  background: lightblue;
+}
+div.col1.css-mu {
+  background: lightgreen;
+}
+
+div.row1 {
+/*   border: 1px solid #ddd; */
+  /* position: absolute; */
+}
+
+div.row1 .top1,
+div.row1 .bot1 {
+  position: absolute;
+  /* background: #ddd; */
+  color:#666;
+}
+div.row1 .top1 {
+  top:0;
+}
+div.row1 .bot1 {
+  bottom: 0;
+}
+
+.row1 .mid1 {
+/*   top:50%; */
+  /* border-width: 0 0 0 1px; */
+/*   border-width: 10px; */
+  /* border-color: lightblue; */
+  /* border-style:solid; */
+  /* background:red; */
+  height: 100%;
+/*   border:2px solid red; */
+}
+
+
+div.cols1 {
+  display:table-row;
+}
+.cols1 .col {
+  display: table-cell;
+}
+div.col0 {
+  position:relative;
+  width:1em;
+  vertical-align:baseline;
+  vertical-align:middle;
+}
+div.col1 {
+  width:1em;
+}
+.operator-symbol-container {
+/*    position:absolute; */
+   margin-top:-50%;
+  color: #555;
+/*    top:50%; */
+/*    vertical-align:middle; */
+/*   margin-top:50%; */
+/*   text-align:center; */
+/*   margin-top:50%; */
+/*   height:100%; */
+}
+
+
+.css-typedef-equals {
+  color: #aaa;
+  padding: 0 0.5em;
+}
+
+.css-typedef-list tr td {
+  padding-bottom: 1.25em;
+}
+
+.css-typedef-list tr td .css-leaf-type {
+    margin-left: 0.5em;
+}

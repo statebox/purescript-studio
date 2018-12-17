@@ -25,6 +25,9 @@ import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
+import View.Typedefs.TypedefsEditor as TypedefsEditor
+import Data.Tuple.Nested ((/\))
+
 import ExampleData as Ex
 
 -- TODO let's hang onto the old flat version for a little bit
@@ -40,6 +43,7 @@ data Route
   = Home
   | Net NetInfo
   | Diagram DiagramInfo
+  | Types
 
 routesObjNameEq :: Route -> Route -> Boolean
 routesObjNameEq r1 r2 = case r1, r2 of
@@ -97,6 +101,9 @@ ui =
           r@(Diagram diagramInfo) -> do
             H.modify_ (\state -> state { route = r })
             pure next
+          Types -> do
+            H.modify_ (\state -> state { route = Types })
+            pure next
 
       HandleDiagramEditorMsg unit next -> do
         pure next
@@ -113,6 +120,7 @@ ui =
                                                             Home      -> false
                                                             Net     n -> n.name == netInfo.name
                                                             Diagram d -> false
+                                                            Types     -> false
                                              )
                                              state.project1
                     ]
@@ -125,6 +133,8 @@ ui =
                           HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui state.project1.allRoleInfos netInfo) unit (HE.input HandlePetrinetEditorMsg)
                         Diagram diagramInfo ->
                           HH.slot' diagramEditorSlotPath unit DiagramEditor.ui unit (HE.input HandleDiagramEditorMsg)
+                        Types ->
+                          TypedefsEditor.typedefsTreeView state.project1.types
                     ]
               ]
         ]
@@ -139,6 +149,7 @@ ui =
                                     Home             -> [ "Home" ]
                                     Net     { name } -> [ state.project1.name, name ]
                                     Diagram { name } -> [ state.project1.name, name ]
+                                    Types            -> [ "Types" ]
               ]
           where
             crumb str = li [] [ a [ href "" ] [ text str ] ]
@@ -173,7 +184,9 @@ ui =
                 , p  [ classes [ ClassName "menu-label" ] ] [ text "Wiring Diagrams" ]
                 , ul [ classes [ ClassName "menu-list" ] ]
                      (diagramItem isSelected <$> Ex.diagrams)
-                , p  [ classes [ ClassName "menu-label" ] ] [ text "Types" ]
+                , p  [ classes [ ClassName "menu-label" ]
+                     , onClick (HE.input_ (SelectRoute Types))
+                     ] [ text "Types" ]
                 , p  [ classes [ ClassName "menu-label" ] ] [ text "Roles" ]
                 , ul [ classes [ ClassName "menu-list" ] ]
                      (roleItem <$> state.project1.allRoleInfos)

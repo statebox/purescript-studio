@@ -26,9 +26,12 @@ import Data.Vec2D (Vec2D)
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
+import View.Model (Project)
 import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
 import View.Diagram.Model (DiagramInfo)
+import View.Typedefs.TypedefsEditor (Typedef2(..))
 
+project1 :: Project
 project1 =
   { name: "Example nets"
   , nets: [ { name: "Traffic lights"    , net: net1, netApi: netApi1 }
@@ -37,12 +40,25 @@ project1 =
     <> pnproNetInfos1
   , diagrams: diagrams
   , allRoleInfos: project1Roles
+  , types: project1Typedefs
   }
 
 project1Roles =
   [ { id: Role 0, name: "admin"   , bgColor: CSSColor "orange", textColor: CSSColor "white" }
   , { id: Role 1, name: "producer", bgColor: CSSColor "purple", textColor: CSSColor "white" }
   , { id: Role 2, name: "consumer", bgColor: CSSColor "pink"  , textColor: CSSColor "white" }
+  ]
+
+--------------------------------------------------------------------------------
+
+project1Typedefs :: Array (String /\ Typedef2)
+project1Typedefs =
+  [ "ItemId"       /\ TRef "Int"
+  , "Person"       /\ TProd [TRef "String", TRef "Date"]
+  , "TrafficLight" /\ TSum  [TUnit, TUnit, TUnit]
+  , "Date"         /\ TProd [TRef "Int", TRef "Int", TRef "Int"]
+  , "Int"          /\ TSum (TRef <$> ["Bit", "Bit", "Bit", "Bit", "Bit", "Bit", "Bit", "Bit" ])
+  , "Bit"          /\ TSum [TUnit, TUnit]
   ]
 
 -- traffic lights net ----------------------------------------------------------
