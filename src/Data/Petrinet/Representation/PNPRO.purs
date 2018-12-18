@@ -110,7 +110,6 @@ toNetRep gspn =
     firstPlaceIndex      = 1
     firstTextBoxIndex    = 1
     numPlaces            = length places
-    numTextBoxes         = length textBoxes
     pids                 = firstPlaceIndex .. numPlaces
     places               = gspn.nodes.place
     firstTransitionIndex = firstPlaceIndex + numPlaces
