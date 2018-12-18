@@ -21,12 +21,12 @@ import Data.Newtype (un, over)
 import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ring
-import Data.Vec2D (Vec2D, Vec4D)
+import Data.Vec2D (Vec2D)
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import View.Petrinet.Model (PID, TID, TextBoxId, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
+import View.Petrinet.Model (PID, TID, TextBoxId, TextBox, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
 import View.Diagram.Model (DiagramInfo)
 
 project1 =
@@ -84,13 +84,13 @@ placePoints1 =
   , 5 /\ { x: 50.0, y: 30.0 }
   ]
 
-textBoxes1 :: Array (TextBoxId /\ Vec4D)
+textBoxes1 :: Array (TextBoxId /\ TextBox)
 textBoxes1 =
-  [ 1 /\ { x: 10.0, y: 30.0, height: 200.0, width: 200.0 }
-  , 2 /\ { x: 30.0, y: 30.0, height: 200.0, width: 200.0 }
-  , 3 /\ { x: 90.0, y: 30.0, height: 200.0, width: 200.0 }
-  , 4 /\ { x: 70.0, y: 30.0, height: 200.0, width: 200.0 }
-  , 5 /\ { x: 50.0, y: 30.0, height: 200.0, width: 200.0 }
+  [ 1 /\ { name: "a", x: 10.0, y: 30.0, height: 200.0, width: 200.0 }
+  , 2 /\ { name: "a", x: 30.0, y: 30.0, height: 200.0, width: 200.0 }
+  , 3 /\ { name: "a", x: 90.0, y: 30.0, height: 200.0, width: 200.0 }
+  , 4 /\ { name: "a", x: 70.0, y: 30.0, height: 200.0, width: 200.0 }
+  , 5 /\ { name: "a", x: 50.0, y: 30.0, height: 200.0, width: 200.0 }
   ]
 
 transitions1 :: Array Transition

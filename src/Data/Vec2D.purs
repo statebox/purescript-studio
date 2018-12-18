@@ -7,13 +7,6 @@ import Data.Semiring
 
 type Vec2D = { x :: Number, y :: Number }
 
-type Vec4D =
-  { x :: Number
-  , y :: Number
-  , width :: Number
-  , height :: Number
-  }
-  
 newtype Vec2 a = Vec2 { x :: a, y :: a }
 
 addVec :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a

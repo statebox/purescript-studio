@@ -11,8 +11,8 @@ import Data.Newtype (class Newtype)
 import Data.Tuple.Nested (type (/\), (/\))
 
 import Data.Auth (Role, Roles, RoleInfo)
-import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, findTokens', NetRepF, NetObjF, NetApiF, mkNetObjF)
-import Data.Vec2D (Vec2D, Vec4D)
+import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, TextBoxF, findTokens', NetRepF, NetObjF, NetApiF, mkNetObjF)
+import Data.Vec2D (Vec2D)
 
 data QueryF pid tid a
   = LoadNet (NetInfoF pid tid ()) a
@@ -48,7 +48,7 @@ data Msg = NetUpdated
 
 type NetInfoFRow pid tid r =
   ( name   :: String
-  , net    :: NetObjF pid tid Tokens TextBoxId Typedef
+  , net    :: NetObjF pid tid Tokens Typedef
   , netApi :: NetApiF pid tid Tokens
   | r
   )
@@ -65,10 +65,11 @@ type TextBoxId    = Int
 type Transition   = TransitionF   PID Tokens
 type Marking      = MarkingF      PID Tokens
 type PlaceMarking = PlaceMarkingF PID Tokens
+type TextBox      = TextBoxF      Number
 
-type NetRep = NetRepF PID TID Tokens TextBoxId Typedef ()
+type NetRep = NetRepF PID TID Tokens Typedef ()
 
-type NetObj = NetObjF PID TID Tokens TextBoxId Typedef
+type NetObj = NetObjF PID TID Tokens Typedef
 
 type NetApi = NetApiF PID TID Tokens
 
@@ -99,7 +100,7 @@ mkNetRep
   -> Array (PID /\ String)
   -> Array (PID /\ Vec2D)
   -> Array (TextBoxId /\ String)
-  -> Array (TextBoxId /\ Vec4D)
+  -> Array (TextBoxId /\ TextBox)
   -> Array String
   -> Array Typedef
   -> Array Vec2D

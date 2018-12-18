@@ -15,7 +15,7 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D, Vec4D)
+import Data.Vec2D (Vec2D)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
@@ -112,7 +112,6 @@ toNetRep gspn =
     numPlaces            = length places
     numTextBoxes         = length textBoxes
     pids                 = firstPlaceIndex .. numPlaces
-    tbids                = firstTextBoxIndex .. numTextBoxes
     places               = gspn.nodes.place
     firstTransitionIndex = firstPlaceIndex + numPlaces
     numTransitions       = length transitions
@@ -138,8 +137,8 @@ toNetRep gspn =
     placePoints :: Array (PID /\ Vec2D)
     placePoints = map toVec2D <$> placesIndexed
 
-    textBoxes' :: Array (TextBoxId /\ Vec4D)
-    textBoxes' = map toVec4D <$> textBoxesIndexed
+    textBoxes' :: Array (TextBoxId /\ TextBox)
+    textBoxes' = map toTextBox <$> textBoxesIndexed
 
     -- TODO StrMap?
     pidIndex :: Map PidOrTid Int
@@ -192,5 +191,5 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
 toVec2D v = { x: v.x, y: v.y }
 
-toVec4D :: forall r. { x :: Number, y :: Number, width :: Number, height :: Number | r } -> Vec4D
-toVec4D v = { x: v.x, y: v.y, width: v.width, height: v.height }
+toTextBox :: forall r. { name :: String, x :: Number, y :: Number, width :: Number, height :: Number | r } -> TextBox
+toTextBox v = { name: v.name, x: v.x, y: v.y, width: v.width, height: v.height }
