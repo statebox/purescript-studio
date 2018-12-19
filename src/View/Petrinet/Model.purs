@@ -12,10 +12,11 @@ import Data.Tuple.Nested (type (/\), (/\))
 
 import Data.Auth (Role, Roles, RoleInfo)
 import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, findTokens', NetRepF, NetObjF, NetApiF, mkNetObjF)
+import Data.Typedef.Typedef2 (Typedef2, TypeName)
 import Data.Vec2D (Vec2D)
 
 data QueryF pid tid a
-  = LoadNet (NetInfoF pid tid ()) a
+  = LoadNet (NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 ()) a
   | FireTransition tid a
   | FocusTransition tid a
   | FocusPlace pid a
@@ -34,9 +35,11 @@ data TransitionQueryF tid a
 
 data NetElemKind = Arc | Place | Transition
 
+--------------------------------------------------------------------------------
+
 newtype Typedef = Typedef String
 
-derive instance newtypeTypedef :: Newtype (Typedef)  _
+derive instance newtypeTypedef :: Newtype Typedef _
 
 --------------------------------------------------------------------------------
 
@@ -46,14 +49,22 @@ data Msg = NetUpdated
 
 --------------------------------------------------------------------------------
 
-type NetInfoFRow pid tid r =
+type NetInfoFRow pid tid ty r =
   ( name   :: String
-  , net    :: NetObjF pid tid Tokens Typedef
+  , net    :: NetObjF pid tid Tokens ty
   , netApi :: NetApiF pid tid Tokens
   | r
   )
 
-type NetInfoF pid tid r = Record (NetInfoFRow pid tid r)
+type NetInfoF pid tid ty r = Record (NetInfoFRow pid tid ty r)
+
+type NetInfoWithTypesAndRolesFRow pid tid ty ty2 r = NetInfoFRow pid tid ty
+  ( types     :: Array (TypeName /\ ty2)
+  , roleInfos :: Array RoleInfo
+  | r
+  )
+
+type NetInfoWithTypesAndRolesF pid tid ty ty2 r = Record (NetInfoWithTypesAndRolesFRow pid tid ty ty2 r)
 
 -- types specialised to Int index ----------------------------------------------
 
@@ -71,7 +82,9 @@ type NetObj = NetObjF PID TID Tokens Typedef
 
 type NetApi = NetApiF PID TID Tokens
 
-type NetInfo = Record (NetInfoFRow PID TID ())
+type NetInfo = Record (NetInfoFRow PID TID Typedef ())
+
+type NetInfoWithTypesAndRoles = Record (NetInfoWithTypesAndRolesFRow PID TID Typedef Typedef2 ())
 
 -- empty net -------------------------------------------------------------------
 

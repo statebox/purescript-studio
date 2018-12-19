@@ -5,23 +5,11 @@ import Prelude
 import Data.Foldable (foldMap)
 import Data.Tuple (uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Typedef.Typedef2
 import Halogen.HTML (HTML, text, div, pre, table, tr, td)
 import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Core (ClassName(..))
 import View.Petrinet.Model (Typedef(..))
-
--- | A dummy typedef-like type with at least some structure so we can show off
--- | some features of the editor component
-data Typedef2
-  = TSum (Array Typedef2)
-  | TProd (Array Typedef2)
-  | TUnit
-  | TRef String
-
-data OperatorKind = Plus | Times | Mu
-
-type TypeName = String
---------------------------------------------------------------------------------
 
 typedefsTreeView :: ∀ a b. Array (TypeName /\ Typedef2) -> HTML a b
 typedefsTreeView tdefs =

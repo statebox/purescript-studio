@@ -1,5 +1,7 @@
 module ExampleData
-  ( project1
+  ( projects
+  , project1
+  , project2
   , net1
   , netApi1
   , net2
@@ -26,20 +28,22 @@ import Data.Vec2D (Vec2D)
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
+import Data.Typedef.Typedef2 (Typedef2(..))
 import View.Model (Project)
 import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
 import View.Diagram.Model (DiagramInfo)
-import View.Typedefs.TypedefsEditor (Typedef2(..))
+
+projects :: Array Project
+projects = [project1, project2]
 
 project1 :: Project
 project1 =
-  { name: "Example nets"
+  { name: "Statebox Examples"
   , nets: [ { name: "Traffic lights"    , net: net1, netApi: netApi1 }
           , { name: "Producer-consumer" , net: net2, netApi: netApi2 }
           ]
-    <> pnproNetInfos1
   , diagrams: diagrams
-  , allRoleInfos: project1Roles
+  , roleInfos: project1Roles
   , types: project1Typedefs
   }
 
@@ -49,17 +53,40 @@ project1Roles =
   , { id: Role 2, name: "consumer", bgColor: CSSColor "pink"  , textColor: CSSColor "white" }
   ]
 
---------------------------------------------------------------------------------
-
-project1Typedefs :: Array (String /\ Typedef2)
 project1Typedefs =
-  [ "ItemId"       /\ TRef  "Int"
-  , "Person"       /\ TProd [TRef "String", TRef "Date"]
-  , "Foo"          /\ TProd [TRef "String", TSum  [TUnit, TUnit, TProd [TRef "Int", TRef "Int", TRef "Int"]]]
+  [ "Message"      /\ TProd [person, person, TRef "Date", TRef "String"]
   , "TrafficLight" /\ TSum  [TUnit, TUnit, TUnit]
   , "Date"         /\ TProd [TRef "Int", TRef "Int", TRef "Int"]
   , "Int"          /\ TSum  (TRef <$> ["Bit", "Bit", "Bit", "Bit", "Bit", "Bit", "Bit", "Bit" ])
   , "Bit"          /\ TSum  [TUnit, TUnit]
+  ]
+  where
+    person = TProd [TRef "String", TRef "Date"]
+
+--------------------------------------------------------------------------------
+
+project2 :: Project
+project2 =
+  { name: "Erik's examples"
+  , nets: pnproNetInfos1
+  , diagrams: diagrams
+  , roleInfos: project2Roles
+  , types: project2Typedefs
+  }
+
+project2Roles =
+  [ { id: Role 0, name: "admin"   , bgColor: CSSColor "orange", textColor: CSSColor "white" }
+  , { id: Role 1, name: "player 1", bgColor: CSSColor "purple", textColor: CSSColor "white" }
+  , { id: Role 2, name: "player 2", bgColor: CSSColor "pink"  , textColor: CSSColor "white" }
+  ]
+
+project2Typedefs :: Array (String /\ Typedef2)
+project2Typedefs =
+  [ "ItemId"            /\ TRef  "Int"
+  , "RockPaperScissors" /\ TProd [TRef "String", TSum  [TUnit, TUnit, TProd [TRef "Int", TRef "Int", TRef "Int"]]]
+  , "Date"              /\ TProd [TRef "Int", TRef "Int", TRef "Int"]
+  , "Int"               /\ TSum  (TRef <$> ["Bit", "Bit", "Bit", "Bit", "Bit", "Bit", "Bit", "Bit" ])
+  , "Bit"               /\ TSum  [TUnit, TUnit]
   ]
 
 -- traffic lights net ----------------------------------------------------------
