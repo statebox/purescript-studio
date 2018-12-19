@@ -7,6 +7,7 @@ import Data.Newtype (un)
 import Data.Bag (BagF)
 import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
 import Data.HeytingAlgebra (not)
+import Data.Int (toNumber, floor, round)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -37,19 +38,21 @@ import Svg.Util as SvgUtil
 
 import Data.Auth
 import Data.Petrinet.Representation.Dict
+import Data.Typedef.Typedef2 (Typedef2)
 import ExampleData as Ex
 import ExampleData as Net
 import View.Common (HtmlId, emptyHtml)
 import View.Petrinet.Arrow
 import View.Petrinet.Arrow as Arrow
-import View.Petrinet.Config
-import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..), NetElemKind(..))
+import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration)
+import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceQueryF(..), QueryF(..), Tokens, TransitionQueryF(..), Typedef(..))
 import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
 
+
 type StateF pid tid =
-  { msg                     :: String
-  , netInfo                 :: NetInfoF pid tid ()
+  { netInfo                 :: NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 ()
+  , msg                     :: String
   , focusedPlace            :: Maybe pid
   , focusedTransition       :: Maybe tid
   , arcLabelsVisible        :: Boolean
@@ -92,8 +95,8 @@ type ArcModel tid = ArcModelF tid String Vec2D
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => Array RoleInfo -> NetInfoF pid tid () -> H.Component HTML (QueryF pid tid) Unit Msg m
-ui allRoleInfos initialNetInfo =
+ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 () -> H.Component HTML (QueryF pid tid) Unit Msg m
+ui initialNetInfo =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
     -- TODO should come from component state
@@ -128,7 +131,7 @@ ui allRoleInfos initialNetInfo =
                           pid <- state.focusedPlace
                           label <- Map.lookup pid state.netInfo.net.placeLabelsDict
                           pure { pid: pid, label: label, typedef: Typedef "Unit", isWriteable: false }
-                      , maybe emptyHtml (map UpdateTransition <<< TransitionEditor.form' allRoleInfos) do
+                      , maybe emptyHtml (map UpdateTransition <<< TransitionEditor.form' state.netInfo.roleInfos) do
                           tid   <- state.focusedTransition
                           label <- Map.lookup tid state.netInfo.net.transitionLabelsDict
                           typ   <- Map.lookup tid state.netInfo.net.transitionTypesDict

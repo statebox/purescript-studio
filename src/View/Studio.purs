@@ -3,60 +3,50 @@ module Studio where
 import Prelude hiding (div)
 import Data.Array (catMaybes)
 import Data.Either.Nested (Either2)
+import Data.Foldable (find, foldMap)
 import Data.Functor.Coproduct.Nested (Coproduct2)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
+import Data.Traversable (traverse)
+import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ParentDSL, ParentHTML)
 import Halogen.Component.ChildPath as ChildPath
 import Halogen.HTML as HH
-import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, li, aside)
+import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, li, aside, span, i)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, src, href)
 import Halogen.HTML.Properties.ARIA as ARIA
-import Effect.Aff.Class (class MonadAff)
 
-import View.Model (Project)
-import View.Petrinet.Model (PID, TID, NetInfo, emptyNetInfo, NetObj, QueryF(..), Msg(NetUpdated))
+import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
+import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, emptyNetInfo, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
+import View.Studio.Route (RouteF(..), routesObjNameEq)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 import Data.Tuple.Nested ((/\))
 
 import ExampleData as Ex
 
--- TODO let's hang onto the old flat version for a little bit
-showObjectChooserAsTree = true
-
 type State =
-  { route      :: Route -- TODO Encode 'nothing selected' and 'project' cases. #59
-  , project1   :: Project
+  { route      :: Route
+  , projects   :: Array Project
   , msg        :: String
   }
 
-data Route
-  = Home
-  | Net NetInfo
-  | Diagram DiagramInfo
-  | Types
+type Route = RouteF ProjectName
 
-routesObjNameEq :: Route -> Route -> Boolean
-routesObjNameEq r1 r2 = case r1, r2 of
-  Net     n, Net n'     -> n.name == n'.name
-  Diagram d, Diagram d' -> d.name == d'.name
-  _        , _          -> false
+--------------------------------------------------------------------------------
 
 data Query a
   = SelectRoute Route a
   | HandlePetrinetEditorMsg Msg a
   | HandleDiagramEditorMsg Unit a
-
---------------------------------------------------------------------------------
 
 type ChildQuery = Coproduct2 (PetrinetEditor.QueryF PID TID) DiagramEditor.Query
 
@@ -79,7 +69,7 @@ ui =
     initialState :: State
     initialState =
       { msg:        "Welcome to Statebox Studio!"
-      , project1:   Ex.project1
+      , projects:   Ex.projects
       , route:      Home
       }
 
@@ -94,15 +84,17 @@ ui =
           Home -> do
             H.modify_ (\state -> state { route = Home })
             pure next
-          Net netInfo -> do
-            H.modify_ (\state -> state { route = Net netInfo })
-            x <- H.query' petrinetEditorSlotPath unit $ H.action (LoadNet netInfo)
+          Net projectName netInfo -> do
+            state <- H.get
+            H.put $ state { route = Net projectName netInfo }
+            let netInfoWithTypesAndRolesMaybe = mkNetInfoWithTypesAndRoles netInfo <$> findProject state.projects projectName
+            _ <- (H.query' petrinetEditorSlotPath unit <<< H.action <<< LoadNet) `traverse` netInfoWithTypesAndRolesMaybe
             pure next
-          r@(Diagram diagramInfo) -> do
+          r@(Diagram projectName diagramInfo) -> do
             H.modify_ (\state -> state { route = r })
             pure next
-          Types -> do
-            H.modify_ (\state -> state { route = Types })
+          Types projectName -> do
+            H.modify_ (\state -> state { route = Types projectName })
             pure next
 
       HandleDiagramEditorMsg unit next -> do
@@ -114,42 +106,35 @@ ui =
         [ navBar
         , div [ classes [ ClassName "columns" ] ]
               [ div [ classes [ ClassName "column", ClassName "is-2" ] ]
-                    [ if showObjectChooserAsTree
-                      then objectChooserTree (routesObjNameEq state.route) state.project1
-                      else objectChooserFlat (\netInfo -> case state.route of
-                                                            Home      -> false
-                                                            Net     n -> n.name == netInfo.name
-                                                            Diagram d -> false
-                                                            Types     -> false
-                                             )
-                                             state.project1
-                    ]
+                    [ objectChooserTree (routesObjNameEq state.route) state.projects ]
               , div [ classes [ ClassName "column" ] ]
                     [ routeBreadcrumbs
-                    , case state.route of
-                        Home ->
-                          text "Please select an object from the menu, such as a Petri net or a diagram."
-                        Net netInfo ->
-                          HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui state.project1.allRoleInfos netInfo) unit (HE.input HandlePetrinetEditorMsg)
-                        Diagram diagramInfo ->
-                          HH.slot' diagramEditorSlotPath unit DiagramEditor.ui unit (HE.input HandleDiagramEditorMsg)
-                        Types ->
-                          TypedefsEditor.typedefsTreeView state.project1.types
+                    , maybe (text "TODO project not found") mainView (f1 state.route)
                     ]
               ]
         ]
-
       where
+        mainView :: RouteF Project -> ParentHTML Query ChildQuery ChildSlot m
+        mainView route = case route of
+          Home ->
+            text "Please select an object from the menu, such as a Petri net or a diagram."
+          Net project netInfo ->
+            HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (mkNetInfoWithTypesAndRoles netInfo project)) unit (HE.input HandlePetrinetEditorMsg)
+          Diagram project diagramInfo ->
+            HH.slot' diagramEditorSlotPath unit DiagramEditor.ui unit (HE.input HandleDiagramEditorMsg)
+          Types project ->
+            TypedefsEditor.typedefsTreeView project.types
+
         routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
         routeBreadcrumbs =
           nav [ classes [ ClassName "breadcrumb has-arrow-separator", ClassName "is-small" ]
               , ARIA.label "breadcrumbs"
               ]
               [ ul [] $ crumb <$> case state.route of
-                                    Home             -> [ "Home" ]
-                                    Net     { name } -> [ state.project1.name, name ]
-                                    Diagram { name } -> [ state.project1.name, name ]
-                                    Types            -> [ "Types" ]
+                                    Home                         -> [ "Home" ]
+                                    Net     projectName { name } -> [ projectName, name ]
+                                    Diagram projectName { name } -> [ projectName, name ]
+                                    Types   projectName          -> [ projectName, "Types" ]
               ]
           where
             crumb str = li [] [ a [ href "" ] [ text str ] ]
@@ -172,73 +157,62 @@ ui =
                     ]
               ]
 
-        -- TODO should take (Array Project)
         -- TODO stick this in a panel?
-        objectChooserTree :: (Route -> Boolean) -> Project -> ParentHTML Query ChildQuery ChildSlot m
-        objectChooserTree isSelected { nets } =
-          aside [ classes [ ClassName "menu", ClassName "css-object-chooser" ] ] $
-                [ p  [ classes [ ClassName "menu-label" ] ] [ text state.project1.name ]
-                , p  [ classes [ ClassName "menu-label" ] ] [ text "Petri nets" ]
-                , ul [ classes [ ClassName "menu-list" ] ]
-                     (netItem isSelected <$> nets)
-                , p  [ classes [ ClassName "menu-label" ] ] [ text "Wiring Diagrams" ]
-                , ul [ classes [ ClassName "menu-list" ] ]
-                     (diagramItem isSelected <$> Ex.diagrams)
-                , p  [ classes [ ClassName "menu-label" ]
-                     , onClick (HE.input_ (SelectRoute Types))
-                     ] [ text "Types" ]
-                , p  [ classes [ ClassName "menu-label" ] ] [ text "Roles" ]
-                , ul [ classes [ ClassName "menu-list" ] ]
-                     (roleItem <$> state.project1.allRoleInfos)
-                ]
+        objectChooserTree :: (Route -> Boolean) -> Array Project -> ParentHTML Query ChildQuery ChildSlot m
+        objectChooserTree isSelected projects =
+          aside [ classes [ ClassName "menu", ClassName "css-object-chooser" ] ]
+                (objectChooserProjectTree isSelected `foldMap` projects)
           where
-            netItem :: (Route -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-            netItem isSelected netInfo =
-              li []
-                 [ a [ classes [ ClassName $ guard (isSelected $ Net netInfo) "is-active" ]
-                     , onClick (HE.input_ (SelectRoute (Net netInfo)))
+            objectChooserProjectTree :: (Route -> Boolean) -> Project -> Array (ParentHTML Query ChildQuery ChildSlot m)
+            objectChooserProjectTree isSelected project =
+              [ p  [ classes [ ClassName "menu-label" ] ] [ text project.name ]
+              , ul [ classes [ ClassName "menu-list" ] ]
+                   [ p  [ classes [ ClassName "menu-label" ]
+                        , onClick (HE.input_ (SelectRoute (Types project.name)))
+                        ] [ text "Types" ]
+                   , p  [ classes [ ClassName "menu-label" ] ] [ text "Petri nets" ]
+                   , ul [ classes [ ClassName "menu-list" ] ]
+                        (netItem isSelected <$> project.nets)
+                   , p  [ classes [ ClassName "menu-label" ] ] [ text "Wiring Diagrams" ]
+                   , ul [ classes [ ClassName "menu-list" ] ]
+                        (diagramItem isSelected <$> project.diagrams)
+                   , p  [ classes [ ClassName "menu-label" ] ] [ text "Roles" ]
+                   , ul [ classes [ ClassName "menu-list" ] ]
+                        (roleItem <$> project.roleInfos)
+                   ]
+              ]
+              where
+                netItem :: (Route -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
+                netItem isSelected netInfo =
+                  li []
+                     [ a [ classes [ ClassName $ guard (isSelected $ Net project.name netInfo) "is-active" ]
+                         , onClick (HE.input_ (SelectRoute (Net project.name netInfo)))
+                         ]
+                         [ text netInfo.name ]
                      ]
-                     [ text netInfo.name ]
-                 ]
 
-            diagramItem :: (Route -> Boolean) -> DiagramInfo -> ParentHTML Query ChildQuery ChildSlot m
-            diagramItem isSelected d =
-              li []
-                 [ a [ classes [ ClassName $ guard (isSelected $ Diagram d) "is-active" ]
-                     , onClick (HE.input_ (SelectRoute (Diagram d)))
+                diagramItem :: (Route -> Boolean) -> DiagramInfo -> ParentHTML Query ChildQuery ChildSlot m
+                diagramItem isSelected d =
+                  li []
+                     [ a [ classes [ ClassName $ guard (isSelected $ Diagram project.name d) "is-active" ]
+                         , onClick (HE.input_ (SelectRoute (Diagram project.name d)))
+                         ]
+                         [ text d.name ]
                      ]
-                     [ text d.name ]
-                 ]
 
-            roleItem roleInfo =
-              li []
-                 [ a [ classes []
+                roleItem roleInfo =
+                  li []
+                     [ a [ classes []
+                         ]
+                         [ text roleInfo.name ]
                      ]
-                     [ text roleInfo.name ]
-                 ]
 
-        objectChooserFlat :: (NetInfo -> Boolean) -> Project -> ParentHTML Query ChildQuery ChildSlot m
-        objectChooserFlat isSelected { nets } =
-          nav [ classes [ ClassName "panel" ] ] $
-              [ p [ classes [ ClassName "panel-heading" ] ] [ text state.project1.name ] ]
-              <> (netItem isSelected <$> nets)
-              <> [ p [ classes [ ClassName "panel-heading" ] ] [ text "Diagrams" ] ]
-              <> (diagramItem (const false) <$> Ex.diagrams)
-          where
-            netItem :: (NetInfo -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-            netItem isSelected netInfo =
-              a [ classes [ ClassName "panel-block"
-                          , ClassName $ guard (isSelected netInfo) "is-active"
-                          ]
-                , onClick (HE.input_ (SelectRoute (Net netInfo)))
-                ]
-                [ text netInfo.name ]
+        f1 :: RouteF ProjectName -> Maybe (RouteF Project)
+        f1 = case _ of
+          Net     projectName netInfo     -> flip Net netInfo         <$> findProject state.projects projectName
+          Diagram projectName diagramInfo -> flip Diagram diagramInfo <$> findProject state.projects projectName
+          Types   projectName             -> Types                    <$> findProject state.projects projectName
+          Home                            -> pure Home
 
-            diagramItem :: (DiagramInfo -> Boolean) -> DiagramInfo -> ParentHTML Query ChildQuery ChildSlot m
-            diagramItem isSelected d =
-              a [ classes [ ClassName "panel-block"
-                          , ClassName $ guard (isSelected d) "is-active"
-                          ]
-                , onClick (HE.input_ (SelectRoute (Diagram d)))
-                ]
-                [ text d.name ]
+findProject :: Array Project -> ProjectName -> Maybe Project
+findProject projects projectName = find (\p -> p.name == projectName) projects

@@ -20,7 +20,6 @@ import Data.Auth as Auth
 import View.Petrinet.Model (TransitionQueryF(..), Typedef(..))
 import View.Common (styleStr)
 
-
 type TransitionEditorFormModel tid =
   { tid         :: tid
   , label       :: String
