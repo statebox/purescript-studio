@@ -9,13 +9,13 @@ import Halogen.VDom.Driver (runUI)
 import ExampleData as Ex
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Petrinet.PetrinetEditor as PetrinetEditor
-import Studio as Studio
+import View.Studio as Studio
 
 main :: Effect Unit
 main = runHalogenAff do
   body <- awaitBody
 
-  -- Two use cases for PetriNetEditor:
+  -- Two use cases for PetrinetEditor:
   --
   -- 1) As a standalone viewer; in this case we want a simple way to pass in an initial net.
   -- 1) As an editor component in some larger framework; don't need initial net; use LoadNet instead.

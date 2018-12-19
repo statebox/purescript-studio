@@ -1,4 +1,4 @@
-module Studio where
+module View.Studio where
 
 import Prelude hiding (div)
 import Data.Array (catMaybes)
