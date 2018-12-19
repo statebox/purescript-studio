@@ -10,6 +10,7 @@ data RouteF p
   | Net     p NetInfo
   | Diagram p DiagramInfo
   | Types   p
+  | Auths   p
 
 derive instance functorRouteF :: Functor RouteF
 
@@ -20,5 +21,6 @@ routesObjNameEq r1 r2 = case r1, r2 of
   Net     pn n, Net     pn' n' -> pn == pn' && n.name == n'.name
   Diagram pn d, Diagram pn' d' -> pn == pn' && d.name == d'.name
   Types   pn  , Types   pn'    -> pn == pn'
+  Auths   pn  , Auths   pn'    -> pn == pn'
   _           , _              -> false
 

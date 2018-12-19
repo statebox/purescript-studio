@@ -28,6 +28,7 @@ import View.Diagram.Update as DiagramEditor
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Studio.ObjectTree as ObjectTree
+import View.Auth.RolesEditor as RolesEditor
 import View.Studio.Route (Route, RouteF(..), routesObjNameEq)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
@@ -82,6 +83,12 @@ ui =
           Home -> do
             H.modify_ (\state -> state { route = Home })
             pure next
+          Types projectName -> do
+            H.modify_ (\state -> state { route = Types projectName })
+            pure next
+          Auths projectName -> do
+            H.modify_ (\state -> state { route = Auths projectName })
+            pure next
           Net projectName netInfo -> do
             state <- H.get
             H.put $ state { route = Net projectName netInfo }
@@ -90,9 +97,6 @@ ui =
             pure next
           r@(Diagram projectName diagramInfo) -> do
             H.modify_ (\state -> state { route = r })
-            pure next
-          Types projectName -> do
-            H.modify_ (\state -> state { route = Types projectName })
             pure next
 
       HandleDiagramEditorMsg unit next -> do
@@ -116,12 +120,14 @@ ui =
         mainView route = case route of
           Home ->
             text "Please select an object from the menu, such as a Petri net or a diagram."
+          Types project ->
+            TypedefsEditor.typedefsTreeView project.types
+          Auths project ->
+            RolesEditor.roleInfosHtml project.roleInfos
           Net project netInfo ->
             HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (mkNetInfoWithTypesAndRoles netInfo project)) unit (HE.input HandlePetrinetEditorMsg)
           Diagram project diagramInfo ->
             HH.slot' diagramEditorSlotPath unit DiagramEditor.ui unit (HE.input HandleDiagramEditorMsg)
-          Types project ->
-            TypedefsEditor.typedefsTreeView project.types
 
         routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
         routeBreadcrumbs =
@@ -130,9 +136,10 @@ ui =
               ]
               [ ul [] $ crumb <$> case state.route of
                                     Home                         -> [ "Home" ]
+                                    Types   projectName          -> [ projectName, "Types" ]
+                                    Auths   projectName          -> [ projectName, "Authorisation" ]
                                     Net     projectName { name } -> [ projectName, name ]
                                     Diagram projectName { name } -> [ projectName, name ]
-                                    Types   projectName          -> [ projectName, "Types" ]
               ]
           where
             crumb str = li [] [ a [ href "" ] [ text str ] ]
@@ -158,8 +165,9 @@ ui =
         f1 :: RouteF ProjectName -> Maybe (RouteF Project)
         f1 = case _ of
           Net     projectName netInfo     -> flip Net netInfo         <$> findProject state.projects projectName
-          Diagram projectName diagramInfo -> flip Diagram diagramInfo <$> findProject state.projects projectName
           Types   projectName             -> Types                    <$> findProject state.projects projectName
+          Auths   projectName             -> Auths                    <$> findProject state.projects projectName
+          Diagram projectName diagramInfo -> flip Diagram diagramInfo <$> findProject state.projects projectName
           Home                            -> pure Home
 
 findProject :: Array Project -> ProjectName -> Maybe Project

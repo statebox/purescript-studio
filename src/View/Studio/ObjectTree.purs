@@ -38,16 +38,21 @@ menu routeToQuery isSelected projects =
       , ul [ classes [ ClassName "menu-list" ] ]
            [ p  [ classes [ ClassName "menu-label" ]
                 , onClick (HE.input_ (routeToQuery $ Types project.name))
-                ] [ text "Types" ]
-           , p  [ classes [ ClassName "menu-label" ] ] [ text "Petri nets" ]
+                ]
+                [ text "Types" ]
+           , p  [ classes [ ClassName "menu-label" ]
+                , onClick (HE.input_ (routeToQuery $ Auths project.name))
+                ]
+                [ text "Authorisations" ]
+           , ul [ classes [ ClassName "menu-list" ] ] []
+           , p  [ classes [ ClassName "menu-label" ] ]
+                [ text "Petri nets" ]
            , ul [ classes [ ClassName "menu-list" ] ]
                 (netItem isSelected <$> project.nets)
-           , p  [ classes [ ClassName "menu-label" ] ] [ text "Wiring Diagrams" ]
+           , p  [ classes [ ClassName "menu-label" ] ]
+                [ text "Wiring Diagrams" ]
            , ul [ classes [ ClassName "menu-list" ] ]
                 (diagramItem isSelected <$> project.diagrams)
-           , p  [ classes [ ClassName "menu-label" ] ] [ text "Roles" ]
-           , ul [ classes [ ClassName "menu-list" ] ]
-                (roleItem <$> project.roleInfos)
            ]
       ]
       where
