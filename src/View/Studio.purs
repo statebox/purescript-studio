@@ -27,9 +27,9 @@ import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Studio.Route (RouteF(..), routesObjNameEq)
+import View.Studio.ObjectTree as ObjectTree
+import View.Studio.Route (Route, RouteF(..), routesObjNameEq)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
-import Data.Tuple.Nested ((/\))
 
 import ExampleData as Ex
 
@@ -38,8 +38,6 @@ type State =
   , projects   :: Array Project
   , msg        :: String
   }
-
-type Route = RouteF ProjectName
 
 --------------------------------------------------------------------------------
 
@@ -106,7 +104,7 @@ ui =
         [ navBar
         , div [ classes [ ClassName "columns" ] ]
               [ div [ classes [ ClassName "column", ClassName "is-2" ] ]
-                    [ objectChooserTree (routesObjNameEq state.route) state.projects ]
+                    [ ObjectTree.menu SelectRoute (routesObjNameEq state.route) state.projects ]
               , div [ classes [ ClassName "column" ] ]
                     [ routeBreadcrumbs
                     , maybe (text "TODO project not found") mainView (f1 state.route)
@@ -156,56 +154,6 @@ ui =
                           [ a   [ classes [ ClassName "navbar-item" ] ] [ text "Development" ] ]
                     ]
               ]
-
-        -- TODO stick this in a panel?
-        objectChooserTree :: (Route -> Boolean) -> Array Project -> ParentHTML Query ChildQuery ChildSlot m
-        objectChooserTree isSelected projects =
-          aside [ classes [ ClassName "menu", ClassName "css-object-chooser" ] ]
-                (objectChooserProjectTree isSelected `foldMap` projects)
-          where
-            objectChooserProjectTree :: (Route -> Boolean) -> Project -> Array (ParentHTML Query ChildQuery ChildSlot m)
-            objectChooserProjectTree isSelected project =
-              [ p  [ classes [ ClassName "menu-label" ] ] [ text project.name ]
-              , ul [ classes [ ClassName "menu-list" ] ]
-                   [ p  [ classes [ ClassName "menu-label" ]
-                        , onClick (HE.input_ (SelectRoute (Types project.name)))
-                        ] [ text "Types" ]
-                   , p  [ classes [ ClassName "menu-label" ] ] [ text "Petri nets" ]
-                   , ul [ classes [ ClassName "menu-list" ] ]
-                        (netItem isSelected <$> project.nets)
-                   , p  [ classes [ ClassName "menu-label" ] ] [ text "Wiring Diagrams" ]
-                   , ul [ classes [ ClassName "menu-list" ] ]
-                        (diagramItem isSelected <$> project.diagrams)
-                   , p  [ classes [ ClassName "menu-label" ] ] [ text "Roles" ]
-                   , ul [ classes [ ClassName "menu-list" ] ]
-                        (roleItem <$> project.roleInfos)
-                   ]
-              ]
-              where
-                netItem :: (Route -> Boolean) -> NetInfo -> ParentHTML Query ChildQuery ChildSlot m
-                netItem isSelected netInfo =
-                  li []
-                     [ a [ classes [ ClassName $ guard (isSelected $ Net project.name netInfo) "is-active" ]
-                         , onClick (HE.input_ (SelectRoute (Net project.name netInfo)))
-                         ]
-                         [ text netInfo.name ]
-                     ]
-
-                diagramItem :: (Route -> Boolean) -> DiagramInfo -> ParentHTML Query ChildQuery ChildSlot m
-                diagramItem isSelected d =
-                  li []
-                     [ a [ classes [ ClassName $ guard (isSelected $ Diagram project.name d) "is-active" ]
-                         , onClick (HE.input_ (SelectRoute (Diagram project.name d)))
-                         ]
-                         [ text d.name ]
-                     ]
-
-                roleItem roleInfo =
-                  li []
-                     [ a [ classes []
-                         ]
-                         [ text roleInfo.name ]
-                     ]
 
         f1 :: RouteF ProjectName -> Maybe (RouteF Project)
         f1 = case _ of

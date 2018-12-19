@@ -13,6 +13,8 @@ data RouteF p
 
 derive instance functorRouteF :: Functor RouteF
 
+type Route = RouteF String
+
 routesObjNameEq :: forall p. Eq p => RouteF p -> RouteF p -> Boolean
 routesObjNameEq r1 r2 = case r1, r2 of
   Net     pn n, Net     pn' n' -> pn == pn' && n.name == n'.name
