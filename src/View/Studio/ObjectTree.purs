@@ -34,8 +34,9 @@ menu routeToQuery isSelected projects =
   where
     projectTree :: (Route -> Boolean) -> Project -> Array (ParentHTML q cq s m)
     projectTree isSelected project =
-      [ p  [ classes [ ClassName "menu-label" ] ] [ text project.name ]
-      , ul [ classes [ ClassName "menu-list" ] ]
+      [ p  [ classes [ ClassName "menu-label" ] ]
+           [ text project.name ]
+      , ul [ classes [ ClassName "menu-list", ClassName "css-object-chooser-project" ] ]
            [ p  [ classes [ ClassName "menu-label" ]
                 , onClick (HE.input_ (routeToQuery $ Types project.name))
                 ]

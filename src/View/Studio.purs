@@ -107,7 +107,7 @@ ui =
       div []
         [ navBar
         , div [ classes [ ClassName "columns" ] ]
-              [ div [ classes [ ClassName "column", ClassName "is-2" ] ]
+              [ div [ classes [ ClassName "column", ClassName "is-narrow" ] ]
                     [ ObjectTree.menu SelectRoute (routesObjNameEq state.route) state.projects ]
               , div [ classes [ ClassName "column" ] ]
                     [ routeBreadcrumbs
