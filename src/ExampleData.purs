@@ -87,8 +87,8 @@ placePoints1 =
 
 textBoxes1 :: Array (TextBoxId /\ TextBox)
 textBoxes1 =
-  [ 1 /\ { name: "a", box: Box { topLeft: Vec2 { x: 10.0, y: 30.0 }, bottomRight: Vec2 { x: 200.0, y: 200.0 } } }
-  , 2 /\ { name: "a", box: Box { topLeft: Vec2 { x: 10.0, y: 30.0 }, bottomRight: Vec2 { x: 200.0, y: 200.0 } } }
+  [ 1 /\ { name: "leftSide", box: Box { topLeft: Vec2 { x: 0.0, y: 0.0 }, bottomRight: Vec2 { x: 45.0, y: 80.0 } } }
+  , 2 /\ { name: "rightSide", box: Box { topLeft: Vec2 { x: 45.0, y: 0.0 }, bottomRight: Vec2 { x: 90.0, y: 80.0 } } }
   ]
 
 transitions1 :: Array Transition
