@@ -11,6 +11,7 @@ module Data.Petrinet.Representation.Dict
   , TransitionF
   , PlaceMarkingF
   , TextBoxF
+  , Box(..)
 
   , fire
   , fireAtMarking
@@ -31,7 +32,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, un, unwrap)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D)
+import Data.Vec2D (Vec2D, Vec2)
 import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
 import Data.Group (class Group, ginverse)
 import Data.Bag (BagF(..))
@@ -145,12 +146,11 @@ trMarking pms = mkMarkingF $ Map.fromFoldable $ fromPlaceMarking <$> pms
 
 --------------------------------------------------------------------------------
 
+newtype Box n = Box { topLeft :: Vec2 n, bottomRight :: Vec2 n }
+
 type TextBoxF n =
   { name   :: String
-  , x      :: n
-  , y      :: n
-  , width  :: n
-  , height :: n
+  , box    :: Box n
   }
 
 --------------------------------------------------------------------------------

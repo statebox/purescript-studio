@@ -21,13 +21,14 @@ import Data.Newtype (un, over)
 import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ring
-import Data.Vec2D (Vec2D)
+import Data.Vec2D (Vec2D, Vec2(..))
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import View.Petrinet.Model (PID, TID, TextBoxId, TextBox, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow)
 import View.Diagram.Model (DiagramInfo)
+import Data.Petrinet.Representation.Dict (Box(..))
 
 project1 =
   { name: "Example nets"
@@ -86,11 +87,8 @@ placePoints1 =
 
 textBoxes1 :: Array (TextBoxId /\ TextBox)
 textBoxes1 =
-  [ 1 /\ { name: "a", x: 10.0, y: 30.0, height: 200.0, width: 200.0 }
-  , 2 /\ { name: "a", x: 30.0, y: 30.0, height: 200.0, width: 200.0 }
-  , 3 /\ { name: "a", x: 90.0, y: 30.0, height: 200.0, width: 200.0 }
-  , 4 /\ { name: "a", x: 70.0, y: 30.0, height: 200.0, width: 200.0 }
-  , 5 /\ { name: "a", x: 50.0, y: 30.0, height: 200.0, width: 200.0 }
+  [ 1 /\ { name: "a", box: Box { topLeft: Vec2 { x: 10.0, y: 30.0 }, bottomRight: Vec2 { x: 200.0, y: 200.0 } } }
+  , 2 /\ { name: "a", box: Box { topLeft: Vec2 { x: 10.0, y: 30.0 }, bottomRight: Vec2 { x: 200.0, y: 200.0 } } }
   ]
 
 transitions1 :: Array Transition

@@ -100,7 +100,7 @@ mkNetRep
   -> Array (PID /\ String)
   -> Array (PID /\ Vec2D)
   -> Array (TextBoxId /\ String)
-  -> Array (TextBoxId /\ TextBox)
+  -> Array (TextBoxId /\ _)
   -> Array String
   -> Array Typedef
   -> Array Vec2D
@@ -133,6 +133,7 @@ mkNetRep pids transitions marking placeLabels placePoints textBoxLabels textBoxe
     textBoxLabelsDict :: Map Int String
     textBoxLabelsDict = Map.fromFoldable textBoxLabels
 
+    textBoxesDict :: Map Int TextBox
     textBoxesDict = Map.fromFoldable textBoxes
 
     transitionLabelsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionLabels

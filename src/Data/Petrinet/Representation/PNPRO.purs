@@ -16,11 +16,13 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec2D (Vec2D)
+import Data.Petrinet.Representation.Dict (Box(..))
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
 import View.Petrinet.Model (PID, TID, TextBoxId, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
 import View.Petrinet.Model as Model
+import View.Petrinet.PNPRO (toTextBox)
 
 --------------------------------------------------------------------------------
 
@@ -136,7 +138,7 @@ toNetRep gspn =
     placePoints :: Array (PID /\ Vec2D)
     placePoints = map toVec2D <$> placesIndexed
 
-    textBoxes' :: Array (TextBoxId /\ TextBox)
+    textBoxes' :: _
     textBoxes' = map toTextBox <$> textBoxesIndexed
 
     -- TODO StrMap?
@@ -189,6 +191,3 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 -- fields. Will that work if Vec2D is/becomes a newtype though?
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
 toVec2D v = { x: v.x, y: v.y }
-
-toTextBox :: forall r. { name :: String, x :: Number, y :: Number, width :: Number, height :: Number | r } -> TextBox
-toTextBox v = { name: v.name, x: v.x, y: v.y, width: v.width, height: v.height }

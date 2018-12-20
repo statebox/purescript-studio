@@ -23,9 +23,9 @@ oneVec = Vec2 { x: zero, y: zero }
 
 instance semiringVec :: Semiring a => Semiring (Vec2 a) where
   zero = zeroVec
-  add = addVec
-  mul = mulVec
-  one = oneVec
+  add  = addVec
+  mul  = mulVec
+  one  = oneVec
 
 -- minMax2 :: { min :: Vec2D, max :: Vec2D }
 --         -> { min :: Vec2D, max :: Vec2D }
