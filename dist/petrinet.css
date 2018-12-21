@@ -3,6 +3,7 @@
     background-image:
         linear-gradient(to top, pink, rgba(0,0,255,0.5)),
         url(logo-statebox-white.svg);
+    background-image: linear-gradient(to bottom, #eee, #ddd);
 }
 .css-petrinet-component.css-hide-arc-labels .css-arc-name-label,
 .css-petrinet-component.css-hide-place-labels .css-place-name-label,
