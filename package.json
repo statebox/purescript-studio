@@ -29,7 +29,6 @@
     "purescript-psa": "^0.7.3"
   },
   "dependencies": {
-    "bulma": "^0.7.2",
     "tailwindcss": "^0.7.3"
   }
 }

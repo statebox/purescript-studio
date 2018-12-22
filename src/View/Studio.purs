@@ -122,20 +122,6 @@ ui =
               ]
         ]
       where
-        renderBulma :: State -> ParentHTML Query ChildQuery ChildSlot m
-        renderBulma state =
-          div []
-            [ navBar
-            , div [ classes [ ClassName "columns" ] ]
-                  [ div [ classes [ ClassName "column", ClassName "is-narrow" ] ]
-                        [ ObjectTree.menuBulma SelectRoute (routesObjNameEq state.route) state.projects ]
-                  , div [ classes [ ClassName "column" ] ]
-                        [ routeBreadcrumbs
-                        , maybe (text "TODO project not found") mainView (f1 state.route)
-                        ]
-                  ]
-            ]
-
         mainView :: RouteF Project -> ParentHTML Query ChildQuery ChildSlot m
         mainView route = case route of
           Home ->
@@ -148,21 +134,6 @@ ui =
             HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (mkNetInfoWithTypesAndRoles netInfo project)) unit (HE.input HandlePetrinetEditorMsg)
           Diagram project diagramInfo ->
             HH.slot' diagramEditorSlotPath unit DiagramEditor.ui unit (HE.input HandleDiagramEditorMsg)
-
-        routeBreadcrumbsBulma :: ParentHTML Query ChildQuery ChildSlot m
-        routeBreadcrumbsBulma =
-          nav [ classes [ ClassName "breadcrumb has-arrow-separator", ClassName "is-small" ]
-              , ARIA.label "breadcrumbs"
-              ]
-              [ ul [] $ crumb <$> case state.route of
-                                    Home                         -> [ "Home" ]
-                                    Types   projectName          -> [ projectName, "Types" ]
-                                    Auths   projectName          -> [ projectName, "Authorisation" ]
-                                    Net     projectName { name } -> [ projectName, name ]
-                                    Diagram projectName { name } -> [ projectName, name ]
-              ]
-          where
-            crumb str = li [] [ a [ href "" ] [ text str ] ]
 
         routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
         routeBreadcrumbs =
@@ -178,28 +149,8 @@ ui =
           where
             crumb str = li [] [ a [ href "#" ] [ text str ] ]
 
-        navBarBulma :: ParentHTML Query ChildQuery ChildSlot m
-        navBarBulma =
-          nav [ classes [ ClassName "navbar" ] ]
-              [ div [ classes [ ClassName "navbar-brand" ] ]
-                    [ a [ classes [ ClassName "navbar-item" ] ]
-                        [ img [ src "logo-statebox.jpg" ]
-                        ]
-                    ]
-              , div [ classes [ ClassName "navbar-menu" ] ]
-                    [ div [ classes [ ClassName "navbar-start" ] ]
-                          [ div [ classes [ ClassName "navbar-item" ] ]
-                                [ h1 [ classes [ ClassName "subtitle" ] ] [ text "Statebox Studio" ] ]
-                          ]
-                    , div [ classes [ ClassName "navbar-end" ] ]
-                          [ a   [ classes [ ClassName "navbar-item" ] ] [ text "Development" ] ]
-                    ]
-              ]
-
-        navBar = navBarTailwind
-
-        navBarTailwind :: ParentHTML Query ChildQuery ChildSlot m
-        navBarTailwind =
+        navBar :: ParentHTML Query ChildQuery ChildSlot m
+        navBar =
           nav [ classes $ ClassName <$> [ "css-navbar", "flex", "items-center", "justify-between", "flex-wrap", "bg-purple-darker", "p-6" ] ]
               [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
                     [ img [ src "logo-statebox-white.svg"
