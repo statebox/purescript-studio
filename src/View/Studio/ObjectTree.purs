@@ -40,8 +40,9 @@ data Query a
 data Msg = Clicked PathId Route
 
 type State =
-  { tree      :: Cofree Array Item
-  , expansion :: Map PathId Boolean
+  { tree       :: Cofree Array Item
+  , expansion  :: Map PathId Boolean
+  , activeItem :: Maybe PathId
   }
 
 --------------------------------------------------------------------------------
@@ -72,11 +73,13 @@ menuComponent isSelected tree =
     initialState =
       { tree:     tree
       , expansion: Map.empty
+      , activeItem: Nothing
       }
 
     eval :: Query ~> ComponentDSL State Query _ m
     eval = case _ of
       VisitRoute pathId route next -> do
+        H.modify_ (\state -> state { activeItem = Just pathId })
         H.raise (Clicked pathId route)
         pure next
 
@@ -95,12 +98,11 @@ menuComponent isSelected tree =
       where
         menuItemHtml :: Item -> Array (HTML Void (Query Unit)) -> HTML Void (Query Unit)
         menuItemHtml treeNode kids =
-          li [ clzz [ "block", "flex", "cursor-pointer", "px-2", "py-2", "text-grey-darkest" ] ]
+          li [ clzz ([ "block", "flex", "cursor-pointer", "px-2", "py-2", "text-grey-darkest" ] <> activeClasses)]
              [ div []
                    [ arrowIcon
                    , span [ clzz [ "pl-2" ]
                           , onClick (HE.input_ clickQuery)
-
                           ]
                           [ text treeNode.label ]
                      , if isExpanded then ul   [ clzz [ "list-reset", "mt-2" ] ] kids
@@ -108,17 +110,19 @@ menuComponent isSelected tree =
                      ]
              ]
           where
-            arrowIcon  = if null kids then text ""
-                                      else span [ clzz [ "fas" , "fa-xs"
-                                                       , "fa-chevron-" <> if isExpanded then "down" else "right"
-                                                       ]
-                                                , onClick (HE.input_ clickQuery)
-                                                ] []
+            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-white" ] else []
+            arrowIcon     = if null kids then text ""
+                                         else span [ clzz [ "fas" , "fa-xs"
+                                                          , "fa-chevron-" <> if isExpanded then "down" else "right"
+                                                          ]
+                                                   , onClick (HE.input_ clickQuery)
+                                                   ] []
 
-            clickQuery = maybe (ToggleExpandCollapse treeNode.id) (VisitRoute treeNode.id) treeNode.route
+            clickQuery    = maybe (ToggleExpandCollapse treeNode.id) (VisitRoute treeNode.id) treeNode.route
 
             -- TODO handling of Nothing case of map retrieval is spread over 2 diff places
             isExpanded = not null kids && (fromMaybe true $ Map.lookup treeNode.id state.expansion)
+            isActive = state.activeItem == pure treeNode.id
 
 clzz :: Array String -> _
 clzz classStrs = classes (ClassName <$> classStrs)
