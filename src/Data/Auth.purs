@@ -2,7 +2,7 @@ module Data.Auth where
 
 import Prelude
 import Data.Foldable (elem)
-import Data.Newtype (class Newtype, over)
+import Data.Newtype (class Newtype, over, un)
 import Data.Set as Set
 import Data.Set (Set)
 
@@ -47,6 +47,9 @@ type RoleInfo =
 newtype CSSColor = CSSColor String
 
 derive instance newtypeCSSColor :: Newtype CSSColor _
+
+instance showCSSColor :: Show CSSColor where
+  show x = "(CSSColor " <> (show (un CSSColor x)) <> ")"
 
 --------------------------------------------------------------------------------
 

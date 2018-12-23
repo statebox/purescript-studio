@@ -15,7 +15,7 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D)
+import Data.Vec2D (Vec2D, scalarMulVec2D)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
@@ -25,10 +25,8 @@ import View.Petrinet.PNPRO (toTextBox)
 
 --------------------------------------------------------------------------------
 
--- | TODO Token weight should be configurable; find out how token weights > 1
--- | are stored in PNPRO XML (I would expect as a 'marking' attr on an <arc/>).
-hardcodedArcWeightTodo :: Tokens
-hardcodedArcWeightTodo = 1
+-- | TODO Remove this. It is a temporary fix to make most nets from GSPN render more nicely.
+scaleGspnHack = scalarMulVec2D 2.0
 
 --------------------------------------------------------------------------------
 
@@ -84,6 +82,7 @@ type Arc =
   , tail   :: PidOrTid
   , kind   :: String -- ^ TODO should be an ADT: "INPUT", "OUTPUT", ...?
   , isPost :: Boolean
+  , mult   :: Int
   }
 
 --------------------------------------------------------------------------------
@@ -141,7 +140,7 @@ toNetRep gspn =
           where
             -- TODO token weight should be configurable; find out how token weights > 1 are stored in PNPRO XML (I would expect as a 'marking' attr on an <arc/>)
             preArcMaybe :: _ -> Maybe (PidOrTid /\ PlaceMarking)
-            preArcMaybe arc = if not arc.isPost then (\pid -> arc.head /\ { place: pid, tokens: hardcodedArcWeightTodo }) <$> Map.lookup arc.tail pidIndex
+            preArcMaybe arc = if not arc.isPost then (\pid -> arc.head /\ { place: pid, tokens: arc.mult }) <$> Map.lookup arc.tail pidIndex
                                                 else Nothing
 
     postArcsDict :: Map PidOrTid  (Array PlaceMarking)
@@ -151,7 +150,7 @@ toNetRep gspn =
         postTransitions = catMaybes $ postArcMaybe <$> gspn.edges.arc
           where
             postArcMaybe :: _ -> Maybe (PidOrTid /\ PlaceMarking)
-            postArcMaybe arc = if arc.isPost then (\p -> arc.tail /\ { place: p, tokens: hardcodedArcWeightTodo }) <$> Map.lookup arc.head pidIndex
+            postArcMaybe arc = if arc.isPost then (\p -> arc.tail /\ { place: p, tokens: arc.mult }) <$> Map.lookup arc.head pidIndex
                                              else Nothing
 
     transitionLabels = (_.name <$> transitions)
@@ -176,4 +175,4 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 -- TODO It'd be faster to make the Vec2D row type extensible, so it can include other
 -- fields. Will that work if Vec2D is/becomes a newtype though?
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
-toVec2D v = { x: v.x, y: v.y }
+toVec2D v = scaleGspnHack { x: v.x, y: v.y }

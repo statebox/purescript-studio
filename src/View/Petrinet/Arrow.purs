@@ -13,19 +13,27 @@ import View.Petrinet.Config
 
 -- | This refers to an `arrowheadMarkerId`, for which a marker must be defined in the `<defs>`.
 -- | Such a marker is defined provided here as `svgArrowheadMarker`.
-svgArrow :: forall p i. Vec2D -> Vec2D -> HTML p i
-svgArrow src dest =
+svgArrow :: forall p i. Vec2D -> Vec2D -> Boolean -> HTML p i
+svgArrow src dest isPost =
+  case isPost of
+    true  -> let src'  = transitionLinePoint dest src
+                 dest' = placeLinePoint      dest src
+             in  svgArrowLine src' dest'
+    false -> let src'  = placeLinePoint      src dest
+                 dest' = transitionLinePoint src dest
+             in  svgArrowLine src' dest'
+
+svgArrowLine :: forall p i. Vec2D -> Vec2D -> HTML p i
+svgArrowLine src dest =
   SE.line
     [ SA.class_ "css-arrow"
-    , SA.x1 src'.x
-    , SA.y1 src'.y
-    , SA.x2 dest'.x
-    , SA.y2 dest'.y
+    , SA.x1 src.x
+    , SA.y1 src.y
+    , SA.x2 dest.x
+    , SA.y2 dest.y
     , SA.markerEnd $ "url(#" <> arrowheadMarkerId <> ")"
     ]
-  where
-    src'  = placeLinePoint      src dest
-    dest' = transitionLinePoint src dest
+
 
 -- | An arrowhead shape that can be attached to other SVG elements such as lines and paths.
 -- | SVG takes care of rotating this marker so that it will be orientated according to that shape.
@@ -35,14 +43,14 @@ svgArrowheadMarker =
     [ SA.id arrowheadMarkerId
     , SA.class_ "css-arrowhead"
     , SA.orient SA.AutoOrient
-    , SA.markerUnits SA.StrokeWidth 
+    , SA.markerUnits SA.StrokeWidth
     , SA.strokeWidth 0.0
-    , SA.markerWidth 6.0
-    , SA.markerHeight 6.0
-    , SA.refX 1.6
-    , SA.refY 2.0
+    , SA.markerWidth 12.0
+    , SA.markerHeight 12.0
+    , SA.refX 6.2
+    , SA.refY 6.0
     ]
-    [ SE.path [ SA.d $ SA.Abs <$> [ SA.M 0.0 0.0, SA.L 0.0 4.0, SA.L 2.0 2.0, SA.Z ] ] ]
+    [ SE.path [ SA.d $ SA.Abs <$> [ SA.M 0.0 0.0, SA.L 0.0 12.0, SA.L 6.0 6.0, SA.Z ] ] ]
 
 placeLinePoint :: Vec2D -> Vec2D -> Vec2D
 placeLinePoint p t = { x: p.x + px, y: p.y + py }

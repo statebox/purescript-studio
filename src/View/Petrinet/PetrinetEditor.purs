@@ -7,6 +7,7 @@ import Data.Newtype (un)
 import Data.Bag (BagF)
 import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
 import Data.HeytingAlgebra (not)
+import Data.Int (toNumber, floor, round)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -32,24 +33,26 @@ import Halogen.HTML.Core as Core
 import Halogen.HTML.Events as HE
 import Svg.Elements as SE
 import Svg.Attributes as SA
-import Svg.Attributes (Duration, DurationF(..), seconds, FillState(Freeze), FontSize(..), CSSLength(..))
+import Svg.Attributes (Duration, DurationF(..), seconds, FillState(..), FontSize(..), CSSLength(..))
 import Svg.Util as SvgUtil
 
 import Data.Auth
 import Data.Petrinet.Representation.Dict
+import Data.Typedef.Typedef2 (Typedef2)
 import ExampleData as Ex
 import ExampleData as Net
 import View.Common (HtmlId, emptyHtml)
 import View.Petrinet.Arrow
 import View.Petrinet.Arrow as Arrow
-import View.Petrinet.Config
-import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..), NetElemKind(..))
+import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration)
+import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceQueryF(..), QueryF(..), Tokens, TransitionQueryF(..), Typedef(..))
 import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
 
+
 type StateF pid tid =
-  { msg                     :: String
-  , netInfo                 :: NetInfoF pid tid ()
+  { netInfo                 :: NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 ()
+  , msg                     :: String
   , focusedPlace            :: Maybe pid
   , focusedTransition       :: Maybe tid
   , arcLabelsVisible        :: Boolean
@@ -92,8 +95,8 @@ type ArcModel tid = ArcModelF tid String Vec2D
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => Array RoleInfo -> NetInfoF pid tid () -> H.Component HTML (QueryF pid tid) Unit Msg m
-ui allRoleInfos initialNetInfo =
+ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 () -> H.Component HTML (QueryF pid tid) Unit Msg m
+ui initialNetInfo =
   H.component { initialState: const initialState, render, eval, receiver: const Nothing }
   where
     -- TODO should come from component state
@@ -128,7 +131,7 @@ ui allRoleInfos initialNetInfo =
                           pid <- state.focusedPlace
                           label <- Map.lookup pid state.netInfo.net.placeLabelsDict
                           pure { pid: pid, label: label, typedef: Typedef "Unit", isWriteable: false }
-                      , maybe emptyHtml (map UpdateTransition <<< TransitionEditor.form' allRoleInfos) do
+                      , maybe emptyHtml (map UpdateTransition <<< TransitionEditor.form' state.netInfo.roleInfos) do
                           tid   <- state.focusedTransition
                           label <- Map.lookup tid state.netInfo.net.transitionLabelsDict
                           typ   <- Map.lookup tid state.netInfo.net.transitionTypesDict
@@ -285,7 +288,7 @@ ui allRoleInfos initialNetInfo =
                , SA.id arc.htmlId -- we refer to this as the path of our animation and label, among others
                , SA.d (svgPath arc.src arc.dest)
                ]
-           , svgArrow arc.src arc.dest
+           , svgArrow arc.src arc.dest arc.isPost
            , SE.text
                [ SA.class_    "css-arc-name-label"
                , SA.x         arc.src.x
@@ -334,6 +337,14 @@ ui allRoleInfos initialNetInfo =
             , SA.to            (show $ 1.5 * tokenRadius)
             , SA.begin         (animationId <> ".begin")
             , SA.dur           tokenFadeDuration
+            , SA.fillAnim      Freeze
+            , SA.repeatCount   0
+            ]
+        , SE.animate -- hide the token after the animation completes
+            [ SA.attributeName "r"
+            , SA.to            (show 0.0)
+            , SA.begin         (animationId <> ".end")
+            , SA.dur           (seconds 0.0001) -- we want this immediately after the animation ends
             , SA.fillAnim      Freeze
             , SA.repeatCount   0
             ]
