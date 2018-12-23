@@ -43,7 +43,7 @@ import View.Common (HtmlId, emptyHtml)
 import View.Petrinet.Arrow
 import View.Petrinet.Arrow as Arrow
 import View.Petrinet.Config
-import View.Petrinet.Model (PID, TID, TextBoxId, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..), NetElemKind(..))
+import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), NetObj, NetApi, NetInfoFRow, NetInfoF, QueryF(..), PlaceQueryF(..), TransitionQueryF(..), Msg(..), NetElemKind(..))
 import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
 

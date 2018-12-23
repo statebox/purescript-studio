@@ -16,11 +16,10 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec2D (Vec2D)
-import Data.Petrinet.Representation.Dict (Box(..))
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
-import View.Petrinet.Model (PID, TID, TextBoxId, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
+import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
 import View.Petrinet.Model as Model
 import View.Petrinet.PNPRO (toTextBox)
 
@@ -102,15 +101,12 @@ toNetRep gspn =
     marking
     placeLabels
     placePoints
-    textBoxLabels
-    textBoxes'
     transitionLabels
     (const (Typedef "Unit") <$> transitions)
     (toVec2D <$> transitions)
     transitionAuthsDict
   where
     firstPlaceIndex      = 1
-    firstTextBoxIndex    = 1
     numPlaces            = length places
     pids                 = firstPlaceIndex .. numPlaces
     places               = gspn.nodes.place
@@ -118,13 +114,9 @@ toNetRep gspn =
     numTransitions       = length transitions
     tids                 = firstTransitionIndex .. (firstTransitionIndex + numTransitions -1)
     transitions          = gspn.nodes.transition
-    textBoxes            = gspn.nodes.textBox
 
     placesIndexed :: Array (PID /\ Place)
     placesIndexed = zipWithIndexFrom firstPlaceIndex places
-
-    textBoxesIndexed :: Array (TextBoxId /\ TextBox)
-    textBoxesIndexed = zipWithIndexFrom firstTextBoxIndex textBoxes
 
     marking :: BagF PID Tokens
     marking = Bag.fromFoldable $ (map _.marking) <$> filter (\(_ /\ p) -> p.marking > 0) placesIndexed
@@ -132,14 +124,8 @@ toNetRep gspn =
     placeLabels :: Array (PID /\ PidOrTid)
     placeLabels = map _.name <$> placesIndexed
 
-    textBoxLabels :: Array (TextBoxId /\ PidOrTid)
-    textBoxLabels = map _.name <$> textBoxesIndexed
-
     placePoints :: Array (PID /\ Vec2D)
     placePoints = map toVec2D <$> placesIndexed
-
-    textBoxes' :: _
-    textBoxes' = map toTextBox <$> textBoxesIndexed
 
     -- TODO StrMap?
     pidIndex :: Map PidOrTid Int

@@ -11,8 +11,8 @@ import Data.Newtype (class Newtype)
 import Data.Tuple.Nested (type (/\), (/\))
 
 import Data.Auth (Role, Roles, RoleInfo)
-import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, TextBoxF, findTokens', NetRepF, NetObjF, NetApiF, mkNetObjF)
-import Data.Vec2D (Vec2D)
+import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, findTokens', NetRepF, NetObjF, NetApiF, mkNetObjF)
+import Data.Vec2D (Vec2, Vec2D, Box(..))
 
 data QueryF pid tid a
   = LoadNet (NetInfoF pid tid ()) a
@@ -40,6 +40,17 @@ derive instance newtypeTypedef :: Newtype (Typedef)  _
 
 --------------------------------------------------------------------------------
 
+type TextBoxF n =
+  { name   :: String
+  , box    :: Box n
+  }
+
+type TextBox = TextBoxF Number
+
+type TextBoxId = Int
+
+--------------------------------------------------------------------------------
+
 -- | Messages sent to the outside world (i.e. parent components).
 --   TODO This is a dummy placeholder for now.
 data Msg = NetUpdated
@@ -60,12 +71,10 @@ type NetInfoF pid tid r = Record (NetInfoFRow pid tid r)
 type PID          = Int
 type TID          = Int
 type Tokens       = Int
-type TextBoxId    = Int
 
 type Transition   = TransitionF   PID Tokens
 type Marking      = MarkingF      PID Tokens
 type PlaceMarking = PlaceMarkingF PID Tokens
-type TextBox      = TextBoxF      Number
 
 type NetRep = NetRepF PID TID Tokens Typedef ()
 
@@ -78,7 +87,7 @@ type NetInfo = Record (NetInfoFRow PID TID ())
 -- empty net -------------------------------------------------------------------
 
 emptyNetData :: NetRep
-emptyNetData = mkNetRep mempty mempty (BagF mempty) mempty mempty mempty mempty mempty mempty mempty mempty
+emptyNetData = mkNetRep mempty mempty (BagF mempty) mempty mempty mempty mempty mempty mempty
 
 emptyNet :: NetObj
 emptyNet = mkNetObjF emptyNetData
@@ -99,21 +108,17 @@ mkNetRep
   -> Marking
   -> Array (PID /\ String)
   -> Array (PID /\ Vec2D)
-  -> Array (TextBoxId /\ String)
-  -> Array (TextBoxId /\ _)
   -> Array String
   -> Array Typedef
   -> Array Vec2D
   -> Array Roles
   -> NetRep
-mkNetRep pids transitions marking placeLabels placePoints textBoxLabels textBoxes transitionLabels transitionTypes transitionPoints transitionAuths =
+mkNetRep pids transitions marking placeLabels placePoints transitionLabels transitionTypes transitionPoints transitionAuths =
   { places:               pids
   , transitionsDict:      transitionsDict
   , marking:              marking
   , placeLabelsDict:      placeLabelsDict
   , placePointsDict:      placePointsDict
-  , textBoxLabelsDict:    textBoxLabelsDict
-  , textBoxesDict:        textBoxesDict
   , transitionLabelsDict: transitionLabelsDict
   , transitionTypesDict:  transitionTypesDict
   , transitionPointsDict: transitionPointsDict
@@ -129,12 +134,6 @@ mkNetRep pids transitions marking placeLabels placePoints textBoxLabels textBoxe
     placeLabelsDict = Map.fromFoldable placeLabels
 
     placePointsDict = Map.fromFoldable placePoints
-
-    textBoxLabelsDict :: Map Int String
-    textBoxLabelsDict = Map.fromFoldable textBoxLabels
-
-    textBoxesDict :: Map Int TextBox
-    textBoxesDict = Map.fromFoldable textBoxes
 
     transitionLabelsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionLabels
 

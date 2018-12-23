@@ -1,9 +1,8 @@
 module View.Petrinet.PNPRO where
 
 import Prelude
+import Data.Vec2D (Vec2(..), Box(..))
 import View.Petrinet.Model (TextBox)
-import Data.Vec2D (Vec2(..))
-import Data.Petrinet.Representation.Dict (Box(..))
 
 toTextBox :: forall r. { name :: String, x :: Number, y :: Number, width :: Number, height :: Number | r } -> TextBox
 toTextBox v =

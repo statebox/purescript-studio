@@ -10,8 +10,6 @@ module Data.Petrinet.Representation.Dict
 
   , TransitionF
   , PlaceMarkingF
-  , TextBoxF
-  , Box(..)
 
   , fire
   , fireAtMarking
@@ -59,9 +57,6 @@ type NetRepF pid tid tok typ r =
   , placeLabelsDict       :: Map pid String
   , placePointsDict       :: Map pid Vec2D
 
-  , textBoxLabelsDict     :: Map Int String
-  , textBoxesDict         :: Map Int (TextBoxF Number)
-
   , transitionsDict       :: Map tid (TransitionF pid tok)
   , transitionLabelsDict  :: Map tid String
   , transitionPointsDict  :: Map tid Vec2D
@@ -76,11 +71,9 @@ type NetRepF pid tid tok typ r =
 type NetObjF pid tid tok typ = NetRepF pid tid tok typ
   ( findTransition        :: tid -> Maybe (TransitionF pid tok)
   , findPlaceLabel        :: pid -> Maybe String
-  , findTextBoxLabel      :: Int -> Maybe String
 
   , findPlacePoint        :: pid -> Maybe Vec2D
   , findTransitionPoint   :: tid -> Maybe Vec2D
-  , findTextBox           :: Int -> Maybe (TextBoxF Number)
   )
 
 -- TODO was the idea to converge on this one in favour of NetObjF?
@@ -99,9 +92,6 @@ mkNetObjF x =
   , placeLabelsDict      : x.placeLabelsDict
   , placePointsDict      : x.placePointsDict
 
-  , textBoxLabelsDict    : x.textBoxLabelsDict
-  , textBoxesDict        : x.textBoxesDict
-
   , transitionLabelsDict : x.transitionLabelsDict
   , transitionTypesDict  : x.transitionTypesDict
   , transitionPointsDict : x.transitionPointsDict
@@ -110,12 +100,10 @@ mkNetObjF x =
   -- API, sort of
   , findTransition       : flip Map.lookup x.transitionsDict
   , findPlaceLabel       : flip Map.lookup x.placeLabelsDict
-  , findTextBoxLabel     : flip Map.lookup x.textBoxLabelsDict
 
   -- rendering related
   , findPlacePoint       : flip Map.lookup x.placePointsDict
   , findTransitionPoint  : flip Map.lookup x.transitionPointsDict
-  , findTextBox          : flip Map.lookup x.textBoxesDict
   }
 
 --------------------------------------------------------------------------------
@@ -143,15 +131,6 @@ postMarking tr = trMarking tr.post
 
 trMarking :: ∀ p tok. Ord p => Array (PlaceMarkingF p tok) -> MarkingF p tok
 trMarking pms = mkMarkingF $ Map.fromFoldable $ fromPlaceMarking <$> pms
-
---------------------------------------------------------------------------------
-
-newtype Box n = Box { topLeft :: Vec2 n, bottomRight :: Vec2 n }
-
-type TextBoxF n =
-  { name   :: String
-  , box    :: Box n
-  }
 
 --------------------------------------------------------------------------------
 

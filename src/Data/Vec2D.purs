@@ -63,3 +63,7 @@ bounds vecs =
 
     maxCoord {x:x1, y:y1} {x:x2, y:y2} = {x: x1 `max` x2, y: y1 `max` y2}
     minCoord {x:x1, y:y1} {x:x2, y:y2} = {x: x1 `min` x2, y: y1 `min` y2}
+
+--------------------------------------------------------------------------------
+
+newtype Box n = Box { topLeft :: Vec2 n, bottomRight :: Vec2 n }
