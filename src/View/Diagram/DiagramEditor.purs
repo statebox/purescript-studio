@@ -55,12 +55,10 @@ ui = H.component { initialState: const initialState, render, eval, receiver: con
     render :: State -> HTML Void (Query Unit)
     render state =
       div [ classes [ ClassName "css-diagram-editor" ] ]
-          [ div [ classes [ ClassName "columns" ] ]
-                [ div [ classes [ ClassName "column"] ]
-                      [ (\msg -> QueryF msg unit) <$> View.diagramEditorSVG state.model
-                      , HH.text state.msg
-                      ]
-                , div [ classes [ ClassName "column", ClassName "is-4"  ] ]
+          [ div [ classes [ ClassName "flex" ] ]
+                [ div [ classes [ ClassName "w-5/6"] ]
+                      [ (\msg -> QueryF msg unit) <$> View.diagramEditorSVG state.model ]
+                , div [ classes [ ClassName "w-1/6 px-2" ] ]
                       [ Inspector.view state ]
                 ]
           ]
