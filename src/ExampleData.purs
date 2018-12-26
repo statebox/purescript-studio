@@ -30,7 +30,7 @@ import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Typedef.Typedef2 (Typedef2(..))
 import View.Model (Project)
-import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow, TextBox, TextBoxId)
+import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow, TextBox)
 import View.Diagram.Model (DiagramInfo)
 
 projects :: Array Project
@@ -39,9 +39,7 @@ projects = [project1, project2]
 project1 :: Project
 project1 =
   { name: "Statebox Examples"
-  , nets: [ { name: "Traffic lights"    , net: net1, netApi: netApi1 }
-          , { name: "Producer-consumer" , net: net2, netApi: netApi2 }
-          ]
+  , nets: [ netInfo1, netInfo2 ]
   , diagrams: diagrams
   , roleInfos: project1Roles
   , types: project1Typedefs
@@ -121,20 +119,6 @@ placePoints1 =
 
 --------------------------------------------------------------------------------
 
-textBoxLabels1 :: Array (TextBoxId /\ String)
-textBoxLabels1 =
-  [ 1 /\ "green_1"
-  , 2 /\ "red_1"
-  ]
-
-textBoxes1 :: Array (TextBoxId /\ TextBox)
-textBoxes1 =
-  [ 1 /\ { name: "leftSide" , box: Box { topLeft: Vec2 { x:  0.0, y: 0.0 }, bottomRight: Vec2 { x: 45.0, y: 80.0 } } }
-  , 2 /\ { name: "rightSide", box: Box { topLeft: Vec2 { x: 45.0, y: 0.0 }, bottomRight: Vec2 { x: 90.0, y: 80.0 } } }
-  ]
-
---------------------------------------------------------------------------------
-
 transitions1 :: Array Transition
 transitions1 =
   [ { pre:  ms [ m 1 1 ] -- a
@@ -192,6 +176,11 @@ transitionRoles1 = rolesFromFoldable <$>
   , []
   ]
 
+--------------------------------------------------------------------------------
+
+textBoxes1 :: Array TextBox
+textBoxes1 = []
+
 net1Data :: NetRep
 net1Data = mkNetRep places1 transitions1 marking1 placeLabels1 placePoints1 transitionLabels1 transitionTypes1 transitionPoints1 transitionRoles1
 
@@ -204,7 +193,7 @@ netApi1 =
   }
 
 netInfo1 :: NetInfo
-netInfo1 = { name: "Traffic lights", net: net1, netApi: netApi1 }
+netInfo1 = { name: "Traffic lights", net: net1, netApi: netApi1, textBoxes: textBoxes1 }
 
 -- producer-consumer net -------------------------------------------------------
 
@@ -293,6 +282,12 @@ transitionRoles2 = rolesFromFoldable <$>
   , []
   ]
 
+textBoxes2 :: Array TextBox
+textBoxes2 =
+  [ { name: "Producer", box: Box { topLeft: Vec2 { x: -14.0, y: 6.0 }, bottomRight: Vec2 { x:  38.0, y: 54.0 } } }
+  , { name: "Consumer", box: Box { topLeft: Vec2 { x:  60.0, y: 6.0 }, bottomRight: Vec2 { x: 115.0, y: 54.0 } } }
+  ]
+
 net2Data :: NetRep
 net2Data = mkNetRep places2 transitions2 marking2 placeLabels2 placePoints2 transitionLabels2 transitionTypes2 transitionPoints2 transitionRoles2
 
@@ -305,7 +300,7 @@ netApi2 =
   }
 
 netInfo2 :: NetInfo
-netInfo2 = { name: "Producer-consumer", net: net2, netApi: netApi2 }
+netInfo2 = { name: "Producer-consumer", net: net2, netApi: netApi2, textBoxes: textBoxes2 }
 
 --------------------------------------------------------------------------------
 

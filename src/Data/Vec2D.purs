@@ -1,34 +1,49 @@
 module Data.Vec2D where
 
-import Prelude (min, max)
-import Data.Ring (negate)
+import Prelude
 import Data.Foldable (class Foldable, foldl)
+import Data.Newtype (class Newtype, un)
+import Data.Ring (negate)
 import Data.Semiring
 
-type Vec2D = { x :: Number, y :: Number }
+newtype Vec2 a = Vec2 (Vec2Rec a)
 
-newtype Vec2 a = Vec2 { x :: a, y :: a }
+type Vec2Rec a = { x :: a, y :: a }
+
+type Vec2D = Vec2Rec Number
+
+derive instance newtypeVec2 :: Newtype (Vec2 a)  _
+
+-- | Convenience constructor.
+vec2 :: forall a. a -> a -> Vec2 a
+vec2 x y = Vec2 { x: x , y: y }
 
 scalarMulVec2D :: Number -> Vec2D -> Vec2D
 scalarMulVec2D a {x, y} = { x: a*x, y: a*y }
 
-addVec :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a
-addVec (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 + x2, y: y1 + y2 }
+zeroVec2 :: forall a. Semiring a => Vec2 a
+zeroVec2 = Vec2 { x: zero, y: zero }
 
-mulVec :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a
-mulVec (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 * x2, y: y1 * y2 }
+addVec2 :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a
+addVec2 (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 + x2, y: y1 + y2 }
 
-zeroVec :: forall a. Semiring a => Vec2 a
-zeroVec = Vec2 { x: zero, y: zero }
+subVec2 :: forall a. Ring a => Vec2 a -> Vec2 a -> Vec2 a
+subVec2 (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 - x2, y: y1 - y2 }
 
-oneVec :: forall a. Semiring a => Vec2 a
-oneVec = Vec2 { x: zero, y: zero }
+oneVec2 :: forall a. Semiring a => Vec2 a
+oneVec2 = Vec2 { x: zero, y: zero }
+
+mulVec2 :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a
+mulVec2 (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 * x2, y: y1 * y2 }
 
 instance semiringVec :: Semiring a => Semiring (Vec2 a) where
-  zero = zeroVec
-  add  = addVec
-  mul  = mulVec
-  one  = oneVec
+  zero = zeroVec2
+  add  = addVec2
+  mul  = mulVec2
+  one  = oneVec2
+
+instance ringVec :: (Ring a, Semiring (Vec2 a)) => Ring (Vec2 a) where
+  sub  = subVec2
 
 -- minMax2 :: { min :: Vec2D, max :: Vec2D }
 --         -> { min :: Vec2D, max :: Vec2D }
@@ -69,4 +84,15 @@ bounds vecs =
 
 --------------------------------------------------------------------------------
 
-newtype Box n = Box { topLeft :: Vec2 n, bottomRight :: Vec2 n }
+newtype Box a = Box (BoxRec a)
+
+derive instance newtypeBox :: Newtype (Box a)  _
+
+type BoxRec a =
+  { topLeft     :: Vec2 a
+  , bottomRight :: Vec2 a
+  }
+
+-- TODO rename (its not a norm or anything but whatsit called?)
+wh :: forall a. Ring a => Box a -> Vec2 a
+wh (Box box) = box.bottomRight - box.topLeft

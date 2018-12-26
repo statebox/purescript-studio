@@ -50,8 +50,6 @@ type TextBoxF n =
 
 type TextBox = TextBoxF Number
 
-type TextBoxId = Int
-
 --------------------------------------------------------------------------------
 
 -- | Messages sent to the outside world (i.e. parent components).
@@ -61,14 +59,16 @@ data Msg = NetUpdated
 --------------------------------------------------------------------------------
 
 type NetInfoFRow pid tid ty r =
-  ( name   :: String
-  , net    :: NetObjF pid tid Tokens ty
-  , netApi :: NetApiF pid tid Tokens
+  ( name      :: String
+  , net       :: NetObjF pid tid Tokens ty
+  , netApi    :: NetApiF pid tid Tokens
+  , textBoxes :: Array TextBox
   | r
   )
 
 type NetInfoF pid tid ty r = Record (NetInfoFRow pid tid ty r)
 
+-- | This extends a net with fields containing project-wide info.
 type NetInfoWithTypesAndRolesFRow pid tid ty ty2 r = NetInfoFRow pid tid ty
   ( types     :: Array (TypeName /\ ty2)
   , roleInfos :: Array RoleInfo
@@ -96,22 +96,6 @@ type NetApi = NetApiF PID TID Tokens
 type NetInfo = Record (NetInfoFRow PID TID Typedef ())
 
 type NetInfoWithTypesAndRoles = Record (NetInfoWithTypesAndRolesFRow PID TID Typedef Typedef2 ())
-
--- empty net -------------------------------------------------------------------
-
-emptyNetData :: NetRep
-emptyNetData = mkNetRep mempty mempty (BagF mempty) mempty mempty mempty mempty mempty mempty
-
-emptyNet :: NetObj
-emptyNet = mkNetObjF emptyNetData
-
-emptyNetApi :: NetApi
-emptyNetApi =
-  { findTokens : findTokens' emptyNetData.marking
-  }
-
-emptyNetInfo :: NetInfo
-emptyNetInfo = { net: emptyNet, netApi: emptyNetApi, name: "" }
 
 --------------------------------------------------------------------------------
 

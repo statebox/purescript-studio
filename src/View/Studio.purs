@@ -22,7 +22,7 @@ import Halogen.HTML.Properties (classes, src, href)
 import Halogen.HTML.Properties.ARIA as ARIA
 
 import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
-import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, emptyNetInfo, NetObj, QueryF(..), Msg(NetUpdated))
+import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
