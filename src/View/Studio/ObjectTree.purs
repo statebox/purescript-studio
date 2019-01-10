@@ -110,10 +110,10 @@ menuComponent isSelected tree =
                      ]
              ]
           where
-            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-white" ] else []
+            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-purple-lighter" ] else []
             arrowIcon     = if null kids then text ""
                                          else span [ clzz [ "fas" , "fa-xs"
-                                                          , "fa-chevron-" <> if isExpanded then "down" else "right"
+                                                          , "fa-caret-" <> if isExpanded then "down" else "right"
                                                           ]
                                                    , onClick (HE.input_ clickQuery)
                                                    ] []

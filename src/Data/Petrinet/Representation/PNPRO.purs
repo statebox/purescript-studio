@@ -15,14 +15,12 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D, scalarMulVec2D)
+import Data.Vec2D (Vec2D, Vec2(..), Box(..), scalarMulVec2D)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
-import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, emptyNetApi)
+import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi)
 import View.Petrinet.Model as Model
-
---------------------------------------------------------------------------------
 
 -- | TODO Remove this. It is a temporary fix to make most nets from GSPN render more nicely.
 scaleGspnHack = scalarMulVec2D 2.0
@@ -51,6 +49,7 @@ type GSPN =
 type Nodes =
   { place      :: Array Place
   , transition :: Array Transition
+  , textBox    :: Array TextBox
   }
 
 type Node r =
@@ -68,6 +67,11 @@ type Transition = Node
   ( "type" :: String -- ^ TODO should be an ADT: "EXP", ...?
   )
 
+type TextBox = Node
+  ( height :: Number
+  , width  :: Number
+  )
+
 type PidOrTid = String
 
 type Arc =
@@ -81,7 +85,7 @@ type Arc =
 --------------------------------------------------------------------------------
 
 mkNetInfo :: GSPN -> NetInfo
-mkNetInfo gspn = { name: gspn.name, net: mkNetObjF netRep, netApi: mkNetApi netRep }
+mkNetInfo gspn = { name: gspn.name, net: mkNetObjF netRep, netApi: mkNetApi netRep, textBoxes: toModelTextBox <$> gspn.nodes.textBox }
   where
     netRep = toNetRep gspn
 
@@ -169,3 +173,11 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 -- fields. Will that work if Vec2D is/becomes a newtype though?
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
 toVec2D v = scaleGspnHack { x: v.x, y: v.y }
+
+toModelTextBox :: forall r. { name :: String, x :: Number, y :: Number, width :: Number, height :: Number | r } -> Model.TextBox
+toModelTextBox v =
+  { name: v.name
+  , box:  Box { topLeft:     Vec2 { x: v.x          , y: v.y            }
+              , bottomRight: Vec2 { x: v.x + v.width, y: v.y + v.height }
+              }
+  }

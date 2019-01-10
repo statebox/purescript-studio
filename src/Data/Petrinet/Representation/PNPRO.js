@@ -34,9 +34,12 @@ function xmlToJson_(ATTRS_KEY, SKIP_TEXT_NODE) {
     // visit children
     // if just one text node inside
     // TODO SKIP_TEXT_NODE?
+/*  // issue #91: disabled for now because this was causing text-box nodes to be dropped from the dom
     if (xml.hasChildNodes() && xml.childNodes.length === 1 && xml.childNodes[0].nodeType === NODE_TYPE_TEXT) {
       result = xml.childNodes[0].nodeValue;
-    } else if (xml.hasChildNodes()) {
+    } else
+*/
+    if (xml.hasChildNodes()) {
       for (var i = 0; i < xml.childNodes.length; i++) {
         var item = xml.childNodes.item(i);
         var nodeName = item.nodeName;
@@ -106,6 +109,26 @@ function mutateGSPNJson1 (rawGspn) {
       transition.type = transition.type
       transition.x    = parseFloat(transition.x)
       transition.y    = parseFloat(transition.y)
+    })
+
+    // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
+    if (!Array.isArray(gspn.nodes["text-box"])) {
+      gspn.nodes.textBox = [gspn.nodes["text-box"]];
+    }
+
+    gspn.nodes.textBox = gspn.nodes["text-box"]
+    gspn.nodes.textBox.forEach(function (textBox) {
+      textBox.name        = textBox.name
+      textBox.x           = parseFloat(textBox.x)
+      textBox.y           = parseFloat(textBox.y)
+      textBox.height      = parseFloat(textBox.height)
+      textBox.width       = parseFloat(textBox.width)
+      textBox.bold        = textBox.bold
+      textBox.borderColor = textBox["border-color"]
+      textBox.fillColor   = textBox["fill-color"]
+      textBox.shadow      = textBox.shadow
+      textBox.shape       = textBox.shape
+      textBox.textColor   = textBox["text-color"]
     })
 
     // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array

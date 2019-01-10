@@ -3,7 +3,7 @@ module View.Petrinet.PetrinetEditor where
 import Prelude
 import Control.MonadZero (empty)
 import Data.Array (catMaybes)
-import Data.Newtype (un)
+import Data.Newtype (un, unwrap)
 import Data.Bag (BagF)
 import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
 import Data.HeytingAlgebra (not)
@@ -18,7 +18,7 @@ import Data.Tuple (Tuple(..), uncurry, snd)
 import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
-import Data.Vec2D (Vec2D)
+import Data.Vec2D (Vec2D, Vec2(..), Box(..))
 import Data.Vec2D (bounds) as Vec2D
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff(..))
@@ -45,10 +45,15 @@ import View.Common (HtmlId, emptyHtml)
 import View.Petrinet.Arrow
 import View.Petrinet.Arrow as Arrow
 import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration)
-import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceQueryF(..), QueryF(..), Tokens, TransitionQueryF(..), Typedef(..))
+import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceQueryF(..), QueryF(..), Tokens, TransitionQueryF(..), Typedef(..), TextBox)
 import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
 
+
+-- TODO temp styling niceness hack #88
+disableMarkingsAndLabelVisibilityButtons = true
+
+--------------------------------------------------------------------------------
 
 type StateF pid tid =
   { netInfo                 :: NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 ()
@@ -115,31 +120,33 @@ ui initialNetInfo =
 
     render :: StateF pid tid -> HTML Void (QueryF pid tid Unit)
     render state =
-      div [ HP.id_ componentHtmlId
-          , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
-          ]
-          [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
-                   (netToSVG state.netInfo.net state.focusedPlace state.focusedTransition)
-          , HH.text state.msg
-          , HH.br []
-          , HH.br []
-          , div [ classes [ ClassName "columns" ] ]
-                [ div [ classes [ ClassName "column" ] ]
-                      [ htmlMarking state.netInfo.net.marking ]
-                , div [ classes [ ClassName "column" ] ]
-                      [ maybe emptyHtml (map UpdatePlace <<< PlaceEditor.form <<< Just) do
-                          pid <- state.focusedPlace
-                          label <- Map.lookup pid state.netInfo.net.placeLabelsDict
-                          pure { pid: pid, label: label, typedef: Typedef "Unit", isWriteable: false }
-                      , maybe emptyHtml (map UpdateTransition <<< TransitionEditor.form' state.netInfo.roleInfos) do
-                          tid   <- state.focusedTransition
-                          label <- Map.lookup tid state.netInfo.net.transitionLabelsDict
-                          typ   <- Map.lookup tid state.netInfo.net.transitionTypesDict
-                          let auths = fromMaybe mempty (Map.lookup tid state.netInfo.net.transitionAuthsDict)
-                          pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
+      div [ classes [ ClassName "flex" ] ]
+          [ div [ classes [ ClassName "w-5/6" ] ]
+                [ div [ HP.id_ componentHtmlId
+                      , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
                       ]
-                , div [ classes [ ClassName "column "] ]
-                      [ labelVisibilityButtons ]
+                      [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
+                               (netToSVG state.netInfo state.focusedPlace state.focusedTransition)
+                      , HH.br []
+                      , HH.text state.msg
+                      ]
+                , div [ classes [ ClassName "w-1/6" ] ] $
+                      if disableMarkingsAndLabelVisibilityButtons then [] else
+                        [ htmlMarking state.netInfo.net.marking
+                        , labelVisibilityButtons
+                        ]
+                ]
+          , div [ classes [ ClassName "w-1/6", ClassName "px-2" ] ]
+                [ maybe emptyHtml (map UpdatePlace <<< PlaceEditor.form <<< Just) do
+                    pid <- state.focusedPlace
+                    label <- Map.lookup pid state.netInfo.net.placeLabelsDict
+                    pure { pid: pid, label: label, typedef: Typedef "Unit", isWriteable: false }
+                , maybe emptyHtml (map UpdateTransition <<< TransitionEditor.form' state.netInfo.roleInfos) do
+                    tid   <- state.focusedTransition
+                    label <- Map.lookup tid state.netInfo.net.transitionLabelsDict
+                    typ   <- Map.lookup tid state.netInfo.net.transitionTypesDict
+                    let auths = fromMaybe mempty (Map.lookup tid state.netInfo.net.transitionAuthsDict)
+                    pure { tid: tid, label: label, typedef: typ, isWriteable: false, auths: auths }
                 ]
           ]
       where
@@ -208,14 +215,14 @@ ui initialNetInfo =
           Transition -> state { transitionLabelsVisible = not state.transitionLabelsVisible }
         pure next
 
-
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetObjF pid tid Tokens Typedef -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
-    netToSVG net focusedPlace focusedTransition =
-      svgDefs <> svgTransitions <> svgPlaces
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 () -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
+    netToSVG netInfo@{net} focusedPlace focusedTransition =
+      svgDefs <> svgTextBoxes <> svgTransitions <> svgPlaces
       where
         svgDefs        = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
         svgTransitions = catMaybes $ map (map svgTransitionAndArcs <<< uncurry mkTransitionAndArcsModel) $ Map.toUnfoldable $ net.transitionsDict
         svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
+        svgTextBoxes   = svgTextBox <$> netInfo.textBoxes
 
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
@@ -390,6 +397,28 @@ ui initialNetInfo =
             , SA.cy     point.y
             , SA.class_ "css-token-in-place"
             ]
+
+    --------------------------------------------------------------------------------
+
+    svgTextBox :: ∀ tid a. TextBox -> HTML a ((QueryF pid tid) Unit)
+    svgTextBox tb =
+      SE.g [ SA.class_  "css-textbox" ]
+           [ SE.rect [ SA.x       x
+                     , SA.y       y
+                     , SA.width   w
+                     , SA.height  h
+                     ]
+           , SE.text [ SA.class_    "css-textbox-label"
+                     , SA.x         (x + 15.0 * fontSize) -- TODO offset computation is wrong (a temp hack) #88
+                     , SA.y         (y + 20.0 * fontSize) -- TODO offset computation is wrong (a temp hack) #88
+                     , SA.font_size (SA.FontSizeLength $ Em fontSize)
+                     ]
+                     [ HH.text tb.name ]
+           ]
+      where
+        box                                           = unwrap tb.box
+        { topLeft: Vec2 {x, y}, bottomRight: Vec2 _ } = box
+        Vec2 {x:w, y:h}                               = box.bottomRight - box.topLeft
 
     --------------------------------------------------------------------------------
 

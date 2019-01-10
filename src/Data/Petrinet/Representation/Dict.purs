@@ -30,7 +30,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, un, unwrap)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D)
+import Data.Vec2D (Vec2D, Vec2)
 import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
 import Data.Group (class Group, ginverse)
 import Data.Bag (BagF(..))
