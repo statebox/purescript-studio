@@ -34,9 +34,12 @@ function xmlToJson_(ATTRS_KEY, SKIP_TEXT_NODE) {
     // visit children
     // if just one text node inside
     // TODO SKIP_TEXT_NODE?
+/*  // issue #91: disabled for now because this was causing text-box nodes to be dropped from the dom
     if (xml.hasChildNodes() && xml.childNodes.length === 1 && xml.childNodes[0].nodeType === NODE_TYPE_TEXT) {
       result = xml.childNodes[0].nodeValue;
-    } else if (xml.hasChildNodes()) {
+    } else
+*/
+    if (xml.hasChildNodes()) {
       for (var i = 0; i < xml.childNodes.length; i++) {
         var item = xml.childNodes.item(i);
         var nodeName = item.nodeName;
