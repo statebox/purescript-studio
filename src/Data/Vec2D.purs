@@ -93,6 +93,6 @@ type BoxRec a =
   , bottomRight :: Vec2 a
   }
 
--- TODO rename (its not a norm or anything but whatsit called?)
+-- TODO #92 rename; this is used to determine width and height of a Box.
 wh :: forall a. Ring a => Box a -> Vec2 a
 wh (Box box) = box.bottomRight - box.topLeft
