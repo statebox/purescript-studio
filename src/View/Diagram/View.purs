@@ -15,6 +15,7 @@ import Svg.Attributes as SA
 import Svg.Attributes (Color(RGB, RGBA), FontSize(..), CSSLength(..))
 import Svg.Elements as SE
 import Svg.Elements (rect)
+import Svg.Util (domToSvgCoordinates)
 import Web.UIEvent.MouseEvent (clientX, clientY)
 
 import View.Diagram.Common
@@ -29,9 +30,9 @@ diagramEditorSVG :: Model -> Svg MouseMsg
 diagramEditorSVG model =
   SE.svg [ SA.viewBox sceneLeft sceneTop w h
          , HP.ref componentRefLabel
-         , HE.onMouseMove $ \e -> Just $ MousePosition (clientX e) (clientY e)
-         , HE.onMouseDown $ \e -> Just $ MouseDown     (clientX e) (clientY e)
-         , HE.onMouseUp   $ \e -> Just $ MouseUp       (clientX e) (clientY e)
+         , HE.onMouseMove $ \e -> Just $ MousePosition (domToSvgCoordinates ((clientX e) /\ (clientY e)))
+         , HE.onMouseDown $ \e -> Just $ MouseDown     (domToSvgCoordinates ((clientX e) /\ (clientY e)))
+         , HE.onMouseUp   $ \e -> Just $ MouseUp       (domToSvgCoordinates ((clientX e) /\ (clientY e)))
          ]
          (ghosts <> operators)
   where
@@ -90,20 +91,24 @@ operatorSegment op region x y w h =
 
 -- TODO parameter s is redundant, equals model.config.scale
 operatorGhosts :: Int -> Model -> Array (Svg MouseMsg)
-operatorGhosts s model = let (dx /\ dy /\ dw) = dragDelta model in case model.dragStart of
-  DragStartedOnBackground (x /\ y) ->
-    [ operatorGhostSnapped s x y (abs dx) (abs dy) ]
-  DragStartedOnOperator _ op handle ->
-    let
-      x /\ y   = (s * op.x - dx) /\ (s * op.y - dy)
-      w        = (s * op.w - dw)
-      ax /\ aw = if w > 0 then 0 /\ 0 else w /\ (-2 * w)
-      h        = s
-    in
-      [ operatorGhostSnapped s (x+ax) y (w+aw) h
-      , operatorGhost        s (x+ax) y (w+aw) h
-      ]
-  _ -> []
+operatorGhosts s model =
+  let
+    (dx /\ dy /\ dw) = dragDelta model
+  in
+    case model.dragStart of
+      DragStartedOnBackground (x /\ y) ->
+        [ operatorGhostSnapped s x y (abs dx) (abs dy) ]
+      DragStartedOnOperator _ op handle ->
+        let
+          x /\ y   = (s * op.x - dx) /\ (s * op.y - dy)
+          w        = (s * op.w - dw)
+          ax /\ aw = if w > 0 then 0 /\ 0 else w /\ (-2 * w)
+          h        = s
+        in
+          [ operatorGhostSnapped s (x+ax) y (w+aw) h
+          , operatorGhost        s (x+ax) y (w+aw) h
+          ]
+      _ -> []
 
 operatorGhost :: Int -> Int -> Int -> Int -> Int -> Svg MouseMsg
 operatorGhost s x y w h =

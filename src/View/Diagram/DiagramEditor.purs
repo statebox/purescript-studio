@@ -71,16 +71,10 @@ ui = H.component { initialState: const initialState, render, eval, receiver: con
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
         let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
-                            (\rect state -> state { model = translateMousePos rect <<< evalModel msg $ state.model })
+                            (\rect state -> state { model = evalModel msg $ state.model })
                             boundingRectMaybe
         H.modify_ (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe })
         pure next
-
--- | Make mousePosition field relative to rectangle at the given top and left coordinates.
--- | TODO Use round, floor, or some other function?
-translateMousePos :: DOMRect -> Model -> Model
-translateMousePos { top, left } model =
-  model { mousePosition = bimap (\x -> x - round left) (\y -> y - round top) model.mousePosition }
 
 -- TODO this is generally useful; move elsewhere
 -- This was made because the original implementation from Halogen.Query doesn't seem to work, at least in this case:
