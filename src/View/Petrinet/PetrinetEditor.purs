@@ -280,8 +280,8 @@ ui initialNetInfo =
     svgTransitionLabel :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
-              , SA.x         (_x t.point + 0.5 * transitionWidth)
-              , SA.y         (_y t.point + 4.0 * fontSize)
+              , SA.x         (_x t.point - 0.5 * transitionWidth)
+              , SA.y         (_y t.point - 0.65 * transitionHeight + 0.25 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
               [ HH.text t.label ]
@@ -375,8 +375,8 @@ ui initialNetInfo =
                ]
            , svgTokens tokens point
            , SE.text [ SA.class_    "css-place-name-label"
-                     , SA.x         (_x point + placeRadius + placeRadius / 2.0)
-                     , SA.y         (_y point + 4.0 * fontSize)
+                     , SA.x         (_x point - 1.0 * placeRadius)
+                     , SA.y         (_y point + 2.0 * placeRadius + 0.25 * fontSize)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
                      [ HH.text label ]
