@@ -20,9 +20,9 @@ type Query = MkQueryF MouseMsg
 data MouseMsg
   = MouseIsOver   Operator OperatorHandle
   | MouseIsOut    Operator
-  | MousePosition Int Int
-  | MouseUp       Int Int
-  | MouseDown     Int Int
+  | MousePosition (Int /\ Int)
+  | MouseUp       (Int /\ Int)
+  | MouseDown     (Int /\ Int)
 
 -- TODO Coyoneda?
 data MkQueryF e a = QueryF e a
@@ -33,14 +33,14 @@ evalModel :: MouseMsg -> Model -> Model
 evalModel msg model = case msg of
   MouseIsOut    _   -> model { mouseOver = Nothing }
   MouseIsOver   x k -> model { mouseOver = Just (x /\ k) }
-  MousePosition x y -> model { mousePosition = x /\ y }
-  MouseDown     x y -> model { mousePosition = x /\ y
+  MousePosition p   -> model { mousePosition = p }
+  MouseDown     p   -> model { mousePosition = p
                              , mousePressed = true
                              , dragStart = case model.mouseOver of
                                              Nothing                 -> DragStartedOnBackground model.mousePosition
                                              Just (op /\ opPosition) -> DragStartedOnOperator   model.mousePosition op opPosition
                              }
-  MouseUp       x y -> (dropGhost model) { mousePosition = x /\ y
+  MouseUp       p   -> (dropGhost model) { mousePosition = p
                                          , mousePressed = false
                                          , dragStart = DragNotStarted
                                          }

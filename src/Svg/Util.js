@@ -20,3 +20,23 @@ exports._beginElements = function (cssSelectorStr) {
     };
   };
 }
+
+var svg;
+
+exports.domToSvgCoordinates = function (point) {
+  if (typeof svg === 'undefined') {
+    svg = document.getElementsByTagName('svg')[0];
+  }
+
+  const svgPoint = svg.createSVGPoint();
+
+  svgPoint.x = point.value0;
+  svgPoint.y = point.value1;
+
+  const svgCoordPoint = svgPoint.matrixTransform(svg.getScreenCTM().inverse());
+
+  return {
+    value0: svgCoordPoint.x,
+    value1: svgCoordPoint.y
+  };
+}
