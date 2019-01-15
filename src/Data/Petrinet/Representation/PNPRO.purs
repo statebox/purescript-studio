@@ -15,7 +15,7 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D, Vec2(..), Box(..), scalarMulVec2D)
+import Data.Vec2D (Vec2D, Vec2(..), Box(..), vec2)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
@@ -23,7 +23,8 @@ import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, Plac
 import View.Petrinet.Model as Model
 
 -- | TODO Remove this. It is a temporary fix to make most nets from GSPN render more nicely.
-scaleGspnHack = scalarMulVec2D 2.0
+scaleGspnHack :: Vec2D -> Vec2D
+scaleGspnHack v = pure 2.0 * v
 
 --------------------------------------------------------------------------------
 
@@ -172,12 +173,12 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 -- TODO It'd be faster to make the Vec2D row type extensible, so it can include other
 -- fields. Will that work if Vec2D is/becomes a newtype though?
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
-toVec2D v = scaleGspnHack { x: v.x, y: v.y }
+toVec2D v = scaleGspnHack (vec2 v.x v.y)
 
 toModelTextBox :: forall r. { name :: String, x :: Number, y :: Number, width :: Number, height :: Number | r } -> Model.TextBox
 toModelTextBox v =
   { name: v.name
-  , box:  Box { topLeft:     Vec2 { x: v.x          , y: v.y            }
-              , bottomRight: Vec2 { x: v.x + v.width, y: v.y + v.height }
+  , box:  Box { topLeft:     vec2  v.x             v.y
+              , bottomRight: vec2 (v.x + v.width) (v.y + v.height)
               }
   }
