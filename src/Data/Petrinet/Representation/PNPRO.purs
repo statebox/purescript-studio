@@ -178,7 +178,7 @@ toVec2D v = scaleGspnHack (vec2 v.x v.y)
 toModelTextBox :: forall r. { name :: String, x :: Number, y :: Number, width :: Number, height :: Number | r } -> Model.TextBox
 toModelTextBox v =
   { name: v.name
-  , box:  Box { topLeft:     vec2  v.x             v.y
-              , bottomRight: vec2 (v.x + v.width) (v.y + v.height)
+  , box:  Box { topLeft:     scaleGspnHack $ vec2  v.x             v.y
+              , bottomRight: scaleGspnHack $ vec2 (v.x + v.width) (v.y + v.height)
               }
   }

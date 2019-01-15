@@ -8,6 +8,7 @@ import Data.Bag (BagF)
 import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
 import Data.HeytingAlgebra (not)
 import Data.Int (toNumber, floor, round)
+import Data.List as List
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -152,7 +153,7 @@ ui initialNetInfo =
       where
         sceneSize                       = bounds.max - bounds.min + padding
         sceneTopLeft                    = bounds.min - (padding / pure 2.0)
-        bounds                          = Vec2D.bounds (Map.values state.netInfo.net.placePointsDict <> Map.values state.netInfo.net.transitionPointsDict)
+        bounds                          = boundingBox state.netInfo
         padding                         = vec2 (4.0 * transitionWidth) (4.0 * transitionHeight)
 
         arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible)        "css-hide-arc-labels"
@@ -415,7 +416,7 @@ ui initialNetInfo =
            ]
       where
         { topLeft, bottomRight } = unwrap tb.box
-        boxSize                  = topLeft - bottomRight
+        boxSize                  = bottomRight - topLeft
         x                        = _x topLeft
         y                        = _y topLeft
         w                        = _x boxSize
@@ -505,6 +506,13 @@ svgPath :: ∀ r i. Vec2D -> Vec2D -> Array SA.D
 svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
 
 --------------------------------------------------------------------------------
+
+boundingBox :: forall pid tid ty ty2 a. NetInfoWithTypesAndRolesF pid tid ty ty2 a -> { min :: Vec2D, max :: Vec2D }
+boundingBox netInfo =
+  Vec2D.bounds $ Map.values netInfo.net.placePointsDict <>
+                 Map.values netInfo.net.transitionPointsDict <>
+                 (List.fromFoldable $ (_.bottomRight <<< un Box <<< _.box) <$> netInfo.textBoxes) <>
+                 (List.fromFoldable $ (_.topLeft     <<< un Box <<< _.box) <$> netInfo.textBoxes)
 
 toggleMaybe :: ∀ a b. b -> Maybe a -> Maybe b
 toggleMaybe z mx = case mx of
