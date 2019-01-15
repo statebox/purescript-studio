@@ -1,7 +1,8 @@
 module View.Petrinet.Arrow where
 
-import Prelude (max, negate, ($), (*), (+), (-), (/), (<$>), (>), (>=), (<>))
-import Data.Vec2D (Vec2D)
+import Prelude (max, negate, ($), (*), (+), (-), (/), (<$>), (>), (>=), (<>), pure)
+import Data.Vec2D (Vec2D, vec2, _x, _y)
+import Data.Vec2D as Vec2
 import Halogen.HTML (HTML)
 import Svg.Elements as SE
 import Svg.Attributes as SA
@@ -27,10 +28,10 @@ svgArrowLine :: forall p i. Vec2D -> Vec2D -> HTML p i
 svgArrowLine src dest =
   SE.line
     [ SA.class_ "css-arrow"
-    , SA.x1 src.x
-    , SA.y1 src.y
-    , SA.x2 dest.x
-    , SA.y2 dest.y
+    , SA.x1 $ _x src
+    , SA.y1 $ _y src
+    , SA.x2 $ _x dest
+    , SA.y2 $ _y dest
     , SA.markerEnd $ "url(#" <> arrowheadMarkerId <> ")"
     ]
 
@@ -53,22 +54,18 @@ svgArrowheadMarker =
     [ SE.path [ SA.d $ SA.Abs <$> [ SA.M 0.0 0.0, SA.L 0.0 12.0, SA.L 6.0 6.0, SA.Z ] ] ]
 
 placeLinePoint :: Vec2D -> Vec2D -> Vec2D
-placeLinePoint p t = { x: p.x + px, y: p.y + py }
+placeLinePoint p t = p + p'
   where
-    px  = cos phi * placeRadius
-    py  = sin phi * placeRadius
-    dx  = t.x - p.x
-    dy  = t.y - p.y
-    phi = atan2 dy dx
+    p'  = vec2 (cos phi) (sin phi) * pure placeRadius
+    d   = t - p
+    phi = atan2 (_y d) (_x d)
 
 transitionLinePoint :: Vec2D -> Vec2D -> Vec2D
-transitionLinePoint p t = { x: t.x - tx, y: t.y - ty }
+transitionLinePoint p t = t - t'
   where
-    tx = dx / u * placeRadius
-    ty = dy / u * placeRadius
-    dx = t.x - p.x
-    dy = t.y - p.y
-    u  = max (abs dx) (abs dy)
+    t' = d / pure (u * placeRadius)
+    d = t - p
+    u  = abs (_x d) `max` abs (_y d)
 
 --------------------------------------------------------------------------------
 

@@ -23,7 +23,7 @@ import Data.Newtype (un, over)
 import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ring
-import Data.Vec2D (Vec2D, Vec2(..), Box(..))
+import Data.Vec2D (Vec2D, Vec2(..), vec2, Box(..))
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
@@ -110,11 +110,11 @@ marking1 = Bag.fromFoldable
 
 placePoints1 :: Array (PID /\ Vec2D)
 placePoints1 =
-  [ 1 /\ { x: 10.0, y: 30.0 }
-  , 2 /\ { x: 30.0, y: 30.0 }
-  , 3 /\ { x: 90.0, y: 30.0 }
-  , 4 /\ { x: 70.0, y: 30.0 }
-  , 5 /\ { x: 50.0, y: 30.0 }
+  [ 1 /\ vec2 10.0 30.0
+  , 2 /\ vec2 30.0 30.0
+  , 3 /\ vec2 90.0 30.0
+  , 4 /\ vec2 70.0 30.0
+  , 5 /\ vec2 50.0 30.0
   ]
 
 --------------------------------------------------------------------------------
@@ -163,10 +163,10 @@ transitionTypes1 =
   ]
 
 transitionPoints1 =
-  [ { x: 30.0, y: 20.0 }
-  , { x: 30.0, y: 40.0 }
-  , { x: 70.0, y: 20.0 }
-  , { x: 70.0, y: 40.0 }
+  [ vec2 30.0 20.0
+  , vec2 30.0 40.0
+  , vec2 70.0 20.0
+  , vec2 70.0 40.0
   ]
 
 transitionRoles1 = rolesFromFoldable <$>
@@ -222,11 +222,11 @@ bot2 = 50.0
 
 placePoints2 :: Array (TID /\ Vec2D)
 placePoints2 =
-  [ 1 /\ { x: 10.0, y: top2 }
-  , 2 /\ { x: 10.0, y: bot2 }
-  , 3 /\ { x: 50.0, y: mid2 }
-  , 4 /\ { x: 90.0, y: top2 }
-  , 5 /\ { x: 90.0, y: bot2 }
+  [ 1 /\ vec2 10.0 top2
+  , 2 /\ vec2 10.0 bot2
+  , 3 /\ vec2 50.0 mid2
+  , 4 /\ vec2 90.0 top2
+  , 5 /\ vec2 90.0 bot2
   ]
 
 transitions2 :: Array Transition
@@ -269,10 +269,10 @@ transitionLabels2 =
   ]
 
 transitionPoints2 =
-  [ { x: -10.0, y: mid2 }
-  , { x:  30.0, y: mid2 }
-  , { x:  70.0, y: mid2 }
-  , { x: 110.0, y: mid2 }
+  [ vec2 (-10.0) mid2
+  , vec2   30.0  mid2
+  , vec2   70.0  mid2
+  , vec2  110.0  mid2
   ]
 
 transitionRoles2 = rolesFromFoldable <$>
@@ -284,8 +284,8 @@ transitionRoles2 = rolesFromFoldable <$>
 
 textBoxes2 :: Array TextBox
 textBoxes2 =
-  [ { name: "Producer", box: Box { topLeft: Vec2 { x: -14.0, y: 6.0 }, bottomRight: Vec2 { x:  38.0, y: 54.0 } } }
-  , { name: "Consumer", box: Box { topLeft: Vec2 { x:  60.0, y: 6.0 }, bottomRight: Vec2 { x: 115.0, y: 54.0 } } }
+  [ { name: "Producer", box: Box { topLeft: vec2 (-14.0) 6.0, bottomRight: vec2  38.0 54.0 } }
+  , { name: "Consumer", box: Box { topLeft: vec2   60.0  6.0, bottomRight: vec2 115.0 54.0 } }
   ]
 
 net2Data :: NetRep

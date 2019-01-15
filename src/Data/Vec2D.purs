@@ -1,86 +1,132 @@
-module Data.Vec2D where
+module Data.Vec2D
+  ( Vec3
+  , binOp
+
+  , Vec2()
+  , vec2
+  , _x
+  , _y
+  , Vec2D()
+
+  , bounds
+
+  , Box(..)
+  , BoxRec
+  ) where
 
 import Prelude
 import Data.Foldable (class Foldable, foldl)
-import Data.Newtype (class Newtype, un)
+import Data.Bounded (class Bounded, top, bottom)
+import Data.Monoid.Additive (Additive(..))
+import Data.Monoid.Multiplicative (Multiplicative(..))
+import Data.Newtype (class Newtype, unwrap)
+import Data.Ord (class Ord)
+import Data.Ord.Max (Max(..))
+import Data.Ord.Min (Min(..))
 import Data.Ring (negate)
 import Data.Semiring
 
-newtype Vec2 a = Vec2 (Vec2Rec a)
+newtype Vec3 a = Vec3 (Vec3Rec a)
 
-type Vec2Rec a = { x :: a, y :: a }
+derive instance newtypeVec3 :: Newtype (Vec3 a)  _
 
-type Vec2D = Vec2Rec Number
+-- | Considerations:
+-- | - Has to be usable from JavaScript.
+type Vec3Rec a = { x :: a, y :: a, z :: a }
 
-derive instance newtypeVec2 :: Newtype (Vec2 a)  _
+-- | 'Smart' constructor.
+vec3 :: forall a. a -> a -> a -> Vec3 a
+vec3 x y z = Vec3 { x: x, y: y, z: z }
 
--- | Convenience constructor.
-vec2 :: forall a. a -> a -> Vec2 a
-vec2 x y = Vec2 { x: x , y: y }
+-- projections -----------------------------------------------------------------
 
-scalarMulVec2D :: Number -> Vec2D -> Vec2D
-scalarMulVec2D a {x, y} = { x: a*x, y: a*y }
+_x :: ∀ a. Vec3 a -> a
+_x (Vec3 {x,y,z}) = x
 
-zeroVec2 :: forall a. Semiring a => Vec2 a
-zeroVec2 = Vec2 { x: zero, y: zero }
+_y :: ∀ a. Vec3 a -> a
+_y (Vec3 {x,y,z}) = y
 
-addVec2 :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a
-addVec2 (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 + x2, y: y1 + y2 }
+_z :: ∀ a. Vec3 a -> a
+_z (Vec3 {x,y,z}) = z
 
-subVec2 :: forall a. Ring a => Vec2 a -> Vec2 a -> Vec2 a
-subVec2 (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 - x2, y: y1 - y2 }
+--------------------------------------------------------------------------------
 
-oneVec2 :: forall a. Semiring a => Vec2 a
-oneVec2 = Vec2 { x: zero, y: zero }
+binOp :: ∀ a. (a -> a -> a) -> Vec3 a -> Vec3 a -> Vec3 a
+binOp f (Vec3 { x: x1, y: y1, z: z1 })
+        (Vec3 { x: x2, y: y2, z: z2 }) =
+        (Vec3 { x: f x1 x2, y: f y1 y2, z: f z1 z2 })
 
-mulVec2 :: forall a. Semiring a => Vec2 a -> Vec2 a -> Vec2 a
-mulVec2 (Vec2 { x: x1, y: y1 }) (Vec2 { x: x2, y: y2 }) = Vec2 { x: x1 * x2, y: y1 * y2 }
+derive instance eqVec3 :: Eq a => Eq (Vec3 a)
 
-instance semiringVec :: Semiring a => Semiring (Vec2 a) where
-  zero = zeroVec2
-  add  = addVec2
-  mul  = mulVec2
-  one  = oneVec2
+derive instance functorVec3 :: Functor Vec3
 
-instance ringVec :: (Ring a, Semiring (Vec2 a)) => Ring (Vec2 a) where
-  sub  = subVec2
+instance applyVec3 :: Apply Vec3 where
+  apply (Vec3 {x: fx, y: fy, z: fz}) (Vec3 {x,y,z}) = Vec3 {x: fx x, y: fy y, z: fz z}
 
--- minMax2 :: { min :: Vec2D, max :: Vec2D }
---         -> { min :: Vec2D, max :: Vec2D }
---         -> { min :: Vec2D, max :: Vec2D }
--- minMax2 { min: vMin, max: vMax }
---         { min: wMin, max: wMax }
---       = { min: minCoord vMin wMin
---         , max: maxCoord vMax wMax
---         }
+instance applicativeVec3 :: Applicative Vec3 where
+  pure x = vec3 x x x
 
+instance additiveSemigroupVec3 :: Semigroup (Additive a) => Semigroup (Vec3 (Additive a)) where
+  append = binOp append
 
--- TODO monoid instance? bifunctor? tuple?
+instance multiplicativeSemigroupVec3 :: Semigroup (Multiplicative a) => Semigroup (Vec3 (Multiplicative a)) where
+  append = binOp append
 
--- TODO ehh mss kan dit handiger met tuple of eoa vector impl? mss een `iso`tje ertegenaanknallen
--- TODO en sws Vec2D heeft natuurlijk geen instances etc maar is basically een gespecialiseerde tuple; mss ff libje pakken instead
--- TODO hmm :/ voor efficientie doen we hier min en max door elkaar
--- TODO shit, this is one shitload of reimplementations; monoidal stuff, bifunctor stuff, etc
--- TODO we werken hier toevallig met de dicts in net, maar het mogen (liever, want algemener) ook lijsten of foldables zijn
+instance additiveMonoidVec3 :: (Semigroup (Vec3 (Additive a)), Monoid (Additive a)) => Monoid (Vec3 (Additive a)) where
+  mempty = pure mempty
 
-bounds :: ∀ f. Foldable f => f Vec2D -> { min :: Vec2D, max :: Vec2D }
+instance multiplicativeMonoidVec3 :: (Semigroup (Vec3 (Multiplicative a)), Monoid (Multiplicative a)) => Monoid (Vec3 (Multiplicative a)) where
+  mempty = pure mempty
+
+instance semiringVec3 :: Semiring a => Semiring (Vec3 a) where
+  zero = pure zero
+  add  = binOp (+)
+  one  = pure one
+  mul  = binOp (*)
+
+instance ringVec3 :: (Ring a, Semiring (Vec3 a)) => Ring (Vec3 a) where
+  sub  = binOp (-)
+
+instance commutativeRingVec3 :: CommutativeRing a => CommutativeRing (Vec3 a)
+
+instance divisionRingVec3 :: DivisionRing a => DivisionRing (Vec3 a) where
+  recip = map recip
+
+instance euclideanRingVec3 :: EuclideanRing a => EuclideanRing (Vec3 a) where
+  degree = degree <<< _x
+  div    = binOp div
+  mod    = binOp mod
+
+instance minSemigroupVec3 :: Semigroup (Min a) => Semigroup (Vec3 (Min a)) where
+  append = binOp append
+
+instance maxSemigroupVec3 :: Semigroup (Max a) => Semigroup (Vec3 (Max a)) where
+  append = binOp append
+
+instance minMonoidVec3 :: (Semigroup (Vec3 (Min a)), Monoid (Min a)) => Monoid (Vec3 (Min a)) where
+  mempty = pure mempty
+
+instance maxMonoidVec3 :: (Semigroup (Vec3 (Max a)), Monoid (Max a)) => Monoid (Vec3 (Max a)) where
+  mempty = pure mempty
+
+bounds :: ∀ f a. Bounded a => Ord a => Foldable f => f (Vec3 a) -> { min :: Vec3 a, max :: Vec3 a }
 bounds vecs =
-  foldl minMaxVecs1 minMaxZero vecs
+  foldl minMaxVecs minMaxZero vecs
   where
-    minMaxVecs1 :: { min :: Vec2D, max :: Vec2D } -> Vec2D -> { min :: Vec2D, max :: Vec2D }
-    minMaxVecs1 { min: vMin, max: vMax } v =
-      { min: minCoord vMin v
-      , max: maxCoord vMax v
-      }
+    minMaxVecs :: { min :: Vec3 a, max :: Vec3 a } -> Vec3 a -> { min :: Vec3 a, max :: Vec3 a }
+    minMaxVecs { min: vMin, max: vMax } v = { min: min <$> vMin <*> v, max: max <$> vMax <*> v }
 
-    -- TODO MIN_FLOAT and MAX_FLOAT or whatevs; maybe in Global?
-    minMaxZero =
-      { min: {x:  999999.9, y:  999999.9}
-      , max: {x: -999999.9, y: -999999.9}
-      }
+    minMaxZero = { min: pure top, max: pure bottom }
 
-    maxCoord {x:x1, y:y1} {x:x2, y:y2} = {x: x1 `max` x2, y: y1 `max` y2}
-    minCoord {x:x1, y:y1} {x:x2, y:y2} = {x: x1 `min` x2, y: y1 `min` y2}
+-- Legacy Vec2 interface--------------------------------------------------------
+
+type Vec2 a = Vec3 a
+
+type Vec2D = Vec3 Number
+
+-- | 'Smart' constructor.
+vec2 :: ∀ a. Semiring a => a -> a -> Vec3 a
+vec2 x y = vec3 x y zero
 
 --------------------------------------------------------------------------------
 
@@ -89,10 +135,6 @@ newtype Box a = Box (BoxRec a)
 derive instance newtypeBox :: Newtype (Box a)  _
 
 type BoxRec a =
-  { topLeft     :: Vec2 a
-  , bottomRight :: Vec2 a
+  { topLeft     :: Vec3 a
+  , bottomRight :: Vec3 a
   }
-
--- TODO #92 rename; this is used to determine width and height of a Box.
-wh :: forall a. Ring a => Box a -> Vec2 a
-wh (Box box) = box.bottomRight - box.topLeft

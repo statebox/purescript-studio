@@ -8,6 +8,7 @@ import Data.Bag (BagF)
 import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
 import Data.HeytingAlgebra (not)
 import Data.Int (toNumber, floor, round)
+import Data.List as List
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -18,7 +19,7 @@ import Data.Tuple (Tuple(..), uncurry, snd)
 import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
-import Data.Vec2D (Vec2D, Vec2(..), Box(..))
+import Data.Vec2D (Vec2D, Vec2(..), vec2, _x, _y, Box(..))
 import Data.Vec2D (bounds) as Vec2D
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff(..))
@@ -125,7 +126,7 @@ ui initialNetInfo =
                 [ div [ HP.id_ componentHtmlId
                       , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
                       ]
-                      [ SE.svg [ SA.viewBox sceneLeft sceneTop sceneWidth sceneHeight ]
+                      [ SE.svg [ SA.viewBox (_x sceneTopLeft) (_y sceneTopLeft) (_x sceneSize) (_y sceneSize) ]
                                (netToSVG state.netInfo state.focusedPlace state.focusedTransition)
                       , HH.br []
                       , HH.text state.msg
@@ -150,13 +151,11 @@ ui initialNetInfo =
                 ]
           ]
       where
-        sceneWidth                      = (bounds.max.x - bounds.min.x) + paddingX
-        sceneHeight                     = (bounds.max.y - bounds.min.y) + paddingY
-        sceneLeft                       = bounds.min.x - (paddingX / 2.0)
-        sceneTop                        = bounds.min.y - (paddingY / 2.0)
-        bounds                          = Vec2D.bounds (Map.values state.netInfo.net.placePointsDict <> Map.values state.netInfo.net.transitionPointsDict)
-        paddingX                        = 4.0 * transitionWidth -- TODO maybe stick the padding inside the bounding box?
-        paddingY                        = 4.0 * transitionHeight
+        sceneSize                       = bounds.max - bounds.min + padding
+        sceneTopLeft                    = bounds.min - (padding / pure 2.0)
+        bounds                          = boundingBox state.netInfo
+        padding                         = vec2 (4.0 * transitionWidth) (4.0 * transitionHeight)
+
         arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible)        "css-hide-arc-labels"
         placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible)      "css-hide-place-labels"
         transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
@@ -274,15 +273,15 @@ ui initialNetInfo =
       SE.rect [ SA.class_  ("css-transition-rect" <> guard t.isFocused " focused")
               , SA.width   transitionWidth
               , SA.height  transitionHeight
-              , SA.x       (t.point.x - transitionWidth / 2.0)
-              , SA.y       (t.point.y - transitionHeight / 2.0)
+              , SA.x       (_x t.point - transitionWidth / 2.0)
+              , SA.y       (_y t.point - transitionHeight / 2.0)
               ]
 
     svgTransitionLabel :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid) Unit)
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
-              , SA.x         (t.point.x + 1.5 * placeRadius)
-              , SA.y         (t.point.y + 4.0 * fontSize)
+              , SA.x         (_x t.point + 0.5 * transitionWidth)
+              , SA.y         (_y t.point + 4.0 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
               [ HH.text t.label ]
@@ -298,8 +297,8 @@ ui initialNetInfo =
            , svgArrow arc.src arc.dest arc.isPost
            , SE.text
                [ SA.class_    "css-arc-name-label"
-               , SA.x         arc.src.x
-               , SA.y         arc.src.y
+               , SA.x         (_x arc.src)
+               , SA.y         (_x arc.src)
                , SA.font_size (FontSizeLength $ Em fontSize)
                  -- TODO add SVG.textPath prop, refer to the svg path using xlink:href="#<arc id here>"
                ]
@@ -371,19 +370,19 @@ ui initialNetInfo =
            , SE.circle
                [ SA.class_ ("css-place" <> guard isFocused " focused")
                , SA.r      placeRadius
-               , SA.cx     point.x
-               , SA.cy     point.y
+               , SA.cx     (_x point)
+               , SA.cy     (_y point)
                ]
            , svgTokens tokens point
            , SE.text [ SA.class_    "css-place-name-label"
-                     , SA.x         (point.x + placeRadius + placeRadius / 2.0)
-                     , SA.y         (point.y + 4.0 * fontSize)
+                     , SA.x         (_x point + placeRadius + placeRadius / 2.0)
+                     , SA.y         (_y point + 4.0 * fontSize)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
                      [ HH.text label ]
            , SE.text [ SA.class_    "css-place-label"
-                     , SA.x         (point.x + tokenPadding)
-                     , SA.y         (point.y - tokenPadding)
+                     , SA.x         (_x point + tokenPadding)
+                     , SA.y         (_y point - tokenPadding)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
                      [ HH.text $ if tokens == 0 || tokens == 1 then "" else show tokens ]
@@ -393,8 +392,8 @@ ui initialNetInfo =
         svgTokens tokens point = if Additive tokens == mempty then HH.text "" else
           SE.circle
             [ SA.r      tokenRadius
-            , SA.cx     point.x
-            , SA.cy     point.y
+            , SA.cx     (_x point)
+            , SA.cy     (_y point)
             , SA.class_ "css-token-in-place"
             ]
 
@@ -402,7 +401,7 @@ ui initialNetInfo =
 
     svgTextBox :: ∀ tid a. TextBox -> HTML a ((QueryF pid tid) Unit)
     svgTextBox tb =
-      SE.g [ SA.class_  "css-textbox" ]
+      SE.g [ SA.class_ "css-textbox" ]
            [ SE.rect [ SA.x       x
                      , SA.y       y
                      , SA.width   w
@@ -416,9 +415,12 @@ ui initialNetInfo =
                      [ HH.text tb.name ]
            ]
       where
-        box                                           = unwrap tb.box
-        { topLeft: Vec2 {x, y}, bottomRight: Vec2 _ } = box
-        Vec2 {x:w, y:h}                               = box.bottomRight - box.topLeft
+        { topLeft, bottomRight } = unwrap tb.box
+        boxSize                  = bottomRight - topLeft
+        x                        = _x topLeft
+        y                        = _y topLeft
+        w                        = _x boxSize
+        h                        = _y boxSize
 
     --------------------------------------------------------------------------------
 
@@ -501,9 +503,16 @@ labelVisibilityButtons =
 --------------------------------------------------------------------------------
 
 svgPath :: ∀ r i. Vec2D -> Vec2D -> Array SA.D
-svgPath p q = SA.Abs <$> [ SA.M p.x p.y, SA.L q.x q.y ]
+svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
 
 --------------------------------------------------------------------------------
+
+boundingBox :: forall pid tid ty ty2 a. NetInfoWithTypesAndRolesF pid tid ty ty2 a -> { min :: Vec2D, max :: Vec2D }
+boundingBox netInfo =
+  Vec2D.bounds $ Map.values netInfo.net.placePointsDict <>
+                 Map.values netInfo.net.transitionPointsDict <>
+                 (List.fromFoldable $ (_.bottomRight <<< un Box <<< _.box) <$> netInfo.textBoxes) <>
+                 (List.fromFoldable $ (_.topLeft     <<< un Box <<< _.box) <$> netInfo.textBoxes)
 
 toggleMaybe :: ∀ a b. b -> Maybe a -> Maybe b
 toggleMaybe z mx = case mx of
