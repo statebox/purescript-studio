@@ -7,6 +7,7 @@ import Data.Int (floor, round)
 import Data.Maybe
 import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Vec2D (Vec2(..))
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect (Effect)
 import Foreign (Foreign)
@@ -41,7 +42,7 @@ initialState =
                      , { identifier: "b", x: 1, y: 3, w: 4, label: "quux" }
                      ]
     , mouseOver:     Nothing
-    , mousePosition: 0 /\ 0
+    , mousePosition: Vec2 {x: 0, y: 0}
     , mousePressed:  false
     , dragStart:     DragNotStarted
     }

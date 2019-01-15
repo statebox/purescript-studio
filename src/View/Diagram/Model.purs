@@ -3,8 +3,9 @@ module View.Diagram.Model where
 import Prelude
 import Data.Maybe
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Vec2D (Vec2(..), doubleMap)
 
-import View.Diagram.Common (snap, dxdy, showVec2, showVec3)
+import View.Diagram.Common (snap, showVec3)
 
 type DiagramInfo = { name :: String }
 
@@ -38,20 +39,20 @@ matchOperatorHandle op l c r = case op of
 
 data DragStart
   = DragNotStarted
-  | DragStartedOnBackground (Int /\ Int)
-  | DragStartedOnOperator   (Int /\ Int) Operator OperatorHandle
+  | DragStartedOnBackground (Vec2 Int)
+  | DragStartedOnOperator   (Vec2 Int) Operator OperatorHandle
 
 instance showDragStart :: Show DragStart where
   show = case _ of
     DragNotStarted                  -> "DragNotstarted"
-    DragStartedOnBackground xy      -> "DragStartedOnBackground " <> showVec2 xy
-    DragStartedOnOperator   xy o oh -> "DragStartedOnOperator "   <> showVec2 xy  <> " " <> show o <> " " <> show oh
+    DragStartedOnBackground xy      -> "DragStartedOnBackground " <> show xy
+    DragStartedOnOperator   xy o oh -> "DragStartedOnOperator "   <> show xy  <> " " <> show o <> " " <> show oh
 
 type Model =
   { ops           :: Array Operator
     -- this String id is somewhat problematic; it's an id into a "Array/Set" of operators; rather have a Lens here
   , mouseOver     :: Maybe (Operator /\ OperatorHandle)
-  , mousePosition :: (Int /\ Int)
+  , mousePosition :: Vec2 Int
   , mousePressed  :: Boolean
   , dragStart     :: DragStart
   , config        :: Config
@@ -63,27 +64,32 @@ modifyOperator s f =
   where
     modify o = if o.identifier == s then f o else o
 
-dragDelta :: Model -> (Int /\ Int /\ Int)
+dragDelta :: Model -> (Vec2 Int /\ Int)
 dragDelta model = case model.dragStart of
   DragStartedOnBackground pt ->
-    let (dx /\ dy) = dxdy pt model.mousePosition
-    in (dx /\ dy /\ 0)
+    let dxdy = sub pt model.mousePosition
+    in dxdy /\ 0
   DragStartedOnOperator pt _ handle ->
     let
-      (dx /\ dy) = dxdy pt model.mousePosition
-      fdx = matchOperatorHandle handle    dx dx  0
-      gdx = matchOperatorHandle handle (-dx)  0 dx
+      dxdy = sub pt model.mousePosition
     in
-      (fdx /\ dy /\ gdx)
-  DragNotStarted -> (0 /\ 0 /\ 0)
+      dragDeltaOperator dxdy handle
+  DragNotStarted -> (zero /\ 0)
+
+dragDeltaOperator :: Vec2 Int -> OperatorHandle -> Vec2 Int /\ Int
+dragDeltaOperator v@(Vec2 {x: x, y: y}) handle =
+  matchOperatorHandle handle
+    (v                   /\ -x)
+    (v                   /\ 0 )
+    ((Vec2 {x: 0, y: y}) /\ x )
 
 isValidDrag :: Model -> Boolean
 isValidDrag model = case model.dragStart of
   DragStartedOnOperator _ op _ ->
     let s = model.config.scale
         -- TODO add condition where dw is involved
-        (dx /\ dy /\ _) = dragDelta model
-        (sdx /\ sdy)    = snap s dx    /\ snap s dy
+        (dxdy /\ _) = dragDelta model
+        sdxdy       = doubleMap (snap s) (snap s)
         (mdx /\ mdy)    = (sdx / s)    /\ (sdy / s)
         (opX /\ opY)    = (op.x - mdx) /\ (op.y - mdy)
     --     (cw, ch) = (model.config.width, model.config.height)

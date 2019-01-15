@@ -12,11 +12,11 @@ snap s x = round' (toNumber x) (toNumber s) -- s * (x // s)
     round' x s = round (x / s) * (floor s)
 
 -- TODO replace by subtraction on vectors
-dxdy :: (Int /\ Int) -> (Int /\ Int) -> (Int /\ Int)
-dxdy (x1 /\ y1) (x2 /\ y2) = ((x1 - x2) /\ (y1 - y2))
+-- dxdy :: (Int /\ Int) -> (Int /\ Int) -> (Int /\ Int)
+-- dxdy (x1 /\ y1) (x2 /\ y2) = ((x1 - x2) /\ (y1 - y2))
 
-showVec2 :: ∀ a. Show a => a /\ a -> String
-showVec2 (x /\ y) = "(" <> show x <> "," <> show y <> ")"
+-- showVec2 :: ∀ a. Show a => a /\ a -> String
+-- showVec2 (x /\ y) = "(" <> show x <> "," <> show y <> ")"
 
 showVec3 :: ∀ a. Show a => (a /\ a /\ a) -> String
 showVec3 (x /\ y /\ z) = "(" <> show x <> "," <> show y <> "," <> show z <> ")"
