@@ -29,6 +29,7 @@
     "purescript-psa": "^0.7.3"
   },
   "dependencies": {
-    "tailwindcss": "^0.7.3"
+    "tailwindcss": "^0.7.3",
+    "@fortawesome/fontawesome-free": "^5.6.3"
   }
 }
