@@ -1,7 +1,7 @@
 {
-  "name": "purescript-stbx-core",
+  "name": "statebox-studio",
   "version": "1.0.0",
-  "description": "Statebox Core",
+  "description": "Statebox Studio",
   "main": "index.js",
   "directories": {
     "test": "test"
@@ -24,8 +24,8 @@
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "Commercial",
   "devDependencies": {
-    "pulp": "^12.3.0",
-    "purescript": "^0.12.0",
+    "pulp": "^12.3.1",
+    "purescript": "^0.12.1",
     "purescript-psa": "^0.7.3"
   },
   "dependencies": {
