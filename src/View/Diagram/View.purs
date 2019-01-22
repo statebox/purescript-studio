@@ -31,9 +31,9 @@ diagramEditorSVG :: Model -> Svg MouseMsg
 diagramEditorSVG model =
   SE.svg [ SA.viewBox sceneLeft sceneTop w h
          , HP.ref componentRefLabel
-         , HE.onMouseMove $ \e -> Just $ MousePos  (svg e)
-         , HE.onMouseDown $ \e -> Just $ MouseDown (svg e)
-         , HE.onMouseUp   $ \e -> Just $ MouseUp   (svg e)
+         , HE.onMouseMove $ \e -> Just $ MousePos  (svg e model.htmlElement)
+         , HE.onMouseDown $ \e -> Just $ MouseDown (svg e model.htmlElement)
+         , HE.onMouseUp   $ \e -> Just $ MouseUp   (svg e model.htmlElement)
          ]
          (ghosts <> operators)
   where
@@ -42,7 +42,7 @@ diagramEditorSVG model =
     w         = toNumber model.config.width
     h         = toNumber model.config.height
     s         = model.config.scale
-    svg e     = domToSvgCoordinates (vec2 (clientX e) (clientY e))
+    svg       = \e element -> maybe zero (\el -> domToSvgCoordinates el (vec2 (clientX e) (clientY e))) element
 
     -- TODO ???
     sceneLeft = zero

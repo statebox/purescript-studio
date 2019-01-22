@@ -21,23 +21,19 @@ exports._beginElements = function (cssSelectorStr) {
   };
 }
 
-var svg;
+exports.domToSvgCoordinates = function (svg) {
+  return function (point) {
+    const svgPoint = svg.createSVGPoint();
 
-exports.domToSvgCoordinates = function (point) {
-  if (typeof svg === 'undefined') {
-    svg = document.getElementsByTagName('svg')[0];
-  }
+    svgPoint.x = point.x;
+    svgPoint.y = point.y;
 
-  const svgPoint = svg.createSVGPoint();
+    const svgCoordPoint = svgPoint.matrixTransform(svg.getScreenCTM().inverse());
 
-  svgPoint.x = point.x;
-  svgPoint.y = point.y;
-
-  const svgCoordPoint = svgPoint.matrixTransform(svg.getScreenCTM().inverse());
-
-  return {
-    x: svgCoordPoint.x,
-    y: svgCoordPoint.y,
-    z: 0
+    return {
+      x: svgCoordPoint.x,
+      y: svgCoordPoint.y,
+      z: 0
+    };
   };
 }
