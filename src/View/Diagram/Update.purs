@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Maybe
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Vec2D (Vec3, _x, _y, _z, vec3)
 import Web.HTML.HTMLElement (DOMRect)
 
 import View.Diagram.Model
@@ -20,9 +21,9 @@ type Query = MkQueryF MouseMsg
 data MouseMsg
   = MouseIsOver   Operator OperatorHandle
   | MouseIsOut    Operator
-  | MousePosition (Int /\ Int)
-  | MouseUp       (Int /\ Int)
-  | MouseDown     (Int /\ Int)
+  | MousePosition (Vec3 Int)
+  | MouseUp       (Vec3 Int)
+  | MouseDown     (Vec3 Int)
 
 -- TODO Coyoneda?
 data MkQueryF e a = QueryF e a
@@ -51,17 +52,17 @@ dropGhost :: Model -> Model
 dropGhost model = case model.dragStart of
   DragStartedOnOperator _ op _ ->
     let s = model.config.scale
-        (dx  /\ dy  /\ dw) = dragDelta model
-        (sdx /\ sdy /\ sdw) = (snap s dx /\ snap s dy /\ snap s dw)
-        (mdx /\ mdy /\ mdw) = (sdx / s /\ sdy / s /\ sdw / s)
-        (opX /\ opY /\ opW) = (op.x - mdx) /\ (op.y - mdy) /\ (op.w - mdw)
+        dxdydw   = dragDelta model
+        sdxdydw = map (snap s) dxdydw
+        mdxdydw = map (\x -> x/s) sdxdydw
+        opxyw   = op.position - mdxdydw
         (cw /\ ch)          = (model.config.width /\ model.config.height)
         isValid             = isPositive && isBounded
-        isPositive          = (opX >= 0)       && (opY >= 0)
-        isBounded           = (opX < (cw / s)) && (opY < (ch / s))
+        isPositive          = (_x opxyw >= 0)       && (_y opxyw >= 0)
+        isBounded           = (_x opxyw < (cw / s)) && (_y opxyw < (ch / s))
         -- TODO ^ add condition for w
-        (ox /\ ow) = if opW > 0 then opX /\ opW else (opX + opW) /\ (-opW)
-        modOp o = o { x = ox, y = opY, w = ow }
+        (ox /\ ow) = if _z opxyw > 0 then _x opxyw /\ _z opxyw else (_x opxyw + _z opxyw) /\ (- _z opxyw)
+        modOp o = o { position = vec3 ox (_y opxyw) ow }
         newOps = modifyOperator op.identifier modOp model.ops
     in if isValid then model { ops = newOps } else model
   _ -> model

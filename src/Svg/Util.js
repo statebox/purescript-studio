@@ -30,13 +30,14 @@ exports.domToSvgCoordinates = function (point) {
 
   const svgPoint = svg.createSVGPoint();
 
-  svgPoint.x = point.value0;
-  svgPoint.y = point.value1;
+  svgPoint.x = point.x;
+  svgPoint.y = point.y;
 
   const svgCoordPoint = svgPoint.matrixTransform(svg.getScreenCTM().inverse());
 
   return {
-    value0: svgCoordPoint.x,
-    value1: svgCoordPoint.y
+    x: svgCoordPoint.x,
+    y: svgCoordPoint.y,
+    z: 0
   };
 }
