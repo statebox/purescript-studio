@@ -41,11 +41,11 @@ diagramEditorSVG model =
     w         = toNumber model.config.width
     h         = toNumber model.config.height
     s         = model.config.scale
-    svg       = \e -> domToSvgCoordinates (vec2 (clientX e) (clientY e))
+    svg e     = domToSvgCoordinates (vec2 (clientX e) (clientY e))
 
     -- TODO ???
-    sceneLeft = 0.0
-    sceneTop  = 0.0
+    sceneLeft = zero
+    sceneTop  = zero
 
 componentRefLabel :: H.RefLabel
 componentRefLabel = H.RefLabel "diagram-editor-ref-label"
@@ -95,19 +95,19 @@ operatorSegment op region x y w h =
 operatorGhosts :: Int -> Model -> Array (Svg MouseMsg)
 operatorGhosts s model =
   let
-    dxdydw = dragDelta model
+    ddModel = dragDelta model
   in
     case model.dragStart of
       DragStartedOnBackground xy ->
         let
-          xyw = apply (vec3 identity identity (const (abs $ _x dxdydw))) xy
+          xyw = vec3 identity identity (pure <<< abs <<< _x $ ddModel) <*> xy
         in
-          [ operatorGhostSnapped s xyw (abs $ _y dxdydw) ]
+          [ operatorGhostSnapped s xyw (abs $ _y ddModel) ]
       DragStartedOnOperator _ op handle ->
         let
-          xyw  = map ((*) s) op.position - dxdydw
-          w    = (_z xyw)
-          axyw = if w > 0 then zero else vec3 w 0 (-2 * w)
+          xyw  = (_*s) <$> op.position - ddModel
+          w    = _z xyw
+          axyw = if w > zero then zero else vec3 w zero (-2 * w)
           h    = s
         in
           [ operatorGhostSnapped s (xyw + axyw) h

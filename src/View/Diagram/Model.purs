@@ -57,42 +57,37 @@ type Model =
   }
 
 modifyOperator :: String -> (Operator -> Operator) -> Array Operator -> Array Operator
-modifyOperator s f =
-  map modify
+modifyOperator ident f ops = fMatched <$> ops
   where
-    modify o = if o.identifier == s then f o else o
+    fMatched op = if op.identifier == ident then f op else op
 
 dragDelta :: Model -> Vec3 Int
 dragDelta model = case model.dragStart of
-  DragStartedOnBackground pt ->
-    let dxdy = sub pt model.mousePosition
-    in dxdy
-  DragStartedOnOperator pt _ handle ->
-    let
-      dxdy = sub pt model.mousePosition
-    in
-      dragDeltaOperator dxdy handle
-  DragNotStarted -> zero
+  DragStartedOnBackground pt          -> pt - model.mousePosition
+  DragStartedOnOperator   pt _ handle -> dragDeltaOperator (pt - model.mousePosition) handle
+  DragNotStarted                      -> zero
 
 dragDeltaOperator :: Vec3 Int -> OperatorHandle -> Vec3 Int
 dragDeltaOperator v handle =
   matchOperatorHandle handle
     (vec3 (_x v) (_y v) (-_x v))
-    (vec3 (_x v) (_y v) 0      )
-    (vec3 0      (_y v) (_x v) )
+    (vec3 (_x v) (_y v) zero   )
+    (vec3 zero   (_y v) (_x v) )
 
 isValidDrag :: Model -> Boolean
 isValidDrag model = case model.dragStart of
   DragStartedOnOperator _ op _ ->
-    let s = model.config.scale
+    let scale = model.config.scale
         -- TODO add condition where dw is involved
-        dxdy        = dragDelta model
-        sdxdy       = apply (vec3 (snap s)    (snap s)    identity) dxdy
-        mdxdy       = apply (vec3 (\x -> x/s) (\x -> x/s) identity) sdxdy
-        opxy        = (apply (vec3 identity identity (const 0)) op.position) - mdxdy
-    --     (cw, ch) = (model.config.width, model.config.height)
-    --     isPositive = (opX > 0) && (opY > 0)
-    --     isBounded = (opX < (cw - s)) && (opY < (ch - s))
-    --     isValid = isPositive && isBounded
-    in _x opxy > 0 && _y opxy > 0
+        dd       = dragDelta model
+        -- dScreen  = vec3 (snap scale) (snap scale) identity <*> d
+        -- dModel   = vec3 (_/s)    (_/s)    identity <*> dScreen
+        ddScreen  = snap scale  <$> dd
+        ddModel   = (_ / scale) <$> ddScreen
+        opPos     = (vec3 identity identity zero <*> op.position) - ddModel
+    --  (cw, ch) = (model.config.width, model.config.height)
+    --  isPositive = (opX > 0) && (opY > 0)
+    --  isBounded = (opX < (cw - scale)) && (opY < (ch - scale))
+    --  isValid = isPositive && isBounded
+    in _x opPos > 0 && _y opPos > 0
   _ -> false

@@ -51,18 +51,18 @@ evalModel msg model = case msg of
 dropGhost :: Model -> Model
 dropGhost model = case model.dragStart of
   DragStartedOnOperator _ op _ ->
-    let s = model.config.scale
-        dxdydw   = dragDelta model
-        sdxdydw = map (snap s) dxdydw
-        mdxdydw = map (\x -> x/s) sdxdydw
-        opxyw   = op.position - mdxdydw
-        (cw /\ ch)          = (model.config.width /\ model.config.height)
-        isValid             = isPositive && isBounded
-        isPositive          = (_x opxyw >= 0)       && (_y opxyw >= 0)
-        isBounded           = (_x opxyw < (cw / s)) && (_y opxyw < (ch / s))
+    let scale      = model.config.scale
+        dd         = dragDelta model
+        ddScreen   = snap scale <$> dd
+        ddModel    = (_/scale) <$> ddScreen
+        opxyw      = op.position - ddModel
+        (cw /\ ch) = model.config.width /\ model.config.height
+        isValid    = isPositive && isBounded
+        isPositive = (_x opxyw >= zero)        && (_y opxyw >= zero)
+        isBounded  = (_x opxyw < (cw / scale)) && (_y opxyw < (ch / scale))
         -- TODO ^ add condition for w
-        (ox /\ ow) = if _z opxyw > 0 then _x opxyw /\ _z opxyw else (_x opxyw + _z opxyw) /\ (- _z opxyw)
-        modOp o = o { position = vec3 ox (_y opxyw) ow }
-        newOps = modifyOperator op.identifier modOp model.ops
+        (ox /\ ow) = if _z opxyw > zero then _x opxyw /\ _z opxyw else (_x opxyw + _z opxyw) /\ (- _z opxyw)
+        modOp o    = o { position = vec3 ox (_y opxyw) ow }
+        newOps     = modifyOperator op.identifier modOp model.ops
     in if isValid then model { ops = newOps } else model
   _ -> model
