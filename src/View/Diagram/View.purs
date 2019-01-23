@@ -30,9 +30,9 @@ diagramEditorSVG :: Model -> Svg MouseMsg
 diagramEditorSVG model =
   SE.svg [ SA.viewBox sceneLeft sceneTop w h
          , HP.ref componentRefLabel
-         , HE.onMouseMove $ \e -> Just $ MousePosition (svg e)
-         , HE.onMouseDown $ \e -> Just $ MouseDown     (svg e)
-         , HE.onMouseUp   $ \e -> Just $ MouseUp       (svg e)
+         , HE.onMouseMove $ \e -> Just $ MousePos  (svg e)
+         , HE.onMouseDown $ \e -> Just $ MouseDown (svg e)
+         , HE.onMouseUp   $ \e -> Just $ MouseUp   (svg e)
          ]
          (ghosts <> operators)
   where
@@ -66,7 +66,7 @@ operator s o =
                  [ HH.text o.label ]
        ]
   where
-    xyw = map ((*) s) o.position
+    xyw = (s*_) <$> o.pos
     x   = _x xyw
     y   = _y xyw
     w   = _z xyw
@@ -105,7 +105,7 @@ operatorGhosts s model =
           [ operatorGhostSnapped s xyw (abs $ _y ddModel) ]
       DragStartedOnOperator _ op handle ->
         let
-          xyw  = (_*s) <$> op.position - ddModel
+          xyw  = ((s*_) <$> op.pos) - ddModel
           w    = _z xyw
           axyw = if w > zero then zero else vec3 w zero (-2 * w)
           h    = s

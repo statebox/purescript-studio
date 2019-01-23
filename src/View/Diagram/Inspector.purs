@@ -19,7 +19,7 @@ view state@{model} =
   HH.pre [ classes [ ClassName "css-diagram-editor-properties-view" ] ]
          [ prop "ops"         $ show $ map (_.identifier) model.ops
          , prop "over"        $ show model.mouseOver
-         , prop "pos"         $ show model.mousePosition
+         , prop "pos"         $ show model.mousePos
          , prop "pressed"     $ show model.mousePressed
          , prop "dragging"    $ show model.dragStart
          , prop "dx,dy,dw"    $ show dxdydw

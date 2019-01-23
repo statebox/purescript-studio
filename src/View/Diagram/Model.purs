@@ -11,7 +11,7 @@ type DiagramInfo = { name :: String }
 
 type Operator =
   { identifier :: String -- must be unique; problematic, want to lenses instead
-  , position   :: Vec3 Int
+  , pos        :: Vec3 Int
   , label      :: String
   }
 
@@ -50,7 +50,7 @@ type Model =
   { ops           :: Array Operator
     -- this String id is somewhat problematic; it's an id into a "Array/Set" of operators; rather have a Lens here
   , mouseOver     :: Maybe (Operator /\ OperatorHandle)
-  , mousePosition :: Vec3 Int
+  , mousePos      :: Vec3 Int
   , mousePressed  :: Boolean
   , dragStart     :: DragStart
   , config        :: Config
@@ -63,8 +63,8 @@ modifyOperator ident f ops = fMatched <$> ops
 
 dragDelta :: Model -> Vec3 Int
 dragDelta model = case model.dragStart of
-  DragStartedOnBackground pt          -> pt - model.mousePosition
-  DragStartedOnOperator   pt _ handle -> dragDeltaOperator (pt - model.mousePosition) handle
+  DragStartedOnBackground pt          -> pt - model.mousePos
+  DragStartedOnOperator   pt _ handle -> dragDeltaOperator (pt - model.mousePos) handle
   DragNotStarted                      -> zero
 
 dragDeltaOperator :: Vec3 Int -> OperatorHandle -> Vec3 Int
@@ -84,7 +84,7 @@ isValidDrag model = case model.dragStart of
         -- dModel   = vec3 (_/s)    (_/s)    identity <*> dScreen
         ddScreen  = snap scale  <$> dd
         ddModel   = (_ / scale) <$> ddScreen
-        opPos     = (vec3 identity identity zero <*> op.position) - ddModel
+        opPos     = (vec3 identity identity zero <*> op.pos) - ddModel
     --  (cw, ch) = (model.config.width, model.config.height)
     --  isPositive = (opX > 0) && (opY > 0)
     --  isBounded = (opX < (cw - scale)) && (opY < (ch - scale))
