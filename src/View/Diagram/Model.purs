@@ -78,13 +78,11 @@ isValidDrag :: Model -> Boolean
 isValidDrag model = case model.dragStart of
   DragStartedOnOperator _ op _ ->
     let scale = model.config.scale
-        -- TODO add condition where dw is involved
         dd       = dragDelta model
-        -- dScreen  = vec3 (snap scale) (snap scale) identity <*> d
-        -- dModel   = vec3 (_/s)    (_/s)    identity <*> dScreen
-        ddScreen  = snap scale  <$> dd
-        ddModel   = (_ / scale) <$> ddScreen
+        ddScreen  = vec3 (snap scale) (snap scale) identity <*> dd
+        ddModel   = vec3 (_/ scale)   (_ / scale)  identity <*> ddScreen
         opPos     = (vec3 identity identity zero <*> op.pos) - ddModel
+    --  -- TODO add condition where dw is involved
     --  (cw, ch) = (model.config.width, model.config.height)
     --  isPositive = (opX > 0) && (opY > 0)
     --  isBounded = (opX < (cw - scale)) && (opY < (ch - scale))
