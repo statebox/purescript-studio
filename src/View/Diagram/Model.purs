@@ -7,13 +7,21 @@ import Data.Vec2D (Vec3, vec3, _x, _y)
 
 import View.Diagram.Common (snap)
 
-type DiagramInfo = { name :: String }
+type DiagramInfo =
+  { name :: String
+  , ops  :: Array Operator
+  }
+
+-- must be unique; problematic, want to lenses instead
+type OperatorId = String
 
 type Operator =
-  { identifier :: String -- must be unique; problematic, want to lenses instead
+  { identifier :: OperatorId
   , pos        :: Vec3 Int
   , label      :: String
   }
+
+type Operators = Array Operator
 
 type Config =
   { scale  :: Int
