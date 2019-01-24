@@ -6,7 +6,7 @@ import Data.Bifunctor (bimap)
 import Data.Int (floor, round)
 import Data.Maybe
 import Data.Traversable (traverse)
-import Data.Vec2D (vec2, vec3)
+import Data.Vec2D (Vec3, vec2, vec3)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect (Effect)
 import Foreign (Foreign)
@@ -15,6 +15,7 @@ import Halogen (ComponentDSL, HalogenM)
 import Halogen.HTML as HH
 import Halogen.HTML (HTML, div, br)
 import Halogen.HTML.Core (ClassName(..))
+import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
 import Halogen.Query (getHTMLElementRef)
@@ -32,14 +33,11 @@ import View.Diagram.Common
 import View.Diagram.View as View
 import View.Diagram.Inspector as Inspector
 
-initialState :: State
-initialState =
+initialState :: Operators -> State
+initialState ops =
   { model:
     { config:        { scale: 24, width: 550, height: 450 }
-    , ops:           [ { identifier: "a", pos: vec3 1 1 4, label: "foo"  }
-                     , { identifier: "c", pos: vec3 1 2 4, label: "bar"  }
-                     , { identifier: "b", pos: vec3 1 3 4, label: "quux" }
-                     ]
+    , ops:           ops
     , mouseOver:     Nothing
     , mousePos:      vec2 0 0
     , mousePressed:  false
@@ -49,8 +47,8 @@ initialState =
   , boundingClientRectMaybe: Nothing
   }
 
-ui :: ∀ b m. MonadAff m => H.Component HTML Query Unit b m
-ui = H.component { initialState: const initialState, render, eval, receiver: const Nothing }
+ui :: ∀ b m. MonadAff m => H.Component HTML Query Operators b m
+ui = H.component { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram }
   where
     render :: State -> HTML Void (Query Unit)
     render state =
@@ -74,6 +72,10 @@ ui = H.component { initialState: const initialState, render, eval, receiver: con
                             (\rect state -> state { model = evalModel msg $ state.model })
                             boundingRectMaybe
         H.modify_ (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe })
+        pure next
+
+      UpdateDiagram ops next -> do
+        H.modify_ $ \state -> state { model = state.model { ops = ops } }
         pure next
 
 -- TODO this is generally useful; move elsewhere

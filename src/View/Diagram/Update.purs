@@ -26,7 +26,9 @@ data MouseMsg
   | MouseDown   (Vec3 Int)
 
 -- TODO Coyoneda?
-data MkQueryF e a = QueryF e a
+data MkQueryF e a
+  = QueryF e a
+  | UpdateDiagram Operators a
 
 --------------------------------------------------------------------------------
 
