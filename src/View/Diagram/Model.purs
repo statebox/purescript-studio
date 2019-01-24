@@ -3,16 +3,15 @@ module View.Diagram.Model where
 import Prelude
 import Data.Maybe
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Vec2D (Vec3, vec3, _x, _y)
 
-import View.Diagram.Common (snap, dxdy, showVec2, showVec3)
+import View.Diagram.Common (snap)
 
 type DiagramInfo = { name :: String }
 
 type Operator =
   { identifier :: String -- must be unique; problematic, want to lenses instead
-  , x          :: Int
-  , y          :: Int
-  , w          :: Int
+  , pos        :: Vec3 Int
   , label      :: String
   }
 
@@ -38,57 +37,55 @@ matchOperatorHandle op l c r = case op of
 
 data DragStart
   = DragNotStarted
-  | DragStartedOnBackground (Int /\ Int)
-  | DragStartedOnOperator   (Int /\ Int) Operator OperatorHandle
+  | DragStartedOnBackground (Vec3 Int)
+  | DragStartedOnOperator   (Vec3 Int) Operator OperatorHandle
 
 instance showDragStart :: Show DragStart where
   show = case _ of
     DragNotStarted                  -> "DragNotstarted"
-    DragStartedOnBackground xy      -> "DragStartedOnBackground " <> showVec2 xy
-    DragStartedOnOperator   xy o oh -> "DragStartedOnOperator "   <> showVec2 xy  <> " " <> show o <> " " <> show oh
+    DragStartedOnBackground xy      -> "DragStartedOnBackground " <> show xy
+    DragStartedOnOperator   xy o oh -> "DragStartedOnOperator "   <> show xy  <> " " <> show o <> " " <> show oh
 
 type Model =
   { ops           :: Array Operator
     -- this String id is somewhat problematic; it's an id into a "Array/Set" of operators; rather have a Lens here
   , mouseOver     :: Maybe (Operator /\ OperatorHandle)
-  , mousePosition :: (Int /\ Int)
+  , mousePos      :: Vec3 Int
   , mousePressed  :: Boolean
   , dragStart     :: DragStart
   , config        :: Config
   }
 
 modifyOperator :: String -> (Operator -> Operator) -> Array Operator -> Array Operator
-modifyOperator s f =
-  map modify
+modifyOperator ident f ops = fMatched <$> ops
   where
-    modify o = if o.identifier == s then f o else o
+    fMatched op = if op.identifier == ident then f op else op
 
-dragDelta :: Model -> (Int /\ Int /\ Int)
+dragDelta :: Model -> Vec3 Int
 dragDelta model = case model.dragStart of
-  DragStartedOnBackground pt ->
-    let (dx /\ dy) = dxdy pt model.mousePosition
-    in (dx /\ dy /\ 0)
-  DragStartedOnOperator pt _ handle ->
-    let
-      (dx /\ dy) = dxdy pt model.mousePosition
-      fdx = matchOperatorHandle handle    dx dx  0
-      gdx = matchOperatorHandle handle (-dx)  0 dx
-    in
-      (fdx /\ dy /\ gdx)
-  DragNotStarted -> (0 /\ 0 /\ 0)
+  DragStartedOnBackground pt          -> pt - model.mousePos
+  DragStartedOnOperator   pt _ handle -> dragDeltaOperator (pt - model.mousePos) handle
+  DragNotStarted                      -> zero
+
+dragDeltaOperator :: Vec3 Int -> OperatorHandle -> Vec3 Int
+dragDeltaOperator v handle =
+  matchOperatorHandle handle
+    (vec3 (_x v) (_y v) (-_x v))
+    (vec3 (_x v) (_y v) zero   )
+    (vec3 zero   (_y v) (_x v) )
 
 isValidDrag :: Model -> Boolean
 isValidDrag model = case model.dragStart of
   DragStartedOnOperator _ op _ ->
-    let s = model.config.scale
-        -- TODO add condition where dw is involved
-        (dx /\ dy /\ _) = dragDelta model
-        (sdx /\ sdy)    = snap s dx    /\ snap s dy
-        (mdx /\ mdy)    = (sdx / s)    /\ (sdy / s)
-        (opX /\ opY)    = (op.x - mdx) /\ (op.y - mdy)
-    --     (cw, ch) = (model.config.width, model.config.height)
-    --     isPositive = (opX > 0) && (opY > 0)
-    --     isBounded = (opX < (cw - s)) && (opY < (ch - s))
-    --     isValid = isPositive && isBounded
-    in (opX > 0) && (opY > 0)
+    let scale = model.config.scale
+        dd       = dragDelta model
+        ddScreen  = vec3 (snap scale) (snap scale) identity <*> dd
+        ddModel   = vec3 (_/ scale)   (_ / scale)  identity <*> ddScreen
+        opPos     = (vec3 identity identity zero <*> op.pos) - ddModel
+    --  -- TODO add condition where dw is involved
+    --  (cw, ch) = (model.config.width, model.config.height)
+    --  isPositive = (opX > 0) && (opY > 0)
+    --  isBounded = (opX < (cw - scale)) && (opY < (ch - scale))
+    --  isValid = isPositive && isBounded
+    in _x opPos > 0 && _y opPos > 0
   _ -> false

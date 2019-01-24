@@ -1,11 +1,13 @@
 module Data.Vec2D
   ( Vec3
+  , vec3
   , binOp
 
   , Vec2()
   , vec2
   , _x
   , _y
+  , _z
   , Vec2D()
 
   , bounds
@@ -16,15 +18,11 @@ module Data.Vec2D
 
 import Prelude
 import Data.Foldable (class Foldable, foldl)
-import Data.Bounded (class Bounded, top, bottom)
-import Data.Monoid.Additive (Additive(..))
-import Data.Monoid.Multiplicative (Multiplicative(..))
-import Data.Newtype (class Newtype, unwrap)
-import Data.Ord (class Ord)
-import Data.Ord.Max (Max(..))
-import Data.Ord.Min (Min(..))
-import Data.Ring (negate)
-import Data.Semiring
+import Data.Monoid.Additive (Additive)
+import Data.Monoid.Multiplicative (Multiplicative)
+import Data.Newtype (class Newtype)
+import Data.Ord.Max (Max)
+import Data.Ord.Min (Min)
 
 newtype Vec3 a = Vec3 (Vec3Rec a)
 
@@ -57,6 +55,9 @@ binOp f (Vec3 { x: x1, y: y1, z: z1 })
         (Vec3 { x: f x1 x2, y: f y1 y2, z: f z1 z2 })
 
 derive instance eqVec3 :: Eq a => Eq (Vec3 a)
+
+instance showVec3 :: Show a => Show (Vec3 a) where
+  show (Vec3 {x, y, z}) = "(" <> show x <> "," <> show y <> "," <> show z <> ")"
 
 derive instance functorVec3 :: Functor Vec3
 

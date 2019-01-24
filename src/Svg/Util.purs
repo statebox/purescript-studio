@@ -1,7 +1,6 @@
 module Svg.Util where
 
-import Data.Tuple.Nested (type (/\), (/\))
-import Data.Unit (Unit)
+import Data.Vec2D (Vec3)
 import Prelude ((<<<))
 import Effect.Aff (Aff)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)
@@ -13,4 +12,4 @@ foreign import _beginElements :: CssSelector -> EffectFnAff Int
 beginElements :: CssSelector -> Aff Int
 beginElements = fromEffectFnAff <<< _beginElements
 
-foreign import domToSvgCoordinates :: Int /\ Int -> Int /\ Int
+foreign import domToSvgCoordinates :: Vec3 Int -> Vec3 Int

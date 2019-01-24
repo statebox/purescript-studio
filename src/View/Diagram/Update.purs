@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Maybe
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Vec2D (Vec3, _x, _y, _z, vec3)
 import Web.HTML.HTMLElement (DOMRect)
 
 import View.Diagram.Model
@@ -18,11 +19,11 @@ type State =
 type Query = MkQueryF MouseMsg
 
 data MouseMsg
-  = MouseIsOver   Operator OperatorHandle
-  | MouseIsOut    Operator
-  | MousePosition (Int /\ Int)
-  | MouseUp       (Int /\ Int)
-  | MouseDown     (Int /\ Int)
+  = MouseIsOver Operator OperatorHandle
+  | MouseIsOut  Operator
+  | MousePos    (Vec3 Int)
+  | MouseUp     (Vec3 Int)
+  | MouseDown   (Vec3 Int)
 
 -- TODO Coyoneda?
 data MkQueryF e a = QueryF e a
@@ -33,14 +34,14 @@ evalModel :: MouseMsg -> Model -> Model
 evalModel msg model = case msg of
   MouseIsOut    _   -> model { mouseOver = Nothing }
   MouseIsOver   x k -> model { mouseOver = Just (x /\ k) }
-  MousePosition p   -> model { mousePosition = p }
-  MouseDown     p   -> model { mousePosition = p
+  MousePos      p   -> model { mousePos = p }
+  MouseDown     p   -> model { mousePos = p
                              , mousePressed = true
                              , dragStart = case model.mouseOver of
-                                             Nothing                 -> DragStartedOnBackground model.mousePosition
-                                             Just (op /\ opPosition) -> DragStartedOnOperator   model.mousePosition op opPosition
+                                             Nothing            -> DragStartedOnBackground model.mousePos
+                                             Just (op /\ opPos) -> DragStartedOnOperator   model.mousePos op opPos
                              }
-  MouseUp       p   -> (dropGhost model) { mousePosition = p
+  MouseUp       p   -> (dropGhost model) { mousePos = p
                                          , mousePressed = false
                                          , dragStart = DragNotStarted
                                          }
@@ -50,18 +51,18 @@ evalModel msg model = case msg of
 dropGhost :: Model -> Model
 dropGhost model = case model.dragStart of
   DragStartedOnOperator _ op _ ->
-    let s = model.config.scale
-        (dx  /\ dy  /\ dw) = dragDelta model
-        (sdx /\ sdy /\ sdw) = (snap s dx /\ snap s dy /\ snap s dw)
-        (mdx /\ mdy /\ mdw) = (sdx / s /\ sdy / s /\ sdw / s)
-        (opX /\ opY /\ opW) = (op.x - mdx) /\ (op.y - mdy) /\ (op.w - mdw)
-        (cw /\ ch)          = (model.config.width /\ model.config.height)
-        isValid             = isPositive && isBounded
-        isPositive          = (opX >= 0)       && (opY >= 0)
-        isBounded           = (opX < (cw / s)) && (opY < (ch / s))
+    let scale      = model.config.scale
+        dd         = dragDelta model
+        ddScreen   = snap scale <$> dd
+        ddModel    = (_/scale) <$> ddScreen
+        opxyw      = op.pos - ddModel
+        (cw /\ ch) = model.config.width /\ model.config.height
+        isValid    = isPositive && isBounded
+        isPositive = (_x opxyw >= zero)        && (_y opxyw >= zero)
+        isBounded  = (_x opxyw < (cw / scale)) && (_y opxyw < (ch / scale))
         -- TODO ^ add condition for w
-        (ox /\ ow) = if opW > 0 then opX /\ opW else (opX + opW) /\ (-opW)
-        modOp o = o { x = ox, y = opY, w = ow }
-        newOps = modifyOperator op.identifier modOp model.ops
+        (ox /\ ow) = if _z opxyw > zero then _x opxyw /\ _z opxyw else (_x opxyw + _z opxyw) /\ (- _z opxyw)
+        modOp o    = o { pos = vec3 ox (_y opxyw) ow }
+        newOps     = modifyOperator op.identifier modOp model.ops
     in if isValid then model { ops = newOps } else model
   _ -> model

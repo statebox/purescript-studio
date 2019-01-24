@@ -6,7 +6,7 @@ import Data.Bifunctor (bimap)
 import Data.Int (floor, round)
 import Data.Maybe
 import Data.Traversable (traverse)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Vec2D (vec2, vec3)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect (Effect)
 import Foreign (Foreign)
@@ -36,12 +36,12 @@ initialState :: State
 initialState =
   { model:
     { config:        { scale: 24, width: 550, height: 450 }
-    , ops:           [ { identifier: "a", x: 1, y: 1, w: 4, label: "foo"  }
-                     , { identifier: "c", x: 1, y: 2, w: 4, label: "bar"  }
-                     , { identifier: "b", x: 1, y: 3, w: 4, label: "quux" }
+    , ops:           [ { identifier: "a", pos: vec3 1 1 4, label: "foo"  }
+                     , { identifier: "c", pos: vec3 1 2 4, label: "bar"  }
+                     , { identifier: "b", pos: vec3 1 3 4, label: "quux" }
                      ]
     , mouseOver:     Nothing
-    , mousePosition: 0 /\ 0
+    , mousePos:      vec2 0 0
     , mousePressed:  false
     , dragStart:     DragNotStarted
     }

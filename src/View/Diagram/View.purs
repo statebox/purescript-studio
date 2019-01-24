@@ -1,27 +1,27 @@
 module View.Diagram.View where
 
-import Prelude
-import Data.Int (toNumber)
 import Data.Maybe
+import Prelude
+import View.Diagram.Common
+import View.Diagram.Model
+import View.Diagram.Update
+
+import Data.Int (toNumber)
 import Data.Ord (abs)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Vec2D (Vec3, _x, _y, _z, vec2, vec3)
 import Halogen as H
 import Halogen.HTML (HTML, div, pre)
 import Halogen.HTML as HH
 import Halogen.HTML.Events (onMouseOver, onMouseOut)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Svg.Attributes as SA
 import Svg.Attributes (Color(RGB, RGBA), FontSize(..), CSSLength(..))
-import Svg.Elements as SE
+import Svg.Attributes as SA
 import Svg.Elements (rect)
+import Svg.Elements as SE
 import Svg.Util (domToSvgCoordinates)
-import Web.UIEvent.MouseEvent (clientX, clientY)
-
-import View.Diagram.Common
-import View.Diagram.Update
-import View.Diagram.Model
 import View.Common (styleStr)
+import Web.UIEvent.MouseEvent (clientX, clientY)
 
 -- TODO eliminate?
 type Svg a = HTML Void a
@@ -30,9 +30,9 @@ diagramEditorSVG :: Model -> Svg MouseMsg
 diagramEditorSVG model =
   SE.svg [ SA.viewBox sceneLeft sceneTop w h
          , HP.ref componentRefLabel
-         , HE.onMouseMove $ \e -> Just $ MousePosition (domToSvgCoordinates ((clientX e) /\ (clientY e)))
-         , HE.onMouseDown $ \e -> Just $ MouseDown     (domToSvgCoordinates ((clientX e) /\ (clientY e)))
-         , HE.onMouseUp   $ \e -> Just $ MouseUp       (domToSvgCoordinates ((clientX e) /\ (clientY e)))
+         , HE.onMouseMove $ \e -> Just $ MousePos  (svg e)
+         , HE.onMouseDown $ \e -> Just $ MouseDown (svg e)
+         , HE.onMouseUp   $ \e -> Just $ MouseUp   (svg e)
          ]
          (ghosts <> operators)
   where
@@ -41,10 +41,11 @@ diagramEditorSVG model =
     w         = toNumber model.config.width
     h         = toNumber model.config.height
     s         = model.config.scale
+    svg e     = domToSvgCoordinates (vec2 (clientX e) (clientY e))
 
     -- TODO ???
-    sceneLeft = 0.0
-    sceneTop  = 0.0
+    sceneLeft = zero
+    sceneTop  = zero
 
 componentRefLabel :: H.RefLabel
 componentRefLabel = H.RefLabel "diagram-editor-ref-label"
@@ -65,9 +66,10 @@ operator s o =
                  [ HH.text o.label ]
        ]
   where
-    x   = s * o.x
-    y   = s * o.y
-    w   = s * o.w
+    xyw = (s*_) <$> o.pos
+    x   = _x xyw
+    y   = _y xyw
+    w   = _z xyw
     h   = s
     pad = 9
     pp  = pad + pad
@@ -93,37 +95,40 @@ operatorSegment op region x y w h =
 operatorGhosts :: Int -> Model -> Array (Svg MouseMsg)
 operatorGhosts s model =
   let
-    (dx /\ dy /\ dw) = dragDelta model
+    ddModel = dragDelta model
   in
     case model.dragStart of
-      DragStartedOnBackground (x /\ y) ->
-        [ operatorGhostSnapped s x y (abs dx) (abs dy) ]
+      DragStartedOnBackground xy ->
+        let
+          xyw = vec3 identity identity (pure <<< abs <<< _x $ ddModel) <*> xy
+        in
+          [ operatorGhostSnapped s xyw (abs $ _y ddModel) ]
       DragStartedOnOperator _ op handle ->
         let
-          x /\ y   = (s * op.x - dx) /\ (s * op.y - dy)
-          w        = (s * op.w - dw)
-          ax /\ aw = if w > 0 then 0 /\ 0 else w /\ (-2 * w)
-          h        = s
+          xyw  = ((s*_) <$> op.pos) - ddModel
+          w    = _z xyw
+          axyw = if w > zero then zero else vec3 w zero (-2 * w)
+          h    = s
         in
-          [ operatorGhostSnapped s (x+ax) y (w+aw) h
-          , operatorGhost        s (x+ax) y (w+aw) h
+          [ operatorGhostSnapped s (xyw + axyw) h
+          , operatorGhost        s (xyw + axyw) h
           ]
       _ -> []
 
-operatorGhost :: Int -> Int -> Int -> Int -> Int -> Svg MouseMsg
-operatorGhost s x y w h =
+operatorGhost :: Int -> Vec3 Int -> Int -> Svg MouseMsg
+operatorGhost s xyw h =
   rect [ SA.class_ "css-ghost"
-       , SA.width  $ toNumber w
+       , SA.width  $ toNumber (_z xyw)
        , SA.height $ toNumber h
-       , SA.x      $ toNumber x
-       , SA.y      $ toNumber y
+       , SA.x      $ toNumber (_x xyw)
+       , SA.y      $ toNumber (_y xyw)
        ]
 
-operatorGhostSnapped :: Int -> Int -> Int -> Int -> Int -> Svg MouseMsg
-operatorGhostSnapped s x y w h =
+operatorGhostSnapped :: Int -> Vec3 Int -> Int -> Svg MouseMsg
+operatorGhostSnapped s xyw h =
   rect [ SA.class_ "css-ghost-snapped"
-       , SA.width  $ toNumber $ snap s w
+       , SA.width  $ toNumber $ snap s (_z xyw)
        , SA.height $ toNumber $ h
-       , SA.x      $ toNumber $ snap s x
-       , SA.y      $ toNumber $ snap s y
+       , SA.x      $ toNumber $ snap s (_x xyw)
+       , SA.y      $ toNumber $ snap s (_y xyw)
        ]
