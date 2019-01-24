@@ -7,15 +7,14 @@
     "test": "test"
   },
   "scripts": {
-    "postinstall": "PATH=node_modules/.bin:$PATH psc-package install",
-    "build":       "PATH=node_modules/.bin:$PATH pulp --psc-package build",
-    "watch":       "PATH=node_modules/.bin:$PATH pulp --psc-package -w browserify --to dist/app.js",
-    "bundle":      "PATH=node_modules/.bin:$PATH pulp --psc-package browserify --optimise --to dist/app.js",
-    "test":        "PATH=node_modules/.bin:$PATH pulp --psc-package test",
-    "repl":        "PATH=node_modules/.bin:$PATH pulp repl",
-
-    "bower-build": "PATH=node_modules/.bin:$PATH pulp run",
-    "bower-test": "PATH=node_modules/.bin:$PATH pulp test"
+    "postinstall": "psc-package install",
+    "build": "pulp --psc-package build",
+    "watch": "pulp --psc-package -w browserify --to dist/app.js",
+    "bundle": "pulp --psc-package browserify --optimise --to dist/app.js",
+    "test": "pulp --psc-package test",
+    "repl": "pulp repl",
+    "bower-build": "pulp run",
+    "bower-test": "pulp test"
   },
   "keywords": [
     "statebox",
