@@ -6,7 +6,7 @@ import Data.Bifunctor (bimap)
 import Data.Int (floor, round)
 import Data.Maybe
 import Data.Traversable (traverse)
-import Data.Vec2D (Vec3, vec2, vec3)
+import Data.Vec2D (vec2, vec3)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect (Effect)
 import Foreign (Foreign)
@@ -69,13 +69,13 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
         let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
-                            (\rect state -> state { model = evalModel msg $ state.model })
+                            (\rect state -> state { model = evalModel msg state.model })
                             boundingRectMaybe
         H.modify_ (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe })
         pure next
 
       UpdateDiagram ops next -> do
-        H.modify_ $ \state -> state { model = state.model { ops = ops } }
+        H.modify_ \state -> state { model = state.model { ops = ops } }
         pure next
 
 -- TODO this is generally useful; move elsewhere
