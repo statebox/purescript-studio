@@ -114,7 +114,7 @@ ui =
         [ navBar
         , div [ classes [ ClassName "flex" ] ]
               [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
-                    [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (routesObjNameEq state.route) (projectsToTree state.projects)) unit (HE.input HandleObjectTreeMsg) ]
+                    [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (routesObjNameEq state.route)) (projectsToTree state.projects) (HE.input HandleObjectTreeMsg) ]
               , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                     [ routeBreadcrumbs
                     , maybe (text "TODO project not found") mainView (f1 state.route)
