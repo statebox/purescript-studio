@@ -4,7 +4,12 @@
     <meta charset="utf-8"/>
     <title>Statebox Studio</title>
 
-    <link rel="stylesheet" href="../node_modules/tailwindcss/dist/preflight.min.css">
+    
+    <!-- instead of loading from node_modules or CDN, we get it from vendor
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss/dist/tailwind.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="../node_modules/tailwindcss/dist/utilities.min.css">
+        <link rel="stylesheet" href="../node_modules/tailwindcss/dist/preflight.min.css"> -->
+    <link href="vendor/tailwind.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="petrinet.css">
     <link rel="stylesheet" href="diagram.css">
@@ -35,8 +40,10 @@
       }
     </style>
 
-    <link rel="stylesheet" href="../node_modules/tailwindcss/dist/utilities.min.css">
-    <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+    <!-- Don't load from node_modules, but from CDN
+        If the font doens't work, nothing super bad happens
+        <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css"> -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
   </head>
   <body>
     <script src="app.js"></script>
