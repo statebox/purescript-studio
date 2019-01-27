@@ -6,6 +6,8 @@ import View.Diagram.Model (DiagramInfo)
 
 type NetName = String
 
+type DiagramName = String
+
 data RouteF p
   = Home
   | Net     p NetName

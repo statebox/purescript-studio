@@ -100,19 +100,15 @@ ui =
           Auths projectName -> do
             H.modify_ (\state -> state { route = Auths projectName })
             pure next
-          r@(Net projectName netName) -> do
+          Net projectName netName -> do
             state <- H.get
             let
-              netInfoWithTypesAndRolesMaybe :: Maybe NetInfoWithTypesAndRoles
-              netInfoWithTypesAndRolesMaybe = do
-                project <- findProject state.projects projectName
-                netInfo <- findNetInfo project netName
-                pure $ mkNetInfoWithTypesAndRoles netInfo project
+              netInfo = findNetInfoWithTypesAndRolesMaybe state.projects projectName netName
 
-            _ <- (H.query' petrinetEditorSlotPath unit <<< H.action <<< LoadNet) `traverse` netInfoWithTypesAndRolesMaybe
-            H.put $ state { route = r, netInfo = netInfoWithTypesAndRolesMaybe }
+            _ <- (H.query' petrinetEditorSlotPath unit <<< H.action <<< LoadNet) `traverse` netInfo
+            H.put $ state { route = route, netInfo = netInfo }
             pure next
-          r@(Diagram projectName diagramName) -> do
+          Diagram projectName diagramName -> do
             state <- H.get
             let
               diagramInfo :: Maybe DiagramInfo
@@ -120,7 +116,7 @@ ui =
                 project     <- findProject state.projects projectName
                 findDiagramInfo project diagramName
 
-            H.put $ state { route = r, diagramInfo = diagramInfo }
+            H.put $ state { route = route, diagramInfo = diagramInfo }
             pure next
 
       HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do
@@ -206,6 +202,12 @@ findProject projects projectName = find (\p -> p.name == projectName) projects
 
 findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
+
+findNetInfoWithTypesAndRolesMaybe :: Array Project -> ProjectName -> NetName -> Maybe NetInfoWithTypesAndRoles
+findNetInfoWithTypesAndRolesMaybe projects projectName netName = do
+  project <- findProject projects projectName
+  netInfo <- findNetInfo project netName
+  pure $ mkNetInfoWithTypesAndRoles netInfo project
 
 findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
 findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
