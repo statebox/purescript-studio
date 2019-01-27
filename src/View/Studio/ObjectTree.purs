@@ -18,7 +18,7 @@ import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, src, href)
 import Halogen.HTML.Properties.ARIA as ARIA
 
-import View.Studio.Route (Route, RouteF(..), routesObjNameEq)
+import View.Studio.Route (Route, RouteF(..))
 
 --------------------------------------------------------------------------------
 

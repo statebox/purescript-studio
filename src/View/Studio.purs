@@ -32,7 +32,7 @@ import View.Petrinet.Model as PetrinetEditor
 import View.Studio.ObjectTree as ObjectTree
 import View.Studio.ObjectTree (mkItem)
 import View.Auth.RolesEditor as RolesEditor
-import View.Studio.Route (Route, RouteF(..), routesObjNameEq, NetName, DiagramName)
+import View.Studio.Route (Route, RouteF(..), NetName, DiagramName)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
@@ -129,7 +129,7 @@ ui =
         [ navBar
         , div [ classes [ ClassName "flex" ] ]
               [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
-                    [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (routesObjNameEq state.route)) (projectsToTree state.projects) (HE.input HandleObjectTreeMsg) ]
+                    [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (_ == state.route)) (projectsToTree state.projects) (HE.input HandleObjectTreeMsg) ]
               , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                     [ routeBreadcrumbs
                     , maybe (text "TODO project not found") mainView (f1 state.route)
