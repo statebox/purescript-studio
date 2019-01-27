@@ -16,7 +16,9 @@ type State =
   , boundingClientRectMaybe :: Maybe DOMRect -- ^ Allows us to correct mouse coordinates for the component's position.
   }
 
-type Query = MkQueryF MouseMsg
+data Query a
+  = MouseAction MouseMsg a
+  | UpdateDiagram Operators a
 
 data MouseMsg
   = MouseIsOver Operator OperatorHandle
@@ -25,10 +27,8 @@ data MouseMsg
   | MouseUp     (Vec3 Int)
   | MouseDown   (Vec3 Int)
 
--- TODO Coyoneda?
-data MkQueryF e a
-  = QueryF e a
-  | UpdateDiagram Operators a
+data Msg =
+  OperatorClicked OperatorId
 
 --------------------------------------------------------------------------------
 

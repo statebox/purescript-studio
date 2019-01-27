@@ -10,6 +10,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
 import Data.Traversable (traverse)
 import Effect.Aff.Class (class MonadAff)
+import Effect.Console (log)
 import Halogen as H
 import Halogen (ParentDSL, ParentHTML)
 import Halogen.Component.ChildPath as ChildPath
@@ -48,7 +49,7 @@ data Query a
   = SelectRoute Route a
   | HandleObjectTreeMsg ObjectTree.Msg a
   | HandlePetrinetEditorMsg Msg a
-  | HandleDiagramEditorMsg Unit a
+  | HandleDiagramEditorMsg DiagramEditor.Msg a
 
 type ChildQuery = Coproduct3 (ObjectTree.Query) (PetrinetEditor.QueryF PID TID) DiagramEditor.Query
 
@@ -105,7 +106,8 @@ ui =
             H.modify_ (\state -> state { route = r })
             pure next
 
-      HandleDiagramEditorMsg unit next -> do
+      HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do
+        H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
         pure next
 
     render :: State -> ParentHTML Query ChildQuery ChildSlot m

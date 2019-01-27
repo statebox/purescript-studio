@@ -6,6 +6,7 @@ import Data.Bifunctor (bimap)
 import Data.Int (floor, round)
 import Data.Maybe
 import Data.Traversable (traverse)
+import Data.Tuple.Nested ((/\))
 import Data.Vec2D (vec2, vec3)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect (Effect)
@@ -47,7 +48,7 @@ initialState ops =
   , boundingClientRectMaybe: Nothing
   }
 
-ui :: ∀ b m. MonadAff m => H.Component HTML Query Operators b m
+ui :: ∀ m. MonadAff m => H.Component HTML Query Operators Msg m
 ui = H.component { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram }
   where
     render :: State -> HTML Void (Query Unit)
@@ -55,7 +56,7 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
       div [ classes [ ClassName "css-diagram-editor" ] ]
           [ div [ classes [ ClassName "flex" ] ]
                 [ div [ classes [ ClassName "w-5/6"] ]
-                      [ (\msg -> QueryF msg unit) <$> View.diagramEditorSVG state.model ]
+                      [ (\msg -> MouseAction msg unit) <$> View.diagramEditorSVG state.model ]
                 , div [ classes [ ClassName "w-1/6 px-2" ] ]
                       [ Inspector.view state ]
                 ]
@@ -63,15 +64,21 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
 
     -- TODO We shouldn't need to getBoundingClientRect on every single model update, that is incredibly inefficient.
     --      Doing it just on initialisation and window resizing/layout changes should do.
-    eval :: forall b. Query ~> ComponentDSL State Query b m
+    eval :: Query ~> ComponentDSL State Query Msg m
     eval = case _ of
-      QueryF msg next -> do
+      MouseAction msg next -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
         let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
                             (\rect state -> state { model = evalModel msg state.model })
                             boundingRectMaybe
-        H.modify_ (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe })
+        state <- H.modify (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe })
+
+        let clickedOperator = case msg, state.model.mouseOver of
+              MouseUp _, Just (op /\ oph) -> Just op.identifier
+              _        , _                -> Nothing
+
+        _ <- maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperator
         pure next
 
       UpdateDiagram ops next -> do
