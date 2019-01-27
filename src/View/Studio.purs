@@ -32,16 +32,17 @@ import View.Petrinet.Model as PetrinetEditor
 import View.Studio.ObjectTree as ObjectTree
 import View.Studio.ObjectTree (mkItem)
 import View.Auth.RolesEditor as RolesEditor
-import View.Studio.Route (Route, RouteF(..), routesObjNameEq, NetName)
+import View.Studio.Route (Route, RouteF(..), routesObjNameEq, NetName, DiagramName)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
 
 type State =
-  { route      :: Route
-  , projects   :: Array Project
-  , netInfo    :: Maybe NetInfoWithTypesAndRoles
-  , msg        :: String
+  { route       :: Route
+  , projects    :: Array Project
+  , netInfo     :: Maybe NetInfoWithTypesAndRoles
+  , diagramInfo :: Maybe DiagramInfo
+  , msg         :: String
   }
 
 --------------------------------------------------------------------------------
@@ -77,6 +78,7 @@ ui =
       , projects:    Ex.projects
       , route:       Home
       , netInfo:     Nothing
+      , diagramInfo: Nothing
       }
 
     eval :: Query ~> ParentDSL State Query ChildQuery ChildSlot Void m
@@ -110,8 +112,15 @@ ui =
             _ <- (H.query' petrinetEditorSlotPath unit <<< H.action <<< LoadNet) `traverse` netInfoWithTypesAndRolesMaybe
             H.put $ state { route = r, netInfo = netInfoWithTypesAndRolesMaybe }
             pure next
-          r@(Diagram projectName diagramInfo) -> do
-            H.modify_ (\state -> state { route = r })
+          r@(Diagram projectName diagramName) -> do
+            state <- H.get
+            let
+              diagramInfo :: Maybe DiagramInfo
+              diagramInfo = do
+                project     <- findProject state.projects projectName
+                findDiagramInfo project diagramName
+
+            H.put $ state { route = r, diagramInfo = diagramInfo }
             pure next
 
       HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do
@@ -142,19 +151,19 @@ ui =
             RolesEditor.roleInfosHtml project.roleInfos
           Net project netName ->
             maybe (text "No net selected.") (\netInfo -> HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)) state.netInfo
-          Diagram project diagramInfo ->
-            HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg)
+          Diagram project diagramName ->
+            maybe (text "No diagram selected.") (\diagramInfo -> HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg)) state.diagramInfo
 
         routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
         routeBreadcrumbs =
           nav [ classes $ ClassName <$> [ "css-route-breadcrumbs", "rounded", "font-sans", "w-full", "mt-4", "mb-4" ] ]
               [ ol [ classes $ ClassName <$> [ "list-reset", "flex", "text-grey-dark" ] ] $
                    crumb <$> case state.route of
-                               Home                         -> [ "Home" ]
-                               Types   projectName          -> [ projectName, "Types" ]
-                               Auths   projectName          -> [ projectName, "Authorisation" ]
-                               Net     projectName   name   -> [ projectName, name ]
-                               Diagram projectName { name } -> [ projectName, name ]
+                               Home                     -> [ "Home" ]
+                               Types   projectName      -> [ projectName, "Types" ]
+                               Auths   projectName      -> [ projectName, "Authorisation" ]
+                               Net     projectName name -> [ projectName, name ]
+                               Diagram projectName name -> [ projectName, name ]
               ]
           where
             crumb str = li [] [ a [ href "#" ] [ text str ] ]
@@ -198,6 +207,9 @@ findProject projects projectName = find (\p -> p.name == projectName) projects
 findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
 
+findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
+findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
+
 --------------------------------------------------------------------------------
 
 projectsToTree :: Array Project -> Cofree Array ObjectTree.Item
@@ -214,4 +226,4 @@ projectsToTree projects =
         ]
       where
         fromNets     nets  = (\n -> mkItem [ p.name, "nets",     n.name ] n.name (Just $ Net     p.name n.name) :< []) <$> nets
-        fromDiagrams diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d     ) :< []) <$> diags
+        fromDiagrams diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d.name) :< []) <$> diags

@@ -9,7 +9,7 @@ type NetName = String
 data RouteF p
   = Home
   | Net     p NetName
-  | Diagram p DiagramInfo
+  | Diagram p DiagramName
   | Types   p
   | Auths   p
 
@@ -21,7 +21,7 @@ type Route = RouteF String
 routesObjNameEq :: forall p. Eq p => RouteF p -> RouteF p -> Boolean
 routesObjNameEq r1 r2 = case r1, r2 of
   Net     pn n, Net     pn' n' -> pn == pn' && n == n'
-  Diagram pn d, Diagram pn' d' -> pn == pn' && d.name == d'.name
+  Diagram pn d, Diagram pn' d' -> pn == pn' && d == d'
   Types   pn  , Types   pn'    -> pn == pn'
   Auths   pn  , Auths   pn'    -> pn == pn'
   Home        , Home           -> true
