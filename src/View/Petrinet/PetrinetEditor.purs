@@ -101,16 +101,16 @@ type ArcModel tid = ArcModelF tid String Vec2D
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 () -> H.Component HTML (QueryF pid tid) Unit Msg m
-ui initialNetInfo =
-  H.component { initialState: const initialState, render, eval, receiver: const Nothing }
+ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => H.Component HTML (QueryF pid tid) (NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 ()) Msg m
+ui =
+  H.component { initialState: initialState, render, eval, receiver: HE.input LoadNet }
   where
     -- TODO should come from component state
     htmlIdPrefixMaybe = Just "todo_net_prefix"
 
-    initialState :: StateF pid tid
-    initialState =
-      { netInfo:                 initialNetInfo
+    initialState :: NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 () -> StateF pid tid
+    initialState netInfo =
+      { netInfo:                 netInfo
       , msg:                     "Please select a net."
       , focusedPlace:            empty
       , focusedTransition:       empty

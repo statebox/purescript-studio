@@ -32,7 +32,7 @@ import View.Petrinet.Model as PetrinetEditor
 import View.Studio.ObjectTree as ObjectTree
 import View.Studio.ObjectTree (mkItem)
 import View.Auth.RolesEditor as RolesEditor
-import View.Studio.Route (Route, RouteF(..), routesObjNameEq)
+import View.Studio.Route (Route, RouteF(..), routesObjNameEq, NetName)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
@@ -40,6 +40,7 @@ import ExampleData as Ex
 type State =
   { route      :: Route
   , projects   :: Array Project
+  , netInfo    :: Maybe NetInfoWithTypesAndRoles
   , msg        :: String
   }
 
@@ -72,9 +73,10 @@ ui =
   where
     initialState :: State
     initialState =
-      { msg:        "Welcome to Statebox Studio!"
-      , projects:   Ex.projects
-      , route:      Home
+      { msg:         "Welcome to Statebox Studio!"
+      , projects:    Ex.projects
+      , route:       Home
+      , netInfo:     Nothing
       }
 
     eval :: Query ~> ParentDSL State Query ChildQuery ChildSlot Void m
@@ -96,11 +98,17 @@ ui =
           Auths projectName -> do
             H.modify_ (\state -> state { route = Auths projectName })
             pure next
-          Net projectName netInfo -> do
+          r@(Net projectName netName) -> do
             state <- H.get
-            H.put $ state { route = Net projectName netInfo }
-            let netInfoWithTypesAndRolesMaybe = mkNetInfoWithTypesAndRoles netInfo <$> findProject state.projects projectName
+            let
+              netInfoWithTypesAndRolesMaybe :: Maybe NetInfoWithTypesAndRoles
+              netInfoWithTypesAndRolesMaybe = do
+                project <- findProject state.projects projectName
+                netInfo <- findNetInfo project netName
+                pure $ mkNetInfoWithTypesAndRoles netInfo project
+
             _ <- (H.query' petrinetEditorSlotPath unit <<< H.action <<< LoadNet) `traverse` netInfoWithTypesAndRolesMaybe
+            H.put $ state { route = r, netInfo = netInfoWithTypesAndRolesMaybe }
             pure next
           r@(Diagram projectName diagramInfo) -> do
             H.modify_ (\state -> state { route = r })
@@ -132,8 +140,8 @@ ui =
             TypedefsEditor.typedefsTreeView project.types
           Auths project ->
             RolesEditor.roleInfosHtml project.roleInfos
-          Net project netInfo ->
-            HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (mkNetInfoWithTypesAndRoles netInfo project)) unit (HE.input HandlePetrinetEditorMsg)
+          Net project netName ->
+            maybe (text "No net selected.") (\netInfo -> HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)) state.netInfo
           Diagram project diagramInfo ->
             HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg)
 
@@ -145,7 +153,7 @@ ui =
                                Home                         -> [ "Home" ]
                                Types   projectName          -> [ projectName, "Types" ]
                                Auths   projectName          -> [ projectName, "Authorisation" ]
-                               Net     projectName { name } -> [ projectName, name ]
+                               Net     projectName   name   -> [ projectName, name ]
                                Diagram projectName { name } -> [ projectName, name ]
               ]
           where
@@ -182,8 +190,15 @@ ui =
           Diagram projectName diagramInfo -> flip Diagram diagramInfo <$> findProject state.projects projectName
           Home                            -> pure Home
 
+--------------------------------------------------------------------------------
+
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
+
+findNetInfo :: Project -> NetName -> Maybe NetInfo
+findNetInfo project netName = find (\n -> n.name == netName) project.nets
+
+--------------------------------------------------------------------------------
 
 projectsToTree :: Array Project -> Cofree Array ObjectTree.Item
 projectsToTree projects =
@@ -198,5 +213,5 @@ projectsToTree projects =
         , mkItem [ p.name, "diagrams "      ] "Diagrams"       (Nothing)             :< fromDiagrams p.diagrams
         ]
       where
-        fromNets     nets  = (\n -> mkItem [ p.name, "nets",     n.name ] n.name (Just $ Net     p.name n) :< []) <$> nets
-        fromDiagrams diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d) :< []) <$> diags
+        fromNets     nets  = (\n -> mkItem [ p.name, "nets",     n.name ] n.name (Just $ Net     p.name n.name) :< []) <$> nets
+        fromDiagrams diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d     ) :< []) <$> diags
