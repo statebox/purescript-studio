@@ -128,7 +128,7 @@ ui =
         H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
         state <- H.get
         let
-          newRouteMaybe :: Maybe (RouteF ProjectName)
+          newRouteMaybe :: Maybe Route
           newRouteMaybe = case state.route of
             Diagram pname dname _ -> Just (Diagram pname dname (Just (LeNet opId)))
             _                     -> Nothing
@@ -143,12 +143,12 @@ ui =
                     [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (_ == state.route)) (projectsToTree state.projects) (HE.input HandleObjectTreeMsg) ]
               , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                     [ routeBreadcrumbs
-                    , maybe (text "TODO project not found") mainView (reifyProject state.route)
+                    , maybe (text "TODO project not found") mainView (reifyRoute state.route)
                     ]
               ]
         ]
       where
-        mainView :: RouteF Project -> ParentHTML Query ChildQuery ChildSlot m
+        mainView :: RouteF Project DiagramName NetName -> ParentHTML Query ChildQuery ChildSlot m
         mainView route = case route of
           Home ->
             text "Please select an object from the menu, such as a Petri net or a diagram."
@@ -203,8 +203,8 @@ ui =
               a [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ] ]
                 [ text label ]
 
-        reifyProject :: RouteF ProjectName -> Maybe (RouteF Project)
-        reifyProject = case _ of
+        reifyRoute :: RouteF ProjectName DiagramName NetName -> Maybe (RouteF Project DiagramName NetName)
+        reifyRoute = case _ of
           Net     projectName name      -> (\p -> Net p name)          <$> findProject state.projects projectName
           Types   projectName           -> Types                       <$> findProject state.projects projectName
           Auths   projectName           -> Auths                       <$> findProject state.projects projectName

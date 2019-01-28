@@ -2,25 +2,27 @@ module View.Studio.Route where
 
 import Prelude
 import Data.Maybe (Maybe)
+import View.Model (ProjectName)
 
-type NetName = String
+type Route = RouteF ProjectName DiagramName NetName
 
-type DiagramName = String
-
-data RouteF p
+data RouteF p d n
   = Home
-  | Net     p NetName
-  | Diagram p DiagramName (Maybe (NodeIdent NetName DiagramName))
+  | Net     p n
+  | Diagram p d (Maybe (NodeIdent n d)) -- ^ A diagram with maybe one of its 'child' nodes.
   | Types   p
   | Auths   p
 
-derive instance functorRouteF :: Functor RouteF
-derive instance eqRouteF :: Eq p => Eq (RouteF p)
+derive instance eqRouteF :: (Eq p, Eq d, Eq n) => Eq (RouteF p d n)
+derive instance ordRouteF :: (Ord p, Ord d, Ord n) => Ord (RouteF p d n)
 
-type Route = RouteF String
+type DiagramName = String
+
+type NetName = String
 
 --------------------------------------------------------------------------------
 
-data NodeIdent d n = LeNet n | LeDiagram d
+data NodeIdent d n = LeDiagram d | LeNet n
 
-derive instance eqNodeIdent :: (Eq n, Eq d) => Eq (NodeIdent n d)
+derive instance eqNodeIdent :: (Eq d, Eq n) => Eq (NodeIdent d n)
+derive instance ordNodeIdent :: (Ord d, Ord n) => Ord (NodeIdent d n)
