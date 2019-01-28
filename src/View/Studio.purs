@@ -32,7 +32,7 @@ import View.Petrinet.Model as PetrinetEditor
 import View.Studio.ObjectTree as ObjectTree
 import View.Studio.ObjectTree (mkItem)
 import View.Auth.RolesEditor as RolesEditor
-import View.Studio.Route (Route, RouteF(..), NetName, DiagramName)
+import View.Studio.Route (Route, RouteF(..), NetName, DiagramName, NodeIdent(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
@@ -108,7 +108,7 @@ ui =
             _ <- (H.query' petrinetEditorSlotPath unit <<< H.action <<< LoadNet) `traverse` netInfo
             H.put $ state { route = route, netInfo = netInfo }
             pure next
-          Diagram projectName diagramName -> do
+          Diagram projectName diagramName node -> do
             state <- H.get
             let
               diagramInfo :: Maybe DiagramInfo
@@ -116,12 +116,23 @@ ui =
                 project     <- findProject state.projects projectName
                 findDiagramInfo project diagramName
 
-            H.put $ state { route = route, diagramInfo = diagramInfo }
+              netInfo :: Maybe NetInfoWithTypesAndRoles
+              netInfo = node >>= case _ of
+                LeNet     name -> findNetInfoWithTypesAndRoles state.projects projectName name
+                LeDiagram name -> Nothing
+
+            H.put $ state { route = route, diagramInfo = diagramInfo, netInfo = netInfo }
             pure next
 
       HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do
         H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
-        pure next
+        state <- H.get
+        let
+          newRouteMaybe :: Maybe (RouteF ProjectName)
+          newRouteMaybe = case state.route of
+            Diagram pname dname _ -> Just (Diagram pname dname (Just (LeNet opId)))
+            _                     -> Nothing
+        maybe (pure next) (\route -> eval (SelectRoute route next)) newRouteMaybe
 
     render :: State -> ParentHTML Query ChildQuery ChildSlot m
     render state =
@@ -147,19 +158,24 @@ ui =
             RolesEditor.roleInfosHtml project.roleInfos
           Net project netName ->
             maybe (text "No net selected.") (\netInfo -> HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)) state.netInfo
-          Diagram project diagramName ->
-            maybe (text "No diagram selected.") (\diagramInfo -> HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg)) state.diagramInfo
+          Diagram project diagramName node ->
+            div [ classes [ ClassName "flex" ] ]
+                [ div [ classes [ ClassName "w-1/2" ] ]
+                      [ maybe (text "No diagram selected.") (\diagramInfo -> HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg)) state.diagramInfo ]
+                , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
+                      [ maybe (text "No net selected.")     (\netInfo     -> HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)) state.netInfo ]
+                ]
 
         routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
         routeBreadcrumbs =
           nav [ classes $ ClassName <$> [ "css-route-breadcrumbs", "rounded", "font-sans", "w-full", "mt-4", "mb-4" ] ]
               [ ol [ classes $ ClassName <$> [ "list-reset", "flex", "text-grey-dark" ] ] $
                    crumb <$> case state.route of
-                               Home                     -> [ "Home" ]
-                               Types   projectName      -> [ projectName, "Types" ]
-                               Auths   projectName      -> [ projectName, "Authorisation" ]
-                               Net     projectName name -> [ projectName, name ]
-                               Diagram projectName name -> [ projectName, name ]
+                               Home                       -> [ "Home" ]
+                               Types   projectName        -> [ projectName, "Types" ]
+                               Auths   projectName        -> [ projectName, "Authorisation" ]
+                               Net     projectName name   -> [ projectName, name ]
+                               Diagram projectName name _ -> [ projectName, name ]
               ]
           where
             crumb str = li [] [ a [ href "#" ] [ text str ] ]
@@ -189,11 +205,11 @@ ui =
 
         reifyProject :: RouteF ProjectName -> Maybe (RouteF Project)
         reifyProject = case _ of
-          Net     projectName netName     -> flip Net netName         <$> findProject state.projects projectName
-          Types   projectName             -> Types                    <$> findProject state.projects projectName
-          Auths   projectName             -> Auths                    <$> findProject state.projects projectName
-          Diagram projectName diagramName -> flip Diagram diagramName <$> findProject state.projects projectName
-          Home                            -> pure Home
+          Net     projectName name      -> (\p -> Net p name)          <$> findProject state.projects projectName
+          Types   projectName           -> Types                       <$> findProject state.projects projectName
+          Auths   projectName           -> Auths                       <$> findProject state.projects projectName
+          Diagram projectName name node -> (\p -> Diagram p name node) <$> findProject state.projects projectName
+          Home                          -> pure Home
 
 --------------------------------------------------------------------------------
 
@@ -227,5 +243,5 @@ projectsToTree projects =
         , mkItem [ p.name, "diagrams "      ] "Diagrams"       (Nothing)             :< fromDiagrams p.diagrams
         ]
       where
-        fromNets     nets  = (\n -> mkItem [ p.name, "nets",     n.name ] n.name (Just $ Net     p.name n.name) :< []) <$> nets
-        fromDiagrams diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d.name) :< []) <$> diags
+        fromNets     nets  = (\n -> mkItem [ p.name, "nets",     n.name ] n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
+        fromDiagrams diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags

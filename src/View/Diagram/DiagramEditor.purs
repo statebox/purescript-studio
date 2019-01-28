@@ -54,10 +54,9 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
     render :: State -> HTML Void (Query Unit)
     render state =
       div [ classes [ ClassName "css-diagram-editor" ] ]
-          [ div [ classes [ ClassName "flex" ] ]
-                [ div [ classes [ ClassName "w-5/6"] ]
-                      [ (\msg -> MouseAction msg unit) <$> View.diagramEditorSVG state.model ]
-                , div [ classes [ ClassName "w-1/6 px-2" ] ]
+          [ div [ classes [] ]
+                [ View.diagramEditorSVG state.model <#> \msg -> MouseAction msg unit
+                , div [ classes [ ClassName "mt-4", ClassName "rb-2", ClassName "p-4", ClassName "bg-grey-lightest", ClassName "text-grey-dark", ClassName "rounded", ClassName "text-sm" ] ]
                       [ Inspector.view state ]
                 ]
           ]

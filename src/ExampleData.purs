@@ -373,9 +373,9 @@ pnproXml1 =
 diagrams1 :: Array DiagramInfo
 diagrams1 =
   [ { name: "Foo Bar Quux"
-    , ops: [ { identifier: "a", pos: vec3 1 1 4, label: "foo"  }
-           , { identifier: "c", pos: vec3 1 2 4, label: "bar"  }
-           , { identifier: "b", pos: vec3 1 3 4, label: "quux" }
+    , ops: [ { identifier: netInfo1.name, pos: vec3 1 1 7, label: netInfo1.name }
+           , { identifier: netInfo2.name, pos: vec3 7 1 6, label: netInfo2.name }
+           , { identifier: "b"          , pos: vec3 4 2 7, label: "Quux" }
            ]
    } ]
 
