@@ -103,7 +103,7 @@ ui =
           Net projectName netName -> do
             state <- H.get
             let
-              netInfo = findNetInfoWithTypesAndRolesMaybe state.projects projectName netName
+              netInfo = findNetInfoWithTypesAndRoles state.projects projectName netName
 
             _ <- (H.query' petrinetEditorSlotPath unit <<< H.action <<< LoadNet) `traverse` netInfo
             H.put $ state { route = route, netInfo = netInfo }
@@ -132,7 +132,7 @@ ui =
                     [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (_ == state.route)) (projectsToTree state.projects) (HE.input HandleObjectTreeMsg) ]
               , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                     [ routeBreadcrumbs
-                    , maybe (text "TODO project not found") mainView (f1 state.route)
+                    , maybe (text "TODO project not found") mainView (reifyProject state.route)
                     ]
               ]
         ]
@@ -187,12 +187,12 @@ ui =
               a [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ] ]
                 [ text label ]
 
-        f1 :: RouteF ProjectName -> Maybe (RouteF Project)
-        f1 = case _ of
-          Net     projectName netInfo     -> flip Net netInfo         <$> findProject state.projects projectName
+        reifyProject :: RouteF ProjectName -> Maybe (RouteF Project)
+        reifyProject = case _ of
+          Net     projectName netName     -> flip Net netName         <$> findProject state.projects projectName
           Types   projectName             -> Types                    <$> findProject state.projects projectName
           Auths   projectName             -> Auths                    <$> findProject state.projects projectName
-          Diagram projectName diagramInfo -> flip Diagram diagramInfo <$> findProject state.projects projectName
+          Diagram projectName diagramName -> flip Diagram diagramName <$> findProject state.projects projectName
           Home                            -> pure Home
 
 --------------------------------------------------------------------------------
@@ -203,8 +203,8 @@ findProject projects projectName = find (\p -> p.name == projectName) projects
 findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
 
-findNetInfoWithTypesAndRolesMaybe :: Array Project -> ProjectName -> NetName -> Maybe NetInfoWithTypesAndRoles
-findNetInfoWithTypesAndRolesMaybe projects projectName netName = do
+findNetInfoWithTypesAndRoles :: Array Project -> ProjectName -> NetName -> Maybe NetInfoWithTypesAndRoles
+findNetInfoWithTypesAndRoles projects projectName netName = do
   project <- findProject projects projectName
   netInfo <- findNetInfo project netName
   pure $ mkNetInfoWithTypesAndRoles netInfo project
