@@ -40,8 +40,6 @@ import ExampleData as Ex
 type State =
   { route       :: Route
   , projects    :: Array Project
-  , netInfo     :: Maybe NetInfoWithTypesAndRoles
-  , diagramInfo :: Maybe DiagramInfo
   , msg         :: String
   }
 
@@ -77,8 +75,6 @@ ui =
       { msg:         "Welcome to Statebox Studio!"
       , projects:    Ex.projects
       , route:       Home
-      , netInfo:     Nothing
-      , diagramInfo: Nothing
       }
 
     eval :: Query ~> ParentDSL State Query ChildQuery ChildSlot Void m
@@ -90,39 +86,8 @@ ui =
         pure next
 
       SelectRoute route next -> do
-        case route of
-          Home -> do
-            H.modify_ (\state -> state { route = Home })
-            pure next
-          Types projectName -> do
-            H.modify_ (\state -> state { route = Types projectName })
-            pure next
-          Auths projectName -> do
-            H.modify_ (\state -> state { route = Auths projectName })
-            pure next
-          Net projectName netName -> do
-            state <- H.get
-            let
-              netInfo = findNetInfoWithTypesAndRoles state.projects projectName netName
-
-            _ <- (H.query' petrinetEditorSlotPath unit <<< H.action <<< LoadNet) `traverse` netInfo
-            H.put $ state { route = route, netInfo = netInfo }
-            pure next
-          Diagram projectName diagramName node -> do
-            state <- H.get
-            let
-              diagramInfo :: Maybe DiagramInfo
-              diagramInfo = do
-                project     <- findProject state.projects projectName
-                findDiagramInfo project diagramName
-
-              netInfo :: Maybe NetInfoWithTypesAndRoles
-              netInfo = node >>= case _ of
-                LeNet     name -> findNetInfoWithTypesAndRoles state.projects projectName name
-                LeDiagram name -> Nothing
-
-            H.put $ state { route = route, diagramInfo = diagramInfo, netInfo = netInfo }
-            pure next
+        H.modify_ (\state -> state { route = route })
+        pure next
 
       HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do
         H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
@@ -143,12 +108,12 @@ ui =
                     [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (_ == state.route)) (projectsToTree state.projects) (HE.input HandleObjectTreeMsg) ]
               , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                     [ routeBreadcrumbs
-                    , maybe (text "TODO project not found") mainView (reifyRoute state.route)
+                    , maybe (text "Couldn't find project/net/diagram.") mainView (reifyRoute state.projects state.route)
                     ]
               ]
         ]
       where
-        mainView :: RouteF Project DiagramName NetName -> ParentHTML Query ChildQuery ChildSlot m
+        mainView :: RouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ParentHTML Query ChildQuery ChildSlot m
         mainView route = case route of
           Home ->
             text "Please select an object from the menu, such as a Petri net or a diagram."
@@ -156,14 +121,18 @@ ui =
             TypedefsEditor.typedefsTreeView project.types
           Auths project ->
             RolesEditor.roleInfosHtml project.roleInfos
-          Net project netName ->
-            maybe (text "No net selected.") (\netInfo -> HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)) state.netInfo
-          Diagram project diagramName node ->
+          Net project netInfo ->
+            HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)
+          Diagram project diagramInfo nodeMaybe ->
             div [ classes [ ClassName "flex" ] ]
                 [ div [ classes [ ClassName "w-1/2" ] ]
-                      [ maybe (text "No diagram selected.") (\diagramInfo -> HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg)) state.diagramInfo ]
+                      [ HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg) ]
                 , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
-                      [ maybe (text "No net selected.")     (\netInfo     -> HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)) state.netInfo ]
+                      [ case nodeMaybe of
+                          Just (LeNet netInfo)          -> HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)
+                          Just (LeDiagram diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
+                          Nothing                       -> text "Click a node to show the corresponding net or diagram."
+                      ]
                 ]
 
         routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
@@ -203,13 +172,21 @@ ui =
               a [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ] ]
                 [ text label ]
 
-        reifyRoute :: RouteF ProjectName DiagramName NetName -> Maybe (RouteF Project DiagramName NetName)
-        reifyRoute = case _ of
-          Net     projectName name      -> (\p -> Net p name)          <$> findProject state.projects projectName
-          Types   projectName           -> Types                       <$> findProject state.projects projectName
-          Auths   projectName           -> Auths                       <$> findProject state.projects projectName
-          Diagram projectName name node -> (\p -> Diagram p name node) <$> findProject state.projects projectName
-          Home                          -> pure Home
+reifyRoute :: Array Project -> RouteF ProjectName DiagramName NetName -> Maybe (RouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+reifyRoute projects =
+  case _ of
+    Home                            -> pure Home
+    Types   projectName             -> Types <$> findProject projects projectName
+    Auths   projectName             -> Auths <$> findProject projects projectName
+    Net     projectName name        -> do project <- findProject projects projectName
+                                          net     <- findNetInfoWithTypesAndRoles project name
+                                          pure $ Net project net
+    Diagram projectName name nodeId -> do project <- findProject projects projectName
+                                          diagram <- findDiagramInfo project name
+                                          let node = nodeId >>= case _ of
+                                                       LeDiagram dn -> LeDiagram <$> findDiagramInfo              project dn
+                                                       LeNet     nn -> LeNet     <$> findNetInfoWithTypesAndRoles project nn
+                                          pure $ Diagram project diagram node
 
 --------------------------------------------------------------------------------
 
@@ -219,9 +196,8 @@ findProject projects projectName = find (\p -> p.name == projectName) projects
 findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
 
-findNetInfoWithTypesAndRoles :: Array Project -> ProjectName -> NetName -> Maybe NetInfoWithTypesAndRoles
-findNetInfoWithTypesAndRoles projects projectName netName = do
-  project <- findProject projects projectName
+findNetInfoWithTypesAndRoles :: Project -> NetName -> Maybe NetInfoWithTypesAndRoles
+findNetInfoWithTypesAndRoles project netName = do
   netInfo <- findNetInfo project netName
   pure $ mkNetInfoWithTypesAndRoles netInfo project
 

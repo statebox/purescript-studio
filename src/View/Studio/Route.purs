@@ -9,7 +9,7 @@ type Route = RouteF ProjectName DiagramName NetName
 data RouteF p d n
   = Home
   | Net     p n
-  | Diagram p d (Maybe (NodeIdent n d)) -- ^ A diagram with maybe one of its 'child' nodes.
+  | Diagram p d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
   | Types   p
   | Auths   p
 
