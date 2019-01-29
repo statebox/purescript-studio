@@ -82,9 +82,6 @@ ui =
       HandleObjectTreeMsg (ObjectTree.Clicked pathId route) next -> do
         eval (SelectRoute route next)
 
-      HandlePetrinetEditorMsg NetUpdated next -> do
-        pure next
-
       SelectRoute route next -> do
         H.modify_ (\state -> state { route = route })
         pure next
@@ -98,6 +95,9 @@ ui =
             Diagram pname dname _ -> Just (Diagram pname dname (Just (LeNet opId)))
             _                     -> Nothing
         maybe (pure next) (\route -> eval (SelectRoute route next)) newRouteMaybe
+
+      HandlePetrinetEditorMsg NetUpdated next -> do
+        pure next
 
     render :: State -> ParentHTML Query ChildQuery ChildSlot m
     render state =
@@ -172,23 +172,22 @@ ui =
               a [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ] ]
                 [ text label ]
 
-reifyRoute :: Array Project -> RouteF ProjectName DiagramName NetName -> Maybe (RouteF Project DiagramInfo NetInfoWithTypesAndRoles)
-reifyRoute projects =
-  case _ of
-    Home                            -> pure Home
-    Types   projectName             -> Types <$> findProject projects projectName
-    Auths   projectName             -> Auths <$> findProject projects projectName
-    Net     projectName name        -> do project <- findProject projects projectName
-                                          net     <- findNetInfoWithTypesAndRoles project name
-                                          pure $ Net project net
-    Diagram projectName name nodeId -> do project <- findProject projects projectName
-                                          diagram <- findDiagramInfo project name
-                                          let node = nodeId >>= case _ of
-                                                       LeDiagram dn -> LeDiagram <$> findDiagramInfo              project dn
-                                                       LeNet     nn -> LeNet     <$> findNetInfoWithTypesAndRoles project nn
-                                          pure $ Diagram project diagram node
-
 --------------------------------------------------------------------------------
+
+reifyRoute :: Array Project -> RouteF ProjectName DiagramName NetName -> Maybe (RouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+reifyRoute projects = case _ of
+  Home                            -> pure Home
+  Types   projectName             -> Types <$> findProject projects projectName
+  Auths   projectName             -> Auths <$> findProject projects projectName
+  Net     projectName name        -> do project <- findProject projects projectName
+                                        net     <- findNetInfoWithTypesAndRoles project name
+                                        pure $ Net project net
+  Diagram projectName name nodeId -> do project <- findProject projects projectName
+                                        diagram <- findDiagramInfo project name
+                                        let node = nodeId >>= case _ of
+                                                     LeDiagram dn -> LeDiagram <$> findDiagramInfo              project dn
+                                                     LeNet     nn -> LeNet     <$> findNetInfoWithTypesAndRoles project nn
+                                        pure $ Diagram project diagram node
 
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
