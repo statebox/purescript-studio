@@ -111,7 +111,7 @@ ui =
     initialState :: NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 () -> StateF pid tid
     initialState netInfo =
       { netInfo:                 netInfo
-      , msg:                     "Please select a net."
+      , msg:                     ""
       , focusedPlace:            empty
       , focusedTransition:       empty
       , placeLabelsVisible:      true
@@ -163,9 +163,7 @@ ui =
     eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
       LoadNet newNetInfo next -> do
-        H.modify_ (\state -> state { netInfo = newNetInfo
-                                   , msg = "Select places or transitions by clicking on them. Double-click enabled transitions to fire them."
-                                   })
+        H.modify_ (\state -> state { netInfo = newNetInfo })
         pure next
       FocusPlace pid next -> do
         state <- H.get

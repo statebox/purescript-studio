@@ -45,7 +45,7 @@ initialState ops =
     , mousePressed:  false
     , dragStart:     DragNotStarted
     }
-  , msg: "Welcome to the Statebox string diagram editor."
+  , msg: ""
   , boundingClientRectMaybe: Nothing
   }
 

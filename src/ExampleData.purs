@@ -374,7 +374,7 @@ diagrams1 :: Array DiagramInfo
 diagrams1 =
   [ { name: "Foo Bar Quux"
     , ops: [ { identifier: netInfo1.name, pos: vec3 1 1 7, label: netInfo1.name }
-           , { identifier: netInfo2.name, pos: vec3 7 1 6, label: netInfo2.name }
+           , { identifier: netInfo2.name, pos: vec3 8 1 6, label: netInfo2.name }
            , { identifier: "b"          , pos: vec3 4 2 7, label: "Quux" }
            ]
    } ]
