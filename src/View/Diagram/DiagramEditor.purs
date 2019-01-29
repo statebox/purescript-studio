@@ -39,6 +39,7 @@ initialState ops =
   { model:
     { config:        { scale: 24, width: 550, height: 450 }
     , ops:           ops
+    , selectedOpId:  Nothing
     , mouseOver:     Nothing
     , mousePos:      vec2 0 0
     , mousePressed:  false
@@ -68,16 +69,27 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
       MouseAction msg next -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
+
+        state <- H.get
         let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
                             (\rect state -> state { model = evalModel msg state.model })
                             boundingRectMaybe
-        state <- H.modify (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe })
+            state' = (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe }) state
 
-        let clickedOperator = case msg, state.model.mouseOver of
-              MouseUp _, Just (op /\ oph) -> Just op.identifier
-              _        , _                -> Nothing
+            isOperatorClicked = case msg of
+              MouseUp _ -> true
+              _         -> false
 
-        _ <- maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperator
+            clickedOperatorId = case state'.model.mouseOver of
+              Just (op /\ oph) | isOperatorClicked -> Just op.identifier
+              _                                    -> Nothing
+
+            state'' = if isOperatorClicked then state' { model = state'.model { selectedOpId = clickedOperatorId } }
+                                           else state'
+
+        H.put state''
+
+        _ <- maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
         pure next
 
       UpdateDiagram ops next -> do
