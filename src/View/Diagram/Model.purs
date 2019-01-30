@@ -56,6 +56,7 @@ instance showDragStart :: Show DragStart where
 
 type Model =
   { ops           :: Array Operator
+  , selectedOpId  :: Maybe OperatorId
     -- this String id is somewhat problematic; it's an id into a "Array/Set" of operators; rather have a Lens here
   , mouseOver     :: Maybe (Operator /\ OperatorHandle)
   , mousePos      :: Vec3 Int

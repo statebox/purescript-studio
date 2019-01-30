@@ -6,6 +6,7 @@ import Data.Bifunctor (bimap)
 import Data.Int (floor, round)
 import Data.Maybe
 import Data.Traversable (traverse)
+import Data.Tuple.Nested ((/\))
 import Data.Vec2D (vec2, vec3)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect (Effect)
@@ -38,40 +39,57 @@ initialState ops =
   { model:
     { config:        { scale: 24, width: 550, height: 450 }
     , ops:           ops
+    , selectedOpId:  Nothing
     , mouseOver:     Nothing
     , mousePos:      vec2 0 0
     , mousePressed:  false
     , dragStart:     DragNotStarted
     }
-  , msg: "Welcome to the Statebox string diagram editor."
+  , msg: ""
   , boundingClientRectMaybe: Nothing
   }
 
-ui :: ∀ b m. MonadAff m => H.Component HTML Query Operators b m
+ui :: ∀ m. MonadAff m => H.Component HTML Query Operators Msg m
 ui = H.component { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram }
   where
     render :: State -> HTML Void (Query Unit)
     render state =
       div [ classes [ ClassName "css-diagram-editor" ] ]
-          [ div [ classes [ ClassName "flex" ] ]
-                [ div [ classes [ ClassName "w-5/6"] ]
-                      [ (\msg -> QueryF msg unit) <$> View.diagramEditorSVG state.model ]
-                , div [ classes [ ClassName "w-1/6 px-2" ] ]
+          [ div [ classes [] ]
+                [ View.diagramEditorSVG state.model <#> \msg -> MouseAction msg unit
+                , div [ classes [ ClassName "mt-4", ClassName "rb-2", ClassName "p-4", ClassName "bg-grey-lightest", ClassName "text-grey-dark", ClassName "rounded", ClassName "text-sm" ] ]
                       [ Inspector.view state ]
                 ]
           ]
 
     -- TODO We shouldn't need to getBoundingClientRect on every single model update, that is incredibly inefficient.
     --      Doing it just on initialisation and window resizing/layout changes should do.
-    eval :: forall b. Query ~> ComponentDSL State Query b m
+    eval :: Query ~> ComponentDSL State Query Msg m
     eval = case _ of
-      QueryF msg next -> do
+      MouseAction msg next -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
+
+        state <- H.get
         let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
                             (\rect state -> state { model = evalModel msg state.model })
                             boundingRectMaybe
-        H.modify_ (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe })
+            state' = (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe }) state
+
+            isOperatorClicked = case msg of
+              MouseUp _ -> true
+              _         -> false
+
+            clickedOperatorId = case state'.model.mouseOver of
+              Just (op /\ oph) | isOperatorClicked -> Just op.identifier
+              _                                    -> Nothing
+
+            state'' = if isOperatorClicked then state' { model = state'.model { selectedOpId = clickedOperatorId } }
+                                           else state'
+
+        H.put state''
+
+        _ <- maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
         pure next
 
       UpdateDiagram ops next -> do

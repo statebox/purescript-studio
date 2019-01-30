@@ -1,27 +1,28 @@
 module View.Studio.Route where
 
 import Prelude
+import Data.Maybe (Maybe)
+import View.Model (ProjectName)
 
-import View.Petrinet.Model (NetInfo)
-import View.Diagram.Model (DiagramInfo)
+type Route = RouteF ProjectName DiagramName NetName
 
-data RouteF p
+data RouteF p d n
   = Home
-  | Net     p NetInfo
-  | Diagram p DiagramInfo
+  | Net     p n
+  | Diagram p d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
   | Types   p
   | Auths   p
 
-derive instance functorRouteF :: Functor RouteF
+derive instance eqRouteF :: (Eq p, Eq d, Eq n) => Eq (RouteF p d n)
+derive instance ordRouteF :: (Ord p, Ord d, Ord n) => Ord (RouteF p d n)
 
-type Route = RouteF String
+type DiagramName = String
 
--- TODO this has a default case, which is dangerous
-routesObjNameEq :: forall p. Eq p => RouteF p -> RouteF p -> Boolean
-routesObjNameEq r1 r2 = case r1, r2 of
-  Net     pn n, Net     pn' n' -> pn == pn' && n.name == n'.name
-  Diagram pn d, Diagram pn' d' -> pn == pn' && d.name == d'.name
-  Types   pn  , Types   pn'    -> pn == pn'
-  Auths   pn  , Auths   pn'    -> pn == pn'
-  Home        , Home           -> true
-  _           , _              -> false
+type NetName = String
+
+--------------------------------------------------------------------------------
+
+data NodeIdent d n = DiagramNode d | NetNode n
+
+derive instance eqNodeIdent :: (Eq d, Eq n) => Eq (NodeIdent d n)
+derive instance ordNodeIdent :: (Ord d, Ord n) => Ord (NodeIdent d n)

@@ -1,12 +1,10 @@
 module View.Diagram.View where
 
-import Data.Maybe
 import Prelude
-import View.Diagram.Common
-import View.Diagram.Model
-import View.Diagram.Update
-
+import Data.Foldable (elem)
 import Data.Int (toNumber)
+import Data.Maybe
+import Data.Monoid (guard)
 import Data.Ord (abs)
 import Data.Vec2D (Vec3, _x, _y, _z, vec2, vec3)
 import Halogen as H
@@ -21,6 +19,9 @@ import Svg.Elements (rect)
 import Svg.Elements as SE
 import Svg.Util (domToSvgCoordinates)
 import View.Common (styleStr)
+import View.Diagram.Common
+import View.Diagram.Model
+import View.Diagram.Update
 import Web.UIEvent.MouseEvent (clientX, clientY)
 
 -- TODO eliminate?
@@ -36,7 +37,7 @@ diagramEditorSVG model =
          ]
          (ghosts <> operators)
   where
-    operators = operator s <$> model.ops
+    operators = operator (_ `elem` model.selectedOpId) s <$> model.ops
     ghosts    = operatorGhosts s model
     w         = toNumber model.config.width
     h         = toNumber model.config.height
@@ -52,9 +53,9 @@ componentRefLabel = H.RefLabel "diagram-editor-ref-label"
 
 --------------------------------------------------------------------------------
 
-operator :: Int -> Operator -> Svg MouseMsg
-operator s o =
-  SE.g [ SA.class_ "css-operator-container" ]
+operator :: (OperatorId -> Boolean) -> Int -> Operator -> Svg MouseMsg
+operator isSelected s o =
+  SE.g [ SA.class_ $ "css-operator-container" <> guard (isSelected o.identifier) " css-selected" ]
        [ operatorSegment o OpCenter x             y w   h
        , operatorSegment o OpLeft   x             y pad h
        , operatorSegment o OpRight  (x + w - pad) y pad h
