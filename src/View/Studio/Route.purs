@@ -22,7 +22,7 @@ type NetName = String
 
 --------------------------------------------------------------------------------
 
-data NodeIdent d n = LeDiagram d | LeNet n
+data NodeIdent d n = DiagramNode d | NetNode n
 
 derive instance eqNodeIdent :: (Eq d, Eq n) => Eq (NodeIdent d n)
 derive instance ordNodeIdent :: (Ord d, Ord n) => Ord (NodeIdent d n)

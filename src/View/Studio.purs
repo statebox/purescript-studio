@@ -90,9 +90,10 @@ ui =
         H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
         state <- H.get
         let
+          -- TODO #87 we hardcode the assumption here that opId is a net (NetNode opId) but it could be (LeDiagram opId)
           newRouteMaybe :: Maybe Route
           newRouteMaybe = case state.route of
-            Diagram pname dname _ -> Just (Diagram pname dname (Just (LeNet opId)))
+            Diagram pname dname _ -> Just (Diagram pname dname (Just (NetNode opId)))
             _                     -> Nothing
         maybe (pure next) (\route -> eval (SelectRoute route next)) newRouteMaybe
 
@@ -129,9 +130,9 @@ ui =
                       [ HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg) ]
                 , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
                       [ case nodeMaybe of
-                          Just (LeNet netInfo)          -> HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)
-                          Just (LeDiagram diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
-                          Nothing                       -> text "Click a node to show the corresponding net or diagram."
+                          Just (NetNode netInfo)          -> HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)
+                          Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
+                          Nothing                         -> text "Click a node to show the corresponding net or diagram."
                       ]
                 ]
 
@@ -185,8 +186,8 @@ reifyRoute projects = case _ of
   Diagram projectName name nodeId -> do project <- findProject projects projectName
                                         diagram <- findDiagramInfo project name
                                         let node = nodeId >>= case _ of
-                                                     LeDiagram dn -> LeDiagram <$> findDiagramInfo              project dn
-                                                     LeNet     nn -> LeNet     <$> findNetInfoWithTypesAndRoles project nn
+                                                     DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
+                                                     NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                                         pure $ Diagram project diagram node
 
 findProject :: Array Project -> ProjectName -> Maybe Project
