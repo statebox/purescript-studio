@@ -3,7 +3,7 @@ module View.Diagram.Update where
 import Prelude
 
 import Data.Maybe
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Data.Vec2D (Vec3, _x, _y, _z, vec3)
 import Web.HTML (HTMLElement)
 import Web.HTML.HTMLElement (DOMRect)
@@ -15,6 +15,7 @@ type State =
   { model                   :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified
   , msg                     :: String
   , boundingClientRectMaybe :: Maybe DOMRect -- ^ Allows us to correct mouse coordinates for the component's position.
+  , htmlElementMaybe        :: Maybe HTMLElement
   }
 
 data Query a
@@ -33,20 +34,18 @@ data Msg =
 
 --------------------------------------------------------------------------------
 
-evalModel :: Maybe HTMLElement -> MouseMsg -> Model -> Model
-evalModel element msg model = case msg of
-  MouseIsOut  _   -> model { htmlElement = element, mouseOver = Nothing }
-  MouseIsOver x k -> model { htmlElement = element, mouseOver = Just (x /\ k) }
-  MousePos    p   -> model { htmlElement = element, mousePosition = p }
-  MouseDown   p   -> model { htmlElement = element
-                           , mousePosition = p
-                           , mousePressed = true
-                           , dragStart = case model.mouseOver of
-                                           Nothing            -> DragStartedOnBackground model.mousePos
-                                           Just (op /\ opPos) -> DragStartedOnOperator   model.mousePos op opPos
-                           }
-  MouseUp       p   -> (dropGhost model) { htmlElement = element
-                                         , mousePos = p
+evalModel :: MouseMsg -> Model -> Model
+evalModel msg model = case msg of
+  MouseIsOut    _   -> model { mouseOver = Nothing }
+  MouseIsOver   x k -> model { mouseOver = Just (x /\ k) }
+  MousePos      p   -> model { mousePos = p }
+  MouseDown     p   -> model { mousePos = p
+                             , mousePressed = true
+                             , dragStart = case model.mouseOver of
+                                             Nothing            -> DragStartedOnBackground model.mousePos
+                                             Just (op /\ opPos) -> DragStartedOnOperator   model.mousePos op opPos
+                             }
+  MouseUp       p   -> (dropGhost model) { mousePos = p
                                          , mousePressed = false
                                          , dragStart = DragNotStarted
                                          }

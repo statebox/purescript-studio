@@ -44,10 +44,10 @@ initialState ops =
     , mousePos:      vec2 0 0
     , mousePressed:  false
     , dragStart:     DragNotStarted
-    , htmlElement:   Nothing
     }
   , msg: ""
   , boundingClientRectMaybe: Nothing
+  , htmlElementMaybe: Nothing
   }
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Operators Msg m
@@ -57,7 +57,7 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
     render state =
       div [ classes [ ClassName "css-diagram-editor" ] ]
           [ div [ classes [] ]
-                [ View.diagramEditorSVG state.model <#> \msg -> MouseAction msg unit
+                [ View.diagramEditorSVG state.htmlElementMaybe state.model <#> \msg -> MouseAction msg unit
                 , div [ classes [ ClassName "mt-4", ClassName "rb-2", ClassName "p-4", ClassName "bg-grey-lightest", ClassName "text-grey-dark", ClassName "rounded", ClassName "text-sm" ] ]
                       [ Inspector.view state ]
                 ]
@@ -73,9 +73,9 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
 
         state <- H.get
         let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
-                            (\rect state -> state { model = evalModel componentElemMaybe msg state.model })
+                            (\rect state -> state { model = evalModel msg state.model })
                             boundingRectMaybe
-            state' = (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe }) state
+            state' = (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe, htmlElementMaybe = componentElemMaybe }) state
 
             isOperatorClicked = case msg of
               MouseUp _ -> true
