@@ -7,7 +7,6 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec3, vec3, _x, _y)
 
 import View.Diagram.Common (snap)
-import Web.HTML (HTMLElement)
 
 type DiagramInfo =
   { name :: String
@@ -65,7 +64,6 @@ type Model =
   , mousePressed  :: Boolean
   , dragStart     :: DragStart
   , config        :: Config
-  , htmlElement   :: Maybe HTMLElement
   }
 
 modifyOperator :: String -> (Operator -> Operator) -> Array Operator -> Array Operator
