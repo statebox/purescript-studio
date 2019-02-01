@@ -83,7 +83,7 @@ ui =
         eval (SelectRoute route next)
 
       SelectRoute route next -> do
-        H.modify_ (\state -> state { route = route })
+        H.modify_ \state -> state { route = route }
         pure next
 
       HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do

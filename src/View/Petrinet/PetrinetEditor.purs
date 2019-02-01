@@ -500,7 +500,7 @@ labelVisibilityButtons =
 
 --------------------------------------------------------------------------------
 
-svgPath :: ∀ r i. Vec2D -> Vec2D -> Array SA.D
+svgPath :: Vec2D -> Vec2D -> Array SA.D
 svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
 
 --------------------------------------------------------------------------------

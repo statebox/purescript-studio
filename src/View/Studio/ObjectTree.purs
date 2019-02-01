@@ -112,7 +112,7 @@ menuComponent isSelected =
                      ]
              ]
           where
-            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-purple-lighter" ] else []
+            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-purple-lighter", "rounded" ] else []
             arrowIcon     = if null kids then text ""
                                          else span [ clzz [ "fas" , "fa-xs"
                                                           , "fa-caret-" <> if isExpanded then "down" else "right"
