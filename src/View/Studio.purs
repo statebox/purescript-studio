@@ -1,27 +1,40 @@
 module View.Studio where
 
 import Prelude hiding (div)
-import Data.Array (catMaybes)
-import Control.Comonad.Cofree
+import Affjax as Affjax
+import Data.Array (catMaybes, head)
+import Control.Alt ((<|>))
+import Control.Comonad.Cofree (Cofree, (:<))
+import Data.Argonaut.Decode (class DecodeJson, decodeJson)
+import Data.Either (Either(..), either)
 import Data.Either.Nested (Either3)
 import Data.Foldable (find, foldMap)
 import Data.Functor.Coproduct.Nested (Coproduct3)
+import Data.Map as Map
+import Data.Map (Map)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
 import Data.Traversable (traverse)
-import Effect.Aff.Class (class MonadAff)
+import Data.Tuple (uncurry)
+import Data.Tuple.Nested ((/\))
+import Effect.Aff (Aff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ParentDSL, ParentHTML)
 import Halogen.Component.ChildPath as ChildPath
 import Halogen.HTML as HH
-import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i)
+import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i, br, pre)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Events (onClick)
-import Halogen.HTML.Properties (classes, src, href)
+import Halogen.HTML.Properties as HP
+import Halogen.HTML.Properties (classes, src, href, placeholder)
 import Halogen.HTML.Properties.ARIA as ARIA
 
+import Statebox.API (shortHash, findRootDiagramMaybe)
+import Statebox.API.Client as Stbx
+import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, FiringOrWiring(..), Tx, Diagram)
 import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
 import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
@@ -40,6 +53,8 @@ import ExampleData as Ex
 type State =
   { route       :: Route
   , projects    :: Array Project
+  , wirings     :: Map HashStr WiringTx
+  , firings     :: Map HashStr FiringTx
   , msg         :: String
   }
 
@@ -47,6 +62,7 @@ type State =
 
 data Query a
   = SelectRoute Route a
+  | LoadFromHash URL HashStr a
   | HandleObjectTreeMsg ObjectTree.Msg a
   | HandlePetrinetEditorMsg Msg a
   | HandleDiagramEditorMsg DiagramEditor.Msg a
@@ -74,6 +90,8 @@ ui =
     initialState =
       { msg:         "Welcome to Statebox Studio!"
       , projects:    Ex.projects
+      , wirings:     mempty
+      , firings:     mempty
       , route:       Home
       }
 
@@ -84,6 +102,27 @@ ui =
 
       SelectRoute route next -> do
         H.modify_ \state -> state { route = route }
+        pure next
+
+      LoadFromHash endpointUrl hash next -> do
+        H.liftEffect $ log $ "LoadFromHash: requesting transaction " <> hash <> " from " <> endpointUrl
+        res1 <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
+
+        case res1.body of
+          Left err   -> H.liftEffect $ log $ "failed to decode API response into JSON: " <> Affjax.printResponseFormatError err
+          Right json -> either (\err -> H.liftEffect $ log $ "Expected to decode a wiring or firing: " <> show err)
+                               (\tx  -> case tx of
+                                          LeWiring wiring -> do
+                                            H.liftEffect $ log $ "wiring: " <> show wiring
+                                            H.modify_ (\state -> state { wirings = Map.insert hash wiring state.wirings })
+                                          LeFiring firing -> do
+                                            H.liftEffect $ log $ "firing: " <> show firing
+                                            H.modify_ (\state -> state { firings = Map.insert hash firing state.firings })
+                               )
+                               (
+                                       (LeWiring <<< _.decoded <$> decodeJson json :: Either String (Tx WiringTx))
+                                   <|> (LeFiring <<< _.decoded <$> decodeJson json :: Either String (Tx FiringTx))
+                               )
         pure next
 
       HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do
@@ -106,7 +145,7 @@ ui =
         [ navBar
         , div [ classes [ ClassName "flex" ] ]
               [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
-                    [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (_ == state.route)) (projectsToTree state.projects) (HE.input HandleObjectTreeMsg) ]
+                    [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (_ == state.route)) (projectsToTree state) (HE.input HandleObjectTreeMsg) ]
               , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                     [ routeBreadcrumbs
                     , maybe (text "Couldn't find project/net/diagram.") mainView (reifyRoute state.projects state.route)
@@ -117,7 +156,15 @@ ui =
         mainView :: RouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ParentHTML Query ChildQuery ChildSlot m
         mainView route = case route of
           Home ->
-            text "Please select an object from the menu, such as a Petri net or a diagram."
+            div []
+                [ text "Please select an object from the menu, or enter a transaction hash below."
+                , br [], br []
+                , HH.input [ HP.value ""
+                           , placeholder "Enter transaction hash"
+                           , HE.onValueInput $ HE.input (LoadFromHash Ex.endpointUrl)
+                           , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
+                           ]
+                ]
           Types project ->
             TypedefsEditor.typedefsTreeView project.types
           Auths project ->
@@ -135,6 +182,31 @@ ui =
                           Nothing                         -> text "Click a node to show the corresponding net or diagram."
                       ]
                 ]
+          WiringR wfi ->
+            let
+              wiringMaybe :: Maybe WiringTx
+              wiringMaybe = wfi.hash `Map.lookup` state.wirings
+
+              rootDiagramMaybe :: Maybe Diagram
+              rootDiagramMaybe = findRootDiagramMaybe =<< wiringMaybe
+
+              diagramInfoMaybe :: Maybe DiagramInfo
+              diagramInfoMaybe = (\d -> { name: d.name, ops: [] }) <$> rootDiagramMaybe
+            in
+            div []
+                [ text $ "Wiring " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
+                , br [], br []
+                , maybe (text "wiring not found")
+                        (\w -> pre [] [ text $ show w ])
+                        wiringMaybe
+                , br [], br []
+                , text $ "rootDiagramMaybe: " <> show rootDiagramMaybe
+                , br [], br []
+                , text $ "diagramInfoMaybe: " <> show diagramInfoMaybe
+                ]
+
+          FiringR x ->
+            text $ "Firing " <> x.hash <> " at " <> x.endpointUrl <> "."
 
         routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
         routeBreadcrumbs =
@@ -146,6 +218,8 @@ ui =
                                Auths   projectName        -> [ projectName, "Authorisation" ]
                                Net     projectName name   -> [ projectName, name ]
                                Diagram projectName name _ -> [ projectName, name ]
+                               WiringR  x                 -> [ x.endpointUrl, "wiring " <> shortHash x.hash ]
+                               FiringR  x                 -> [ x.endpointUrl, shortHash x.hash ]
               ]
           where
             crumb str = li [] [ a [ href "#" ] [ text str ] ]
@@ -160,7 +234,10 @@ ui =
                     , span [ classes $ ClassName <$> [ "navbar-item", "ml-4", "font-semibold", "text-xl" ] ]
                            [ text "Statebox Studio" ]
                     ]
-              , menu [ "Project", "Help" ]
+              , menu [ "Home"    /\ Just Home
+                     , "Project" /\ Nothing
+                     , "Help"    /\ Nothing
+                     ]
               ]
           where
             menu items =
@@ -169,8 +246,13 @@ ui =
                         (menuItem <$> items)
                   ]
 
-            menuItem label =
-              a [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ] ]
+            menuItem (label /\ routeMaybe) =
+              a (
+                  [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ]
+                  , href "#"
+                  ]
+                  <> ((\r -> [ HE.onClick $ HE.input_ (SelectRoute r) ]) `foldMap` routeMaybe)
+                )
                 [ text label ]
 
 --------------------------------------------------------------------------------
@@ -189,6 +271,8 @@ reifyRoute projects = case _ of
                                                      DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
                                                      NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                                         pure $ Diagram project diagram node
+  WiringR  x                       -> pure $ WiringR  x
+  FiringR  x                       -> pure $ FiringR  x
 
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
@@ -206,18 +290,34 @@ findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project
 
 --------------------------------------------------------------------------------
 
-projectsToTree :: Array Project -> Cofree Array ObjectTree.Item
-projectsToTree projects =
-  mkItem ["Studio"] "Studio" Nothing :< (projectToTree <$> projects)
+projectsToTree :: State -> Cofree Array ObjectTree.Item
+projectsToTree { projects, wirings } =
+  mkItem ["Studio"] "Studio" Nothing
+    :< (wiringItems <> projectItems)
   where
-    projectToTree :: Project -> Cofree Array ObjectTree.Item
-    projectToTree p =
+    wiringItems  = (uncurry fromWiring <<< map _.wiring) <$> Map.toUnfoldable wirings
+    projectItems = fromProject <$> projects
+
+    fromProject :: Project -> Cofree Array ObjectTree.Item
+    fromProject p =
       mkItem [p.name] p.name Nothing :<
         [ mkItem [ p.name, "types"          ] "Types"          (Just $ Types p.name) :< []
         , mkItem [ p.name, "authorisations" ] "Authorisations" (Just $ Auths p.name) :< []
-        , mkItem [ p.name, "nets"           ] "Nets"           (Nothing)             :< fromNets     p.nets
-        , mkItem [ p.name, "diagrams "      ] "Diagrams"       (Nothing)             :< fromDiagrams p.diagrams
+        , mkItem [ p.name, "nets"           ] "Petri nets"     (Nothing)             :< fromNets     p p.nets
+        , mkItem [ p.name, "diagrams "      ] "Diagrams"       (Nothing)             :< fromDiagrams p p.diagrams
         ]
       where
-        fromNets     nets  = (\n -> mkItem [ p.name, "nets",     n.name ] n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
-        fromDiagrams diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
+        fromNets     p nets  = (\n -> mkItem [ p.name, "nets",     n.name ] n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
+        fromDiagrams p diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
+
+    fromWiring :: HashStr -> Wiring -> Cofree Array ObjectTree.Item
+    fromWiring hash w =
+      mkItem [ "ALL_WIRINGS", hash ]
+             ("w " <> shortHash hash)
+             (Just route) :< fromNets     fakeProject w.nets
+                          <> fromDiagrams fakeProject w.diagrams
+      where
+        fakeProject          = { id: hash, name: shortHash hash }
+        route                = WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash }
+        fromNets     p nets  = (\n -> mkItem [ p.id, "nets",     n.name ] n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
+        fromDiagrams p diags = (\d -> mkItem [ p.id, "diagrams", d.name ] d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
