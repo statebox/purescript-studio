@@ -2,30 +2,25 @@ module View.Diagram.DiagramEditor where
 
 import Prelude hiding (div)
 
-import Data.Bifunctor (bimap)
-import Data.Int (floor, round)
 import Data.Maybe
 import Data.Traversable (traverse)
 import Data.Tuple.Nested ((/\))
-import Data.Vec2D (vec2, vec3)
-import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect (Effect)
-import Foreign (Foreign)
+import Data.Vec2D (vec2)
+import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentDSL, HalogenM)
 import Halogen.HTML as HH
-import Halogen.HTML (HTML, div, br)
+import Halogen.HTML (HTML, div)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
-import Halogen.Query (getHTMLElementRef)
 import Svg.Elements as SE
 import Svg.Attributes as SA
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Element)
 import Web.HTML.HTMLElement as HTMLElement
-import Web.HTML.HTMLElement (HTMLElement, DOMRect, getBoundingClientRect)
+import Web.HTML.HTMLElement (HTMLElement, getBoundingClientRect)
 
 import View.Diagram.Model
 import View.Diagram.Update as Update
@@ -51,7 +46,7 @@ initialState ops =
   }
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Operators Msg m
-ui = H.component { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram }
+ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram, initializer, finalizer: Nothing }
   where
     render :: State -> HTML Void (Query Unit)
     render state =
@@ -72,23 +67,19 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
         boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
 
         state <- H.get
-        let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
-                            (\rect state -> state { model = evalModel msg state.model })
-                            boundingRectMaybe
-            state' = (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe, htmlElementMaybe = componentElemMaybe }) state
 
-            isOperatorClicked = case msg of
+        let isOperatorClicked = case msg of
               MouseUp _ -> true
               _         -> false
 
-            clickedOperatorId = case state'.model.mouseOver of
+            clickedOperatorId = case state.model.mouseOver of
               Just (op /\ oph) | isOperatorClicked -> Just op.identifier
               _                                    -> Nothing
 
-            state'' = if isOperatorClicked then state' { model = state'.model { selectedOpId = clickedOperatorId } }
-                                           else state'
+            state' = if isOperatorClicked then state { model = state.model { selectedOpId = clickedOperatorId } }
+                                           else state
 
-        H.put state''
+        H.put state'
 
         _ <- maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
         pure next
@@ -96,6 +87,23 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
       UpdateDiagram ops next -> do
         H.modify_ \state -> state { model = state.model { ops = ops } }
         pure next
+
+      DetermineBoundingRec next -> do
+        componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
+        boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
+
+        state <- H.get
+
+        let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
+                            (\rect state -> state)
+                            boundingRectMaybe
+            state' = (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe, htmlElementMaybe = componentElemMaybe }) state
+
+        H.put state'
+
+        pure next
+    initializer :: Maybe (Query Unit)
+    initializer = Just (DetermineBoundingRec unit)
 
 -- TODO this is generally useful; move elsewhere
 -- This was made because the original implementation from Halogen.Query doesn't seem to work, at least in this case:
