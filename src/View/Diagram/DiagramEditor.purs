@@ -67,19 +67,20 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
         boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
 
         state <- H.get
+        let state' = state { model = evalModel msg state.model }
 
-        let isOperatorClicked = case msg of
+            isOperatorClicked = case msg of
               MouseUp _ -> true
               _         -> false
 
-            clickedOperatorId = case state.model.mouseOver of
+            clickedOperatorId = case state'.model.mouseOver of
               Just (op /\ oph) | isOperatorClicked -> Just op.identifier
               _                                    -> Nothing
 
-            state' = if isOperatorClicked then state { model = state.model { selectedOpId = clickedOperatorId } }
-                                           else state
+            state'' = if isOperatorClicked then state' { model = state'.model { selectedOpId = clickedOperatorId } }
+                                           else state'
 
-        H.put state'
+        H.put state''
 
         _ <- maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
         pure next
