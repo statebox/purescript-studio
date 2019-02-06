@@ -15,6 +15,8 @@ import Test.Spec.Runner (run)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.NLL (ErrNetEncoding(..))
 
+import View.Diagram.FromNLL as Diag
+
 main :: Effect Unit
 main = run [consoleReporter] do
   describe "NLL Petri net encoding" do
@@ -23,3 +25,9 @@ main = run [consoleReporter] do
     it "reject odd length encodings" do
       Net.fromNLL 0 [1,2,0,3,0,3,0] `shouldEqual` Left ErrOddLength
     pending "infer a single trailing zero?"
+  describe "Brick diagram encoding" do
+    it "decodes a simple graph" do
+       Diag.fromNLL 2 [2, 1, 8, 8, 8, 3] 0 `shouldEqual` Right [ {source: 2, target: 8}
+                                                               , {source: 1, target: 8}
+                                                               , {source: 8, target: 3}
+                                                               ]
