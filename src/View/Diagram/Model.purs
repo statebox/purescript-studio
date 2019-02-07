@@ -3,7 +3,7 @@ module View.Diagram.Model where
 import Prelude
 import Data.Maybe
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec3, vec3, _x, _y)
+import Data.Vec3 (Vec3, vec3, _x, _y)
 
 import View.Diagram.Common (snap)
 

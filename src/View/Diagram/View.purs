@@ -6,7 +6,7 @@ import Data.Int (toNumber)
 import Data.Maybe
 import Data.Monoid (guard)
 import Data.Ord (abs)
-import Data.Vec2D (Vec3, _x, _y, _z, vec2, vec3)
+import Data.Vec3 (Vec3, _x, _y, _z, vec2, vec3)
 import Halogen as H
 import Halogen.HTML (HTML, div, pre)
 import Halogen.HTML as HH

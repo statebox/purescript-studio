@@ -1,4 +1,4 @@
-module Data.Vec2D
+module Data.Vec3
   ( Vec3
   , vec3
   , binOp
