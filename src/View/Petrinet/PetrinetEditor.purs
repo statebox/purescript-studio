@@ -19,8 +19,8 @@ import Data.Tuple (Tuple(..), uncurry, snd)
 import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
-import Data.Vec2D (Vec2D, Vec2(..), vec2, _x, _y, Box(..))
-import Data.Vec2D (bounds) as Vec2D
+import Data.Vec3 (Vec2D, Vec2(..), vec2, _x, _y, Box(..))
+import Data.Vec3 (bounds) as Vec2D
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff(..))
 import Halogen as H

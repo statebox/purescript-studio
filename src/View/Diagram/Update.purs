@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Maybe
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec3, _x, _y, _z, vec3)
+import Data.Vec3 (Vec3, _x, _y, _z, vec3)
 import Web.HTML.HTMLElement (DOMRect)
 
 import View.Diagram.Model

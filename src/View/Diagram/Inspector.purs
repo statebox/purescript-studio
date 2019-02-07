@@ -3,7 +3,7 @@ module View.Diagram.Inspector where
 import Prelude hiding (div)
 
 import Data.Maybe (maybe)
-import Data.Vec2D (vec2)
+import Data.Vec3 (vec2)
 
 import Halogen.HTML as HH
 import Halogen.HTML (HTML)

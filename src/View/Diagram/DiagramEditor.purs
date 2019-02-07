@@ -7,7 +7,7 @@ import Data.Int (floor, round)
 import Data.Maybe
 import Data.Traversable (traverse)
 import Data.Tuple.Nested ((/\))
-import Data.Vec2D (vec2, vec3)
+import Data.Vec3 (vec2, vec3)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect (Effect)
 import Foreign (Foreign)

@@ -1,6 +1,6 @@
 module Svg.Util where
 
-import Data.Vec2D (Vec3)
+import Data.Vec3 (Vec3)
 import Prelude ((<<<))
 import Effect.Aff (Aff)
 import Effect.Aff.Compat (EffectFnAff, fromEffectFnAff)

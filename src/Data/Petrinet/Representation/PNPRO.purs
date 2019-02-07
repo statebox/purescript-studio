@@ -15,7 +15,7 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec2D (Vec2D, Vec2(..), Box(..), vec2)
+import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)

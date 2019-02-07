@@ -1,8 +1,8 @@
 module View.Petrinet.Arrow where
 
 import Prelude (max, negate, ($), (*), (+), (-), (/), (<$>), (>), (>=), (<>), pure)
-import Data.Vec2D (Vec2D, vec2, _x, _y)
-import Data.Vec2D as Vec2
+import Data.Vec3 (Vec2D, vec2, _x, _y)
+import Data.Vec3 as Vec2
 import Halogen.HTML (HTML)
 import Svg.Elements as SE
 import Svg.Attributes as SA

@@ -13,7 +13,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Auth (Role, Roles, RoleInfo)
 import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, findTokens', NetRepF, NetObjF, NetApiF, mkNetObjF)
 import Data.Typedef.Typedef2 (Typedef2, TypeName)
-import Data.Vec2D (Vec2, Vec2D, Box(..))
+import Data.Vec3 (Vec2, Vec2D, Box(..))
 
 data QueryF pid tid a
   = LoadNet (NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 ()) a
