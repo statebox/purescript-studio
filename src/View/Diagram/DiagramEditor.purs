@@ -89,7 +89,7 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
         H.modify_ \state -> state { model = state.model { ops = ops } }
         pure next
 
-      DetermineBoundingRec next -> do
+      DetermineBoundingRect next -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
 
@@ -103,8 +103,9 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
         H.put state'
 
         pure next
+
     initializer :: Maybe (Query Unit)
-    initializer = Just (DetermineBoundingRec unit)
+    initializer = Just (DetermineBoundingRect unit)
 
 -- TODO this is generally useful; move elsewhere
 -- This was made because the original implementation from Halogen.Query doesn't seem to work, at least in this case:
