@@ -5,7 +5,7 @@ import Data.Monoid
 import Prelude
 import View.Diagram.Model
 
-import Data.Array (length, mapMaybe, range, index, filter, findIndex, uncons)
+import Data.Array (length, mapMaybe, range, index, filter, findIndex, uncons, any)
 import Data.Int (rem)
 import Data.Maybe (Maybe(..))
 
@@ -44,29 +44,29 @@ below :: ∀ a. BrickDiagram a -> Int -> Int -> Maybe a
 below b x y = let l = min (height b) (y + 1) in
                   index b.elements (l * b.width + x)
 
-
 -- Converting Brick Diagrams to Directed graphs -------------------------------------------
 
 data ErrDiagramEncoding = ErrArrayNotRectangular
+
+derive instance eqErrorEncodingDiagram :: Eq ErrDiagramEncoding
 
 instance showErrDiagramEncoding :: Show ErrDiagramEncoding where
   show _ = "Error: Brick Diagram is not perfectly square"
 
 fromNLL :: ∀ a. Eq a => Int -> Array a -> a -> Either ErrDiagramEncoding (Array (GraphArrow a))
-fromNLL width ops empty = do diagram <- makeDiagram width ops
-                             let graph = filterSelfArrow <<< filterNode empty <<< brickToGraph $ diagram
-                             Left ErrArrayNotRectangular
+fromNLL width ops empty = makeDiagram width ops
+  >>= Right <<< filterSelfArrow <<< filterNode empty <<< brickToGraph
 
 fromNLLMonoid :: ∀ a. Eq a => Monoid a => Int -> Array a -> Either ErrDiagramEncoding (Array (GraphArrow a))
 fromNLLMonoid width ops = fromNLL width ops mempty
 
-
 -- | Given a node a and a directed graph, remove all arrows which have a as source or dest
 filterNode :: ∀ a. Eq a => a -> Array (GraphArrow a) -> Array (GraphArrow a)
-filterNode value = filter (nodeContains value)
+filterNode value = filter (not <<< nodeContains value)
   where nodeContains :: a -> GraphArrow a -> Boolean
         nodeContains v a = a.source == v || a.target == v
 
+-- | Remove arrows that have the same source and destination
 filterSelfArrow :: ∀ a. Eq a => Array (GraphArrow a) -> Array (GraphArrow a)
 filterSelfArrow = filter \arr -> arr.source /= arr.target
 
@@ -86,14 +86,17 @@ edge b i = do src <- index b.elements i
 
 -- Converting Directed Graphs to Diagram ------------------------------------------------
 
-contains :: ∀ a. Eq a => a -> Array a -> Boolean
-contains v array = findIndex (eq v) array /= Nothing
+contains :: ∀ a. Eq a =>  Array a -> a -> Boolean
+contains array v = findIndex (eq v) array /= Nothing
 
 isAcyclic :: ∀ a. Eq a => Array (GraphArrow a) -> Boolean
 isAcyclic = isAcylicHelper []
   where isAcylicHelper :: Array a -> Array (GraphArrow a) -> Boolean
-        isAcylicHelper seen graph = let leftToExplore = filter (\a -> contains a.source seen) graph in
-                                        false
+        isAcylicHelper seen graph = let leftToExplore = filter (\a -> seen `contains` a.source) graph in
+                                        if any (contains (map (\a -> a.target) leftToExplore)) seen
+                                          then false
+                                          else false
+                                        
                                         
 graphToDiagram :: ∀ a. Array (GraphArrow a) -> String -> DiagramInfo
 graphToDiagram graph name = { name: name, ops: graphToOps graph }
