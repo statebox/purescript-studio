@@ -1,11 +1,11 @@
-module View.Diagram.FromNLL (fromNLL, ErrDiagramEncoding) where
+module View.Diagram.FromNLL (fromNLL, ErrDiagramEncoding(..)) where
 
 import Data.Either
 import Data.Monoid
 import Prelude
 import View.Diagram.Model
 
-import Data.Array (length, mapMaybe, range, index, filter, findIndex, uncons, any)
+import Data.Array (length, mapMaybe, range, index, filter, findIndex, uncons, all, (:))
 import Data.Int (rem)
 import Data.Maybe (Maybe(..))
 
@@ -47,15 +47,17 @@ below b x y = let l = min (height b) (y + 1) in
 -- Converting Brick Diagrams to Directed graphs -------------------------------------------
 
 data ErrDiagramEncoding = ErrArrayNotRectangular
+                        | ErrGraphIsCyclic
 
 derive instance eqErrorEncodingDiagram :: Eq ErrDiagramEncoding
 
 instance showErrDiagramEncoding :: Show ErrDiagramEncoding where
-  show _ = "Error: Brick Diagram is not perfectly square"
+  show ErrArrayNotRectangular = "Error: Brick Diagram is not perfectly square"
+  show ErrGraphIsCyclic = "Error: Brick Diagram describes a cyclic graph"
 
 fromNLL :: ∀ a. Eq a => Int -> Array a -> a -> Either ErrDiagramEncoding (Array (GraphArrow a))
 fromNLL width ops empty = makeDiagram width ops
-  >>= Right <<< filterSelfArrow <<< filterNode empty <<< brickToGraph
+  >>= checkAcyclic <<< filterSelfArrow <<< filterNode empty <<< brickToGraph
 
 fromNLLMonoid :: ∀ a. Eq a => Monoid a => Int -> Array a -> Either ErrDiagramEncoding (Array (GraphArrow a))
 fromNLLMonoid width ops = fromNLL width ops mempty
@@ -89,14 +91,25 @@ edge b i = do src <- index b.elements i
 contains :: ∀ a. Eq a =>  Array a -> a -> Boolean
 contains array v = findIndex (eq v) array /= Nothing
 
+checkAcyclic :: ∀ a. Eq a => Array (GraphArrow a) -> Either ErrDiagramEncoding (Array (GraphArrow a))
+checkAcyclic graph = if isAcyclic graph then Right graph else Left ErrGraphIsCyclic
+
 isAcyclic :: ∀ a. Eq a => Array (GraphArrow a) -> Boolean
-isAcyclic = isAcylicHelper []
-  where isAcylicHelper :: Array a -> Array (GraphArrow a) -> Boolean
-        isAcylicHelper seen graph = let leftToExplore = filter (\a -> seen `contains` a.source) graph in
-                                        if any (contains (map (\a -> a.target) leftToExplore)) seen
-                                          then false
-                                          else false
-                                        
+isAcyclic graph = case uncons graph of
+  Just {head: h, tail: t} -> isAcylicHelper [] h.source graph
+  Nothing -> true
+
+isAcylicHelper :: ∀ a. Eq a => Array a -> a -> Array (GraphArrow a) -> Boolean
+isAcylicHelper seen current graph = let targets = getTargets current graph in
+  all (\t -> not (seen `contains` t) && isAcylicHelper (t : seen) t graph) targets
+
+-- | Given a node in a graph and the arrows in the graph, return the arrows which have the node as source
+getSources :: ∀ a. Eq a => a -> Array (GraphArrow a) -> Array (GraphArrow a)
+getSources node = filter (\a -> a.source == node)
+
+-- | Given a node and the arrows in the graph, return all the nodes which are direct targets of the node
+getTargets :: ∀ a. Eq a => a -> Array (GraphArrow a) -> Array a
+getTargets node = map (\a -> a.target) <<< getSources node 
                                         
 graphToDiagram :: ∀ a. Array (GraphArrow a) -> String -> DiagramInfo
 graphToDiagram graph name = { name: name, ops: graphToOps graph }

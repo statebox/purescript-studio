@@ -31,3 +31,8 @@ main = run [consoleReporter] do
                                                                , {source: 1, target: 8}
                                                                , {source: 8, target: 3}
                                                                ]
+
+    it "should fail on cyclic graphs" do
+       Diag.fromNLL 1 [1,2,3,1] 0 `shouldEqual` Left Diag.ErrGraphIsCyclic
+    it "should fail on multiple graphs with one cyclic" do
+       Diag.fromNLL 2 [2,5,3,5,4,6,0,5] 0 `shouldEqual` Left Diag.ErrGraphIsCyclic
