@@ -58,8 +58,6 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
                 ]
           ]
 
-    -- TODO We shouldn't need to getBoundingClientRect on every single model update, that is incredibly inefficient.
-    --      Doing it just on initialisation and window resizing/layout changes should do.
     eval :: Query ~> ComponentDSL State Query Msg m
     eval = case _ of
       MouseAction msg next -> do
@@ -95,7 +93,7 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
 
         state <- H.get
 
-        let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
+        let updater = maybe (\     state -> state { msg = "Could not determine this component's boundingClientRect." })
                             (\rect state -> state)
                             boundingRectMaybe
             state' = (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe, htmlElementMaybe = componentElemMaybe }) state
