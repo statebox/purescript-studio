@@ -5,7 +5,7 @@ import Prelude hiding (div)
 import Data.Maybe
 import Data.Traversable (traverse)
 import Data.Tuple.Nested ((/\))
-import Data.Vec2D (vec2)
+import Data.Vec3 (vec2)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentDSL, HalogenM)
