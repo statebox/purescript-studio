@@ -7,7 +7,8 @@ module ExampleData
   , net2
   , netApi2
   , pnproNetInfos1
-  , diagrams
+  , diagrams1
+  , diagrams2
   ) where
 
 import Prelude
@@ -23,7 +24,7 @@ import Data.Newtype (un, over)
 import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ring
-import Data.Vec2D (Vec2D, Vec2(..), vec2, Box(..))
+import Data.Vec2D (Vec2D, Vec2(..), vec2, vec3, Box(..))
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
@@ -40,7 +41,7 @@ project1 :: Project
 project1 =
   { name: "Statebox Examples"
   , nets: [ netInfo1, netInfo2 ]
-  , diagrams: diagrams
+  , diagrams: diagrams1
   , roleInfos: project1Roles
   , types: project1Typedefs
   }
@@ -67,7 +68,7 @@ project2 :: Project
 project2 =
   { name: "Erik's examples"
   , nets: pnproNetInfos1
-  , diagrams: diagrams
+  , diagrams: diagrams2
   , roleInfos: project2Roles
   , types: project2Typedefs
   }
@@ -369,5 +370,19 @@ pnproXml1 =
 
 --------------------------------------------------------------------------------
 
-diagrams :: Array DiagramInfo
-diagrams = [{ name: "Foo Bar Quux" }]
+diagrams1 :: Array DiagramInfo
+diagrams1 =
+  [ { name: "Foo Bar Quux"
+    , ops: [ { identifier: netInfo1.name, pos: vec3 1 1 7, label: netInfo1.name }
+           , { identifier: netInfo2.name, pos: vec3 8 1 6, label: netInfo2.name }
+           , { identifier: "b"          , pos: vec3 4 2 7, label: "Quux" }
+           ]
+   } ]
+
+diagrams2 :: Array DiagramInfo
+diagrams2 =
+  [ { name: "La la la"
+    , ops: [ { identifier: "a", pos: vec3 1 1 4, label: "la la"   }
+           , { identifier: "c", pos: vec3 5 1 4, label: "loo loo" }
+           ]
+   } ]

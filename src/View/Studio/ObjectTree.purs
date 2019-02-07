@@ -18,11 +18,7 @@ import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, src, href)
 import Halogen.HTML.Properties.ARIA as ARIA
 
-import Data.Auth (RoleInfo)
-import View.Model (Project, ProjectName)
-import View.Petrinet.Model (NetInfo)
-import View.Diagram.Model (DiagramInfo)
-import View.Studio.Route (Route, RouteF(..), routesObjNameEq)
+import View.Studio.Route (Route, RouteF(..))
 
 --------------------------------------------------------------------------------
 
@@ -32,15 +28,18 @@ componentCssClassName = ClassName componentCssClassNameStr
 
 --------------------------------------------------------------------------------
 
+type Tree = Cofree Array Item
+
 data Query a
   = VisitRoute PathId Route a
   | ToggleExpandCollapse PathId a
+  | UpdateTree (Cofree Array Item) a
 
 -- | What the component emits to the outside world.
 data Msg = Clicked PathId Route
 
 type State =
-  { tree       :: Cofree Array Item
+  { tree       :: Maybe Tree
   , expansion  :: Map PathId Boolean
   , activeItem :: Maybe PathId
   }
@@ -64,20 +63,23 @@ menuComponent
   :: forall m
    . MonadAff m
   => (Route -> Boolean)
-  -> Cofree Array Item
-  -> Component HTML Query Unit Msg m
-menuComponent isSelected tree =
-  H.component { initialState: const initialState, render, eval, receiver: const Nothing }
+  -> Component HTML Query Tree Msg m
+menuComponent isSelected =
+  H.component { initialState, render, eval, receiver: HE.input UpdateTree }
   where
-    initialState :: State
-    initialState =
-      { tree:     tree
+    initialState :: Tree -> State
+    initialState tree =
+      { tree: pure tree
       , expansion: Map.empty
       , activeItem: Nothing
       }
 
     eval :: Query ~> ComponentDSL State Query _ m
     eval = case _ of
+      UpdateTree tree next -> do
+        H.modify_ \state -> state { tree = pure tree }
+        pure next
+
       VisitRoute pathId route next -> do
         H.modify_ (\state -> state { activeItem = Just pathId })
         H.raise (Clicked pathId route)
@@ -92,9 +94,9 @@ menuComponent isSelected tree =
         pure next
 
     render :: State -> HTML Void (Query Unit)
-    render state =
+    render state = fromMaybe (div [] []) $ state.tree <#> \tree ->
       nav [ clzz [ componentCssClassNameStr, "p-4" ] ]
-          [ ul [ clzz [ "list-reset" ] ] [ semifoldCofree menuItemHtml state.tree ] ]
+          [ ul [ clzz [ "list-reset" ] ] [ semifoldCofree menuItemHtml tree ] ]
       where
         menuItemHtml :: Item -> Array (HTML Void (Query Unit)) -> HTML Void (Query Unit)
         menuItemHtml treeNode kids =
@@ -110,7 +112,7 @@ menuComponent isSelected tree =
                      ]
              ]
           where
-            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-purple-lighter" ] else []
+            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-purple-lighter", "rounded" ] else []
             arrowIcon     = if null kids then text ""
                                          else span [ clzz [ "fas" , "fa-xs"
                                                           , "fa-caret-" <> if isExpanded then "down" else "right"

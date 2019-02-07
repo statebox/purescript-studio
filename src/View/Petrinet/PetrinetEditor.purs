@@ -101,17 +101,17 @@ type ArcModel tid = ArcModelF tid String Vec2D
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 () -> H.Component HTML (QueryF pid tid) Unit Msg m
-ui initialNetInfo =
-  H.component { initialState: const initialState, render, eval, receiver: const Nothing }
+ui :: ∀ pid tid m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => H.Component HTML (QueryF pid tid) (NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 ()) Msg m
+ui =
+  H.component { initialState: initialState, render, eval, receiver: HE.input LoadNet }
   where
     -- TODO should come from component state
     htmlIdPrefixMaybe = Just "todo_net_prefix"
 
-    initialState :: StateF pid tid
-    initialState =
-      { netInfo:                 initialNetInfo
-      , msg:                     "Please select a net."
+    initialState :: NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 () -> StateF pid tid
+    initialState netInfo =
+      { netInfo:                 netInfo
+      , msg:                     ""
       , focusedPlace:            empty
       , focusedTransition:       empty
       , placeLabelsVisible:      true
@@ -163,9 +163,7 @@ ui initialNetInfo =
     eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
       LoadNet newNetInfo next -> do
-        H.modify_ (\state -> state { netInfo = newNetInfo
-                                   , msg = "Select places or transitions by clicking on them. Double-click enabled transitions to fire them."
-                                   })
+        H.modify_ (\state -> state { netInfo = newNetInfo })
         pure next
       FocusPlace pid next -> do
         state <- H.get
@@ -502,7 +500,7 @@ labelVisibilityButtons =
 
 --------------------------------------------------------------------------------
 
-svgPath :: ∀ r i. Vec2D -> Vec2D -> Array SA.D
+svgPath :: Vec2D -> Vec2D -> Array SA.D
 svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
 
 --------------------------------------------------------------------------------

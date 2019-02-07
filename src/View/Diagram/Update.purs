@@ -3,8 +3,9 @@ module View.Diagram.Update where
 import Prelude
 
 import Data.Maybe
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Data.Vec2D (Vec3, _x, _y, _z, vec3)
+import Web.HTML (HTMLElement)
 import Web.HTML.HTMLElement (DOMRect)
 
 import View.Diagram.Model
@@ -14,9 +15,13 @@ type State =
   { model                   :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified
   , msg                     :: String
   , boundingClientRectMaybe :: Maybe DOMRect -- ^ Allows us to correct mouse coordinates for the component's position.
+  , htmlElementMaybe        :: Maybe HTMLElement
   }
 
-type Query = MkQueryF MouseMsg
+data Query a
+  = MouseAction MouseMsg a
+  | UpdateDiagram Operators a
+  | DetermineBoundingRec a
 
 data MouseMsg
   = MouseIsOver Operator OperatorHandle
@@ -25,8 +30,8 @@ data MouseMsg
   | MouseUp     (Vec3 Int)
   | MouseDown   (Vec3 Int)
 
--- TODO Coyoneda?
-data MkQueryF e a = QueryF e a
+data Msg =
+  OperatorClicked OperatorId
 
 --------------------------------------------------------------------------------
 

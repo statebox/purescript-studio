@@ -1,19 +1,27 @@
 module View.Diagram.Model where
 
-import Prelude
 import Data.Maybe
+import Prelude
+
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec2D (Vec3, vec3, _x, _y)
-
 import View.Diagram.Common (snap)
 
-type DiagramInfo = { name :: String }
+type DiagramInfo =
+  { name :: String
+  , ops  :: Array Operator
+  }
+
+-- must be unique; problematic, want to lenses instead
+type OperatorId = String
 
 type Operator =
-  { identifier :: String -- must be unique; problematic, want to lenses instead
+  { identifier :: OperatorId
   , pos        :: Vec3 Int
   , label      :: String
   }
+
+type Operators = Array Operator
 
 type Config =
   { scale  :: Int
@@ -48,6 +56,7 @@ instance showDragStart :: Show DragStart where
 
 type Model =
   { ops           :: Array Operator
+  , selectedOpId  :: Maybe OperatorId
     -- this String id is somewhat problematic; it's an id into a "Array/Set" of operators; rather have a Lens here
   , mouseOver     :: Maybe (Operator /\ OperatorHandle)
   , mousePos      :: Vec3 Int

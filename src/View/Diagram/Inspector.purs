@@ -26,6 +26,7 @@ view state@{model} =
          , prop "sdx,sdy,sdw" $ show sdxdydw
          , prop "mdx,mdy,mdw" $ show mdxdydw
          , prop "valid"       $ show $ isValidDrag model
+         , prop "selectedOpId"$ show model.selectedOpId
          , code "-----------------------\n"
          , prop "bounds"      $ maybe "Nothing" (\r -> "Just " <> viewRect r) state.boundingClientRectMaybe
          ]
