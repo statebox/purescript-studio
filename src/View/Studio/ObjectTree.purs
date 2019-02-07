@@ -42,6 +42,7 @@ type State =
   { tree       :: Maybe Tree
   , expansion  :: Map PathId Boolean
   , activeItem :: Maybe PathId
+  , hideRoot   :: Boolean
   }
 
 --------------------------------------------------------------------------------
@@ -72,6 +73,7 @@ menuComponent isSelected =
       { tree: pure tree
       , expansion: Map.empty
       , activeItem: Nothing
+      , hideRoot: true
       }
 
     eval :: Query ~> ComponentDSL State Query _ m
@@ -96,7 +98,10 @@ menuComponent isSelected =
     render :: State -> HTML Void (Query Unit)
     render state = fromMaybe (div [] []) $ state.tree <#> \tree ->
       nav [ clzz [ componentCssClassNameStr, "p-4" ] ]
-          [ ul [ clzz [ "list-reset" ] ] [ semifoldCofree menuItemHtml tree ] ]
+          [ ul [ clzz [ "list-reset" ] ] $
+               if state.hideRoot then (semifoldCofree menuItemHtml <$> tail tree)
+                                 else [semifoldCofree menuItemHtml  $       tree]
+          ]
       where
         menuItemHtml :: Item -> Array (HTML Void (Query Unit)) -> HTML Void (Query Unit)
         menuItemHtml treeNode kids =
