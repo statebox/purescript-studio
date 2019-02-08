@@ -14,7 +14,6 @@ import View.Diagram.Common (snap)
 type State =
   { model                   :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified
   , msg                     :: String
-  , boundingClientRectMaybe :: Maybe DOMRect -- ^ Allows us to correct mouse coordinates for the component's position.
   , htmlElementMaybe        :: Maybe HTMLElement
   }
 

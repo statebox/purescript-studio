@@ -41,7 +41,6 @@ initialState ops =
     , dragStart:     DragNotStarted
     }
   , msg: ""
-  , boundingClientRectMaybe: Nothing
   , htmlElementMaybe: Nothing
   }
 
@@ -61,9 +60,6 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
     eval :: Query ~> ComponentDSL State Query Msg m
     eval = case _ of
       MouseAction msg next -> do
-        componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
-        boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
-
         state <- H.get
         let state' = state { model = evalModel msg state.model }
 
@@ -89,17 +85,7 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
 
       DetermineBoundingRect next -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
-        boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
-
-        state <- H.get
-
-        let updater = maybe (\     state -> state { msg = "Could not determine this component's boundingClientRect." })
-                            (\rect state -> state)
-                            boundingRectMaybe
-            state' = (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe, htmlElementMaybe = componentElemMaybe }) state
-
-        H.put state'
-
+        H.modify_ \state -> state { htmlElementMaybe = componentElemMaybe }
         pure next
 
     initializer :: Maybe (Query Unit)
