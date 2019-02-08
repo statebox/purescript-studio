@@ -8,32 +8,32 @@ import Data.Monoid (guard)
 import Data.Ord (abs)
 import Data.Vec3 (Vec3, _x, _y, _z, vec2, vec3)
 import Halogen as H
-import Halogen.HTML (HTML, div, pre)
+import Halogen.HTML (HTML)
 import Halogen.HTML as HH
-import Halogen.HTML.Events (onMouseOver, onMouseOut)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Svg.Attributes (Color(RGB, RGBA), FontSize(..), CSSLength(..))
+import Svg.Attributes (CSSLength(..))
 import Svg.Attributes as SA
 import Svg.Elements (rect)
 import Svg.Elements as SE
 import Svg.Util (domToSvgCoordinates)
-import View.Common (styleStr)
 import View.Diagram.Common
 import View.Diagram.Model
 import View.Diagram.Update
+import Web.HTML (HTMLElement)
 import Web.UIEvent.MouseEvent (clientX, clientY)
 
 -- TODO eliminate?
 type Svg a = HTML Void a
 
-diagramEditorSVG :: Model -> Svg MouseMsg
-diagramEditorSVG model =
+-- TODO: if there is no HTMLElement it does not make sense to draw anything
+diagramEditorSVG :: Maybe HTMLElement -> Model -> Svg MouseMsg
+diagramEditorSVG maybeElement model =
   SE.svg [ SA.viewBox sceneLeft sceneTop w h
          , HP.ref componentRefLabel
-         , HE.onMouseMove $ \e -> Just $ MousePos  (svg e)
-         , HE.onMouseDown $ \e -> Just $ MouseDown (svg e)
-         , HE.onMouseUp   $ \e -> Just $ MouseUp   (svg e)
+         , HE.onMouseMove $ \e -> Just $ MousePos  (svg e maybeElement)
+         , HE.onMouseDown $ \e -> Just $ MouseDown (svg e maybeElement)
+         , HE.onMouseUp   $ \e -> Just $ MouseUp   (svg e maybeElement)
          ]
          (ghosts <> operators)
   where
@@ -42,7 +42,7 @@ diagramEditorSVG model =
     w         = toNumber model.config.width
     h         = toNumber model.config.height
     s         = model.config.scale
-    svg e     = domToSvgCoordinates (vec2 (clientX e) (clientY e))
+    svg e     = maybe zero (\el -> domToSvgCoordinates el (vec2 (clientX e) (clientY e)))
 
     -- TODO ???
     sceneLeft = zero

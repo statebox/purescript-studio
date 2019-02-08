@@ -1,7 +1,8 @@
 module View.Diagram.Model where
 
-import Prelude
 import Data.Maybe
+import Prelude
+
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec3, vec3, _x, _y)
 
