@@ -14,7 +14,7 @@ import View.Diagram.Common (snap)
 type State =
   { model                   :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified
   , msg                     :: String
-  , htmlElementMaybe        :: Maybe HTMLElement
+  , componentElemMaybe      :: Maybe HTMLElement
   }
 
 data Query a

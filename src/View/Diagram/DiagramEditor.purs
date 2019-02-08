@@ -41,7 +41,7 @@ initialState ops =
     , dragStart:     DragNotStarted
     }
   , msg: ""
-  , htmlElementMaybe: Nothing
+  , componentElemMaybe: Nothing
   }
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Operators Msg m
@@ -51,7 +51,7 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
     render state =
       div [ classes [ ClassName "css-diagram-editor" ] ]
           [ div [ classes [] ]
-                [ View.diagramEditorSVG state.htmlElementMaybe state.model <#> \msg -> MouseAction msg unit
+                [ View.diagramEditorSVG state.componentElemMaybe state.model <#> \msg -> MouseAction msg unit
                 , div [ classes [ ClassName "mt-4", ClassName "rb-2", ClassName "p-4", ClassName "bg-grey-lightest", ClassName "text-grey-dark", ClassName "rounded", ClassName "text-sm" ] ]
                       [ Inspector.view state ]
                 ]
@@ -85,7 +85,7 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
 
       Initialize next -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
-        H.modify_ \state -> state { htmlElementMaybe = componentElemMaybe }
+        H.modify_ \state -> state { componentElemMaybe = componentElemMaybe }
         pure next
 
 -- TODO this is generally useful; move elsewhere
