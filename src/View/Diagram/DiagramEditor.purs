@@ -45,7 +45,7 @@ initialState ops =
   }
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Operators Msg m
-ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram, initializer, finalizer: Nothing }
+ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram, initializer: Just (Initialize unit), finalizer: Nothing }
   where
     render :: State -> HTML Void (Query Unit)
     render state =
@@ -83,13 +83,10 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
         H.modify_ \state -> state { model = state.model { ops = ops } }
         pure next
 
-      DetermineBoundingRect next -> do
+      Initialize next -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         H.modify_ \state -> state { htmlElementMaybe = componentElemMaybe }
         pure next
-
-    initializer :: Maybe (Query Unit)
-    initializer = Just (DetermineBoundingRect unit)
 
 -- TODO this is generally useful; move elsewhere
 -- This was made because the original implementation from Halogen.Query doesn't seem to work, at least in this case:

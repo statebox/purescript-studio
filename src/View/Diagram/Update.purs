@@ -18,9 +18,9 @@ type State =
   }
 
 data Query a
-  = MouseAction MouseMsg a
+  = Initialize a
+  | MouseAction MouseMsg a
   | UpdateDiagram Operators a
-  | DetermineBoundingRect a
 
 data MouseMsg
   = MouseIsOver Operator OperatorHandle
