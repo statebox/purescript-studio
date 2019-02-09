@@ -3,9 +3,7 @@ module View.Studio where
 import Prelude hiding (div)
 import Affjax as Affjax
 import Data.Array (catMaybes, head)
-import Control.Alt ((<|>))
 import Control.Comonad.Cofree (Cofree, (:<))
-import Data.Argonaut.Decode (class DecodeJson, decodeJson)
 import Data.Either (Either(..), either)
 import Data.Either.Nested (Either3)
 import Data.Foldable (find, foldMap)
@@ -34,6 +32,7 @@ import Halogen.HTML.Properties.ARIA as ARIA
 
 import Statebox.API (shortHash, findRootDiagramMaybe)
 import Statebox.API.Client as Stbx
+import Statebox.API.Client (DecodingError(..))
 import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, FiringOrWiring(..), Tx, Diagram)
 import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
 import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, NetObj, QueryF(..), Msg(NetUpdated))
@@ -106,23 +105,19 @@ ui =
 
       LoadFromHash endpointUrl hash next -> do
         H.liftEffect $ log $ "LoadFromHash: requesting transaction " <> hash <> " from " <> endpointUrl
-        res1 <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
-
-        case res1.body of
-          Left err   -> H.liftEffect $ log $ "failed to decode API response into JSON: " <> Affjax.printResponseFormatError err
-          Right json -> either (\err -> H.liftEffect $ log $ "Expected to decode a wiring or firing: " <> show err)
-                               (\tx  -> case tx of
-                                          LeWiring wiring -> do
-                                            H.liftEffect $ log $ "wiring: " <> show wiring
-                                            H.modify_ (\state -> state { wirings = Map.insert hash wiring state.wirings })
-                                          LeFiring firing -> do
-                                            H.liftEffect $ log $ "firing: " <> show firing
-                                            H.modify_ (\state -> state { firings = Map.insert hash firing state.firings })
-                               )
-                               (
-                                       (LeWiring <<< _.decoded <$> decodeJson json :: Either String (Tx WiringTx))
-                                   <|> (LeFiring <<< _.decoded <$> decodeJson json :: Either String (Tx FiringTx))
-                               )
+        res <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
+        res # either
+          (\err   -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
+          (either (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a wiring or firing: " <> show err)
+                  (\wf                  -> case wf of
+                                             LeWiring wiring -> do
+                                               H.liftEffect $ log $ "wiring: " <> show wiring
+                                               H.modify_ (\state -> state { wirings = Map.insert hash wiring state.wirings })
+                                             LeFiring firing -> do
+                                               H.liftEffect $ log $ "firing: " <> show firing
+                                               H.modify_ (\state -> state { firings = Map.insert hash firing state.firings })
+                  )
+          )
         pure next
 
       HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do
