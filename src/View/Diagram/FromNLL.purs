@@ -1,13 +1,17 @@
 module View.Diagram.FromNLL (fromNLL, ErrDiagramEncoding(..)) where
 
+import Data.Array
 import Data.Either
 import Data.Monoid
+import Data.Tuple
 import Prelude
 import View.Diagram.Model
 
-import Data.Array (length, mapMaybe, range, index, filter, findIndex, uncons, all, (:))
 import Data.Int (rem)
 import Data.Maybe (Maybe(..))
+import Data.Vec2D (vec3)
+import Pipes.ListT (enumerate)
+import Web.TouchEvent.Touch (identifier)
 
 -- Data types ----------------------------------------------------------------------------
 
@@ -111,9 +115,24 @@ getSources node = filter (\a -> a.source == node)
 getTargets :: ∀ a. Eq a => a -> Array (GraphArrow a) -> Array a
 getTargets node = map (\a -> a.target) <<< getSources node 
                                         
-graphToDiagram :: ∀ a. Array (GraphArrow a) -> String -> DiagramInfo
-graphToDiagram graph name = { name: name, ops: graphToOps graph }
+graphToDiagram :: ∀ a. Int -> Array (GraphArrow a) -> String -> DiagramInfo
+graphToDiagram width graph name = { name: name, ops: graphToOps width graph }
+
+enumerateIndex:: ∀ a. Array a -> Array (Tuple a Int) 
+enumerateIndex a = zip a (0 .. (length a - 1))
 
 -- What now?
-graphToOps :: ∀ a. Array (GraphArrow a) -> Array Operator
-graphToOps graph = []
+graphToOps :: ∀ a. Int -> Array a -> Array Operator
+graphToOps width brick = 
+  let lines = splitLines width brick
+      l = enumerateIndex lines in
+      l >>= uncurry (flip mapOperators)
+  where splitLines :: Int -> Array a -> Array (Array a)
+        splitLines w array | length array <= w = [array]
+                           | otherwise = take width array : splitLines width (drop width array)
+        mapOperators :: Int -> Array a -> Array Operator
+        mapOperators row line = map (uncurry $ flip (mkOperator row)) $ enumerateIndex line
+        mkOperator :: Int -> Int -> a -> Operator 
+        mkOperator row col value = { identifier: show row <> ":" <> show col
+                                     , pos: vec3 col row 1
+                                     , label: "" }
