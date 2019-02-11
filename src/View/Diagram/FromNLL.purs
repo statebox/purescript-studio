@@ -170,7 +170,7 @@ graphToOps { width: width, elements: brick} =
         mapOperators row line = mapWithIndex (mkOperator row) line
         mkOperator :: Int -> Int -> ConsecutiveValues a -> Operator 
         mkOperator row col value = { identifier: show row <> ":" <> show col
-                                   , pos: vec3 col row value.length
+                                   , pos: vec3 row col value.length
                                    , label: show value.value }
 -- Converting from NLL ------------------------------------------------------------------
 
