@@ -118,21 +118,18 @@ getTargets node = map (\a -> a.target) <<< getSources node
 graphToDiagram :: ∀ a. Int -> Array (GraphArrow a) -> String -> DiagramInfo
 graphToDiagram width graph name = { name: name, ops: graphToOps width graph }
 
-enumerateIndex:: ∀ a. Array a -> Array (Tuple a Int) 
-enumerateIndex a = zip a (0 .. (length a - 1))
-
 -- What now?
 graphToOps :: ∀ a. Int -> Array a -> Array Operator
 graphToOps width brick = 
   let lines = splitLines width brick
-      l = enumerateIndex lines in
-      l >>= uncurry (flip mapOperators)
+      l = mapWithIndex (Tuple) lines in
+      l >>= uncurry mapOperators
   where splitLines :: Int -> Array a -> Array (Array a)
         splitLines w array | length array <= w = [array]
                            | otherwise = take width array : splitLines width (drop width array)
         mapOperators :: Int -> Array a -> Array Operator
-        mapOperators row line = map (uncurry $ flip (mkOperator row)) $ enumerateIndex line
+        mapOperators row line = mapWithIndex (mkOperator row) line
         mkOperator :: Int -> Int -> a -> Operator 
         mkOperator row col value = { identifier: show row <> ":" <> show col
-                                     , pos: vec3 col row 1
-                                     , label: "" }
+                                   , pos: vec3 col row 1
+                                   , label: "" }
