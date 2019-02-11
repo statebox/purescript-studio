@@ -1,14 +1,16 @@
 module View.Diagram.FromNLL (fromNLL, ErrDiagramEncoding(..)) where
 
-import Data.Array
+import Data.Array hiding (head,tail)
 import Data.Either
 import Data.Monoid
 import Data.Tuple
 import Prelude
 import View.Diagram.Model
 
+import Data.Array.NonEmpty (toNonEmpty)
 import Data.Int (rem)
 import Data.Maybe (Maybe(..))
+import Data.NonEmpty as NE
 import Data.Vec2D (vec3)
 import Pipes.ListT (enumerate)
 import Web.TouchEvent.Touch (identifier)
@@ -115,21 +117,37 @@ getSources node = filter (\a -> a.source == node)
 getTargets :: ∀ a. Eq a => a -> Array (GraphArrow a) -> Array a
 getTargets node = map (\a -> a.target) <<< getSources node 
                                         
-graphToDiagram :: ∀ a. Int -> Array (GraphArrow a) -> String -> DiagramInfo
+graphToDiagram :: ∀ a. Eq a => Show a => Int -> Array (GraphArrow a) -> String -> DiagramInfo
 graphToDiagram width graph name = { name: name, ops: graphToOps width graph }
 
--- What now?
-graphToOps :: ∀ a. Int -> Array a -> Array Operator
+type ConsecutiveValues a = { value :: a, length :: Int }
+
+nonEmptyLength :: ∀ a. NE.NonEmpty Array a -> Int
+nonEmptyLength n = 1 + length (NE.tail n)
+-- | This function assumes the brick diagram in argument encodes the information to 
+-- | lay out the diagram. E.G.:
+-- | 0
+-- | 23
+-- | 11
+-- | 40
+-- |
+-- | Will display the diagram
+-- | [--2--] [--3--]
+-- | [------1------]
+-- | [--4--]
+graphToOps :: ∀ a. Eq a => Show a => Int -> Array a -> Array Operator
 graphToOps width brick = 
   let lines = splitLines width brick
-      l = mapWithIndex (Tuple) lines in
-      l >>= uncurry mapOperators
+      l = mapWithIndex mapOperators $ map packConscutive lines in
+      concat l
   where splitLines :: Int -> Array a -> Array (Array a)
         splitLines w array | length array <= w = [array]
                            | otherwise = take width array : splitLines width (drop width array)
-        mapOperators :: Int -> Array a -> Array Operator
+        packConscutive :: Array a -> Array (ConsecutiveValues a)
+        packConscutive = map ((\n -> { value: NE.head n, length: nonEmptyLength n }) <<< toNonEmpty) <<< groupBy (==)
+        mapOperators :: Int -> Array (ConsecutiveValues a) -> Array Operator
         mapOperators row line = mapWithIndex (mkOperator row) line
-        mkOperator :: Int -> Int -> a -> Operator 
+        mkOperator :: Int -> Int -> ConsecutiveValues a -> Operator 
         mkOperator row col value = { identifier: show row <> ":" <> show col
-                                   , pos: vec3 col row 1
-                                   , label: "" }
+                                   , pos: vec3 col row value.length
+                                   , label: show value.value }
