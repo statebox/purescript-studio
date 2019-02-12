@@ -70,7 +70,7 @@ below b x y = let l = min (height b) (y + 1) in
 -- | This also ignore all the nodes which are equal to the first argument.
 -- | This also checks that the graph is acyclic.
 parseBrickToGraph :: ∀ a. Eq a => a -> BrickDiagram a -> DiagramM (Array (GraphArrow a))
-parseBrickToGraph empty = checkAcyclic <<< filter (not isSelfArrow) <<< filterNode empty <<< brickToGraph 
+parseBrickToGraph empty = checkAcyclic <<< filter (not isSelfArrow) <<< filterNode empty <<< brickToGraph
 
 -- | Same as `parseBrickToGraph` except the `mempty` nodes are ignored
 parseBrickToGraphMonoid :: ∀ a. Eq a => Monoid a => 
@@ -153,7 +153,7 @@ graphToOps { width: width, elements: brick} =
   let lines = splitLines width brick
       l = mapWithIndex mapOperators $ map packConsecutive lines in
       concat l
-  where 
+  where
     splitLines :: Int -> Array a -> Array (Array a)
     splitLines w array | length array <= w = [array]
                        | otherwise = take width array : splitLines width (drop width array)
