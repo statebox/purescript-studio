@@ -28,7 +28,6 @@ view state@{model} =
          , prop "valid"       $ show $ isValidDrag model
          , prop "selectedOpId"$ show model.selectedOpId
          , code "-----------------------\n"
-         , prop "bounds"      $ maybe "Nothing" (\r -> "Just " <> viewRect r) state.boundingClientRectMaybe
          ]
     where
       prop :: String -> String -> HTML Void (Query Unit)

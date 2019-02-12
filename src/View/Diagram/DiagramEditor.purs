@@ -2,30 +2,25 @@ module View.Diagram.DiagramEditor where
 
 import Prelude hiding (div)
 
-import Data.Bifunctor (bimap)
-import Data.Int (floor, round)
 import Data.Maybe
 import Data.Traversable (traverse)
 import Data.Tuple.Nested ((/\))
-import Data.Vec3 (vec2, vec3)
-import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect (Effect)
-import Foreign (Foreign)
+import Data.Vec3 (vec2)
+import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentDSL, HalogenM)
 import Halogen.HTML as HH
-import Halogen.HTML (HTML, div, br)
+import Halogen.HTML (HTML, div)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
-import Halogen.Query (getHTMLElementRef)
 import Svg.Elements as SE
 import Svg.Attributes as SA
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Element)
 import Web.HTML.HTMLElement as HTMLElement
-import Web.HTML.HTMLElement (HTMLElement, DOMRect, getBoundingClientRect)
+import Web.HTML.HTMLElement (HTMLElement, getBoundingClientRect)
 
 import View.Diagram.Model
 import View.Diagram.Update as Update
@@ -46,35 +41,27 @@ initialState ops =
     , dragStart:     DragNotStarted
     }
   , msg: ""
-  , boundingClientRectMaybe: Nothing
+  , componentElemMaybe: Nothing
   }
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Operators Msg m
-ui = H.component { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram }
+ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram, initializer: Just (Initialize unit), finalizer: Nothing }
   where
     render :: State -> HTML Void (Query Unit)
     render state =
       div [ classes [ ClassName "css-diagram-editor" ] ]
           [ div [ classes [] ]
-                [ View.diagramEditorSVG state.model <#> \msg -> MouseAction msg unit
+                [ View.diagramEditorSVG state.componentElemMaybe state.model <#> \msg -> MouseAction msg unit
                 , div [ classes [ ClassName "mt-4", ClassName "rb-2", ClassName "p-4", ClassName "bg-grey-lightest", ClassName "text-grey-dark", ClassName "rounded", ClassName "text-sm" ] ]
                       [ Inspector.view state ]
                 ]
           ]
 
-    -- TODO We shouldn't need to getBoundingClientRect on every single model update, that is incredibly inefficient.
-    --      Doing it just on initialisation and window resizing/layout changes should do.
     eval :: Query ~> ComponentDSL State Query Msg m
     eval = case _ of
       MouseAction msg next -> do
-        componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
-        boundingRectMaybe <- H.liftEffect $ getBoundingClientRect `traverse` componentElemMaybe
-
         state <- H.get
-        let updater = maybe (\     state -> state { msg   = "Could not determine this component's boundingClientRect." })
-                            (\rect state -> state { model = evalModel msg state.model })
-                            boundingRectMaybe
-            state' = (updater <<< _ { boundingClientRectMaybe = boundingRectMaybe }) state
+        let state' = state { model = evalModel msg state.model }
 
             isOperatorClicked = case msg of
               MouseUp _ -> true
@@ -94,6 +81,11 @@ ui = H.component { initialState: initialState, render, eval, receiver: HE.input 
 
       UpdateDiagram ops next -> do
         H.modify_ \state -> state { model = state.model { ops = ops } }
+        pure next
+
+      Initialize next -> do
+        componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
+        H.modify_ \state -> state { componentElemMaybe = componentElemMaybe }
         pure next
 
 -- TODO this is generally useful; move elsewhere

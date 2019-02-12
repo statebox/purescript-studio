@@ -3,8 +3,9 @@ module View.Diagram.Update where
 import Prelude
 
 import Data.Maybe
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Data.Vec3 (Vec3, _x, _y, _z, vec3)
+import Web.HTML (HTMLElement)
 import Web.HTML.HTMLElement (DOMRect)
 
 import View.Diagram.Model
@@ -13,11 +14,12 @@ import View.Diagram.Common (snap)
 type State =
   { model                   :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified
   , msg                     :: String
-  , boundingClientRectMaybe :: Maybe DOMRect -- ^ Allows us to correct mouse coordinates for the component's position.
+  , componentElemMaybe      :: Maybe HTMLElement
   }
 
 data Query a
-  = MouseAction MouseMsg a
+  = Initialize a
+  | MouseAction MouseMsg a
   | UpdateDiagram Operators a
 
 data MouseMsg
