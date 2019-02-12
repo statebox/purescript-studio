@@ -14,7 +14,7 @@ foreign import decode :: HexStr -> Effect String
 --------------------------------------------------------------------------------
 
 shortHash :: HashStr -> String
-shortHash = take 6
+shortHash = take 8
 
 findRootDiagramMaybe :: WiringTx -> Maybe Diagram
 findRootDiagramMaybe = Array.head <<< _.wiring.diagrams
