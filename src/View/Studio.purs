@@ -33,7 +33,7 @@ import Halogen.HTML.Properties.ARIA as ARIA
 import Statebox.API (shortHash, findRootDiagramMaybe)
 import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
-import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, FiringOrWiring(..), Tx, Diagram)
+import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, TxSum(..), Tx, Diagram)
 import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
 import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
@@ -44,7 +44,7 @@ import View.Petrinet.Model as PetrinetEditor
 import View.Studio.ObjectTree as ObjectTree
 import View.Studio.ObjectTree (mkItem)
 import View.Auth.RolesEditor as RolesEditor
-import View.Studio.Route (Route, RouteF(..), NetName, DiagramName, NodeIdent(..))
+import View.Studio.Route (Route, RouteF(..), NetName, DiagramName, NodeIdent(..), NamespaceInfo(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
@@ -52,6 +52,7 @@ import ExampleData as Ex
 type State =
   { route       :: Route
   , projects    :: Array Project
+  , namespaces  :: Map HashStr NamespaceInfo
   , wirings     :: Map HashStr WiringTx
   , firings     :: Map HashStr FiringTx
   , msg         :: String
@@ -89,6 +90,7 @@ ui =
     initialState =
       { msg:         "Welcome to Statebox Studio!"
       , projects:    Ex.projects
+      , namespaces:  mempty
       , wirings:     mempty
       , firings:     mempty
       , route:       Home
@@ -110,6 +112,10 @@ ui =
           (\err   -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
           (either (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a wiring or firing: " <> show err)
                   (\wf                  -> case wf of
+                                             LeInitial hash -> do
+                                               H.liftEffect $ log $ "genesis transaction at hash " <> hash
+                                               let namespace = { name: shortHash hash, hash: hash }
+                                               H.modify_ (\state -> state { namespaces = Map.insert hash namespace state.namespaces })
                                              LeWiring wiring -> do
                                                H.liftEffect $ log $ "wiring: " <> show wiring
                                                H.modify_ (\state -> state { wirings = Map.insert hash wiring state.wirings })
@@ -177,6 +183,8 @@ ui =
                           Nothing                         -> text "Click a node to show the corresponding net or diagram."
                       ]
                 ]
+          NamespaceR hash ->
+            text $ "Namespace " <> hash
           WiringR wfi ->
             let
               wiringMaybe :: Maybe WiringTx
@@ -208,13 +216,14 @@ ui =
           nav [ classes $ ClassName <$> [ "css-route-breadcrumbs", "rounded", "font-sans", "w-full", "mt-4", "mb-4" ] ]
               [ ol [ classes $ ClassName <$> [ "list-reset", "flex", "text-grey-dark" ] ] $
                    crumb <$> case state.route of
-                               Home                       -> [ "Home" ]
-                               Types   projectName        -> [ projectName, "Types" ]
-                               Auths   projectName        -> [ projectName, "Authorisation" ]
-                               Net     projectName name   -> [ projectName, name ]
-                               Diagram projectName name _ -> [ projectName, name ]
-                               WiringR  x                 -> [ x.endpointUrl, "wiring " <> shortHash x.hash ]
-                               FiringR  x                 -> [ x.endpointUrl, shortHash x.hash ]
+                               Home                          -> [ "Home" ]
+                               Types      projectName        -> [ projectName, "Types" ]
+                               Auths      projectName        -> [ projectName, "Authorisation" ]
+                               Net        projectName name   -> [ projectName, name ]
+                               Diagram    projectName name _ -> [ projectName, name ]
+                               NamespaceR hash               -> [ "namespace", shortHash hash ]
+                               WiringR    x                  -> [ x.endpointUrl, "wiring " <> shortHash x.hash ]
+                               FiringR    x                  -> [ x.endpointUrl, shortHash x.hash ]
               ]
           where
             crumb str = li [] [ a [ href "#" ] [ text str ] ]
@@ -254,20 +263,21 @@ ui =
 
 reifyRoute :: Array Project -> RouteF ProjectName DiagramName NetName -> Maybe (RouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 reifyRoute projects = case _ of
-  Home                            -> pure Home
-  Types   projectName             -> Types <$> findProject projects projectName
-  Auths   projectName             -> Auths <$> findProject projects projectName
-  Net     projectName name        -> do project <- findProject projects projectName
-                                        net     <- findNetInfoWithTypesAndRoles project name
-                                        pure $ Net project net
-  Diagram projectName name nodeId -> do project <- findProject projects projectName
-                                        diagram <- findDiagramInfo project name
-                                        let node = nodeId >>= case _ of
-                                                     DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
-                                                     NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
-                                        pure $ Diagram project diagram node
-  WiringR  x                       -> pure $ WiringR  x
-  FiringR  x                       -> pure $ FiringR  x
+  Home                              -> pure Home
+  Types     projectName             -> Types <$> findProject projects projectName
+  Auths     projectName             -> Auths <$> findProject projects projectName
+  Net       projectName name        -> do project <- findProject projects projectName
+                                          net     <- findNetInfoWithTypesAndRoles project name
+                                          pure $ Net project net
+  Diagram   projectName name nodeId -> do project <- findProject projects projectName
+                                          diagram <- findDiagramInfo project name
+                                          let node = nodeId >>= case _ of
+                                                       DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
+                                                       NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
+                                          pure $ Diagram project diagram node
+  NamespaceR hash                   -> pure $ NamespaceR hash
+  WiringR    x                      -> pure $ WiringR    x
+  FiringR    x                      -> pure $ FiringR    x
 
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
@@ -286,24 +296,31 @@ findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project
 --------------------------------------------------------------------------------
 
 projectsToTree :: State -> Cofree Array ObjectTree.Item
-projectsToTree { projects, wirings } =
+projectsToTree { projects, namespaces, wirings } =
   mkItem ["Studio"] "Studio" Nothing
-    :< (wiringItems <> projectItems)
+    :< (namespaceItems <> wiringItems <> projectItems)
   where
-    wiringItems  = (uncurry fromWiring <<< map _.wiring) <$> Map.toUnfoldable wirings
-    projectItems = fromProject <$> projects
+    namespaceItems = uncurry fromNamespace <$> Map.toUnfoldable namespaces
+    wiringItems    = (uncurry fromWiring <<< map _.wiring) <$> Map.toUnfoldable wirings
+    projectItems   = fromProject <$> projects
 
     fromProject :: Project -> Cofree Array ObjectTree.Item
     fromProject p =
       mkItem [p.name] p.name Nothing :<
         [ mkItem [ p.name, "types"          ] "Types"          (Just $ Types p.name) :< []
         , mkItem [ p.name, "authorisations" ] "Authorisations" (Just $ Auths p.name) :< []
-        , mkItem [ p.name, "nets"           ] "Petri nets"     (Nothing)             :< fromNets     p p.nets
+        , mkItem [ p.name, "nets"           ] "Protocols"      (Nothing)             :< fromNets     p p.nets
         , mkItem [ p.name, "diagrams "      ] "Diagrams"       (Nothing)             :< fromDiagrams p p.diagrams
         ]
       where
         fromNets     p nets  = (\n -> mkItem [ p.name, "nets",     n.name ] n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
         fromDiagrams p diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
+
+    fromNamespace :: HashStr -> NamespaceInfo -> Cofree Array ObjectTree.Item
+    fromNamespace hash n =
+      mkItem [ "ALL_NAMESPACES", n.hash ]
+             ("n " <> n.name)
+             (Just $ NamespaceR n.name) :< []
 
     fromWiring :: HashStr -> Wiring -> Cofree Array ObjectTree.Item
     fromWiring hash w =

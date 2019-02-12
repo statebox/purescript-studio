@@ -58,6 +58,8 @@ type Firing =
 
 --------------------------------------------------------------------------------
 
-data FiringOrWiring
-  = LeFiring FiringTx
+data TxSum
+  = LeInitial HashStr
   | LeWiring WiringTx
+  | LeFiring FiringTx
+
