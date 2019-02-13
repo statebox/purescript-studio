@@ -331,5 +331,5 @@ projectsToTree { projects, namespaces, wirings } =
       where
         fakeProject          = { id: hash, name: shortHash hash }
         route                = WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash }
-        fromNets     p nets  = (\n -> mkItem [ p.id, "nets",     n.name ] n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
-        fromDiagrams p diags = (\d -> mkItem [ p.id, "diagrams", d.name ] d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
+        fromNets     p nets  = (\n -> mkItem [ p.id, "nets",     n.name ] ("n " <> n.name) (Just $ Net     p.name n.name        ) :< []) <$> nets
+        fromDiagrams p diags = (\d -> mkItem [ p.id, "diagrams", d.name ] ("d " <> d.name) (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
