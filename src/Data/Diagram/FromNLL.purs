@@ -7,7 +7,7 @@ import Data.Foldable (length)
 import Data.Int (rem)
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty as NE
-import Data.Vec2D (vec3)
+import Data.Vec3 (vec3)
 import Prelude
 import View.Diagram.Model
 
