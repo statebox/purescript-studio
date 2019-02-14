@@ -170,8 +170,8 @@ nllToBrickDiagram :: Array Int -> DiagramM (BrickDiagram Int)
 nllToBrickDiagram nll = case uncons nll of
   Just { head, tail } -> mkBrickDiagram head tail
   Nothing -> Right $ mkBrickDiagramUnsafe 0 []
-  
-fromNLL :: Array Int -> String -> DiagramM DiagramInfo
-fromNLL nll name = do bricks <- nllToBrickDiagram nll
+
+fromNLL :: String -> Array Int -> DiagramM DiagramInfo
+fromNLL name nll = do bricks <- nllToBrickDiagram nll
                       _ <- parseBrickToGraph 0 bricks
                       Right $ brickToDiagram bricks name

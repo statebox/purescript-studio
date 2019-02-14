@@ -2,12 +2,13 @@ module View.Studio where
 
 import Prelude hiding (div)
 import Affjax as Affjax
-import Data.Array (catMaybes, head)
+import Data.Array (catMaybes, head, index)
 import Control.Comonad.Cofree (Cofree, (:<))
-import Data.Either (Either(..), either)
-import Data.Either.Nested (Either3)
+import Data.Either (either, hush)
+import Data.Either.Nested (type (\/), Either3)
 import Data.Foldable (find, foldMap)
 import Data.Functor.Coproduct.Nested (Coproduct3)
+import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), maybe)
@@ -33,18 +34,20 @@ import Halogen.HTML.Properties.ARIA as ARIA
 import Statebox.API (shortHash, findRootDiagramMaybe)
 import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
-import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, TxSum(..), Tx, Diagram)
+import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, TxSum(..), Tx, Diagram, PathElem)
 import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
 import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
+import View.Diagram.FromNLL as FromNLL
+import View.Diagram.FromNLL (ErrDiagramEncoding)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Studio.ObjectTree as ObjectTree
 import View.Studio.ObjectTree (mkItem)
 import View.Auth.RolesEditor as RolesEditor
-import View.Studio.Route (Route, RouteF(..), NetName, DiagramName, NodeIdent(..), NamespaceInfo(..))
+import View.Studio.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..), NamespaceInfo(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
@@ -149,14 +152,14 @@ ui =
                     [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (_ == state.route)) (projectsToTree state) (HE.input HandleObjectTreeMsg) ]
               , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                     [ routeBreadcrumbs
-                    , maybe (text "Couldn't find project/net/diagram.") mainView (reifyRoute state.projects state.route)
+                    , maybe (text "Couldn't find project/net/diagram.") mainView (resolveRoute state.route state)
                     ]
               ]
         ]
       where
-        mainView :: RouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ParentHTML Query ChildQuery ChildSlot m
+        mainView :: ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ParentHTML Query ChildQuery ChildSlot m
         mainView route = case route of
-          Home ->
+          ResolvedHome ->
             div []
                 [ text "Please select an object from the menu, or enter a transaction hash below."
                 , br [], br []
@@ -166,13 +169,13 @@ ui =
                            , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                            ]
                 ]
-          Types project ->
+          ResolvedTypes project ->
             TypedefsEditor.typedefsTreeView project.types
-          Auths project ->
+          ResolvedAuths project ->
             RolesEditor.roleInfosHtml project.roleInfos
-          Net project netInfo ->
+          ResolvedNet netInfo ->
             HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)
-          Diagram project diagramInfo nodeMaybe ->
+          ResolvedDiagram diagramInfo nodeMaybe ->
             div [ classes [ ClassName "flex" ] ]
                 [ div [ classes [ ClassName "w-1/2" ] ]
                       [ HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg) ]
@@ -183,9 +186,9 @@ ui =
                           Nothing                         -> text "Click a node to show the corresponding net or diagram."
                       ]
                 ]
-          NamespaceR hash ->
+          ResolvedNamespace hash ->
             text $ "Namespace " <> hash
-          WiringR wfi ->
+          ResolvedWiring wfi ->
             let
               wiringMaybe :: Maybe WiringTx
               wiringMaybe = wfi.hash `Map.lookup` state.wirings
@@ -207,8 +210,7 @@ ui =
                 , br [], br []
                 , text $ "diagramInfoMaybe: " <> show diagramInfoMaybe
                 ]
-
-          FiringR x ->
+          ResolvedFiring x ->
             text $ "Firing " <> x.hash <> " at " <> x.endpointUrl <> "."
 
         routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
@@ -224,6 +226,8 @@ ui =
                                NamespaceR hash               -> [ "namespace", shortHash hash ]
                                WiringR    x                  -> [ x.endpointUrl, "wiring " <> shortHash x.hash ]
                                FiringR    x                  -> [ x.endpointUrl, shortHash x.hash ]
+                               DiagramR   hash ix name       -> [ shortHash hash, "diagram " <> show ix <> " " <> name ]
+                               NetR       hash ix name       -> [ shortHash hash, "net "     <> show ix <> " " <> name ]
               ]
           where
             crumb str = li [] [ a [ href "#" ] [ text str ] ]
@@ -261,23 +265,25 @@ ui =
 
 --------------------------------------------------------------------------------
 
-reifyRoute :: Array Project -> RouteF ProjectName DiagramName NetName -> Maybe (RouteF Project DiagramInfo NetInfoWithTypesAndRoles)
-reifyRoute projects = case _ of
-  Home                              -> pure Home
-  Types     projectName             -> Types <$> findProject projects projectName
-  Auths     projectName             -> Auths <$> findProject projects projectName
+resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveRoute route {projects, wirings} = case route of
+  Home                              -> pure ResolvedHome
+  Types     projectName             -> ResolvedTypes <$> findProject projects projectName
+  Auths     projectName             -> ResolvedAuths <$> findProject projects projectName
   Net       projectName name        -> do project <- findProject projects projectName
                                           net     <- findNetInfoWithTypesAndRoles project name
-                                          pure $ Net project net
+                                          pure $ ResolvedNet net
   Diagram   projectName name nodeId -> do project <- findProject projects projectName
                                           diagram <- findDiagramInfo project name
                                           let node = nodeId >>= case _ of
                                                        DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
                                                        NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
-                                          pure $ Diagram project diagram node
-  NamespaceR hash                   -> pure $ NamespaceR hash
-  WiringR    x                      -> pure $ WiringR    x
-  FiringR    x                      -> pure $ FiringR    x
+                                          pure $ ResolvedDiagram diagram node
+  NamespaceR hash                   -> pure $ ResolvedNamespace hash
+  WiringR    x                      -> pure $ ResolvedWiring x
+  FiringR    x                      -> pure $ ResolvedFiring x
+  DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> findDiagramInfoInWirings wirings wiringHash ix name
+  NetR       wiringHash ix name     -> Nothing -- TODO decode petri net from NLL representation, pending #119
 
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
@@ -292,6 +298,20 @@ findNetInfoWithTypesAndRoles project netName = do
 
 findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
 findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
+
+findDiagramInfoInWirings :: Map HashStr WiringTx -> HashStr -> PathElem -> String -> Maybe DiagramInfo
+findDiagramInfoInWirings wirings wiringHash ix name =
+  hush =<< diagramEitherMaybe
+  where
+    diagramEitherMaybe :: Maybe (ErrDiagramEncoding \/ DiagramInfo)
+    diagramEitherMaybe = (FromNLL.fromNLL name <<< toNLL) <$> diagramMaybe
+
+    diagramMaybe :: Maybe Diagram
+    diagramMaybe = (flip index ix <<< _.wiring.diagrams) =<< wiringMaybe
+
+    wiringMaybe = Map.lookup wiringHash wirings
+
+    toNLL d = [d.width] <> d.pixels
 
 --------------------------------------------------------------------------------
 
@@ -309,7 +329,7 @@ projectsToTree { projects, namespaces, wirings } =
       mkItem [p.name] p.name Nothing :<
         [ mkItem [ p.name, "types"          ] "Types"          (Just $ Types p.name) :< []
         , mkItem [ p.name, "authorisations" ] "Authorisations" (Just $ Auths p.name) :< []
-        , mkItem [ p.name, "nets"           ] "Protocols"      (Nothing)             :< fromNets     p p.nets
+        , mkItem [ p.name, "nets"           ] "Nets"           (Nothing)             :< fromNets     p p.nets
         , mkItem [ p.name, "diagrams "      ] "Diagrams"       (Nothing)             :< fromDiagrams p p.diagrams
         ]
       where
@@ -326,10 +346,8 @@ projectsToTree { projects, namespaces, wirings } =
     fromWiring hash w =
       mkItem [ "ALL_WIRINGS", hash ]
              ("w " <> shortHash hash)
-             (Just route) :< fromNets     fakeProject w.nets
-                          <> fromDiagrams fakeProject w.diagrams
+             (Just $ WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash }) :< fromNets     w.nets
+                                                                                      <> fromDiagrams w.diagrams
       where
-        fakeProject          = { id: hash, name: shortHash hash }
-        route                = WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash }
-        fromNets     p nets  = (\n -> mkItem [ p.id, "nets",     n.name ] ("n " <> n.name) (Just $ Net     p.name n.name        ) :< []) <$> nets
-        fromDiagrams p diags = (\d -> mkItem [ p.id, "diagrams", d.name ] ("d " <> d.name) (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
+        fromNets     nets  = mapWithIndex (\ix n -> mkItem [ hash, show ix ] ("n " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
+        fromDiagrams diags = mapWithIndex (\ix d -> mkItem [ hash, show ix ] ("d " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
