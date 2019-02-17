@@ -317,7 +317,7 @@ findDiagramInfoInWirings wirings wiringHash ix name =
 
 projectsToTree :: State -> Cofree Array ObjectTree.Item
 projectsToTree { projects, namespaces, wirings } =
-  mkItem ["Studio"] "Studio" Nothing
+  mkItem "Studio" Nothing
     :< (namespaceItems <> wiringItems <> projectItems)
   where
     namespaceItems = uncurry fromNamespace <$> Map.toUnfoldable namespaces
@@ -326,28 +326,26 @@ projectsToTree { projects, namespaces, wirings } =
 
     fromProject :: Project -> Cofree Array ObjectTree.Item
     fromProject p =
-      mkItem [p.name] p.name Nothing :<
-        [ mkItem [ p.name, "types"          ] "Types"          (Just $ Types p.name) :< []
-        , mkItem [ p.name, "authorisations" ] "Authorisations" (Just $ Auths p.name) :< []
-        , mkItem [ p.name, "nets"           ] "Nets"           (Nothing)             :< fromNets     p p.nets
-        , mkItem [ p.name, "diagrams "      ] "Diagrams"       (Nothing)             :< fromDiagrams p p.diagrams
+      mkItem p.name Nothing :<
+        [ mkItem "Types"          (Just $ Types p.name) :< []
+        , mkItem "Authorisations" (Just $ Auths p.name) :< []
+        , mkItem "Nets"           (Nothing)             :< fromNets     p p.nets
+        , mkItem "Diagrams"       (Nothing)             :< fromDiagrams p p.diagrams
         ]
       where
-        fromNets     p nets  = (\n -> mkItem [ p.name, "nets",     n.name ] n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
-        fromDiagrams p diags = (\d -> mkItem [ p.name, "diagrams", d.name ] d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
+        fromNets     p nets  = (\n -> mkItem n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
+        fromDiagrams p diags = (\d -> mkItem d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
 
     fromNamespace :: HashStr -> NamespaceInfo -> Cofree Array ObjectTree.Item
     fromNamespace hash n =
-      mkItem [ "ALL_NAMESPACES", n.hash ]
-             ("n " <> n.name)
+      mkItem ("n " <> n.name)
              (Just $ NamespaceR n.name) :< []
 
     fromWiring :: HashStr -> Wiring -> Cofree Array ObjectTree.Item
     fromWiring hash w =
-      mkItem [ "ALL_WIRINGS", hash ]
-             ("w " <> shortHash hash)
+      mkItem ("w " <> shortHash hash)
              (Just $ WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash }) :< fromNets     w.nets
                                                                                       <> fromDiagrams w.diagrams
       where
-        fromNets     nets  = mapWithIndex (\ix n -> mkItem [ hash, show ix ] ("n " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
-        fromDiagrams diags = mapWithIndex (\ix d -> mkItem [ hash, show ix ] ("d " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
+        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("n " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
+        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("d " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
