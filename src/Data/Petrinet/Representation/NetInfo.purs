@@ -5,13 +5,15 @@ import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.NLL
 import View.Petrinet.Model
 
-import Data.Map (Map)
 import Data.Auth (Role, Roles, RoleInfo)
+import Data.Array ((..), length)
+import Data.Map (Map)
+import Data.Set
 import Data.Tuple.Nested (type (/\), (/\), Tuple2)
 import Data.Tuple (fst)
 import Data.Vec3 (Vec2, Vec2D)
-import Prelude ((<<<), identity, map)
-import Data.Maybe
+import Prelude ((<<<), identity, map, show, const, ($))
+import Data.Maybe (Maybe)
 
 class PointLabel point where
   labelForPoint :: point -> Maybe String
@@ -24,7 +26,7 @@ class TransLabel trans where
 mkNetInfo :: String -> NetObj -> NetApi -> Array TextBox -> NetInfo
 mkNetInfo name net netApi textBoxes = { name, net, netApi, textBoxes}
 
-parseNetF :: ∀ a. NetF a -> NetInfo
+parseNetF :: NetF Int -> NetInfo
 parseNetF netF = mkNetInfo ""  (parseNetObj netF) (parseNetApi netF) (parseTextBoxes netF)
 
 parseNetObj :: NetF Int -> NetObj
@@ -42,7 +44,7 @@ parseNetObj = mkNetObjF <<< getNetRep
                               (mkArrayPIDVec netF) 
                               (mkArrayLabel netF) 
                               (mkArrayTypedef netF) 
-                              (mkArrayVec2D netF)
+                              (mkTransLocation netF)
                               (mkArrayRoles netF)
     mkArrayPID :: NetF Int -> Array PID
     mkArrayPID = map fst <<< mkArrayPIDString
@@ -51,19 +53,22 @@ parseNetObj = mkNetObjF <<< getNetRep
     mkArrayPIDString :: NetF Int -> Array (PID /\ String)
     mkArrayPIDString netF = []
     mkArrayPIDVec :: NetF Int -> Array (PID /\ Vec2D)
-    mkArrayPIDVec net = []
+    mkArrayPIDVec net = [] -- HOW
     mkArrayLabel :: NetF Int -> Array String
-    mkArrayLabel net = []
+    mkArrayLabel net = map (\i -> "T" <> show i) [0 .. (length net)]
     mkArrayTypedef :: NetF Int -> Array Typedef
-    mkArrayTypedef net = []
-    mkArrayVec2D :: NetF Int -> Array Vec2D
-    mkArrayVec2D net = []
+    mkArrayTypedef net = map (const $ Typedef "1") net
+    mkTransLocation :: NetF Int -> Array Vec2D
+    mkTransLocation net = [] -- The position of all transitions? how?
     mkArrayRoles :: NetF Int -> Array Roles
     mkArrayRoles net = []
     setPairToTransition :: Array Int /\ Array Int -> Transition
     setPairToTransition (src /\ trg) = { pre: map { place: _, tokens: 0 } src
                                        , post: map { place: _, tokens: 0 } trg
                                        }
+    getAllPoints :: Eq a => NetF a -> Set a
+    getAllPoints = foldl (\set pair -> ?unsure) mempty
+    
 
 parseNetApi :: ∀ a. NetF a -> NetApi
 parseNetApi netF = { findTokens : identity }
