@@ -5,60 +5,61 @@ import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.NLL
 import View.Petrinet.Model
 
-import Data.Auth (Role, Roles, RoleInfo)
+import Data.Auth (Roles)
 import Data.Array ((..), length)
+import Data.Int (toNumber)
 import Data.Map (Map)
-import Data.Set
-import Data.Tuple.Nested (type (/\), (/\), Tuple2)
-import Data.Tuple (fst)
-import Data.Vec3 (Vec2, Vec2D)
-import Prelude ((<<<), identity, map, show, const, ($))
-import Data.Maybe (Maybe)
-
-class PointLabel point where
-  labelForPoint :: point -> Maybe String
-
-class TransLabel trans where
-  labelForTrans :: trans -> Maybe String
-
+import Data.Set (Set, fromFoldable, toUnfoldable)
+import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple (fst, snd)
+import Data.Vec3 (Vec2D, vec2)
+import Prelude
 
 
 mkNetInfo :: String -> NetObj -> NetApi -> Array TextBox -> NetInfo
-mkNetInfo name net netApi textBoxes = { name, net, netApi, textBoxes}
+mkNetInfo name net netApi textBoxes = { name, net, netApi, textBoxes }
 
-parseNetF :: NetF Int -> NetInfo
-parseNetF netF = mkNetInfo ""  (parseNetObj netF) (parseNetApi netF) (parseTextBoxes netF)
+parseNetF :: String -> (PID -> String) -> NetF Int -> NetInfo
+parseNetF name placeNames netF = mkNetInfo name (parseNetObj netF placeNames) (parseNetApi netF) (parseTextBoxes netF)
 
-parseNetObj :: NetF Int -> NetObj
-parseNetObj = mkNetObjF <<< getNetRep
+-- | Takes a NetF and a mapping from places to String and return a NetObj
+-- | The mapping is used to display the name of each place
+-- | This function does not return the position of each place and transition properly
+-- | This function generates names for transition of the form  "Ti" where "i" is an index
+-- | This function does not return Roles properly
+parseNetObj :: NetF Int -> (PID -> String) -> NetObj
+parseNetObj netF placeNames = mkNetObjF getNetRep
   where
+    -- What is a marking? How do I make this map?
     markingMap :: NetF Int -> Map Int Int
     markingMap netf = mempty
     parseMarking :: NetF Int -> Marking
     parseMarking = mkMarkingF <<< markingMap
-    getNetRep :: NetF Int -> NetRep
-    getNetRep netF = mkNetRep (mkArrayPID netF) 
-                              (mkArrayTrans netF) 
-                              (parseMarking netF) 
-                              (mkArrayPIDString netF)
-                              (mkArrayPIDVec netF) 
-                              (mkArrayLabel netF) 
-                              (mkArrayTypedef netF) 
-                              (mkTransLocation netF)
-                              (mkArrayRoles netF)
-    mkArrayPID :: NetF Int -> Array PID
-    mkArrayPID = map fst <<< mkArrayPIDString
-    mkArrayTrans :: NetF Int -> Array Transition
-    mkArrayTrans = map setPairToTransition 
-    mkArrayPIDString :: NetF Int -> Array (PID /\ String)
-    mkArrayPIDString netF = []
-    mkArrayPIDVec :: NetF Int -> Array (PID /\ Vec2D)
-    mkArrayPIDVec net = [] -- HOW
-    mkArrayLabel :: NetF Int -> Array String
-    mkArrayLabel net = map (\i -> "T" <> show i) [0 .. (length net)]
-    mkArrayTypedef :: NetF Int -> Array Typedef
-    mkArrayTypedef net = map (const $ Typedef "1") net
-    mkTransLocation :: NetF Int -> Array Vec2D
+    getNetRep :: NetRep
+    getNetRep = mkNetRep (mkPlaces netF)
+                         (mkTransitions netF)
+                         (parseMarking netF)
+                         (mkPlacesLabels netF)
+                         (mkArrayPIDVec netF)
+                         (mkTransLabels netF)
+                         (mkTransTypes netF)
+                         (mkTransLocation netF)
+                         (mkArrayRoles netF)
+    mkPlaces :: NetF Int -> Array PID
+    mkPlaces = toUnfoldable <<< getAllPlacess
+    mkTransitions :: NetF Int -> Array Transition
+    mkTransitions = map setPairToTransition
+    mkPlacesLabels :: NetF Int -> Array (PID /\ String)
+    mkPlacesLabels = map (\id -> (id /\ placeNames id)) <<< mkPlaces
+    -- This returns 0 vectors for now
+    mkArrayPIDVec :: NetF PID -> Array (PID /\ Vec2D)
+    mkArrayPIDVec = map (\id -> (id /\ vec2 (toNumber 0) (toNumber 0))) <<< mkPlaces
+    mkTransLabels :: NetF TID -> Array String
+    mkTransLabels net = map (\i -> "T" <> show i) [0 .. (length net)]
+    -- Right now this barely does anything, what should be done?
+    mkTransTypes :: NetF Int -> Array Typedef
+    mkTransTypes net = map (const $ Typedef "1") net
+    mkTransLocation :: NetF TID -> Array Vec2D
     mkTransLocation net = [] -- The position of all transitions? how?
     mkArrayRoles :: NetF Int -> Array Roles
     mkArrayRoles net = []
@@ -66,8 +67,10 @@ parseNetObj = mkNetObjF <<< getNetRep
     setPairToTransition (src /\ trg) = { pre: map { place: _, tokens: 0 } src
                                        , post: map { place: _, tokens: 0 } trg
                                        }
-    getAllPoints :: Eq a => NetF a -> Set a
-    getAllPoints = foldl (\set pair -> ?unsure) mempty
+    getAllPlacess :: ∀ a. Ord a => Eq a => NetF a -> Set a
+    getAllPlacess net = fromFoldable $ do transitions <- net
+                                          fst transitions <> snd transitions
+
     
 
 parseNetApi :: ∀ a. NetF a -> NetApi
