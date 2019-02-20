@@ -20,7 +20,7 @@ import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, va
 import Data.Auth (Role(..), Roles(..), Privilege(..), RoleInfo, rolesElem, isPrivileged, toPrivilege, CSSColor(..))
 import Data.Auth as Auth
 import View.Petrinet.Model (TransitionQueryF(..), Typedef(..))
-import View.Common (styleStr)
+import View.Common (styleStr, classesWithNames)
 
 type TransitionEditorFormModel tid =
   { tid         :: tid
@@ -38,14 +38,14 @@ form allRoleInfos mm =
   titledPanel "Transition properties" $
     formContainer
       [ fieldContainer "name" "grid-label-name" $
-          input [ clzz inputClasses1
+          input [ classesWithNames inputClasses1
                 , value (maybe "" (_.label) mm)
                 , maybe (disabled true)
                         (\tid -> onValueChange (HE.input (UpdateTransitionName tid)))
                         (mm <#> _.tid)
                 ]
       , fieldContainer "type"  "grid-label-type" $
-          input [ clzz inputClasses1
+          input [ classesWithNames inputClasses1
                 , value (maybe "" (un Typedef <<< _.typedef) mm)
                 , maybe (disabled true)
                         (\tid -> onValueChange (HE.input (UpdateTransitionType tid <<< Typedef)))
@@ -56,27 +56,27 @@ form allRoleInfos mm =
       ]
   where
     titledPanel title content =
-      div [ clzz [ "mb-2", "border-solid", "border-grey-light", "rounded", "border", "shadow-sm" ] ]
-          [ div [ clzz [ "bg-grey-lighter", "px-2", "py-3", "border-solid", "border-grey-light", "border-b", "text-grey-darker" ] ]
+      div [ classesWithNames [ "mb-2", "border-solid", "border-grey-light", "rounded", "border", "shadow-sm" ] ]
+          [ div [ classesWithNames [ "bg-grey-lighter", "px-2", "py-3", "border-solid", "border-grey-light", "border-b", "text-grey-darker" ] ]
                 [ text title ]
           , content
           ]
 
     formContainer formContent =
-      div [ clzz [ "bg-white", "rounded", "flex", "flex-col", "px-4", "pt-6" ] ]
+      div [ classesWithNames [ "bg-white", "rounded", "flex", "flex-col", "px-4", "pt-6" ] ]
           formContent
 
     fieldContainer :: String -> String -> HTML _ _ -> HTML _ _
     fieldContainer labelText forInputId content =
-      div [ clzz [ "-mx-3", "md:flex", "mb-6" ] ]
-          [ div [ clzz [ "md:w-full", "px-3" ] ]
+      div [ classesWithNames [ "-mx-3", "md:flex", "mb-6" ] ]
+          [ div [ classesWithNames [ "md:w-full", "px-3" ] ]
                 [ label1 forInputId labelText
                 , content
                 ]
           ]
 
     label1 forInputId labelText  =
-      HH.label [ clzz [ "block", "uppercase", "tracking-wide", "text-grey-darker", "text-xs", "font-bold", "mb-2" ]
+      HH.label [ classesWithNames [ "block", "uppercase", "tracking-wide", "text-grey-darker", "text-xs", "font-bold", "mb-2" ]
                , HP.for forInputId
                ]
                [ text labelText  ]
@@ -91,7 +91,7 @@ form allRoleInfos mm =
     authCheckboxes :: Roles -> Array (HTML _ _)
     authCheckboxes roles = checkboxContainer <<< (\roleInfo -> roleCheckbox allRoleInfosDict roleInfo $ priv roles roleInfo.id) <$> allRoleInfos
       where
-        checkboxContainer html = div [ clzz [ "mt-4", "mb-4" ] ] [ html ]
+        checkboxContainer html = div [ classesWithNames [ "mt-4", "mb-4" ] ] [ html ]
 
     priv :: Roles -> Role -> Privilege
     priv privilegedRoles role = toPrivilege <<< rolesElem role $ privilegedRoles
@@ -121,6 +121,3 @@ roleTagHtml roleInfosDict role =
     backgroundColor = maybe (CSSColor "#ddd") _.bgColor   roleInfoMaybe
     textColor       = maybe (CSSColor "#666") _.textColor roleInfoMaybe
     roleInfoMaybe   = Map.lookup role roleInfosDict
-
-clzz :: Array String -> H.IProp _ _
-clzz strs = classes (ClassName <$> strs)

@@ -21,6 +21,7 @@ import Halogen.HTML.Properties (classes, src, href)
 import Halogen.HTML.Properties.ARIA as ARIA
 
 import View.Studio.Route (Route, RouteF(..))
+import View.Common (classesWithNames)
 
 --------------------------------------------------------------------------------
 
@@ -98,29 +99,29 @@ menuComponent isSelected =
 
     render :: State -> HTML Void (Query Unit)
     render state = fromMaybe (div [] []) $ state.tree <#> \tree ->
-      nav [ clzz [ componentCssClassNameStr, "p-4" ] ]
-          [ ul [ clzz [ "list-reset" ] ] $
+      nav [ classesWithNames [ componentCssClassNameStr, "p-4" ] ]
+          [ ul [ classesWithNames [ "list-reset" ] ] $
                if state.hideRoot then (semifoldCofree menuItemHtml <$> tail tree)
                                  else [semifoldCofree menuItemHtml  $       tree]
           ]
       where
         menuItemHtml :: ItemWithId -> Array (HTML Void (Query Unit)) -> HTML Void (Query Unit)
         menuItemHtml (treeNodeId /\ treeNode) kids =
-          li [ clzz ([ "block", "flex", "cursor-pointer", "px-2", "py-2", "text-grey-darkest" ] <> activeClasses)]
+          li [ classesWithNames ([ "block", "flex", "cursor-pointer", "px-2", "py-2", "text-grey-darkest" ] <> activeClasses)]
              [ div []
                    [ arrowIcon
-                   , span [ clzz [ "pl-2" ]
+                   , span [ classesWithNames [ "pl-2" ]
                           , onClick (HE.input_ clickQuery)
                           ]
                           [ text treeNode.label ]
-                     , if isExpanded then ul   [ clzz [ "list-reset", "mt-2" ] ] kids
-                                     else span [ clzz [ "no-children" ] ] []
+                     , if isExpanded then ul   [ classesWithNames [ "list-reset", "mt-2" ] ] kids
+                                     else span [ classesWithNames [ "no-children" ] ] []
                      ]
              ]
           where
             activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-purple-lighter", "rounded" ] else []
             arrowIcon     = if null kids then text ""
-                                         else span [ clzz [ "fas" , "fa-xs"
+                                         else span [ classesWithNames [ "fas" , "fa-xs"
                                                           , "fa-caret-" <> if isExpanded then "down" else "right"
                                                           ]
                                                    , onClick (HE.input_ clickQuery)
@@ -131,9 +132,6 @@ menuComponent isSelected =
             -- TODO handling of Nothing case of map retrieval is spread over 2 diff places
             isExpanded = not null kids && (fromMaybe true $ Map.lookup treeNodeId state.expansion)
             isActive = state.activeItem == pure treeNodeId
-
-clzz :: Array String -> _
-clzz classStrs = classes (ClassName <$> classStrs)
 
 decorateWithIds :: RoseTree Item -> RoseTree ItemWithId
 decorateWithIds tree = mapWithIndexCofree (/\) tree
