@@ -85,8 +85,8 @@ type Arc =
 
 --------------------------------------------------------------------------------
 
-mkNetInfo :: GSPN -> NetInfo
-mkNetInfo gspn = { name: gspn.name, net: mkNetObjF netRep, netApi: mkNetApi netRep, textBoxes: toModelTextBox <$> gspn.nodes.textBox }
+toNetInfo :: GSPN -> NetInfo
+toNetInfo gspn = { name: gspn.name, net: mkNetObjF netRep, netApi: mkNetApi netRep, textBoxes: toModelTextBox <$> gspn.nodes.textBox }
   where
     netRep = toNetRep gspn
 
@@ -99,7 +99,7 @@ toNetRep gspn =
     placeLabels
     placePoints
     transitionLabels
-    (const (Typedef "Unit") <$> transitions)
+    (Typedef "1" <$ transitions)
     (toVec2D <$> transitions)
     transitionAuthsDict
   where

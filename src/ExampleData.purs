@@ -311,7 +311,7 @@ netInfo2 = { name: "Producer-consumer", net: net2, netApi: netApi2, textBoxes: t
 --------------------------------------------------------------------------------
 
 pnproNetInfos1 :: Array NetInfo
-pnproNetInfos1 = PNPRO.mkNetInfo <$> pnproProject1.project.gspn
+pnproNetInfos1 = PNPRO.toNetInfo <$> pnproProject1.project.gspn
   where
     pnproProject1 :: PNPRO.Document
     pnproProject1 = PNPRO.fromStringUnsafe pnproXml1
