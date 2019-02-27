@@ -1,5 +1,6 @@
 module ExampleData
-  ( projects
+  ( endpointUrl
+  , projects
   , project1
   , project2
   , net1
@@ -33,6 +34,10 @@ import Data.Typedef.Typedef2 (Typedef2(..))
 import View.Model (Project)
 import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow, TextBox)
 import View.Diagram.Model (DiagramInfo)
+
+-- TODO hardcoded for now, but we should decide how we want to come by this
+endpointUrl :: String
+endpointUrl = "https://us-central1-process-io.cloudfunctions.net"
 
 projects :: Array Project
 projects = [project1, project2]

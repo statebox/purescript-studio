@@ -15,3 +15,6 @@ styleStr kvs = HP.attr (HC.AttrName "style") (intercalate ";" <<< map (\(k /\ v)
 
 emptyHtml :: ∀ a b. HTML b a
 emptyHtml = text ""
+
+classesWithNames :: ∀ r i. Array String -> HP.IProp (class :: String | r) i
+classesWithNames names = HP.classes (HC.ClassName <$> names)
