@@ -145,6 +145,14 @@ mkNetApi rep =
   { findTokens : findTokens' rep.marking
   }
 
+mkNetInfo :: NetRep -> String -> Array TextBox -> NetInfo
+mkNetInfo net name textBoxes =
+  { name:      name
+  , net:       mkNetObjF net
+  , textBoxes: textBoxes
+  , netApi:    mkNetApi net
+  }
+
 --------------------------------------------------------------------------------
 
 zipWithIndexFrom :: forall v. Int -> Array v -> Array (Int /\ v)

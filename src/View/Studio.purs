@@ -16,6 +16,7 @@ import Data.Monoid (guard)
 import Data.Traversable (traverse)
 import Data.Tuple (uncurry)
 import Data.Tuple.Nested ((/\))
+import Debug.Trace (spy)
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Console (log)
@@ -30,13 +31,13 @@ import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes, src, href, placeholder)
 import Halogen.HTML.Properties.ARIA as ARIA
+import Record as Record
 
 import Statebox.API (shortHash, findRootDiagramMaybe)
 import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
 import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, TxSum(..), Tx, Diagram, PathElem)
 import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
-import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, NetObj, QueryF(..), Msg(NetUpdated))
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
@@ -44,6 +45,9 @@ import View.Diagram.FromNLL as FromNLL
 import View.Diagram.FromNLL (ErrDiagramEncoding)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
+import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, NetObj, QueryF(..), Msg(NetUpdated))
+import Data.Petrinet.Representation.NLL as Net
+import View.Petrinet.Model.NLL as NLL
 import View.Studio.ObjectTree as ObjectTree
 import View.Studio.ObjectTree (mkItem)
 import View.Auth.RolesEditor as RolesEditor
@@ -283,7 +287,7 @@ resolveRoute route {projects, wirings} = case route of
   WiringR    x                      -> pure $ ResolvedWiring x
   FiringR    x                      -> pure $ ResolvedFiring x
   DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> findDiagramInfoInWirings wirings wiringHash ix name
-  NetR       wiringHash ix name     -> Nothing -- TODO decode petri net from NLL representation, pending #119
+  NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> findNetInfoInWirings     wirings wiringHash ix name
 
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
@@ -292,12 +296,21 @@ findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
 
 findNetInfoWithTypesAndRoles :: Project -> NetName -> Maybe NetInfoWithTypesAndRoles
-findNetInfoWithTypesAndRoles project netName = do
-  netInfo <- findNetInfo project netName
-  pure $ mkNetInfoWithTypesAndRoles netInfo project
+findNetInfoWithTypesAndRoles project netName =
+  Record.merge { types: project.types, roleInfos: project.roleInfos } <$> findNetInfo project netName
 
 findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
 findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
+
+findNetInfoInWirings :: Map HashStr WiringTx -> HashStr -> PathElem -> String -> Maybe NetInfoWithTypesAndRoles
+findNetInfoInWirings wirings wiringHash ix name = do
+  wiring      <- spy "findNetInfoInWirings: wiring = "  $ Map.lookup wiringHash wirings
+  netW        <- spy "findNetInfoInWirings: netW = "    $ wiring.wiring.nets `index` ix
+  netTopo     <- spy "findNetInfoInWirings: netTopo = " $ Net.fromNLLMaybe 0 netW.partition
+  let
+    placeNames = NLL.defaultPlaceNames netTopo
+    netInfo    = spy "findNetInfoInWirings: netInfo = " $ NLL.toNetInfoWithDefaults netTopo netW.name placeNames netW.names
+  pure $ Record.merge { types: [], roleInfos: [] } netInfo
 
 findDiagramInfoInWirings :: Map HashStr WiringTx -> HashStr -> PathElem -> String -> Maybe DiagramInfo
 findDiagramInfoInWirings wirings wiringHash ix name =

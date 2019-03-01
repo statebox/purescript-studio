@@ -20,30 +20,28 @@ import Data.Vec3 (Vec3, vec2)
 
 import Data.Petrinet.Representation.Dict (mkNetObjF)
 import Data.Petrinet.Representation.NLL (NetF)
-import View.Petrinet.Model (PID, Transition, Typedef(..), NetRep, NetInfo, mkNetRep, mkNetApi)
+import View.Petrinet.Model (PID, Transition, Typedef(..), NetRep, NetInfo, TextBox, mkNetRep, mkNetApi, mkNetInfo)
 
 toNetInfo :: NetF PID -> String -> Array String -> Array String -> Array (PID /\ Vec3 Number) -> Array (Vec3 Number) -> Array Typedef -> Array Roles -> NetInfo
 toNetInfo net name placeNames transitionNames placePositions transitionPositions typedefs roles =
-  { name:      name
-  , net:       mkNetObjF netRep
-  , textBoxes: mempty
-  , netApi:    mkNetApi netRep
-  }
+  mkNetInfo netRep name mempty
   where
     netRep = toNetRep net placeNames transitionNames placePositions transitionPositions typedefs roles
 
-toNetRepWithDefaults :: NetF PID -> Array String -> Array String -> Array Roles -> NetRep
-toNetRepWithDefaults net placeNames transitionNames roles =
-  toNetRep net placeNames transitionNames placePositions transitionPositions typedefs roles
+toNetInfoWithDefaults :: NetF PID -> String -> Array String -> Array String -> NetInfo
+toNetInfoWithDefaults net name placeNames transitionNames =
+  mkNetInfo netRep name mempty
   where
-    places              = toUnfoldable $ uniquePlaceIds net
-    transitions         = net
+    netRep = toNetRepWithDefaults net placeNames transitionNames
 
-    -- lay out places and transitions in a trianglular shape
-    placePositions      = (\i p -> p /\ (toNumber <$> vec2 (1+i)   (1+i)) ) `mapWithIndex` places
-    transitionPositions = (\i t ->      (toNumber <$> vec2 (1+i) (-(1+i)))) `mapWithIndex` transitions
-
-    typedefs            = Typedef "1"               <$  transitions
+toNetRepWithDefaults :: NetF PID -> Array String -> Array String -> NetRep
+toNetRepWithDefaults net placeNames transitionNames =
+  toNetRep net placeNames transitionNames layout.placePositions layout.transitionPositions typedefs roles
+  where
+    transitions = net
+    typedefs    = Typedef "1" <$ transitions
+    roles       = mempty
+    layout      = layoutAsTriangleNetF net
 
 toNetRep :: NetF PID -> Array String -> Array String -> Array (PID /\ Vec3 Number) -> Array (Vec3 Number) -> Array Typedef -> Array Roles -> NetRep
 toNetRep net placeNames transitionNames placePositions transitionPositions typedefs roles =
@@ -57,7 +55,7 @@ toNetRep net placeNames transitionNames placePositions transitionPositions typed
            transitionPositions
            roles
   where
-    places :: Array PID
+    places            :: Array PID
     places            = toUnfoldable $ uniquePlaceIds net
 
     firstPlaceIndex   = 1
@@ -74,5 +72,27 @@ toNetRep net placeNames transitionNames placePositions transitionPositions typed
       , post: { place: _, tokens: zero } <$> post
       }
 
+--------------------------------------------------------------------------------
+
+layoutAsTriangleNetF :: NetF PID -> { placePositions :: Array (PID /\ Vec3 Number), transitionPositions :: Array (Vec3 Number) }
+layoutAsTriangleNetF net =
+  { placePositions:      (\i p -> p /\ ((scale <<< toNumber) <$> vec2 (1+i)   (1+i)) ) `mapWithIndex` places
+  , transitionPositions: (\i t ->      ((scale <<< toNumber) <$> vec2 (1+i) (-(1+i)))) `mapWithIndex` net
+  }
+  where
+    places = toUnfoldable $ uniquePlaceIds net
+
+scale :: Number -> Number
+scale n = 10.0*n
+
+defaultPlaceNames :: ∀ a. Ord a => Eq a => NetF a -> Array String
+defaultPlaceNames net = defaultPlaceNames' numPlaces
+  where
+    numPlaces = length $ toUnfoldable $ uniquePlaceIds net
+
+defaultPlaceNames' :: Int -> Array String
+defaultPlaceNames' numPlaces = (append "p" <<< show) <$> (0 .. (numPlaces-1))
+
+-- TODO it seems this function gets called a lot, which is unnecessarily costly, given strictness
 uniquePlaceIds :: ∀ a. Ord a => Eq a => NetF a -> Set a
 uniquePlaceIds net = fromFoldable $ uncurry append =<< net

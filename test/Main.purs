@@ -2,7 +2,7 @@ module Test.Main where
 
 import Prelude
 
-import Data.Either (Either(..), hush)
+import Data.Either (Either(..))
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
@@ -13,7 +13,6 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (run)
 
-import Data.Auth (Roles)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 import View.Petrinet.Model (PID, NetRep)
@@ -32,7 +31,7 @@ main = run [consoleReporter] do
 
   describe "NetRep should be constructed correctly from" do
     it "an empty NLL-encoded net" do
-      let netRep = NLLToNet.toNetRepWithDefaults mempty mempty mempty mempty
+      let netRep = NLLToNet.toNetRepWithDefaults mempty mempty mempty
       netRep.places `shouldEqual` []
 
     it "a simple NLL-encoded net" do
@@ -43,14 +42,11 @@ main = run [consoleReporter] do
                , placeNames: ["p1", "p2", "p3", "p4", "p5"]
                }
 
-        roles :: Array Roles
-        roles = []
-
         netNLLM :: Maybe (NetF PID)
-        netNLLM = hush $ Net.fromNLL 0 net1.partition
+        netNLLM = Net.fromNLLMaybe 0 net1.partition
 
         netRepM :: Maybe NetRep
-        netRepM = (\net -> NLLToNet.toNetRepWithDefaults net net1.placeNames net1.names roles) <$> netNLLM
+        netRepM = (\net -> NLLToNet.toNetRepWithDefaults net net1.placeNames net1.names) <$> netNLLM
 
       ((Map.lookup 0 <<< _.placeLabelsDict) =<< netRepM) `shouldEqual` Nothing
       ((Map.lookup 1 <<< _.placeLabelsDict) =<< netRepM) `shouldEqual` pure "p1"

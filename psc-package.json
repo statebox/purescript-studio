@@ -3,6 +3,6 @@
   "set": "psc-0.12.1-20190107",
   "source": "https://github.com/purescript/package-sets.git",
   "depends": [
-    "prelude", "halogen", "strings", "web-uievents", "affjax", "argonaut-core", "argonaut-codecs", "effect", "group", "spec", "psci-support"
+    "prelude", "halogen", "strings", "web-uievents", "affjax", "argonaut-core", "argonaut-codecs", "effect", "group", "debug", "spec", "psci-support"
   ]
 }
