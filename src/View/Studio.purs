@@ -33,16 +33,17 @@ import Halogen.HTML.Properties (classes, src, href, placeholder)
 import Halogen.HTML.Properties.ARIA as ARIA
 import Record as Record
 
+import Data.Diagram.FromNLL as FromNLL
+import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Statebox.API (shortHash, findRootDiagramMaybe)
 import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
 import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, TxSum(..), Tx, Diagram, PathElem)
-import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
+import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
-import View.Diagram.FromNLL as FromNLL
-import View.Diagram.FromNLL (ErrDiagramEncoding)
+import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, NetObj, QueryF(..), Msg(NetUpdated))
@@ -50,7 +51,6 @@ import Data.Petrinet.Representation.NLL as Net
 import View.Petrinet.Model.NLL as NLL
 import View.Studio.ObjectTree as ObjectTree
 import View.Studio.ObjectTree (mkItem)
-import View.Auth.RolesEditor as RolesEditor
 import View.Studio.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..), NamespaceInfo(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 

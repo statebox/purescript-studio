@@ -19,7 +19,7 @@ import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Dict (mkNetObjF)
-import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi)
+import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, mkNetInfo)
 import View.Petrinet.Model as Model
 
 -- | TODO Remove this. It is a temporary fix to make most nets from GSPN render more nicely.
@@ -86,9 +86,7 @@ type Arc =
 --------------------------------------------------------------------------------
 
 toNetInfo :: GSPN -> NetInfo
-toNetInfo gspn = { name: gspn.name, net: mkNetObjF netRep, netApi: mkNetApi netRep, textBoxes: toModelTextBox <$> gspn.nodes.textBox }
-  where
-    netRep = toNetRep gspn
+toNetInfo gspn = mkNetInfo (toNetRep gspn) gspn.name (toModelTextBox <$> gspn.nodes.textBox)
 
 toNetRep :: GSPN -> NetRep
 toNetRep gspn =

@@ -1,4 +1,4 @@
-module View.Diagram.FromNLL (fromNLL, ErrDiagramEncoding(..)) where
+module Data.Diagram.FromNLL (fromNLL, ErrDiagramEncoding(..)) where
 
 import Data.Array hiding (head, tail, length)
 import Data.Array.NonEmpty (toNonEmpty)
@@ -35,15 +35,15 @@ instance showErrDiagramEncoding :: Show ErrDiagramEncoding where
 
 type DiagramM a = Either ErrDiagramEncoding a
 
--- | See https://adoring-curie-7b92fd.netlify.com/.
+-- | See https://adoring-curie-7b92fd.netlify.com and https://docs.statebox.org/spec.
 type BrickDiagram a = 
   { width :: Int
-  , elements :: Array a
+  , pixels :: Array a
   }
 
 -- | Makes a brick diagram without checking bounds and sizes.
 mkBrickDiagramUnsafe :: ∀ a. Int -> Array a -> BrickDiagram a
-mkBrickDiagramUnsafe width ops = { width: width, elements: ops }
+mkBrickDiagramUnsafe width ops = { width: width, pixels: ops }
 
 -- | Safe constructor for brick diagrams, checks that the encoded array has the right size.
 mkBrickDiagram :: ∀ a. Int -> Array a -> DiagramM (BrickDiagram a)
@@ -54,12 +54,12 @@ mkBrickDiagram w ops | length ops `mod` w == 0 = Right $ mkBrickDiagramUnsafe w 
 
 -- | Get the height of a brick diagram, assuming it's perfectly rectangular.
 height :: ∀ a. BrickDiagram a -> Int
-height b = (length b.elements) / b.width
+height b = (length b.pixels) / b.width
 
 -- | Return the element below the given coordinates, if any.
 below :: ∀ a. BrickDiagram a -> Int -> Int -> Maybe a
 below b x y = let l = min (height b) (y + 1) in
-                  index b.elements (l * b.width + x)
+                  index b.pixels (l * b.width + x)
 
 -- Converting brick diagrams to directed graphs -----------------------------------------------------------------------
 
@@ -88,11 +88,11 @@ isSelfArrow {source, target} = source == target
 brickToGraph :: ∀ a. Eq a => BrickDiagram a -> Array (GraphArrow a)
 brickToGraph b = mapMaybe (edge b) indices
   where 
-    indices = range 0 (length b.elements - 1)
+    indices = range 0 (length b.pixels - 1)
 
 -- | Given a brick diagram and an index, return one of the arrows leaving the node at this index.
 edge :: ∀ a. Eq a => BrickDiagram a -> Int -> Maybe (GraphArrow a)
-edge b i = { source: _, target: _ } <$> index b.elements i <*> below b xPos yPos
+edge b i = { source: _, target: _ } <$> index b.pixels i <*> below b xPos yPos
   where 
     yPos = i / b.width
     xPos = i `rem` b.width
@@ -142,7 +142,7 @@ type ConsecutiveValues a = { value :: a, length :: Int }
 -- | [--4--]
 -- | ```
 graphToOps :: ∀ a. Eq a => Show a => BrickDiagram a -> Array Operator
-graphToOps { width: width, elements: brick } = 
+graphToOps { width: width, pixels: brick } =
   let lines = splitLines width brick
       l = mapWithIndex mapOperators $ map packConsecutive lines in
       concat l

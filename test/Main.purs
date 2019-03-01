@@ -13,11 +13,11 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (run)
 
+import Data.Diagram.FromNLL as Diagram
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 import View.Petrinet.Model (PID, NetRep)
 import View.Petrinet.Model.NLL as NLLToNet
-import View.Diagram.FromNLL as Diagram
 
 main :: Effect Unit
 main = run [consoleReporter] do
