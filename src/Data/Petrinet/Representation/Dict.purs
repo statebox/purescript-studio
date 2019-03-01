@@ -1,8 +1,7 @@
 module Data.Petrinet.Representation.Dict
-  ( NetObjF
-  , NetRepF
+  ( NetRepF
   , NetApiF
-  , mkNetObjF
+  , mkNetApiF
 
   , MarkingF
   , mkMarkingF
@@ -67,43 +66,30 @@ type NetRepF pid tid tok typ r =
   | r
   }
 
--- | A NetRepF with some associated API operations.
-type NetObjF pid tid tok typ = NetRepF pid tid tok typ
-  ( findTransition        :: tid -> Maybe (TransitionF pid tok)
-  , findPlaceLabel        :: pid -> Maybe String
-
-  , findPlacePoint        :: pid -> Maybe Vec2D
-  , findTransitionPoint   :: tid -> Maybe Vec2D
-  )
-
--- TODO was the idea to converge on this one in favour of NetObjF?
+-- | An interface through which to interact with a Petri net.
 type NetApiF pid tid tok =
   { findTokens :: pid -> tok
+  , placeLabel :: pid -> Maybe String
+  , placePoint :: pid -> Maybe Vec2D
+  , transition :: tid -> Maybe (TransitionF pid tok)
   }
 
---------------------------------------------------------------------------------
+mkNetApiF
+  :: ∀ pid tid tok typ r
+   . Ord pid
+  => Ord tid
+  => Semiring tok
+  => NetRepF pid tid tok typ r
+  -> NetApiF pid tid tok
+mkNetApiF rep =
+  { transition:     \tid -> Map.lookup tid rep.transitionsDict
 
-mkNetObjF :: forall pid tid tok typ. Ord pid => Ord tid => NetRepF pid tid tok typ () -> NetObjF pid tid tok typ
-mkNetObjF x =
-  { places               : x.places
-  , transitionsDict      : x.transitionsDict
-  , marking              : x.marking
+  -- data that should go through the schema mapping instead
+  , placeLabel:     \pid -> Map.lookup pid rep.placeLabelsDict
+  , placePoint:     \pid -> Map.lookup pid rep.placePointsDict
 
-  , placeLabelsDict      : x.placeLabelsDict
-  , placePointsDict      : x.placePointsDict
-
-  , transitionLabelsDict : x.transitionLabelsDict
-  , transitionTypesDict  : x.transitionTypesDict
-  , transitionPointsDict : x.transitionPointsDict
-  , transitionAuthsDict  : x.transitionAuthsDict
-
-  -- API, sort of
-  , findTransition       : flip Map.lookup x.transitionsDict
-  , findPlaceLabel       : flip Map.lookup x.placeLabelsDict
-
-  -- rendering related
-  , findPlacePoint       : flip Map.lookup x.placePointsDict
-  , findTransitionPoint  : flip Map.lookup x.transitionPointsDict
+  -- net execution
+  , findTokens:     findTokens' rep.marking
   }
 
 --------------------------------------------------------------------------------
@@ -135,13 +121,13 @@ trMarking pms = mkMarkingF $ Map.fromFoldable $ fromPlaceMarking <$> pms
 --------------------------------------------------------------------------------
 
 fire
-  :: ∀ p t tok typ
+  :: ∀ p t tok typ r
    . Ord p
   => Semiring tok
   => Group (MarkingF p tok)
-  => NetObjF p t tok typ
+  => NetRepF p t tok typ r
   -> TransitionF p tok
-  -> NetObjF p t tok typ
+  -> NetRepF p t tok typ r
 fire net t = net { marking = fireAtMarking net.marking t }
 
 fireAtMarking
@@ -158,10 +144,10 @@ fireAtMarking marking t =
 --------------------------------------------------------------------------------
 
 findTokens
-  :: ∀ p t tok typ
+  :: ∀ p t tok typ r
    . Ord p
   => Monoid (Additive tok)
-  => NetObjF p t tok typ
+  => NetRepF p t tok typ r
   -> p
   -> tok
 findTokens net = findTokens' net.marking

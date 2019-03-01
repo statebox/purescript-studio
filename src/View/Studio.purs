@@ -43,10 +43,10 @@ import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
-import View.Model (Project, ProjectName, mkNetInfoWithTypesAndRoles)
+import View.Model (Project, ProjectName)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, NetObj, QueryF(..), Msg(NetUpdated))
+import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, QueryF(..), Msg(NetUpdated))
 import Data.Petrinet.Representation.NLL as Net
 import View.Petrinet.Model.NLL as NLL
 import View.Studio.ObjectTree as ObjectTree

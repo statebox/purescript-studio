@@ -4,9 +4,7 @@ module ExampleData
   , project1
   , project2
   , net1
-  , netApi1
   , net2
-  , netApi2
   , pnproNetInfos1
   , diagrams1
   , diagrams2
@@ -32,7 +30,7 @@ import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Typedef.Typedef2 (Typedef2(..))
 import View.Model (Project)
-import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, NetObj, NetApi, NetInfo, NetInfoFRow, TextBox)
+import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, mkNetApi, NetApi, NetInfo, NetInfoFRow, TextBox)
 import View.Diagram.Model (DiagramInfo)
 
 -- TODO hardcoded for now, but we should decide how we want to come by this
@@ -187,19 +185,11 @@ transitionRoles1 = rolesFromFoldable <$>
 textBoxes1 :: Array TextBox
 textBoxes1 = []
 
-net1Data :: NetRep
-net1Data = mkNetRep places1 transitions1 marking1 placeLabels1 placePoints1 transitionLabels1 transitionTypes1 transitionPoints1 transitionRoles1
-
-net1 :: NetObj
-net1 = mkNetObjF net1Data
-
-netApi1 :: NetApi
-netApi1 =
-  { findTokens : findTokens' net1Data.marking
-  }
+net1 :: NetRep
+net1 = mkNetRep places1 transitions1 marking1 placeLabels1 placePoints1 transitionLabels1 transitionTypes1 transitionPoints1 transitionRoles1
 
 netInfo1 :: NetInfo
-netInfo1 = { name: "Traffic lights", net: net1, netApi: netApi1, textBoxes: textBoxes1 }
+netInfo1 = { name: "Traffic lights", net: net1, netApi: mkNetApi net1, textBoxes: textBoxes1 }
 
 -- producer-consumer net -------------------------------------------------------
 
@@ -294,19 +284,11 @@ textBoxes2 =
   , { name: "Consumer", box: Box { topLeft: vec2   60.0  6.0, bottomRight: vec2 115.0 54.0 } }
   ]
 
-net2Data :: NetRep
-net2Data = mkNetRep places2 transitions2 marking2 placeLabels2 placePoints2 transitionLabels2 transitionTypes2 transitionPoints2 transitionRoles2
-
-net2 :: NetObj
-net2 = mkNetObjF net2Data
-
-netApi2 :: NetApi
-netApi2 =
-  { findTokens : findTokens' net2Data.marking
-  }
+net2 :: NetRep
+net2 = mkNetRep places2 transitions2 marking2 placeLabels2 placePoints2 transitionLabels2 transitionTypes2 transitionPoints2 transitionRoles2
 
 netInfo2 :: NetInfo
-netInfo2 = { name: "Producer-consumer", net: net2, netApi: netApi2, textBoxes: textBoxes2 }
+netInfo2 = { name: "Producer-consumer", net: net2, netApi: mkNetApi net2, textBoxes: textBoxes2 }
 
 --------------------------------------------------------------------------------
 

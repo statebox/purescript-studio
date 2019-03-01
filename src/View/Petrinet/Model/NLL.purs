@@ -18,7 +18,6 @@ import Data.Foldable (foldl, fold)
 import Data.Traversable (traverse)
 import Data.Vec3 (Vec3, vec2)
 
-import Data.Petrinet.Representation.Dict (mkNetObjF)
 import Data.Petrinet.Representation.NLL (NetF)
 import View.Petrinet.Model (PID, Transition, Typedef(..), NetRep, NetInfo, TextBox, mkNetRep, mkNetApi, mkNetInfo)
 

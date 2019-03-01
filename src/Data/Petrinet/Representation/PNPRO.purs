@@ -18,7 +18,6 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
 
 import Data.Auth as Auth
-import Data.Petrinet.Representation.Dict (mkNetObjF)
 import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, mkNetInfo)
 import View.Petrinet.Model as Model
 

@@ -11,7 +11,7 @@ import Data.Newtype (class Newtype)
 import Data.Tuple.Nested (type (/\), (/\))
 
 import Data.Auth (Role, Roles, RoleInfo)
-import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, findTokens', NetRepF, NetObjF, NetApiF, mkNetObjF)
+import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, findTokens', NetRepF, NetApiF, mkNetApiF)
 import Data.Typedef.Typedef2 (Typedef2, TypeName)
 import Data.Vec3 (Vec2, Vec2D, Box(..))
 
@@ -60,7 +60,7 @@ data Msg = NetUpdated
 
 type NetInfoFRow pid tid ty r =
   ( name      :: String
-  , net       :: NetObjF pid tid Tokens ty
+  , net       :: NetRepF pid tid Tokens ty ()
   , netApi    :: NetApiF pid tid Tokens
   , textBoxes :: Array TextBox
   | r
@@ -69,11 +69,12 @@ type NetInfoFRow pid tid ty r =
 type NetInfoF pid tid ty r = Record (NetInfoFRow pid tid ty r)
 
 -- | This extends a net with fields containing project-wide info.
-type NetInfoWithTypesAndRolesFRow pid tid ty ty2 r = NetInfoFRow pid tid ty
-  ( types     :: Array (TypeName /\ ty2)
-  , roleInfos :: Array RoleInfo
-  | r
-  )
+type NetInfoWithTypesAndRolesFRow pid tid ty ty2 r =
+  NetInfoFRow pid tid ty
+    ( types     :: Array (TypeName /\ ty2)
+    , roleInfos :: Array RoleInfo
+    | r
+    )
 
 type NetInfoWithTypesAndRolesF pid tid ty ty2 r = Record (NetInfoWithTypesAndRolesFRow pid tid ty ty2 r)
 
@@ -88,8 +89,6 @@ type Marking      = MarkingF      PID Tokens
 type PlaceMarking = PlaceMarkingF PID Tokens
 
 type NetRep = NetRepF PID TID Tokens Typedef ()
-
-type NetObj = NetObjF PID TID Tokens Typedef
 
 type NetApi = NetApiF PID TID Tokens
 
@@ -141,14 +140,12 @@ mkNetRep pids transitions marking placeLabels placePoints transitionLabels trans
     transitionAuthsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionAuths
 
 mkNetApi :: NetRep -> NetApi
-mkNetApi rep =
-  { findTokens : findTokens' rep.marking
-  }
+mkNetApi = mkNetApiF
 
 mkNetInfo :: NetRep -> String -> Array TextBox -> NetInfo
 mkNetInfo net name textBoxes =
   { name:      name
-  , net:       mkNetObjF net
+  , net:       net
   , textBoxes: textBoxes
   , netApi:    mkNetApi net
   }

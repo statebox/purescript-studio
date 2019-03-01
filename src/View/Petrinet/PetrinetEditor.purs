@@ -198,7 +198,7 @@ ui =
         numElems <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid)
         state <- H.get
         let
-          netMaybe' = fire state.netInfo.net <$> state.netInfo.net.findTransition tid
+          netMaybe' = fire state.netInfo.net <$> state.netInfo.netApi.transition tid
           net'      = fromMaybe state.netInfo.net netMaybe'
         H.put $ state { netInfo = state.netInfo { net = net'}
                       , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
@@ -213,7 +213,7 @@ ui =
         pure next
 
     netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 () -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid) Unit))
-    netToSVG netInfo@{net} focusedPlace focusedTransition =
+    netToSVG netInfo@{net, netApi} focusedPlace focusedTransition =
       svgDefs <> svgTextBoxes <> svgTransitions <> svgPlaces
       where
         svgDefs        = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
@@ -224,14 +224,14 @@ ui =
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
           label <- Map.lookup id net.placeLabelsDict
-          point <- net.findPlacePoint id
+          point <- netApi.placePoint id
           let tokens = findTokens net id
           pure $ { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
         mkTransitionAndArcsModel :: tid -> TransitionF pid Tokens -> Maybe (TransitionModelF tid String Vec2D)
         mkTransitionAndArcsModel tid tr = do
-          trPoint  <- net.findTransitionPoint tid
+          trPoint  <- Map.lookup tid net.transitionPointsDict
           preArcs  <- mkPreArc  tid trPoint `traverse` tr.pre
           postArcs <- mkPostArc tid trPoint `traverse` tr.post
           let auths = fromMaybe (Roles mempty) (Map.lookup tid net.transitionAuthsDict)
@@ -247,10 +247,10 @@ ui =
                }
           where
             mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> net.findPlacePoint tp.place
+            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place net.placePointsDict
 
             mkPreArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> net.findPlacePoint tp.place
+            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> netApi.placePoint tp.place
 
     --------------------------------------------------------------------------------
 
