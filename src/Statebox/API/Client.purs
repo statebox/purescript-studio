@@ -31,7 +31,7 @@ requestTransaction apiBaseUrl hash =
 
 requestTransactionJson :: URL -> HashStr -> Aff (Response (ResponseFormatError \/ Json))
 requestTransactionJson apiBaseUrl hash =
-  Affjax.request $ Affjax.defaultRequest { url = apiBaseUrl <> "/tx/get/" <> hash
+  Affjax.request $ Affjax.defaultRequest { url = apiBaseUrl <> "/tx/" <> hash
                                          , method = Left GET
                                          , responseFormat = ResponseFormat.json
                                          }

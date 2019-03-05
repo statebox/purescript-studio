@@ -35,7 +35,7 @@ import View.Diagram.Model (DiagramInfo)
 
 -- TODO hardcoded for now, but we should decide how we want to come by this
 endpointUrl :: String
-endpointUrl = "https://us-central1-process-io.cloudfunctions.net"
+endpointUrl = "https://testapi.statebox.io"
 
 projects :: Array Project
 projects = [project1, project2]
