@@ -68,10 +68,14 @@ type NetRepF pid tid tok typ r =
 
 -- | An interface through which to interact with a Petri net.
 type NetApiF pid tid tok =
-  { findTokens :: pid -> tok
+  { transition :: tid -> Maybe (TransitionF pid tok)
+
+  -- data that should go through the schema mapping instead
   , placeLabel :: pid -> Maybe String
   , placePoint :: pid -> Maybe Vec2D
-  , transition :: tid -> Maybe (TransitionF pid tok)
+
+  -- net state and execution
+  , findTokens :: pid -> tok
   }
 
 mkNetApiF
@@ -82,14 +86,10 @@ mkNetApiF
   => NetRepF pid tid tok typ r
   -> NetApiF pid tid tok
 mkNetApiF rep =
-  { transition:     \tid -> Map.lookup tid rep.transitionsDict
-
-  -- data that should go through the schema mapping instead
-  , placeLabel:     \pid -> Map.lookup pid rep.placeLabelsDict
-  , placePoint:     \pid -> Map.lookup pid rep.placePointsDict
-
-  -- net execution
-  , findTokens:     findTokens' rep.marking
+  { transition: \tid -> Map.lookup tid rep.transitionsDict
+  , placeLabel: \pid -> Map.lookup pid rep.placeLabelsDict
+  , placePoint: \pid -> Map.lookup pid rep.placePointsDict
+  , findTokens: findTokens' rep.marking
   }
 
 --------------------------------------------------------------------------------
