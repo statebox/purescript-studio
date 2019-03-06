@@ -11,6 +11,7 @@ import Data.Either.Nested (type (\/), Either3)
 import Data.Foldable (find, foldMap)
 import Data.Functor.Coproduct.Nested (Coproduct3)
 import Data.FunctorWithIndex (mapWithIndex)
+import Data.Lens (preview)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
@@ -44,6 +45,7 @@ import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
 import Statebox.API.Types as Stbx
 import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, Firing, TxSum(..), Tx, Diagram, PathElem)
+import Statebox.API.Lenses (_leWiring)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -64,9 +66,6 @@ import ExampleData as Ex
 type State =
   { route       :: Route
   , projects    :: Array Project
-  , namespaces  :: Map HashStr NamespaceInfo
-  , wirings     :: Map HashStr WiringTx
-  , firings     :: Map HashStr FiringTx
   , hashSpace   :: AdjacencySpace HashStr TxSum -- ^ Hashes and their (tree of) links.
   , msg         :: String
   }
@@ -103,9 +102,6 @@ ui =
     initialState =
       { msg:         "Welcome to Statebox Studio!"
       , projects:    Ex.projects
-      , namespaces:  mempty
-      , wirings:     mempty
-      , firings:     mempty
       , hashSpace:   AdjacencySpace.empty
       , route:       Home
       }
@@ -130,19 +126,8 @@ ui =
         res # either
           (\err   -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
           (either (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a wiring or firing: " <> show err)
-                  (\txSum               -> do
-                                             H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace hash txSum })
-                                             case txSum of
-                                                LeInitial hash -> do
-                                                  H.liftEffect $ log $ "genesis transaction at hash " <> hash
-                                                  let namespace = { name: shortHash hash, hash: hash }
-                                                  H.modify_ (\state -> state { namespaces = Map.insert hash namespace state.namespaces })
-                                                LeWiring wiring -> do
-                                                  H.liftEffect $ log $ "wiring: " <> show wiring
-                                                  H.modify_ (\state -> state { wirings = Map.insert hash wiring state.wirings })
-                                                LeFiring firing -> do
-                                                  H.liftEffect $ log $ "firing: " <> show firing
-                                                  H.modify_ (\state -> state { firings = Map.insert hash firing state.firings })
+                  (\txSum               -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace hash txSum })
+                                              H.liftEffect $ log $ dumpTxSum txSum
                   )
           )
         pure next
@@ -209,13 +194,7 @@ ui =
           ResolvedWiring wfi ->
             let
               wiringMaybe :: Maybe WiringTx
-              wiringMaybe = wfi.hash `Map.lookup` state.wirings
-
-              rootDiagramMaybe :: Maybe Diagram
-              rootDiagramMaybe = findRootDiagramMaybe =<< wiringMaybe
-
-              diagramInfoMaybe :: Maybe DiagramInfo
-              diagramInfoMaybe = (\d -> { name: d.name, ops: [] }) <$> rootDiagramMaybe
+              wiringMaybe = preview _leWiring <=< AdjacencySpace.lookup wfi.hash $ state.hashSpace
             in
             div []
                 [ text $ "Wiring " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
@@ -223,10 +202,6 @@ ui =
                 , maybe (text "wiring not found")
                         (\w -> pre [] [ text $ show w ])
                         wiringMaybe
-                , br [], br []
-                , text $ "rootDiagramMaybe: " <> show rootDiagramMaybe
-                , br [], br []
-                , text $ "diagramInfoMaybe: " <> show diagramInfoMaybe
                 ]
           ResolvedFiring x ->
             text $ "Firing " <> x.hash <> " at " <> x.endpointUrl <> "."
@@ -284,7 +259,7 @@ ui =
 --------------------------------------------------------------------------------
 
 resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
-resolveRoute route {projects, wirings} = case route of
+resolveRoute route {projects, hashSpace} = case route of
   Home                              -> pure ResolvedHome
   Types     projectName             -> ResolvedTypes <$> findProject projects projectName
   Auths     projectName             -> ResolvedAuths <$> findProject projects projectName
@@ -300,8 +275,8 @@ resolveRoute route {projects, wirings} = case route of
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
   WiringR    x                      -> pure $ ResolvedWiring x
   FiringR    x                      -> pure $ ResolvedFiring x
-  DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> findDiagramInfoInWirings wirings wiringHash ix name
-  NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> findNetInfoInWirings     wirings wiringHash ix name
+  DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> findDiagramInfoInWirings hashSpace wiringHash ix name
+  NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> findNetInfoInWirings     hashSpace wiringHash ix name
 
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
@@ -316,9 +291,10 @@ findNetInfoWithTypesAndRoles project netName =
 findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
 findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
 
-findNetInfoInWirings :: Map HashStr WiringTx -> HashStr -> PathElem -> String -> Maybe NetInfoWithTypesAndRoles
-findNetInfoInWirings wirings wiringHash ix name = do
-  wiring      <- spy "findNetInfoInWirings: wiring = "  $ Map.lookup wiringHash wirings
+findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> String -> Maybe NetInfoWithTypesAndRoles
+findNetInfoInWirings hashSpace wiringHash ix name = do
+  tx          <- spy "findNetInfoInWirings: tx = "      $ AdjacencySpace.lookup wiringHash hashSpace
+  wiring      <- spy "findNetInfoInWirings: wiring = "  $ _leWiring `preview` tx
   netW        <- spy "findNetInfoInWirings: netW = "    $ wiring.wiring.nets `index` ix
   netTopo     <- spy "findNetInfoInWirings: netTopo = " $ Net.fromNLLMaybe 0 netW.partition
   let
@@ -326,8 +302,8 @@ findNetInfoInWirings wirings wiringHash ix name = do
     netInfo    = spy "findNetInfoInWirings: netInfo = " $ NLL.toNetInfoWithDefaults netTopo netW.name placeNames netW.names
   pure $ Record.merge { types: [], roleInfos: [] } netInfo
 
-findDiagramInfoInWirings :: Map HashStr WiringTx -> HashStr -> PathElem -> String -> Maybe DiagramInfo
-findDiagramInfoInWirings wirings wiringHash ix name =
+findDiagramInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> String -> Maybe DiagramInfo
+findDiagramInfoInWirings hashSpace wiringHash ix name =
   hush =<< diagramEitherMaybe
   where
     diagramEitherMaybe :: Maybe (ErrDiagramEncoding \/ DiagramInfo)
@@ -336,14 +312,14 @@ findDiagramInfoInWirings wirings wiringHash ix name =
     diagramMaybe :: Maybe Diagram
     diagramMaybe = (flip index ix <<< _.wiring.diagrams) =<< wiringMaybe
 
-    wiringMaybe = Map.lookup wiringHash wirings
+    wiringMaybe = preview _leWiring <=< AdjacencySpace.lookup wiringHash $ hashSpace
 
     toNLL d = [d.width] <> d.pixels
 
 --------------------------------------------------------------------------------
 
 stateMenu :: State -> MenuTree
-stateMenu { projects, namespaces, wirings, firings, hashSpace } =
+stateMenu { projects, hashSpace } =
   mkItem "Studio" Nothing :< (txItems <> projectItems)
   where
     txItems        = AdjacencySpace.unsafeToTree transactionMenu hashSpace <$> Set.toUnfoldable (AdjacencySpace.rootKeys hashSpace)
@@ -392,3 +368,11 @@ transactionMenu t hash valueMaybe itemKids =
     -- TODO we need to return a Route currently, but we may want to return a (LoadFromHash ... ::Query) instead,
     -- so we could load unloaded hashes from the menu.
     unloadedRoute = Nothing
+
+--------------------------------------------------------------------------------
+
+dumpTxSum :: TxSum -> String
+dumpTxSum = case _ of
+  LeInitial hash -> "initial: " <> hash
+  LeWiring wiring -> "wiring: " <> show wiring
+  LeFiring firing -> "firing: " <> show firing

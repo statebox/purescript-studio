@@ -12,7 +12,6 @@ import Data.Set as Set
 import Data.Set (Set)
 
 -- | Adjacency data structure. Records ids, the values corresponding to those ids, and the links between ids and parent ids.
-
 type AdjacencySpace k v =
   { kids      :: Map k (Set k)
   , parents   :: Map k k
@@ -24,6 +23,9 @@ type Key = String
 
 empty :: ∀ v. AdjacencySpace Key v
 empty = { kids: mempty, parents: mempty, values: mempty }
+
+lookup :: ∀ a. Key -> AdjacencySpace Key a -> Maybe a
+lookup k t = Map.lookup k t.values
 
 -- TODO optimisation: unify parents and values? maintaining two indices that are the same seems expensive.
 update :: ∀ a. (a -> Key) -> AdjacencySpace Key a -> Key -> a -> AdjacencySpace Key a
