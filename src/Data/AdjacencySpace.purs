@@ -51,13 +51,13 @@ rootKeys t = Set.filter (not isLoaded) parentKeys
     isLoaded = isLoadedIn t
 
 parentKey :: ∀ v. AdjacencySpace Key v -> Key -> Maybe Key
-parentKey t h = Map.lookup h t.parents
+parentKey t k = Map.lookup k t.parents
 
 hasParentKey :: ∀ v. AdjacencySpace Key v -> Key -> Boolean
 hasParentKey t = isJust <<< parentKey t
 
 isLoadedIn :: ∀ v. AdjacencySpace Key v -> Key -> Boolean
-isLoadedIn t h = h `member` t.values
+isLoadedIn t k = k `member` t.values
 
 --------------------------------------------------------------------------------
 

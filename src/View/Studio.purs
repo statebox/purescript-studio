@@ -339,35 +339,31 @@ projectMenu p =
 
 transactionMenu :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array MenuTree -> MenuTree
 transactionMenu t hash valueMaybe itemKids =
-  maybe (mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids)
+  maybe (mkUnloadedItem itemKids)
         (\tx -> mkItem2 hash tx itemKids)
         valueMaybe
   where
+    mkItem2 :: HashStr -> TxSum -> Array MenuTree -> MenuTree
     mkItem2 hash tx itemKids = case tx of
-      LeInitial x -> mkItem3 hash tx :< itemKids
-      LeWiring  w -> mkItem3 hash tx :< (fromNets w.wiring.nets) <> (fromDiagrams w.wiring.diagrams) <> itemKids
-      LeFiring  f -> mkItem3 hash tx :< itemKids
+      LeInitial x -> mkItem ("🌐 "  <> shortHash hash)
+                            (Just $ NamespaceR x)
+                            :< itemKids
+      LeWiring  w -> mkItem ("🥨 " <> shortHash hash)
+                            (Just $ WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
+                            :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
+      LeFiring  f -> mkItem ("🔥 " <> shortHash hash)
+                            (Just $ FiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
+                            :< itemKids
+      where
+        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
+        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
 
-    mkItem3 hash tx    = mkItem (caption hash tx) (Just $ toRoute hash tx)
-
-    fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
-    fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
-
-    caption :: HashStr -> TxSum -> String
-    caption hash = case _ of
-      LeInitial x -> "🌐 "  <> shortHash hash
-      LeWiring  w -> "🥨 " <> shortHash hash
-      LeFiring  f -> "🔥 " <> shortHash hash
-
-    toRoute :: HashStr -> TxSum -> Route
-    toRoute hash = case _ of
-      LeInitial x -> NamespaceR x
-      LeWiring  w -> WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash }
-      LeFiring  f -> FiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash }
-
-    -- TODO we need to return a Route currently, but we may want to return a (LoadFromHash ... ::Query) instead,
-    -- so we could load unloaded hashes from the menu.
-    unloadedRoute = Nothing
+    mkUnloadedItem :: Array MenuTree -> MenuTree
+    mkUnloadedItem itemKids = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
+      where
+        -- TODO we need to return a Route currently, but we may want to return a (LoadFromHash ... ::Query) instead,
+        -- so we could load unloaded hashes from the menu.
+        unloadedRoute = Nothing
 
 --------------------------------------------------------------------------------
 
