@@ -3,7 +3,7 @@ module View.Studio.Route where
 import Prelude
 import Data.Maybe (Maybe)
 import View.Model (ProjectName)
-import Statebox.API.Types (HashStr, PathElem, URL, WiringTx)
+import Statebox.API.Types (HashStr, PathElem, URL, WiringTx, FiringTx)
 
 type Route = RouteF ProjectName DiagramName NetName
 
@@ -40,7 +40,7 @@ data ResolvedRouteF p d n
   -- Statebox API-specific constructors
   | ResolvedNamespace HashStr
   | ResolvedWiring    WiringFiringInfo WiringTx
-  | ResolvedFiring    WiringFiringInfo
+  | ResolvedFiring    WiringFiringInfo FiringTx
 
 --------------------------------------------------------------------------------
 

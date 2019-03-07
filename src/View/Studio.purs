@@ -45,7 +45,7 @@ import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
 import Statebox.API.Types as Stbx
 import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, Firing, TxSum(..), Tx, Diagram, PathElem)
-import Statebox.API.Lenses (_leWiring)
+import Statebox.API.Lenses (_leWiring, _leFiring)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -191,14 +191,22 @@ ui =
                 ]
           ResolvedNamespace hash ->
             text $ "Namespace " <> hash
-          ResolvedWiring wfi wiring ->
+          ResolvedWiring wfi wiringTx ->
             div []
                 [ text $ "Wiring " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
                 , br [], br []
-                , pre [] [ text $ show wiring ]
+                , pre [] [ text $ show wiringTx ]
                 ]
-          ResolvedFiring x ->
-            text $ "Firing " <> x.hash <> " at " <> x.endpointUrl <> "."
+          ResolvedFiring wfi firingTx ->
+            div []
+                [ text $ "Firing " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
+                , br []
+                , p [] [ pre [] [ text $ show firingTx ] ]
+                , br []
+                , p [] [ text $ "execution: " <> show firingTx.firing.execution ]
+                , br []
+                , p [] [ text $ "path: " <> show firingTx.firing.path ]
+                ]
 
         routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
         routeBreadcrumbs =
@@ -268,7 +276,7 @@ resolveRoute route {projects, hashSpace} = case route of
                                           pure $ ResolvedDiagram diagram node
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
   WiringR    x                      -> ResolvedWiring x <$> findWiringTx hashSpace x.hash
-  FiringR    x                      -> pure $ ResolvedFiring x
+  FiringR    x                      -> ResolvedFiring x <$> findFiringTx hashSpace x.hash
   DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> findDiagramInfoInWirings hashSpace wiringHash ix
   NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> findNetInfoInWirings     hashSpace wiringHash ix
 
@@ -286,10 +294,10 @@ findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
 findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
 
 findWiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe WiringTx
-findWiringTx hashSpace wiringHash = do
-  tx          <- spy "findNetInfoInWirings: tx = "      $ AdjacencySpace.lookup wiringHash hashSpace
-  wiring      <- spy "findNetInfoInWirings: wiring = "  $ _leWiring `preview` tx
-  pure wiring
+findWiringTx hashSpace wiringHash = preview _leWiring =<< AdjacencySpace.lookup wiringHash hashSpace
+
+findFiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe FiringTx
+findFiringTx hashSpace firingHash = preview _leFiring =<< AdjacencySpace.lookup firingHash hashSpace
 
 findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe NetInfoWithTypesAndRoles
 findNetInfoInWirings hashSpace wiringHash ix = do
