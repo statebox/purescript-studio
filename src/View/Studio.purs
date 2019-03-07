@@ -74,7 +74,7 @@ type State =
 
 data Query a
   = SelectRoute Route a
-  | LoadFromHash URL HashStr a
+  | LoadTransaction URL HashStr a
   | HandleObjectTreeMsg ObjectTree.Msg a
   | HandlePetrinetEditorMsg Msg a
   | HandleDiagramEditorMsg DiagramEditor.Msg a
@@ -120,8 +120,8 @@ ui =
 -- TODO print request body (in request function)
 -- if body empty (what does that mean, JSON null? empty string? we have a namespace
 
-      LoadFromHash endpointUrl hash next -> do
-        H.liftEffect $ log $ "LoadFromHash: requesting transaction " <> hash <> " from " <> endpointUrl
+      LoadTransaction endpointUrl hash next -> do
+        H.liftEffect $ log $ "LoadTransaction: requesting transaction " <> hash <> " from " <> endpointUrl
         res <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
         res # either
           (\err   -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
@@ -168,7 +168,7 @@ ui =
                 , br [], br []
                 , HH.input [ HP.value ""
                            , placeholder "Enter transaction hash"
-                           , HE.onValueInput $ HE.input (LoadFromHash Ex.endpointUrl)
+                           , HE.onValueInput $ HE.input (LoadTransaction Ex.endpointUrl)
                            , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                            ]
                 ]
@@ -361,7 +361,7 @@ transactionMenu t hash valueMaybe itemKids =
     mkUnloadedItem :: Array MenuTree -> MenuTree
     mkUnloadedItem itemKids = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
       where
-        -- TODO we need to return a Route currently, but we may want to return a (LoadFromHash ... ::Query) instead,
+        -- TODO we need to return a Route currently, but we may want to return a (LoadTransaction ... ::Query) instead,
         -- so we could load unloaded hashes from the menu.
         unloadedRoute = Nothing
 
