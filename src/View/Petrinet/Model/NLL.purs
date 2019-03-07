@@ -40,7 +40,7 @@ toNetRepWithDefaults net placeNames transitionNames =
     transitions = net
     typedefs    = Typedef "1" <$ transitions
     roles       = mempty
-    layout      = layoutAsTriangleNetF net
+    layout      = layoutBipartiteIn2ColsNetF net
 
 toNetRep :: NetF PID -> Array String -> Array String -> Array (PID /\ Vec3 Number) -> Array (Vec3 Number) -> Array Typedef -> Array Roles -> NetRep
 toNetRep net placeNames transitionNames placePositions transitionPositions typedefs roles =
@@ -73,13 +73,15 @@ toNetRep net placeNames transitionNames placePositions transitionPositions typed
 
 --------------------------------------------------------------------------------
 
-layoutAsTriangleNetF :: NetF PID -> { placePositions :: Array (PID /\ Vec3 Number), transitionPositions :: Array (Vec3 Number) }
-layoutAsTriangleNetF net =
-  { placePositions:      (\i p -> p /\ ((scale <<< toNumber) <$> vec2 (1+i)   (1+i)) ) `mapWithIndex` places
-  , transitionPositions: (\i t ->      ((scale <<< toNumber) <$> vec2 (1+i) (-(1+i)))) `mapWithIndex` net
+layoutBipartiteIn2ColsNetF :: NetF PID -> { placePositions :: Array (PID /\ Vec3 Number), transitionPositions :: Array (Vec3 Number) }
+layoutBipartiteIn2ColsNetF net =
+  { placePositions:      (\i p -> p /\ vec2 (-halfWidth) (scale <<< toNumber $ 1+i)) `mapWithIndex` places
+  , transitionPositions: (\i t ->      vec2   halfWidth  (scale <<< toNumber $ 1+i)) `mapWithIndex` net
   }
   where
-    places = toUnfoldable $ uniquePlaceIds net
+    places    = toUnfoldable $ uniquePlaceIds net
+    halfWidth = scale <<< (_ / 2.0) <<< toNumber $ maxIndex -- maxIndex determines height
+    maxIndex  = max (length places) (length net)
 
 scale :: Number -> Number
 scale n = 10.0*n
