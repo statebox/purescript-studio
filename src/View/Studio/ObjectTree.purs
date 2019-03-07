@@ -48,11 +48,11 @@ type State =
 
 --------------------------------------------------------------------------------
 
+type MenuTree = RoseTree Item
+
 type RoseTree a = Cofree Array a
 
 type Item = { label :: String, route :: Maybe Route }
-
-type ItemWithId = NodeId /\ Item
 
 mkItem :: String -> Maybe Route -> Item
 mkItem label route = { label, route }
@@ -105,7 +105,7 @@ menuComponent isSelected =
                                  else [semifoldCofree menuItemHtml  $       tree]
           ]
       where
-        menuItemHtml :: ItemWithId -> Array (HTML Void (Query Unit)) -> HTML Void (Query Unit)
+        menuItemHtml :: (NodeId /\ Item)  -> Array (HTML Void (Query Unit)) -> HTML Void (Query Unit)
         menuItemHtml (treeNodeId /\ treeNode) kids =
           li [ classesWithNames ([ "block", "flex", "cursor-pointer", "px-2", "py-2", "text-grey-darkest" ] <> activeClasses)]
              [ div []
@@ -133,7 +133,7 @@ menuComponent isSelected =
             isExpanded = not null kids && (fromMaybe true $ Map.lookup treeNodeId state.expansion)
             isActive = state.activeItem == pure treeNodeId
 
-decorateWithIds :: RoseTree Item -> RoseTree ItemWithId
+decorateWithIds :: RoseTree Item -> RoseTree (NodeId /\ Item)
 decorateWithIds tree = mapWithIndexCofree (/\) tree
 
 semifoldCofree :: forall f a b. Functor f => (a -> f b -> b) -> Cofree f a -> b

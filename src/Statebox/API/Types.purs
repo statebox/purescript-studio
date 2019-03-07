@@ -63,3 +63,13 @@ data TxSum
   | LeWiring WiringTx
   | LeFiring FiringTx
 
+namespaceRootHash_HACK = "deadbeef"
+
+uberRoot_HACK = ""
+
+-- TODO Newer proto versions have a previous hash for initial tx as well.
+getPrevious :: TxSum -> HashStr
+getPrevious val = case val of
+  LeWiring  w -> w.previous
+  LeFiring  f -> f.previous
+  LeInitial i -> uberRoot_HACK
