@@ -191,17 +191,11 @@ ui =
                 ]
           ResolvedNamespace hash ->
             text $ "Namespace " <> hash
-          ResolvedWiring wfi ->
-            let
-              wiringMaybe :: Maybe WiringTx
-              wiringMaybe = preview _leWiring <=< AdjacencySpace.lookup wfi.hash $ state.hashSpace
-            in
+          ResolvedWiring wfi wiring ->
             div []
                 [ text $ "Wiring " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
                 , br [], br []
-                , maybe (text "wiring not found")
-                        (\w -> pre [] [ text $ show w ])
-                        wiringMaybe
+                , pre [] [ text $ show wiring ]
                 ]
           ResolvedFiring x ->
             text $ "Firing " <> x.hash <> " at " <> x.endpointUrl <> "."
@@ -273,7 +267,7 @@ resolveRoute route {projects, hashSpace} = case route of
                                                        NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                                           pure $ ResolvedDiagram diagram node
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
-  WiringR    x                      -> pure $ ResolvedWiring x
+  WiringR    x                      -> ResolvedWiring x <$> findWiringTx hashSpace x.hash
   FiringR    x                      -> pure $ ResolvedFiring x
   DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> findDiagramInfoInWirings hashSpace wiringHash ix
   NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> findNetInfoInWirings     hashSpace wiringHash ix
@@ -291,10 +285,15 @@ findNetInfoWithTypesAndRoles project netName =
 findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
 findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
 
-findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe NetInfoWithTypesAndRoles
-findNetInfoInWirings hashSpace wiringHash ix = do
+findWiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe WiringTx
+findWiringTx hashSpace wiringHash = do
   tx          <- spy "findNetInfoInWirings: tx = "      $ AdjacencySpace.lookup wiringHash hashSpace
   wiring      <- spy "findNetInfoInWirings: wiring = "  $ _leWiring `preview` tx
+  pure wiring
+
+findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe NetInfoWithTypesAndRoles
+findNetInfoInWirings hashSpace wiringHash ix = do
+  wiring      <- findWiringTx hashSpace wiringHash
   netW        <- spy "findNetInfoInWirings: netW = "    $ wiring.wiring.nets `index` ix
   netTopo     <- spy "findNetInfoInWirings: netTopo = " $ Net.fromNLLMaybe 0 netW.partition
   let
@@ -310,9 +309,7 @@ findDiagramInfoInWirings hashSpace wiringHash ix =
     diagramEitherMaybe = (\d -> FromNLL.fromNLL d.name (toNLL d)) <$> diagramMaybe
 
     diagramMaybe :: Maybe Diagram
-    diagramMaybe = (flip index ix <<< _.wiring.diagrams) =<< wiringMaybe
-
-    wiringMaybe = preview _leWiring <=< AdjacencySpace.lookup wiringHash $ hashSpace
+    diagramMaybe = (flip index ix <<< _.wiring.diagrams) =<< findWiringTx hashSpace wiringHash
 
     toNLL d = [d.width] <> d.pixels
 
