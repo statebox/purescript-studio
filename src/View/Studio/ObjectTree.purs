@@ -17,7 +17,7 @@ import Halogen.HTML (HTML, nav, div, p, a, text, ul, li, aside, span, i)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Events (onClick)
-import Halogen.HTML.Properties (classes, src, href)
+import Halogen.HTML.Properties (classes, src, href, id_)
 import Halogen.HTML.Properties.ARIA as ARIA
 
 import View.Studio.Route (Route, RouteF(..))
@@ -107,31 +107,41 @@ menuComponent isSelected =
       where
         menuItemHtml :: (NodeId /\ Item)  -> Array (HTML Void (Query Unit)) -> HTML Void (Query Unit)
         menuItemHtml (treeNodeId /\ treeNode) kids =
-          li [ classesWithNames ([ "block", "flex", "cursor-pointer", "px-2", "py-2", "text-grey-darkest" ] <> activeClasses)]
-             [ div []
+          li [ classesWithNames [ "block", "flex", "cursor-pointer", "pr-2", "text-grey-darkest" ] ]
+             [ div [ classesWithNames [ "inline-flex" ] ]
                    [ arrowIcon
-                   , span [ classesWithNames [ "pl-2" ]
-                          , onClick (HE.input_ clickQuery)
-                          ]
-                          [ text treeNode.label ]
-                     , if isExpanded then ul   [ classesWithNames [ "list-reset", "mt-2" ] ] kids
-                                     else span [ classesWithNames [ "no-children" ] ] []
+                   , div [ classesWithNames [ "flex-1" ] ]
+                         [ div ( [ classesWithNames $ [ "p-1", "rounded" ] <> activeClasses ] <> onClickVisitRoute )
+                               [ text treeNode.label ]
+                         , div []
+                               [ ul [ classesWithNames $ [ "list-reset", if isExpanded then "block" else "hidden" ] ]
+                                    kids
+                               ]
+                         ]
                      ]
              ]
           where
-            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-purple-lighter", "rounded" ] else []
-            arrowIcon     = if null kids then text ""
-                                         else span [ classesWithNames [ "fas" , "fa-xs"
-                                                          , "fa-caret-" <> if isExpanded then "down" else "right"
-                                                          ]
-                                                   , onClick (HE.input_ clickQuery)
-                                                   ] []
-
-            clickQuery    = maybe (ToggleExpandCollapse treeNodeId) (VisitRoute treeNodeId) treeNode.route
+            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-purple-lighter" ]
+                                        else [ "hover:bg-grey-lighter" ]
+            arrowIcon     = div ([ classesWithNames [ "fas", "fa-xs"
+                                                    , "pr-1"
+                                                    , "rounded-l"
+                                                    , "text-grey-dark"
+                                                    , "hover:bg-grey-lighter", "hover:text-grey-darker"
+                                                    , if null kids then "fa-fw"
+                                                                   else "fa-caret-" <> if isExpanded then "down"
+                                                                                                     else "right"
+                                                    ]
+                                 ] <> onClickExpandCollapse
+                                )
+                                []
 
             -- TODO handling of Nothing case of map retrieval is spread over 2 diff places
             isExpanded = not null kids && (fromMaybe true $ Map.lookup treeNodeId state.expansion)
             isActive = state.activeItem == pure treeNodeId
+
+            onClickVisitRoute     = maybe [] (pure <<< onClick <<< HE.input_ <<< VisitRoute treeNodeId) treeNode.route
+            onClickExpandCollapse = guard (not null kids) [ onClick <<< HE.input_ $ ToggleExpandCollapse treeNodeId ]
 
 decorateWithIds :: RoseTree Item -> RoseTree (NodeId /\ Item)
 decorateWithIds tree = mapWithIndexCofree (/\) tree
