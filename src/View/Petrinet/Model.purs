@@ -11,7 +11,9 @@ import Data.Newtype (class Newtype)
 import Data.Tuple.Nested (type (/\), (/\))
 
 import Data.Auth (Role, Roles, RoleInfo)
-import Data.Petrinet.Representation.Dict (TransitionF, MarkingF, PlaceMarkingF, findTokens', NetRepF, NetApiF, mkNetApiF)
+import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF)
+import Data.Petrinet.Representation.Marking as Marking
+import Data.Petrinet.Representation.Marking (MarkingF)
 import Data.Typedef.Typedef2 (Typedef2, TypeName)
 import Data.Vec3 (Vec2, Vec2D, Box(..))
 

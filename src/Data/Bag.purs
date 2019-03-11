@@ -9,6 +9,7 @@ import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (class Newtype, un, unwrap)
 import Data.Group (class Group, ginverse) -- TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
 import Data.Tuple (Tuple)
+import Data.Unfoldable (class Unfoldable)
 
 -- | A bag or multiset where `n` is the multiplicity of the element type `a`.
 newtype BagF a n = BagF (Map a n)
@@ -36,8 +37,14 @@ instance showBagF :: (Show a, Show n) => Show (BagF a n) where
 fromMap :: ∀ a n. Map a n -> BagF a n
 fromMap = BagF
 
+toMap :: ∀ a b. BagF a b -> Map a b
+toMap (BagF dict) = dict
+
 fromFoldable :: ∀ f a n. Ord a => Foldable f => f (Tuple a n) -> BagF a n
 fromFoldable = BagF <<< Map.fromFoldable
+
+toUnfoldable :: ∀ f a n. Unfoldable f => BagF a n -> f (Tuple a n)
+toUnfoldable (BagF b) = Map.toUnfoldable b
 
 lookup :: ∀ a n. Ord a => a -> BagF a n -> Maybe n
 lookup k (BagF m) = Map.lookup k m

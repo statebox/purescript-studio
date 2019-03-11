@@ -4,8 +4,6 @@ import Prelude
 
 import Control.MonadZero (guard)
 import Data.Array ((..), catMaybes, filter, length, zip, partition)
-import Data.Bag as Bag
-import Data.Bag (BagF)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Traversable (traverse)
 
@@ -18,6 +16,8 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
 
 import Data.Auth as Auth
+import Data.Petrinet.Representation.Marking as Marking
+import Data.Petrinet.Representation.Marking (MarkingF)
 import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, mkNetInfo)
 import View.Petrinet.Model as Model
 
@@ -112,8 +112,8 @@ toNetRep gspn =
     placesIndexed :: Array (PID /\ Place)
     placesIndexed = zipWithIndexFrom firstPlaceIndex places
 
-    marking :: BagF PID Tokens
-    marking = Bag.fromFoldable $ (map _.marking) <$> filter (\(_ /\ p) -> p.marking > 0) placesIndexed
+    marking :: MarkingF PID Tokens
+    marking = Marking.fromFoldable $ (map _.marking) <$> filter (\(_ /\ p) -> p.marking > 0) placesIndexed
 
     placeLabels :: Array (PID /\ PidOrTid)
     placeLabels = map _.name <$> placesIndexed

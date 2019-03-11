@@ -3,17 +3,11 @@ module Data.Petrinet.Representation.Dict
   , NetApiF
   , mkNetApiF
 
-  , MarkingF
-  , mkMarkingF
-  , unMarkingF
-
   , TransitionF
   , PlaceMarkingF
 
   , fire
   , fireAtMarking
-  , findTokens
-  , findTokens'
   , isTransitionEnabled
 
   , preMarking
@@ -37,16 +31,8 @@ import Data.Bag as Bag
 
 -- TODO this dependency should probably be eliminated in favour of a type parameter
 import Data.Auth as Auth
-
-type MarkingF a n = BagF a n
-
-mkMarkingF :: ∀ a b. Map a b -> BagF a b
-mkMarkingF = BagF
-
-unMarkingF :: ∀ a b. BagF a b -> Map a b
-unMarkingF (BagF dict) = dict
-
---------------------------------------------------------------------------------
+import Data.Petrinet.Representation.Marking as Marking
+import Data.Petrinet.Representation.Marking (MarkingF, tokensAt)
 
 -- | A representation of a Petri net.
 type NetRepF pid tid tok typ r =
@@ -89,7 +75,7 @@ mkNetApiF rep =
   { transition: \tid -> Map.lookup tid rep.transitionsDict
   , placeLabel: \pid -> Map.lookup pid rep.placeLabelsDict
   , placePoint: \pid -> Map.lookup pid rep.placePointsDict
-  , findTokens: findTokens' rep.marking
+  , findTokens: Marking.findTokens rep.marking
   }
 
 --------------------------------------------------------------------------------
@@ -116,7 +102,7 @@ postMarking :: ∀ p tok. Ord p => TransitionF p tok -> MarkingF p tok
 postMarking tr = trMarking tr.post
 
 trMarking :: ∀ p tok. Ord p => Array (PlaceMarkingF p tok) -> MarkingF p tok
-trMarking pms = mkMarkingF $ Map.fromFoldable $ fromPlaceMarking <$> pms
+trMarking pms = Marking.fromFoldable $ fromPlaceMarking <$> pms
 
 --------------------------------------------------------------------------------
 
@@ -143,32 +129,8 @@ fireAtMarking marking t =
 
 --------------------------------------------------------------------------------
 
-findTokens
-  :: ∀ p t tok typ r
-   . Ord p
-  => Monoid (Additive tok)
-  => NetRepF p t tok typ r
-  -> p
-  -> tok
-findTokens net = findTokens' net.marking
-
-findTokens'
-  :: ∀ p tok
-   . Ord p
-  => Monoid (Additive tok)
-  => MarkingF p tok
-  -> p
-  -> tok
-findTokens' marking place = unwrap $ fromMaybe mempty $ map Additive $ Map.lookup place (unMarkingF marking)
-
---------------------------------------------------------------------------------
-
--- TODO use `findTokens' (`mark`?) or Marking/Bag-related functions
 isTransitionEnabled :: ∀ pid tok. Ord tok => Ord pid => MarkingF pid tok -> TransitionF pid tok -> Boolean
 isTransitionEnabled marking t = isPlaceEnabled `all` t.pre
   where
     isPlaceEnabled :: PlaceMarkingF pid tok -> Boolean
-    isPlaceEnabled tp = fromMaybe false $ (>=) <$> mark tp.place <*> Just tp.tokens
-
-    mark :: pid -> Maybe tok
-    mark = Bag.lookup' marking
+    isPlaceEnabled tp = fromMaybe false $ (>=) <$> marking `tokensAt` tp.place <*> Just tp.tokens
