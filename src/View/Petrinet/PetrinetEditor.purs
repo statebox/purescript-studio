@@ -38,7 +38,8 @@ import Svg.Attributes (Duration, DurationF(..), seconds, FillState(..), FontSize
 import Svg.Util as SvgUtil
 
 import Data.Auth
-import Data.Petrinet.Representation.Dict
+import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, isTransitionEnabled, fire)
+import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef.Typedef2 (Typedef2)
 import ExampleData as Ex
 import ExampleData as Net
@@ -225,7 +226,7 @@ ui =
         mkPlaceModel id = do
           label <- Map.lookup id net.placeLabelsDict
           point <- netApi.placePoint id
-          let tokens = findTokens net id
+          let tokens = Marking.findTokens net.marking id
           pure $ { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
@@ -471,7 +472,7 @@ htmlMarking bag =
            , HH.tbody [] rows
            ]
   where
-    rows = map (uncurry tr) <<< Map.toUnfoldable <<< unMarkingF $ bag
+    rows = map (uncurry tr) <<< Marking.toUnfoldable $ bag
     tr k v = HH.tr [] [ HH.td [] [ HH.text $ show k ]
                       , HH.td [] [ HH.text $ show v ]
                       ]

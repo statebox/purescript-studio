@@ -12,9 +12,6 @@ module ExampleData
 
 import Prelude
 import Data.Array ((..), length)
-import Data.Bag as Bag
-import Data.Bag (BagF(..))
-import Data.Foldable (foldMap)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -27,6 +24,7 @@ import Data.Vec3 (Vec2D, Vec2(..), vec2, vec3, Box(..))
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
+import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Typedef.Typedef2 (Typedef2(..))
 import View.Model (Project)
@@ -107,7 +105,7 @@ placeLabels1 =
   ]
 
 marking1 :: Marking
-marking1 = Bag.fromFoldable
+marking1 = Marking.fromFoldable
   [ 1 /\ 1
   , 4 /\ 1
   ]
@@ -207,7 +205,7 @@ placeLabels2 =
   ]
 
 marking2 :: Marking
-marking2 = Bag.fromFoldable
+marking2 = Marking.fromFoldable
   [ 1 /\ 1
   , 5 /\ 1
   ]
