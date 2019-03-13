@@ -1,5 +1,7 @@
 module Data.Petrinet.Representation.Dict
   ( NetRepF
+  , mapPoints
+
   , NetApiF
   , mkNetApiF
 
@@ -26,8 +28,6 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec2D, Vec2)
 import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
 import Data.Group (class Group, ginverse)
-import Data.Bag (BagF(..))
-import Data.Bag as Bag
 
 -- TODO this dependency should probably be eliminated in favour of a type parameter
 import Data.Auth as Auth
@@ -51,6 +51,18 @@ type NetRepF pid tid tok typ r =
   , transitionAuthsDict   :: Map tid Auth.Roles
   | r
   }
+
+mapPoints
+  :: forall pid tid tok typ r
+   . (Vec2D -> Vec2D)
+  -> NetRepF pid tid tok typ r
+  -> NetRepF pid tid tok typ r
+mapPoints f n =
+  n { placePointsDict      = f <$> n.placePointsDict
+    , transitionPointsDict = f <$> n.transitionPointsDict
+    }
+
+--------------------------------------------------------------------------------
 
 -- | An interface through which to interact with a Petri net.
 type NetApiF pid tid tok =

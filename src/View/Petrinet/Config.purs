@@ -3,6 +3,9 @@ module View.Petrinet.Config where
 import Prelude
 import Svg.Attributes (Duration, seconds)
 
+netScale :: Number
+netScale = 100.0
+
 fontSize :: Number
 fontSize = 0.1
 

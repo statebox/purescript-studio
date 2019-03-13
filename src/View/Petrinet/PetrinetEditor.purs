@@ -38,7 +38,7 @@ import Svg.Attributes (Duration, DurationF(..), seconds, FillState(..), FontSize
 import Svg.Util as SvgUtil
 
 import Data.Auth
-import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, isTransitionEnabled, fire)
+import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef.Typedef2 (Typedef2)
 import ExampleData as Ex
@@ -46,7 +46,9 @@ import ExampleData as Net
 import View.Common (HtmlId, emptyHtml)
 import View.Petrinet.Arrow
 import View.Petrinet.Arrow as Arrow
+import View.Petrinet.Config as Config
 import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration)
+import View.Petrinet.Model as NetInfo -- TODO move the NetInfo stuff out of Model into its own module
 import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceQueryF(..), QueryF(..), Tokens, TransitionQueryF(..), Typedef(..), TextBox)
 import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
@@ -164,7 +166,8 @@ ui =
     eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ~> ComponentDSL (StateF pid tid) (QueryF pid tid) Msg m
     eval = case _ of
       LoadNet newNetInfo next -> do
-        H.modify_ (\state -> state { netInfo = newNetInfo })
+        let scaledNetInfo = (NetInfo.translateAndScale Config.netScale newNetInfo) { netApi = mkNetApiF newNetInfo.net }
+        H.modify_ (\state -> state { netInfo = scaledNetInfo })
         pure next
       FocusPlace pid next -> do
         state <- H.get
@@ -225,7 +228,7 @@ ui =
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
           label <- Map.lookup id net.placeLabelsDict
-          point <- netApi.placePoint id
+          point <- Map.lookup id net.placePointsDict
           let tokens = Marking.findTokens net.marking id
           pure $ { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
@@ -251,7 +254,7 @@ ui =
             mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place net.placePointsDict
 
             mkPreArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> netApi.placePoint tp.place
+            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place net.placePointsDict
 
     --------------------------------------------------------------------------------
 
@@ -506,7 +509,7 @@ svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
 
 --------------------------------------------------------------------------------
 
-boundingBox :: forall pid tid ty ty2 a. NetInfoWithTypesAndRolesF pid tid ty ty2 a -> { min :: Vec2D, max :: Vec2D }
+boundingBox :: ∀ pid tid ty ty2 a. NetInfoWithTypesAndRolesF pid tid ty ty2 a -> { min :: Vec2D, max :: Vec2D }
 boundingBox netInfo =
   Vec2D.bounds $ Map.values netInfo.net.placePointsDict <>
                  Map.values netInfo.net.transitionPointsDict <>

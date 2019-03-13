@@ -20,7 +20,8 @@ import Data.Newtype (un, over)
 import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ring
-import Data.Vec3 (Vec2D, Vec2(..), vec2, vec3, Box(..))
+import Data.Vec3.Box (Box(..))
+import Data.Vec3 (Vec2D, Vec2(..), vec2, vec3, _x, _y, _z)
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Dict
