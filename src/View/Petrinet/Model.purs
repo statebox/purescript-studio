@@ -3,14 +3,22 @@ module View.Petrinet.Model where
 import Prelude
 import Data.Array ((..), length)
 import Data.Bag (BagF(..))
+import Data.Foldable (foldMap)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, ala)
+import Data.Ord.Max (Max(..))
+import Data.Tuple (snd)
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Vec3 as Vec3
+import Data.Vec3 (Vec3(..))
+import Data.Vec3.Box as Box
+import Data.Vec3.Box (Box(..))
 
 import Data.Auth (Role, Roles, RoleInfo)
+import Data.Petrinet.Representation.Dict as Dict
 import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
@@ -51,6 +59,10 @@ type TextBoxF n =
   }
 
 type TextBox = TextBoxF Number
+
+-- TODO lensify and decompose
+mapTextBoxF :: ∀ a b. (Vec3 a -> Vec3 b) -> TextBoxF a -> TextBoxF b
+mapTextBoxF f b = b { box = Box.mapVec3s f b.box }
 
 --------------------------------------------------------------------------------
 
@@ -151,6 +163,43 @@ mkNetInfo net name textBoxes =
   , textBoxes: textBoxes
   , netApi:    mkNetApi net
   }
+
+--------------------------------------------------------------------------------
+
+mapPoints :: ∀ pid tid ty r. (Vec2D -> Vec2D) -> NetInfoF pid tid ty r -> NetInfoF pid tid ty r
+mapPoints f n =
+  n { net       = Dict.mapPoints f n.net
+    , textBoxes = mapTextBoxF f <$> n.textBoxes
+    }
+
+translateAndScale :: ∀ pid tid ty r. Number -> NetInfoF pid tid ty r -> NetInfoF pid tid ty r
+translateAndScale factor n =
+  mapPoints (\v -> (v + vTranslate) * vScale) n
+  where
+    vScale :: Vec2D
+    vScale = pure (factor / maxBound)
+
+    -- translate to/center around origin
+    vTranslate :: Vec2D
+    vTranslate = (-bounds.min) - (boundsDelta / pure 2.0)
+
+    maxBound :: Number
+    maxBound = ala Max foldMap $ Vec3.toArray boundsDelta
+
+    boundsDelta :: Vec2D
+    boundsDelta = bounds.max - bounds.min
+
+    bounds :: { min :: Vec2D, max :: Vec2D }
+    bounds = boundingBox n
+
+boundingBox :: ∀ pid tid ty r. NetInfoF pid tid ty r -> { min :: Vec2D, max :: Vec2D }
+boundingBox n =
+  Vec3.bounds points
+  where -- TODO optimisation: foldMap over the three components to avoid intermediate arrays
+    points           = placeCoords <> transitionCoords <> textBoxCoords
+    placeCoords      = snd <$> Map.toUnfoldable n.net.placePointsDict
+    transitionCoords = snd <$> Map.toUnfoldable n.net.transitionPointsDict
+    textBoxCoords    = (Box.toArray <<< _.box) =<< n.textBoxes
 
 --------------------------------------------------------------------------------
 
