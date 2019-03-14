@@ -13,6 +13,7 @@ import Data.Ord.Max (Max(..))
 import Data.Tuple (snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 as Vec3
+import Data.Vec3 (Vec3(..))
 import Data.Vec3.Box as Box
 import Data.Vec3.Box (Box(..))
 
@@ -58,6 +59,10 @@ type TextBoxF n =
   }
 
 type TextBox = TextBoxF Number
+
+-- TODO lensify and decompose
+mapTextBoxF :: ∀ a b. (Vec3 a -> Vec3 b) -> TextBoxF a -> TextBoxF b
+mapTextBoxF f b = b { box = Box.mapVec3s f b.box }
 
 --------------------------------------------------------------------------------
 
@@ -164,13 +169,8 @@ mkNetInfo net name textBoxes =
 mapPoints :: ∀ pid tid ty r. (Vec2D -> Vec2D) -> NetInfoF pid tid ty r -> NetInfoF pid tid ty r
 mapPoints f n =
   n { net       = Dict.mapPoints f n.net
-    , textBoxes = mapBox f <$> n.textBoxes
+    , textBoxes = mapTextBoxF f <$> n.textBoxes
     }
-  where
-    -- TODO rename or do using newtype machinery, or no, lenses :P
-    -- TODO rename or do using newtype machinery, or no, lenses :P
-    -- TODO rename or do using newtype machinery, or no, lenses :P
-    mapBox f b = b { box = Box.mapVec3s f b.box }
 
 translateAndScale :: ∀ pid tid ty r. Number -> NetInfoF pid tid ty r -> NetInfoF pid tid ty r
 translateAndScale factor n =
