@@ -2,8 +2,9 @@ module View.Studio where
 
 import Prelude hiding (div)
 import Affjax as Affjax
+import Affjax.ResponseFormat as ResponseFormat
 import Control.Comonad.Cofree (Cofree, (:<))
-import Data.Array (catMaybes, head, index)
+import Data.Array (cons, index)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
 import Data.Either (either, hush)
@@ -40,6 +41,8 @@ import Record as Record
 
 import Data.Diagram.FromNLL as FromNLL
 import Data.Diagram.FromNLL (ErrDiagramEncoding)
+import Data.Petrinet.Representation.NLL as Net
+import Data.Petrinet.Representation.PNPRO as PNPRO
 import Statebox.API (shortHash, findRootDiagramMaybe)
 import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
@@ -54,7 +57,6 @@ import View.Model (Project, ProjectName)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, QueryF(..), Msg(NetUpdated))
-import Data.Petrinet.Representation.NLL as Net
 import View.Petrinet.Model.NLL as NLL
 import View.Studio.ObjectTree as ObjectTree
 import View.Studio.ObjectTree (mkItem, MenuTree)
@@ -74,6 +76,7 @@ type State =
 
 data Query a
   = SelectRoute Route a
+  | LoadPNPRO URL a
   | LoadTransaction URL HashStr a
   | HandleObjectTreeMsg ObjectTree.Msg a
   | HandlePetrinetEditorMsg Msg a
@@ -132,6 +135,32 @@ ui =
           )
         pure next
 
+      LoadPNPRO url next -> do
+        H.liftEffect $ log $ "LoadPNPRO: requesting PNPRO file from " <> url
+        res <- H.liftAff $ Affjax.request $ Affjax.defaultRequest { url = url, responseFormat = ResponseFormat.string }
+        res.body # either
+          (\err -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
+          (\body -> do
+               H.liftEffect $ log $ "received: " <> body
+               let
+                 nets :: Array NetInfo
+                 nets = PNPRO.toNetInfo <$> pnproProject.project.gspn
+
+                 pnproProject :: PNPRO.Document
+                 pnproProject = PNPRO.fromStringUnsafe body
+
+                 project :: Project
+                 project =
+                   { name:      pnproProject.project.name
+                   , nets:      nets
+                   , diagrams:  mempty
+                   , roleInfos: mempty
+                   , types:     mempty
+                   }
+               H.modify_ (\state -> state { projects = project `cons` state.projects })
+          )
+        pure next
+
       HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do
         H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
         state <- H.get
@@ -167,8 +196,15 @@ ui =
                 [ text "Please select an object from the menu, or enter a transaction hash below."
                 , br [], br []
                 , HH.input [ HP.value ""
-                           , placeholder "Enter transaction hash"
+                           , placeholder "Enter Statebox Cloud transaction hash"
                            , HE.onValueInput $ HE.input (LoadTransaction Ex.endpointUrl)
+                           , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
+                           ]
+                , br []
+                , br []
+                , HH.input [ HP.value ""
+                           , placeholder "Enter http URL to PNPRO file"
+                           , HE.onValueInput $ HE.input LoadPNPRO
                            , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                            ]
                 ]
