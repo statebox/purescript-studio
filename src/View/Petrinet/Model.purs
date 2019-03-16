@@ -55,6 +55,7 @@ derive instance newtypeTypedef :: Newtype Typedef _
 
 type TextBoxF n =
   { name   :: String
+  , text   :: String
   , box    :: Box n
   }
 

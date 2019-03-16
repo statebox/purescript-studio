@@ -80,6 +80,7 @@ function normalizeGspn_MUTATE_IN_PLACE (rawGspn) {
 
     gspn.nodes.textBox.forEach(function (textBox) {
       textBox.name        = textBox["name"]
+      textBox.text        = textBox["#text"]
       textBox.bold        = textBox["bold"]
       textBox.borderColor = textBox["border-color"]
       textBox.fillColor   = textBox["fill-color"]

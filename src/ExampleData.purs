@@ -24,7 +24,6 @@ import Data.Vec3.Box (Box(..))
 import Data.Vec3 (Vec2D, Vec2(..), vec2, vec3, _x, _y, _z)
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
-import Data.Petrinet.Representation.Dict
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Typedef.Typedef2 (Typedef2(..))
@@ -279,8 +278,8 @@ transitionRoles2 = rolesFromFoldable <$>
 
 textBoxes2 :: Array TextBox
 textBoxes2 =
-  [ { name: "Producer", box: Box { topLeft: vec2 (-14.0) 6.0, bottomRight: vec2  38.0 54.0 } }
-  , { name: "Consumer", box: Box { topLeft: vec2   60.0  6.0, bottomRight: vec2 115.0 54.0 } }
+  [ { name: "producer", text: "Producer", box: Box { topLeft: vec2 (-14.0) 6.0, bottomRight: vec2  38.0 54.0 } }
+  , { name: "consumer", text: "Consumer", box: Box { topLeft: vec2   60.0  6.0, bottomRight: vec2 115.0 54.0 } }
   ]
 
 net2 :: NetRep

@@ -62,7 +62,8 @@ type Transition = Node
   )
 
 type TextBox = Node
-  ( height :: Number
+  ( text   :: String
+  , height :: Number
   , width  :: Number
   )
 
@@ -166,9 +167,10 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
 toVec2D v = vec2 v.x v.y
 
-toModelTextBox :: forall r. { name :: String, x :: Number, y :: Number, width :: Number, height :: Number | r } -> Model.TextBox
+toModelTextBox :: forall r. TextBox -> Model.TextBox
 toModelTextBox v =
   { name: v.name
+  , text: v.text
   , box:  Box { topLeft:     vec2  v.x             v.y
               , bottomRight: vec2 (v.x + v.width) (v.y + v.height)
               }

@@ -414,7 +414,7 @@ ui =
                      , SA.y         (y + 20.0 * fontSize) -- TODO offset computation is wrong (a temp hack) #88
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
-                     [ HH.text tb.name ]
+                     [ HH.text tb.text ]
            ]
       where
         { topLeft, bottomRight } = unwrap tb.box
