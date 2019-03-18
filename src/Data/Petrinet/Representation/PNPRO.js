@@ -26,6 +26,14 @@ function parseXml (xmlStr) {
 }
 
 /**
+ * Convert null, undefined, or some non-Array value x by an Array.
+ * If the value is already an Array, we return it unaltered.
+ */
+function coerceToArray (x) {
+  return !x ? [] : (!Array.isArray(x) ? [x] : x)
+}
+
+/**
  * Post-process raw converted data from the GSPN XML.
  *
  * !!! This mutates the data structure IN PLACE !!!
@@ -40,42 +48,25 @@ function normalizeGspn_MUTATE_IN_PLACE (rawGspn) {
 
   delete rawGspn["#comment"]
 
-  // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
-  if (!Array.isArray(rawGspn.project.gspn)) {
-    rawGspn.project.gspn = [rawGspn.project.gspn]
-  }
+  rawGspn.project.gspn = coerceToArray(rawGspn.project.gspn)
 
   rawGspn.project.gspn.forEach(function (gspn) {
 
-    // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
-    if (!Array.isArray(gspn.nodes.place)) {
-      gspn.nodes.place = [gspn.nodes.place]
-    }
+    gspn.nodes.place = coerceToArray(gspn.nodes.place)
 
     gspn.nodes.place.forEach(function (place) {
       place.marking = parseInt(place.marking, 10) || 0
       place.domain  = place.domain || ""
     })
 
-    // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
-    if (!Array.isArray(gspn.nodes.transition)) {
-      gspn.nodes.transition = [gspn.nodes.transition]
-    }
+    gspn.nodes.transition = coerceToArray(gspn.nodes.transition)
 
     gspn.nodes.transition.forEach(function (transition) {
       transition.name = transition.name
       transition.type = transition.type
     })
 
-    // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
-    if (!gspn.nodes["text-box"]) {
-      gspn.nodes["text-box"] = []
-    } else {
-      if (!Array.isArray(gspn.nodes["text-box"])) {
-        gspn.nodes["text-box"] = [gspn.nodes["text-box"]]
-      }
-    }
-    gspn.nodes.textBox = gspn.nodes["text-box"]
+    gspn.nodes.textBox = coerceToArray(gspn.nodes["text-box"])
     delete gspn.nodes["text-box"]
 
     gspn.nodes.textBox.forEach(function (textBox) {
@@ -89,10 +80,7 @@ function normalizeGspn_MUTATE_IN_PLACE (rawGspn) {
       textBox.textColor   = textBox["text-color"]
     })
 
-    // the XML parser inserts an individual record instead of a singleton Array of records, but we always want an Array
-    if (!Array.isArray(gspn.edges.arc)) {
-      gspn.edges.arc = [gspn.edges.arc]
-    }
+    gspn.edges.arc = coerceToArray(gspn.edges.arc)
 
     gspn.edges.arc.forEach(function(arc) {
       // TODO is this correct, or are there more members that "INPUT" and "OUTPUT"?
