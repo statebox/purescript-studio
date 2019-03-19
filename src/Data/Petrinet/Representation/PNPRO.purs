@@ -14,14 +14,17 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
+import Effect (Effect)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
 import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, mkNetInfo)
 import View.Petrinet.Model as Model
+import View.Model as Model
 
--- | TODO return some effect type, reify exceptions, etc.
+foreign import fromString :: String -> Effect Document
+
 foreign import fromStringUnsafe :: String -> Document
 
 --------------------------------------------------------------------------------
@@ -62,7 +65,8 @@ type Transition = Node
   )
 
 type TextBox = Node
-  ( height :: Number
+  ( text   :: String
+  , height :: Number
   , width  :: Number
   )
 
@@ -155,6 +159,15 @@ toNetRep gspn =
 
     transitionAuthsDict = mempty
 
+toProject :: Project -> Model.Project
+toProject project =
+  { name:      project.name
+  , nets:      toNetInfo <$> project.gspn
+  , diagrams:  mempty
+  , roleInfos: mempty
+  , types:     mempty
+  }
+
 --------------------------------------------------------------------------------
 
 -- TODO dedupe; also in Model.purs
@@ -166,9 +179,10 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
 toVec2D v = vec2 v.x v.y
 
-toModelTextBox :: forall r. { name :: String, x :: Number, y :: Number, width :: Number, height :: Number | r } -> Model.TextBox
+toModelTextBox :: forall r. TextBox -> Model.TextBox
 toModelTextBox v =
   { name: v.name
+  , text: v.text
   , box:  Box { topLeft:     vec2  v.x             v.y
               , bottomRight: vec2 (v.x + v.width) (v.y + v.height)
               }
