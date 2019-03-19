@@ -44,8 +44,6 @@ function coerceToArray (x) {
  * - Rename fields, removing the '-'.
  */
 function normalizeGspn_MUTATE_IN_PLACE (rawGspn) {
-  console.log('gspn unprocessed =', rawGspn)
-
   delete rawGspn["#comment"]
 
   rawGspn.project.gspn = coerceToArray(rawGspn.project.gspn)
@@ -96,10 +94,20 @@ function normalizeGspn_MUTATE_IN_PLACE (rawGspn) {
 }
 
 function fromStringUnsafe (xmlStr) {
-  const gspnRaw = parseXml(xmlStr)
-  normalizeGspn_MUTATE_IN_PLACE(gspnRaw)
-  console.log('gspn post-processed =', gspnRaw)
-  return gspnRaw
+  const gspn = parseXml(xmlStr)
+  console.log('gspn unprocessed =', gspn)
+  normalizeGspn_MUTATE_IN_PLACE(gspn)
+  console.log('gspn post-processed =', gspn)
+  return gspn
+}
+
+/** :: String -> Effect PNPRO.Document */
+function fromString (xmlStr) {
+  return function () {
+    return fromStringUnsafe(xmlStr)
+  }
 }
 
 exports.fromStringUnsafe = fromStringUnsafe
+
+exports.fromString = fromString

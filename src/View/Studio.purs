@@ -23,6 +23,7 @@ import Data.Traversable (traverse)
 import Data.Tuple (uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
 import Debug.Trace (spy)
+import Effect.Exception (try)
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Console (log)
@@ -141,23 +142,10 @@ ui =
         res.body # either
           (\err -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
           (\body -> do
-               H.liftEffect $ log $ "received: " <> body
-               let
-                 nets :: Array NetInfo
-                 nets = PNPRO.toNetInfo <$> pnproProject.project.gspn
-
-                 pnproProject :: PNPRO.Document
-                 pnproProject = PNPRO.fromStringUnsafe body
-
-                 project :: Project
-                 project =
-                   { name:      pnproProject.project.name
-                   , nets:      nets
-                   , diagrams:  mempty
-                   , roleInfos: mempty
-                   , types:     mempty
-                   }
-               H.modify_ (\state -> state { projects = project `cons` state.projects })
+               pnproDocumentE <- H.liftEffect $ try $ PNPRO.fromString body
+               pnproDocumentE # either
+                 (\err      -> H.liftEffect $ log $ "Error decoding PNPRO document: " <> show err)
+                 (\pnproDoc -> H.modify_ $ \state -> state { projects = PNPRO.toProject pnproDoc.project `cons` state.projects })
           )
         pure next
 

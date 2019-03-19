@@ -14,14 +14,17 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
+import Effect (Effect)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
 import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, mkNetInfo)
 import View.Petrinet.Model as Model
+import View.Model as Model
 
--- | TODO return some effect type, reify exceptions, etc.
+foreign import fromString :: String -> Effect Document
+
 foreign import fromStringUnsafe :: String -> Document
 
 --------------------------------------------------------------------------------
@@ -155,6 +158,15 @@ toNetRep gspn =
       }
 
     transitionAuthsDict = mempty
+
+toProject :: Project -> Model.Project
+toProject project =
+  { name:      project.name
+  , nets:      toNetInfo <$> project.gspn
+  , diagrams:  mempty
+  , roleInfos: mempty
+  , types:     mempty
+  }
 
 --------------------------------------------------------------------------------
 
