@@ -4,24 +4,24 @@ import Prelude
 
 import Control.MonadZero (guard)
 import Data.Array ((..), catMaybes, filter, length, zip, partition)
+import Effect (Effect)
 import Data.FunctorWithIndex (mapWithIndex)
-import Data.Traversable (traverse)
-
 import Data.Map as Map
 import Data.Map (Map)
-
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
-import Effect (Effect)
 
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
+import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
 import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, mkNetInfo)
 import View.Petrinet.Model as Model
 import View.Model as Model
+
+--------------------------------------------------------------------------------
 
 foreign import fromString :: String -> Effect Document
 
@@ -75,9 +75,9 @@ type PidOrTid = String
 type Arc =
   { head   :: PidOrTid
   , tail   :: PidOrTid
-  , kind   :: String -- ^ TODO should be an ADT: "INPUT", "OUTPUT", ...?
+  , kind   :: String   -- ^ TODO should be an ADT: "INPUT", "OUTPUT", ...?
   , isPost :: Boolean
-  , mult   :: Int
+  , mult   :: Int      -- ^ Multiplicity
   }
 
 --------------------------------------------------------------------------------
@@ -179,7 +179,7 @@ zipWithIndexFrom i0 xs = mapWithIndex (\i x -> (i0+i) /\ x) xs
 toVec2D :: forall r. { x :: Number, y :: Number | r } -> Vec2D
 toVec2D v = vec2 v.x v.y
 
-toModelTextBox :: forall r. TextBox -> Model.TextBox
+toModelTextBox :: TextBox -> Model.TextBox
 toModelTextBox v =
   { name: v.name
   , text: v.text

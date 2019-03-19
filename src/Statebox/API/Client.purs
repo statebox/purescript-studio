@@ -40,6 +40,10 @@ requestTransactionJson apiBaseUrl hash =
 
 newtype DecodingError = DecodingError String
 
+instance showDecodingError :: Show DecodingError where
+  show = case _ of
+    DecodingError e -> "(DecodingError " <> show e <> ")"
+
 decodeTxSum :: HashStr -> Json -> DecodingError \/ TxSum
 decodeTxSum hash json =
   lmap DecodingError (decodeWiring json <|> decodeFiring json)

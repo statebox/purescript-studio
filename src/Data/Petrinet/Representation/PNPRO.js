@@ -4,7 +4,7 @@
 const fastXmlParser = window.parser
 
 function parseXml (xmlStr) {
-  var options = {
+  const options = {
     ignoreAttributes: false,
     attributeNamePrefix: "",
     attrNodeName: false,
@@ -21,7 +21,7 @@ function parseXml (xmlStr) {
     // attrValueProcessor: a => a,
     // tagValueProcessor: a => a
   }
-  var gspn = fastXmlParser.parse(xmlStr, options)
+  const gspn = fastXmlParser.parse(xmlStr, options)
   return gspn
 }
 

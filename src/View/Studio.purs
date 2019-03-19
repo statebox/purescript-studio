@@ -198,10 +198,13 @@ ui =
                 ]
           ResolvedTypes project ->
             TypedefsEditor.typedefsTreeView project.types
+
           ResolvedAuths project ->
             RolesEditor.roleInfosHtml project.roleInfos
+
           ResolvedNet netInfo ->
             HH.slot' petrinetEditorSlotPath unit PetrinetEditor.ui netInfo (HE.input HandlePetrinetEditorMsg)
+
           ResolvedDiagram diagramInfo nodeMaybe ->
             div [ classes [ ClassName "flex" ] ]
                 [ div [ classes [ ClassName "w-1/2" ] ]
@@ -213,14 +216,17 @@ ui =
                           Nothing                         -> text "Click a node to show the corresponding net or diagram."
                       ]
                 ]
+
           ResolvedNamespace hash ->
             text $ "Namespace " <> hash
+
           ResolvedWiring wfi wiringTx ->
             div []
                 [ text $ "Wiring " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
                 , br [], br []
                 , pre [] [ text $ show wiringTx ]
                 ]
+
           ResolvedFiring wfi firingTx ->
             div []
                 [ text $ "Firing " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
@@ -326,11 +332,11 @@ findFiringTx hashSpace firingHash = preview _leFiring =<< AdjacencySpace.lookup 
 findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe NetInfoWithTypesAndRoles
 findNetInfoInWirings hashSpace wiringHash ix = do
   wiring      <- findWiringTx hashSpace wiringHash
-  netW        <- spy "findNetInfoInWirings: netW = "    $ wiring.wiring.nets `index` ix
-  netTopo     <- spy "findNetInfoInWirings: netTopo = " $ Net.fromNLLMaybe 0 netW.partition
+  netW        <- spy "findNetInfoInWirings: netW"    $ wiring.wiring.nets `index` ix
+  netTopo     <- spy "findNetInfoInWirings: netTopo" $ Net.fromNLLMaybe 0 netW.partition
   let
     placeNames = NLL.defaultPlaceNames netTopo
-    netInfo    = spy "findNetInfoInWirings: netInfo = " $ NLL.toNetInfoWithDefaults netTopo netW.name placeNames netW.names
+    netInfo    = spy "findNetInfoInWirings: netInfo" $ NLL.toNetInfoWithDefaults netTopo netW.name placeNames netW.names
   pure $ Record.merge { types: [], roleInfos: [] } netInfo
 
 findDiagramInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe DiagramInfo
