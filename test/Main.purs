@@ -19,6 +19,8 @@ import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 import View.Petrinet.Model (PID, NetRep)
 import View.Petrinet.Model.NLL as NLLToNet
 
+import Test.Statebox.FFI as FFI
+
 main :: Effect Unit
 main = run [consoleReporter] do
 
@@ -77,3 +79,5 @@ main = run [consoleReporter] do
       Diagram.fromNLL "test" [1, 1,2,3,1] `shouldEqual` Left Diagram.ErrGraphIsCyclic
 --    it "should fail on multiple graphs with one cyclic" do
 --       Diag.fromNLL [2,2,5,3,5,4,6,0,5] "test" `shouldEqual` Left Diag.ErrGraphIsCyclic
+
+  FFI.suite
