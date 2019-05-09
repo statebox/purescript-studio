@@ -47,17 +47,16 @@ suite = do
         , labels: [0,0]
         }
 
-      s1                 = spy "s1"              $ Stbx.fromWiring wiring
-      transitions        = spy "transitions"     $ Stbx.gluedTransitions s1
-      transitionCount    = spy "transitionCount" $ Stbx.transitionCount s1
-      transitionIds      = spy "transitionIds"   $ Stbx.transitionIds s1
+      s0                 = spy "s0"              $ Stbx.fromWiring wiring
+      transitions        = spy "transitions"     $ Stbx.gluedTransitions s0
+      transitionCount    = spy "transitionCount" $ Stbx.transitionCount s0
+      transitionIds      = spy "transitionIds"   $ Stbx.transitionIds s0
 
     it "should interpret glued net topology correctly" do
       let
-        gluedTransition0 = spy "transition 0" $ Stbx.getGluedTransition s1 (GluedTransitionId 0)
-        gluedTransition1 = spy "transition 1" $ Stbx.getGluedTransition s1 (GluedTransitionId 1)
-        gluedTransition2 = spy "transition 2" $ Stbx.getGluedTransition s1 (GluedTransitionId 2)
-        gts0             = spy "gts 0"        $ (fromTransitionSortString <<<_.sort) <$> Stbx.getGluedTransition s1 (GluedTransitionId 0)
+        gluedTransition0 = spy "transition 0" $ Stbx.getGluedTransition s0 (GluedTransitionId 0)
+        gluedTransition1 = spy "transition 1" $ Stbx.getGluedTransition s0 (GluedTransitionId 1)
+        gluedTransition2 = spy "transition 2" $ Stbx.getGluedTransition s0 (GluedTransitionId 2)
 
       transitionCount `shouldEqual` 3
       transitionIds   `shouldEqual` [ GluedTransitionId 0, GluedTransitionId 1, GluedTransitionId 2]
@@ -68,9 +67,9 @@ suite = do
 
     it "should interpret further glued net topology correctly" do
       let
-        firing0 = spy "firing 0" $ fromGluedTransition2JS <$> Stbx.getFiring s1 (GluedTransitionId 0)
-        firing1 = spy "firing 1" $ fromGluedTransition2JS <$> Stbx.getFiring s1 (GluedTransitionId 1)
-        firing2 = spy "firing 2" $ fromGluedTransition2JS <$> Stbx.getFiring s1 (GluedTransitionId 2)
+        firing0 = spy "firing 0" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 0)
+        firing1 = spy "firing 1" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 1)
+        firing2 = spy "firing 2" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 2)
 
       firing2 `shouldEqual` Just { pre: [ [ 1 ], []    ], post: "y"   }
       firing1 `shouldEqual` Just { pre: [ [ 1 ], [ 1 ] ], post: "y&x" }
@@ -78,31 +77,31 @@ suite = do
 
     it "should be well-behaved at non-existing transitions" do
       let
-        err1               = spy "enabledMaybe 666"   $ Stbx.enabledMaybe s1 666
-        err2               = spy "enabled 666"        $ Stbx.enabled      s1 666
+        err1               = spy "enabledMaybe 666"   $ Stbx.enabledMaybe s0 666
+        err2               = spy "enabled 666"        $ Stbx.enabled      s0 666
 
       err1 `shouldEqual` Nothing
       err2 `shouldEqual` false
 
     it "initial net state should be interpreted correctly" do
       let
-        enabled1           = spy "enabled s1"         $ Stbx.enabled s1 0
-        enabled1M          = spy "enabled s1"         $ Stbx.enabledMaybe s1 0
-        enabledTrsMaybe1   = spy "enabledTrs s1"      $ Stbx.enabledMaybe_glued s1 <$> transitionIds
+        enabled0           = spy "enabled0"        $ Stbx.enabled            s0 0
+        enabled0M          = spy "enabled0M"       $ Stbx.enabledMaybe       s0 0
+        enabledTrsMaybe0   = spy "enabledTrs"      $ Stbx.enabledMaybe_glued s0 <$> transitionIds
 
-        marking1           = spy "marking 1"          $ Stbx.marking s1
+        marking0           = spy "marking 0"       $ Stbx.marking s0
 
-      marking1         `shouldEqual` []
-      enabledTrsMaybe1 `shouldEqual` [Just true, Just false, Just false]
-      enabled1M        `shouldEqual` (Just true)
+      marking0         `shouldEqual` []
+      enabledTrsMaybe0 `shouldEqual` [Just true, Just false, Just false]
+      enabled0M        `shouldEqual` (Just true)
 
     it "net state after firing transition 0" do
       let
-        marked2            = spy "marked2 after fire" $ Stbx.fire s1 0
-        marking2           = spy "marking 2"          $ Stbx.marking s2
-        s2Maybe            = spy "s2Maybe after fire" $ Stbx.fromMarked <$> marked2
-        s2                 = spy "s2      after fire" $ fromMaybe s1 s2Maybe
-        enabledTrsMaybe2   = spy "enabledTrs s2"      $ Stbx.enabledMaybe_glued s2 <$> transitionIds
+        marked1            = spy "marked1 after fire" $ Stbx.fire s0 0
+        marking1           = spy "marking 1"          $ Stbx.marking s1
+        s1Maybe            = spy "s0Maybe after fire" $ Stbx.fromMarked <$> marked1
+        s1                 = spy "s1      after fire" $ fromMaybe s0 s1Maybe
+        enabledTrsMaybe1   = spy "enabledTrs s1"      $ Stbx.enabledMaybe_glued s1 <$> transitionIds
 
-      marking2         `shouldEqual` [{ path: [0], marking: [1] }]
-      enabledTrsMaybe2 `shouldEqual` [Just false, Just true, Just false]
+      marking1         `shouldEqual` [{ path: [0], marking: [1] }]
+      enabledTrsMaybe1 `shouldEqual` [Just false, Just true, Just false]
