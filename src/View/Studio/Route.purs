@@ -7,6 +7,11 @@ import Statebox.API.Types (HashStr, PathElem, URL, WiringTx, FiringTx)
 
 type Route = RouteF ProjectName DiagramName NetName
 
+-- | This can:
+-- |
+-- | - identify objects
+-- | - be rendered to breadcrumbs
+-- | - be rendered into a menu entry
 data RouteF p d n
   = Home
   | Types      p
