@@ -32,9 +32,10 @@ type Wiring =
   }
 
 type Net =
-  { name      :: String
-  , partition :: Array Int
-  , names     :: Array String
+  { name       :: String
+  , partition  :: Array Int
+  , names      :: Array String          -- ^ transition names
+--, placeNames :: Maybe (Array String)  -- ^ TODO issue #140
   }
 
 type Diagram =
