@@ -3,7 +3,8 @@ module View.Studio.Route where
 import Prelude
 import Data.Maybe (Maybe)
 import View.Model (ProjectName)
-import Statebox.API.Types (HashStr, PathElem, URL, WiringTx, FiringTx)
+import Statebox.API.Types (PathElem, URL)
+import Statebox.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
 
 type Route = RouteF ProjectName DiagramName NetName
 

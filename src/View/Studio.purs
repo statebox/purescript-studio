@@ -48,7 +48,9 @@ import Statebox.API (shortHash, findRootDiagramMaybe)
 import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
 import Statebox.API.Types as Stbx
-import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, Firing, TxSum(..), Tx, Diagram, PathElem)
+import Statebox.API.Types (URL, Diagram, PathElem)
+import Statebox.Transaction as Stbx
+import Statebox.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
 import Statebox.API.Lenses (_leWiring, _leFiring)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
