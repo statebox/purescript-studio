@@ -7,7 +7,6 @@ import Affjax.RequestBody as RequestBody
 import Affjax.ResponseFormat as ResponseFormat
 import Affjax.ResponseFormat (ResponseFormatError)
 import Affjax.RequestHeader as RequestHeader
-import Affjax.RequestHeader (RequestHeader(..), requestHeaderName, requestHeaderValue)
 import Affjax.StatusCode (StatusCode(..))
 import Control.Alt ((<|>))
 import Data.Bifunctor (lmap)
