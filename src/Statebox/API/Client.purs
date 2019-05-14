@@ -2,7 +2,7 @@ module Statebox.API.Client where
 
 import Prelude
 import Affjax as Affjax
-import Affjax (Response)
+import Affjax (URL, Response)
 import Affjax.RequestBody as RequestBody
 import Affjax.ResponseFormat as ResponseFormat
 import Affjax.ResponseFormat (ResponseFormatError)

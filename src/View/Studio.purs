@@ -2,6 +2,7 @@ module View.Studio where
 
 import Prelude hiding (div)
 import Affjax as Affjax
+import Affjax (URL)
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Comonad.Cofree (Cofree, (:<))
 import Data.Array (cons, index)
@@ -48,7 +49,7 @@ import Statebox.API (shortHash, findRootDiagramMaybe)
 import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
 import Statebox.API.Types as Stbx
-import Statebox.API.Types (URL, Diagram, PathElem)
+import Statebox.API.Types (Diagram, PathElem)
 import Statebox.API.Transaction as Stbx
 import Statebox.API.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
 import Statebox.API.Lenses (_leWiring, _leFiring)

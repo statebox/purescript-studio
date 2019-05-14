@@ -2,8 +2,6 @@ module Statebox.API.Types where
 
 type HexStr = String
 
-type URL = String
-
 type PathElem = Int
 
 --------------------------------------------------------------------------------
