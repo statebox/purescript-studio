@@ -1,4 +1,4 @@
-module Statebox.Transaction where
+module Statebox.API.Transaction where
 
 import Statebox.API.Types
 

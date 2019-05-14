@@ -19,7 +19,7 @@ import Data.HTTP.Method (Method(GET))
 import Effect.Aff (Aff)
 
 import Statebox.API.Types
-import Statebox.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
+import Statebox.API.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
 
 requestTransaction :: URL -> HashStr -> Aff (ResponseFormatError \/ (DecodingError \/ TxSum))
 requestTransaction apiBaseUrl hash =

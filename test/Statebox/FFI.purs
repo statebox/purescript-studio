@@ -1,4 +1,4 @@
-module Test.Statebox.FFI where
+module Test.Statebox.API.Execution where
 
 import Prelude
 
@@ -11,8 +11,8 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (run)
 
-import Statebox.FFI
-import Statebox.FFI as Stbx
+import Statebox.API.Execution
+import Statebox.API.Execution as Stbx
 import Statebox.API.Types (Wiring)
 
 suite :: Spec Unit

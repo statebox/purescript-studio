@@ -7,7 +7,7 @@ import Data.String.CodePoints (take)
 import Effect
 
 import Statebox.API.Types
-import Statebox.Transaction
+import Statebox.API.Transaction (HashStr, WiringTx)
 
 -- TODO is this actually effectful?
 foreign import decode :: HexStr -> Effect String

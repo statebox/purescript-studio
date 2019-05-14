@@ -1,4 +1,4 @@
-module Statebox.FFI where
+module Statebox.API.Execution where
 
 import Prelude
 import Data.Array (index, length, (..))

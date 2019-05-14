@@ -2,7 +2,7 @@ module Statebox.API.Lenses where
 
 import Data.Lens (Prism', prism')
 import Data.Maybe (Maybe(..))
-import Statebox.Transaction (TxSum(..), WiringTx, FiringTx)
+import Statebox.API.Transaction (TxSum(..), WiringTx, FiringTx)
 
 _leWiring :: Prism' TxSum WiringTx
 _leWiring = prism' LeWiring case _ of LeWiring x -> Just x
