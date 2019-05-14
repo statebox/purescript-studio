@@ -18,12 +18,11 @@ import Data.Either.Nested (type (\/))
 import Data.HTTP.Method (Method(GET))
 import Effect.Aff (Aff)
 
-import Statebox.API.Types
-import Statebox.API.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
+import Statebox.API.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, namespaceRootHash_HACK)
 
 requestTransaction :: URL -> HashStr -> Aff (ResponseFormatError \/ (DecodingError \/ TxSum))
 requestTransaction apiBaseUrl hash =
-  if hash == "deadbeef" then
+  if hash == namespaceRootHash_HACK then
     pure $ Right <<< Right $ LeInitial hash
   else do
     res <- requestTransactionJson apiBaseUrl hash
