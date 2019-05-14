@@ -1,6 +1,6 @@
-module Statebox.API.Transaction where
+module Statebox.Core.Transaction where
 
-import Statebox.API.Types
+import Statebox.Core.Types
 
 type HashStr = HexStr
 

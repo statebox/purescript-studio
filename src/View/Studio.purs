@@ -46,13 +46,13 @@ import Data.Diagram.FromNLL as FromNLL
 import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import Statebox.API.Client as Stbx
-import Statebox.API.Client (DecodingError(..))
-import Statebox.API.Types as Stbx
-import Statebox.API.Types (Diagram, PathElem)
-import Statebox.API.Transaction as Stbx
-import Statebox.API.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
-import Statebox.API.Lenses (_leWiring, _leFiring)
+import Statebox.Client as Stbx
+import Statebox.Client (DecodingError(..))
+import Statebox.Core.Types as Stbx
+import Statebox.Core.Types (Diagram, PathElem)
+import Statebox.Core.Transaction as Stbx
+import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
+import Statebox.Core.Lenses (_leWiring, _leFiring)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)

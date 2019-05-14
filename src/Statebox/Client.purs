@@ -1,4 +1,4 @@
-module Statebox.API.Client where
+module Statebox.Client where
 
 import Prelude
 import Affjax as Affjax
@@ -17,7 +17,7 @@ import Data.Either.Nested (type (\/))
 import Data.HTTP.Method (Method(GET))
 import Effect.Aff (Aff)
 
-import Statebox.API.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, namespaceRootHash_HACK)
+import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, namespaceRootHash_HACK)
 
 requestTransaction :: URL -> HashStr -> Aff (ResponseFormatError \/ (DecodingError \/ TxSum))
 requestTransaction apiBaseUrl hash =

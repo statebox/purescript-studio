@@ -1,11 +1,11 @@
-module Statebox.API.Execution where
+module Statebox.Core.Execution where
 
 import Prelude
 import Data.Array (index, length, (..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 
-import Statebox.API.Types (Wiring)
+import Statebox.Core.Types (Wiring)
 
 import Unsafe.Coerce (unsafeCoerce)
 

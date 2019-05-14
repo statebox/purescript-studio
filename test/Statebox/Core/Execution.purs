@@ -1,4 +1,4 @@
-module Test.Statebox.API.Execution where
+module Test.Statebox.Core.Execution where
 
 import Prelude
 
@@ -11,9 +11,9 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (run)
 
-import Statebox.API.Execution
-import Statebox.API.Execution as Stbx
-import Statebox.API.Types (Wiring)
+import Statebox.Core.Execution
+import Statebox.Core.Execution as Stbx
+import Statebox.Core.Types (Wiring)
 
 suite :: Spec Unit
 suite = do

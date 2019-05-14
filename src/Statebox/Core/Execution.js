@@ -1,4 +1,4 @@
-// module Statebox.API.Execution
+// module Statebox.Core.Execution
 
 // TODO assume stbx.js loaded globally; warn if absent??
 

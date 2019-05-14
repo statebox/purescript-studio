@@ -4,8 +4,8 @@ import Prelude
 import Affjax (URL)
 import Data.Maybe (Maybe)
 import View.Model (ProjectName)
-import Statebox.API.Types (PathElem)
-import Statebox.API.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
+import Statebox.Core.Types (PathElem)
+import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
 
 type Route = RouteF ProjectName DiagramName NetName
 

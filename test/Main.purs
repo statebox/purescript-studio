@@ -19,7 +19,7 @@ import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 import View.Petrinet.Model (PID, NetRep)
 import View.Petrinet.Model.NLL as NLLToNet
 
-import Test.Statebox.API.Execution as Execution
+import Test.Statebox.Core.Execution as Execution
 
 main :: Effect Unit
 main = run [consoleReporter] do

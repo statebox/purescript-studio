@@ -1,4 +1,4 @@
-module Statebox.API.Types where
+module Statebox.Core.Types where
 
 type HexStr = String
 
