@@ -20,6 +20,7 @@ import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Monoid (guard)
 import Data.Set as Set
 import Data.Set (Set)
+import Data.String.CodePoints (take)
 import Data.Traversable (traverse)
 import Data.Tuple (uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -45,7 +46,6 @@ import Data.Diagram.FromNLL as FromNLL
 import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import Statebox.API (shortHash, findRootDiagramMaybe)
 import Statebox.API.Client as Stbx
 import Statebox.API.Client (DecodingError(..))
 import Statebox.API.Types as Stbx
@@ -404,6 +404,9 @@ transactionMenu t hash valueMaybe itemKids =
         unloadedRoute = Nothing
 
 --------------------------------------------------------------------------------
+
+shortHash :: HashStr -> String
+shortHash = take 8
 
 dumpTxSum :: TxSum -> String
 dumpTxSum = case _ of
