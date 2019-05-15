@@ -54,9 +54,9 @@ derive instance eqTransitionSort :: Eq TransitionSort
 
 instance showTransitionSort :: Show TransitionSort where
   show = case _ of
-    Initial -> "Initial"
-    Glued   -> "Glued"
-    Final   -> "Final"
+    Initial -> "initial"
+    Glued   -> "glued"
+    Final   -> "final"
 
 -- | Place id.
 type PID = Int
