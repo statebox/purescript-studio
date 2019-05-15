@@ -1,8 +1,8 @@
-module Statebox.API.Client where
+module Statebox.Client where
 
 import Prelude
 import Affjax as Affjax
-import Affjax (Response)
+import Affjax (URL, Response)
 import Affjax.RequestBody as RequestBody
 import Affjax.ResponseFormat as ResponseFormat
 import Affjax.ResponseFormat (ResponseFormatError)
@@ -17,12 +17,11 @@ import Data.Either.Nested (type (\/))
 import Data.HTTP.Method (Method(GET))
 import Effect.Aff (Aff)
 
-import Statebox.API.Types
-import Statebox.API.Types (TxSum)
+import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, namespaceRootHash_HACK)
 
 requestTransaction :: URL -> HashStr -> Aff (ResponseFormatError \/ (DecodingError \/ TxSum))
 requestTransaction apiBaseUrl hash =
-  if hash == "deadbeef" then
+  if hash == namespaceRootHash_HACK then
     pure $ Right <<< Right $ LeInitial hash
   else do
     res <- requestTransactionJson apiBaseUrl hash

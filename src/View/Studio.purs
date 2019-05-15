@@ -2,6 +2,7 @@ module View.Studio where
 
 import Prelude hiding (div)
 import Affjax as Affjax
+import Affjax (URL)
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Comonad.Cofree (Cofree, (:<))
 import Data.Array (cons, index)
@@ -19,6 +20,7 @@ import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Monoid (guard)
 import Data.Set as Set
 import Data.Set (Set)
+import Data.String.CodePoints (take)
 import Data.Traversable (traverse)
 import Data.Tuple (uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -44,12 +46,13 @@ import Data.Diagram.FromNLL as FromNLL
 import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import Statebox.API (shortHash, findRootDiagramMaybe)
-import Statebox.API.Client as Stbx
-import Statebox.API.Client (DecodingError(..))
-import Statebox.API.Types as Stbx
-import Statebox.API.Types (HashStr, URL, WiringTx, Wiring, FiringTx, Firing, TxSum(..), Tx, Diagram, PathElem)
-import Statebox.API.Lenses (_leWiring, _leFiring)
+import Statebox.Client as Stbx
+import Statebox.Client (DecodingError(..))
+import Statebox.Core.Types as Stbx
+import Statebox.Core.Types (Diagram, PathElem)
+import Statebox.Core.Transaction as Stbx
+import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
+import Statebox.Core.Lenses (_leWiring, _leFiring)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -401,6 +404,9 @@ transactionMenu t hash valueMaybe itemKids =
         unloadedRoute = Nothing
 
 --------------------------------------------------------------------------------
+
+shortHash :: HashStr -> String
+shortHash = take 8
 
 dumpTxSum :: TxSum -> String
 dumpTxSum = case _ of

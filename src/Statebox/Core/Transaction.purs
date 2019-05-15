@@ -1,16 +1,12 @@
-module Statebox.API.Types where
+module Statebox.Core.Transaction where
 
-type HexStr = String
+import Statebox.Core.Types
 
 type HashStr = HexStr
-
-type URL = String
 
 type TxId = HexStr
 
 type StatusStr = String
-
-type PathElem = Int
 
 type Tx a =
   { status  :: StatusStr
@@ -25,36 +21,9 @@ type WiringTx =
   , previous :: TxId
   }
 
-type Wiring =
-  { nets     :: Array Net
-  , diagrams :: Array Diagram
-  , labels   :: Array Int
-  }
-
-type Net =
-  { name       :: String
-  , partition  :: Array Int
-  , names      :: Array String          -- ^ transition names
---, placeNames :: Maybe (Array String)  -- ^ TODO issue #140
-  }
-
-type Diagram =
-  { name   :: String
-  , width  :: Int
-  , pixels :: Array Int
-  , names  :: Array String
-  }
-
---------------------------------------------------------------------------------
-
 type FiringTx =
   { firing   :: Firing
   , previous :: TxId
-  }
-
-type Firing =
-  { execution :: HexStr
-  , path      :: Array PathElem
   }
 
 --------------------------------------------------------------------------------
