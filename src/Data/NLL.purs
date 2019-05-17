@@ -2,14 +2,18 @@
 module Data.NLL where
 
 import Prelude
-import Data.Array (cons, uncons, snoc, take, drop)
+import Data.Array (uncons, snoc, take, drop)
 import Data.Foldable (foldl, foldMap, null)
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.String (Pattern(..), split, trim)
-import Data.Tuple (Tuple(..))
+import Data.Maybe (Maybe(..), maybe)
 
--- | - TODO Robustness in case of separator/no separator at the end of the input list.
--- | - TODO Instead of `snoc`ing to the last element, we have this intermediate data stucture that should be less slow, but this is still ghastly.
+-- | Example:
+-- |
+-- | `splitOn 0 [1,0,2,3,0,4,5,6]` would yield `[[1], [2,3], [4,5,6]]`.
+-- |
+-- | TODO:
+-- |
+-- | - Robustness in case of separator/no separator at the end of the input list.
+-- | - Instead of `snoc`ing to the last element, we have this intermediate data stucture that should be less slow, but this is still ghastly.
 splitOn :: ∀ a. Eq a => a -> Array a -> Array (Array a)
 splitOn sep xs = finish $ foldl (f1 sep) { acc: [], lip: [] } xs
   where
@@ -35,11 +39,14 @@ splitOn sep xs = finish $ foldl (f1 sep) { acc: [], lip: [] } xs
 -- - https://twitter.com/gabrielg439/status/701460899589017600?lang=en
 -- - 2-lists interpreted as Pairs: https://pursuit.purescript.org/packages/purescript-pairs/6.0.0/docs/Data.Pair
 --
---   TODO
+--   TODO:
+--
 --   - stack safety
 --   - better name?
 
--- | A map on `Arrays` with a 2-element wide sliding window.
+-- | A map on `Array`s with a 2-element wide sliding window.
+-- |
+-- | Example: `mapWindow2 Tuple [1,2,3,4]` would yield `[Tuple 1 2, Tuple 3 4]`.
 mapWindow2 :: ∀ a b. (a -> a -> b) -> Array a -> Array b
 mapWindow2 f xs = case xs of
   [] -> []
