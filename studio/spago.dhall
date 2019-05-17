@@ -1,7 +1,3 @@
-{-
-Welcome to a Spago project!
-You can edit this file as you like.
--}
 { name =
     "statebox-studio"
 , dependencies =
@@ -14,6 +10,7 @@ You can edit this file as you like.
     , "group"
     , "halogen"
     , "prelude"
+    , "stbx-core"
     , "psci-support"
     , "spec"
     , "strings"

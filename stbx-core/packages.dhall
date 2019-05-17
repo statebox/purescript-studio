@@ -116,12 +116,6 @@ let upstream =
 
 let overrides = {=}
 
-let additions =
-  { stbx-core =
-      mkPackage
-        (../stbx-core/spago.dhall).dependencies
-        "../stbx-core"
-        "development"
-  }
+let additions = {=}
 
 in  upstream // overrides // additions
