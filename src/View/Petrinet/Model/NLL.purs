@@ -5,6 +5,7 @@ import Prelude
 
 import Data.Auth (Roles)
 import Data.Array ((..), length, zip)
+import Data.ArrayMultiset (ArrayMultiset)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Int (toNumber)
 import Data.Map as Map
@@ -65,7 +66,7 @@ toNetRep net placeNames transitionNames placePositions transitionPositions typed
 
     placeNamesIndexed = pids `zip` placeNames
 
-    mkTransition :: Array PID /\ Array PID -> Transition
+    mkTransition :: ArrayMultiset PID /\ ArrayMultiset PID -> Transition
     mkTransition (pre /\ post) =
       { pre:  { place: _, tokens: zero } <$> pre
       , post: { place: _, tokens: zero } <$> post
