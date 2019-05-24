@@ -11,6 +11,7 @@
     , "halogen"
     , "prelude"
     , "stbx-core"
+    , "stbx-client-http"
     , "psci-support"
     , "spec"
     , "strings"
