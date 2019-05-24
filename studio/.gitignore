@@ -1,8 +1,8 @@
 .spago
-/bower_components/
 /node_modules/
-/.pulp-cache/
 /output/
+/dist/app.js
+/dist/stbx.min.js
 /generated-docs/
 /.psc-package/
 /.psc*
