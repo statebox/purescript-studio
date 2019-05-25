@@ -1,0 +1,32 @@
+{
+  "name": "purescript-stbx",
+  "version": "1.0.0",
+  "description": "Statebox Core",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "spago install",
+    "build": "spago build",
+    "test": "spago test",
+    "repl": "spago repl"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/statebox/purescript-stbx.git"
+  },
+  "keywords": [
+    "statebox",
+    "petrinet",
+    "protocol",
+    "process"
+  ],
+  "author": "Erik Post <erik@statebox.io>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/statebox/purescript-stbx/issues"
+  },
+  "homepage": "https://github.com/statebox/purescript-stbx#readme",
+  "dependencies": {
+    "purescript": "^0.12.5",
+    "spago": "^0.8.0"
+  }
+}

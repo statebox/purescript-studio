@@ -1,0 +1,10 @@
+.spago
+/node_modules/
+/output/
+/dist/app.js
+/dist/stbx.min.js
+/generated-docs/
+/.psc-package/
+/.psc*
+/.purs*
+/.psa*
