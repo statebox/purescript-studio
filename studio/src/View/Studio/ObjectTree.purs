@@ -20,8 +20,6 @@ import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, src, href, id_)
 import Halogen.HTML.Properties.ARIA as ARIA
 
-import View.Common (classesWithNames)
-
 --------------------------------------------------------------------------------
 
 componentCssClassNameStr = "css-object-chooser"
@@ -165,3 +163,7 @@ mapWithIndexCofree = mapWithIndexCofree' mempty
       where
         f' :: Int -> Cofree f a -> Cofree f b
         f' i xs = mapWithIndexCofree' (level <> pure i) f xs
+
+--------------------------------------------------------------------------------
+
+classesWithNames = classes <<< map ClassName
