@@ -6,19 +6,20 @@ module Data.Petrinet.Representation.NLL where
 
 import Prelude
 import Data.Array (length)
+import Data.ArrayMultiset (ArrayMultiset)
 import Data.Bifunctor (bimap)
-import Data.Bitraversable
+import Data.Bitraversable (bitraverse)
 import Data.Either (Either(..), hush)
 import Data.Int (even)
 import Data.Maybe (Maybe(..))
 import Data.NLL (mapWindow2, splitOn)
 import Data.Tuple (Tuple(..))
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested (type (/\))
 import Data.Traversable
 
 -- | A Petri net encoding based on NLL (Number List List).
 -- | See https://github.com/statebox/stbx-js/blob/master/spec for more info.
-type NetF p = Array (Array p /\ Array p)
+type NetF p = Array (ArrayMultiset p /\ ArrayMultiset p)
 
 --------------------------------------------------------------------------------
 

@@ -10,8 +10,8 @@
     "prepare": "cp node_modules/@statebox/stbx-js/dist/stbx.min.js dist/",
     "postinstall": "spago install",
     "build": "spago build",
-    "watch": "spago bundle --watch --main Main --to dist/app.js",
-    "bundle": "spago bundle --main Main --to dist/app.js",
+    "watch": "spago bundle-app --watch --main Main --to dist/app.js",
+    "bundle": "spago bundle-app --main Main --to dist/app.js",
     "test": "spago test",
     "repl": "spago repl"
   },

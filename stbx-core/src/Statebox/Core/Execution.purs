@@ -2,6 +2,7 @@ module Statebox.Core.Execution where
 
 import Prelude
 import Data.Array (index, length, (..))
+import Data.ArrayMultiset (ArrayMultiset)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 
@@ -61,8 +62,6 @@ instance showTransitionSort :: Show TransitionSort where
 -- | Place id.
 type PID = Int
 
-type MultisetNLL = Array
-
 -- TODO In at least some contexts, a Path should be an Array of GluedTransitionId, but we may want to hide that it's an Array.
 -- TODO The field 'path' in Statebox.Types.Firing is ALWAYS a singleton list containing a firing number, so let's find a nice type.
 type PathElem = Int
@@ -76,7 +75,7 @@ type TSet = Record (PathIndexed (transition :: TID))
 
 type GluedMarking = Array MarkingRec
 
-type MarkingRec = Record (PathIndexed (marking :: MultisetNLL PID))
+type MarkingRec = Record (PathIndexed (marking :: ArrayMultiset PID))
 
 -- | Constructor.
 foreign import fromWiring      :: Wiring -> StbxObj
