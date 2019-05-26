@@ -82,11 +82,11 @@ data Query a
   = SelectRoute Route a
   | LoadPNPRO URL a
   | LoadTransaction URL HashStr a
-  | HandleObjectTreeMsg ObjectTree.Msg a
+  | HandleObjectTreeMsg (ObjectTree.Msg Route) a
   | HandlePetrinetEditorMsg Msg a
   | HandleDiagramEditorMsg DiagramEditor.Msg a
 
-type ChildQuery = Coproduct3 (ObjectTree.Query) (PetrinetEditor.QueryF PID TID) DiagramEditor.Query
+type ChildQuery = Coproduct3 (ObjectTree.Query Route) (PetrinetEditor.QueryF PID TID) DiagramEditor.Query
 
 type ChildSlot = Either3 Unit Unit Unit
 
@@ -356,14 +356,14 @@ findDiagramInfoInWirings hashSpace wiringHash ix =
 
 --------------------------------------------------------------------------------
 
-stateMenu :: State -> MenuTree
+stateMenu :: State -> MenuTree Route
 stateMenu { projects, hashSpace } =
   mkItem "Studio" Nothing :< (txItems <> projectItems)
   where
     txItems        = AdjacencySpace.unsafeToTree transactionMenu hashSpace <$> Set.toUnfoldable (AdjacencySpace.rootKeys hashSpace)
     projectItems   = projectMenu <$> projects
 
-projectMenu :: Project -> MenuTree
+projectMenu :: Project -> MenuTree Route
 projectMenu p =
   mkItem p.name Nothing :<
     [ mkItem "Types"          (Just $ Types p.name) :< []
@@ -375,13 +375,13 @@ projectMenu p =
     fromNets     p nets  = (\n -> mkItem n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
     fromDiagrams p diags = (\d -> mkItem d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
 
-transactionMenu :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array MenuTree -> MenuTree
+transactionMenu :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Route) -> MenuTree Route
 transactionMenu t hash valueMaybe itemKids =
   maybe (mkUnloadedItem itemKids)
         (\tx -> mkItem2 hash tx itemKids)
         valueMaybe
   where
-    mkItem2 :: HashStr -> TxSum -> Array MenuTree -> MenuTree
+    mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
     mkItem2 hash tx itemKids = case tx of
       LeInitial x -> mkItem ("🌐 "  <> shortHash hash)
                             (Just $ NamespaceR x)
@@ -396,7 +396,7 @@ transactionMenu t hash valueMaybe itemKids =
         fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
         fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
 
-    mkUnloadedItem :: Array MenuTree -> MenuTree
+    mkUnloadedItem :: Array (MenuTree Route) -> MenuTree Route
     mkUnloadedItem itemKids = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
       where
         -- TODO we need to return a Route currently, but we may want to return a (LoadTransaction ... ::Query) instead,
