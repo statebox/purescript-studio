@@ -20,9 +20,6 @@ import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, src, href, id_)
 import Halogen.HTML.Properties.ARIA as ARIA
 
-import View.Studio.Route (Route, RouteF(..))
-import View.Common (classesWithNames)
-
 --------------------------------------------------------------------------------
 
 componentCssClassNameStr = "css-object-chooser"
@@ -31,16 +28,16 @@ componentCssClassName = ClassName componentCssClassNameStr
 
 --------------------------------------------------------------------------------
 
-data Query a
-  = VisitRoute NodeId Route a
+data Query r a
+  = VisitRoute NodeId r a
   | ToggleExpandCollapse NodeId a
-  | UpdateTree (RoseTree Item) a
+  | UpdateTree (RoseTree (Item r)) a
 
 -- | What the component emits to the outside world.
-data Msg = Clicked NodeId Route
+data Msg r = Clicked NodeId r
 
-type State =
-  { tree       :: Maybe (RoseTree (NodeId /\ Item))
+type State r =
+  { tree       :: Maybe (RoseTree (NodeId /\ Item r))
   , expansion  :: Map NodeId Boolean
   , activeItem :: Maybe NodeId
   , hideRoot   :: Boolean
@@ -48,13 +45,13 @@ type State =
 
 --------------------------------------------------------------------------------
 
-type MenuTree = RoseTree Item
+type MenuTree r = RoseTree (Item r)
 
 type RoseTree a = Cofree Array a
 
-type Item = { label :: String, route :: Maybe Route }
+type Item r = { label :: String, route :: Maybe r }
 
-mkItem :: String -> Maybe Route -> Item
+mkItem :: forall r. String -> Maybe r -> Item r
 mkItem label route = { label, route }
 
 -- TODO this is a list because it stores the path down to the current node, but we could just scan the tree instead
@@ -63,14 +60,14 @@ type NodeId = Array Int
 --------------------------------------------------------------------------------
 
 menuComponent
-  :: forall m
+  :: forall m r
    . MonadAff m
-  => (Route -> Boolean)
-  -> Component HTML Query (RoseTree Item) Msg m
+  => (r -> Boolean)
+  -> Component HTML (Query r) (RoseTree (Item r)) (Msg r) m
 menuComponent isSelected =
   H.component { initialState, render, eval, receiver: HE.input UpdateTree }
   where
-    initialState :: RoseTree Item -> State
+    initialState :: RoseTree (Item r) -> State r
     initialState tree =
       { tree: pure (decorateWithIds tree)
       , expansion: Map.empty
@@ -78,7 +75,7 @@ menuComponent isSelected =
       , hideRoot: true
       }
 
-    eval :: Query ~> ComponentDSL State Query _ m
+    eval :: Query r ~> ComponentDSL (State r) (Query r) _ m
     eval = case _ of
       UpdateTree tree next -> do
         H.modify_ \state -> state { tree = pure $ decorateWithIds tree }
@@ -97,7 +94,7 @@ menuComponent isSelected =
         H.put state'
         pure next
 
-    render :: State -> HTML Void (Query Unit)
+    render :: State r -> HTML Void (Query r Unit)
     render state = fromMaybe (div [] []) $ state.tree <#> \tree ->
       nav [ classesWithNames [ componentCssClassNameStr, "p-4" ] ]
           [ ul [ classesWithNames [ "list-reset" ] ] $
@@ -105,7 +102,7 @@ menuComponent isSelected =
                                  else [semifoldCofree menuItemHtml  $       tree]
           ]
       where
-        menuItemHtml :: (NodeId /\ Item)  -> Array (HTML Void (Query Unit)) -> HTML Void (Query Unit)
+        menuItemHtml :: (NodeId /\ Item r)  -> Array (HTML Void (Query r Unit)) -> HTML Void (Query r Unit)
         menuItemHtml (treeNodeId /\ treeNode) kids =
           li [ classesWithNames [ "block", "flex", "cursor-pointer", "pr-2", "text-grey-darkest" ] ]
              [ div [ classesWithNames [ "inline-flex" ] ]
@@ -143,7 +140,7 @@ menuComponent isSelected =
             onClickVisitRoute     = maybe [] (pure <<< onClick <<< HE.input_ <<< VisitRoute treeNodeId) treeNode.route
             onClickExpandCollapse = guard (not null kids) [ onClick <<< HE.input_ $ ToggleExpandCollapse treeNodeId ]
 
-decorateWithIds :: RoseTree Item -> RoseTree (NodeId /\ Item)
+decorateWithIds :: forall r. RoseTree (Item r) -> RoseTree (NodeId /\ Item r)
 decorateWithIds tree = mapWithIndexCofree (/\) tree
 
 semifoldCofree :: forall f a b. Functor f => (a -> f b -> b) -> Cofree f a -> b
@@ -166,3 +163,7 @@ mapWithIndexCofree = mapWithIndexCofree' mempty
       where
         f' :: Int -> Cofree f a -> Cofree f b
         f' i xs = mapWithIndexCofree' (level <> pure i) f xs
+
+--------------------------------------------------------------------------------
+
+classesWithNames = classes <<< map ClassName
