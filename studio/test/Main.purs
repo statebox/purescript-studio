@@ -19,17 +19,8 @@ import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 import View.Petrinet.Model (PID, NetRep)
 import View.Petrinet.Model.NLL as NLLToNet
 
-import Test.Statebox.Core.Execution as Execution
-
 main :: Effect Unit
 main = run [consoleReporter] do
-
-  describe "NLL Petri net encoding" do
-    it "should accept even length encodings" do
-      Net.fromNLL 0 [1,2,0,3,0,3,0,4,5,5,0] `shouldEqual` Right [Tuple [1,2] [3], Tuple [3] [4,5,5]]
-    it "should reject odd length encodings" do
-      Net.fromNLL 0 [1,2,0,3,0,3,0] `shouldEqual` Left ErrOddLength
-    pending "should infer a single trailing zero?"
 
   describe "NetRep should be constructed correctly from" do
     it "an empty NLL-encoded net" do
@@ -79,5 +70,3 @@ main = run [consoleReporter] do
       Diagram.fromNLL "test" [1, 1,2,3,1] `shouldEqual` Left Diagram.ErrGraphIsCyclic
 --    it "should fail on multiple graphs with one cyclic" do
 --       Diag.fromNLL [2,2,5,3,5,4,6,0,5] "test" `shouldEqual` Left Diag.ErrGraphIsCyclic
-
-  Execution.suite

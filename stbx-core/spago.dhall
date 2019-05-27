@@ -9,7 +9,9 @@
     , "tuples"
     , "effect"
     , "console"
+    , "debug"
     , "psci-support"
+    , "spec"
     ]
 , packages =
     ./packages.dhall
