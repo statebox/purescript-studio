@@ -15,6 +15,9 @@ import Statebox.Core.Execution
 import Statebox.Core.Execution as Stbx
 import Statebox.Core.Types (Wiring)
 
+-- | We define this FFI value in order to load the FFI module, which imports (requires) stbx.js.
+foreign import requireStbxJs_HACK :: String
+
 suite :: Spec Unit
 suite = do
   describe "Protocol executions" do
