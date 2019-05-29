@@ -4,8 +4,7 @@
   "description": "Statebox Core",
   "main": "index.js",
   "scripts": {
-    "postinstall": "spago install && npm run patch-stbxjs",
-    "patch-stbxjs": "curl http://shinsetsu.nl/statebox/stbx-fp.node.js > node_modules/@statebox/stbx-js/dist/stbx.min.js",
+    "postinstall": "spago install",
     "build": "spago build",
     "test": "spago test",
     "repl": "spago repl"
@@ -29,6 +28,6 @@
   "dependencies": {
     "purescript": "^0.12.5",
     "spago": "^0.8.0",
-    "@statebox/stbx-js": "0.0.30"
+    "@statebox/stbx-js": "0.0.31"
   }
 }
