@@ -22,16 +22,33 @@ suite :: Spec Unit
 suite = do
   describe "Protocol executions" do
     let
-      -- | Gluing `s` and `t` into a single net `s&t`:
       -- | ```
-      -- |        s =         t=
-      -- |      _     _      _     _
-      -- |     |_|-O-|_|    |_|-O-|_|
-      -- |      x     y      x     y
+      -- | a = 010100
       -- |
-      -- |      _     ________     _
-      -- |     |_|-O-|________|-O-|_|
-      -- |     s.x       x&y      t.y
+      -- |   = ,1,1,.                      { interpret 0 as a separator and terminator, digits as place ids }
+      -- |
+      -- |   = [],[1],[1],[].              { [] encodes empty sets of pre- and post places }
+      -- |     \____/ \____/
+      -- |      x         y
+      -- |      _         _
+      -- |   = [_]->(1)->[_]               { x,y are transitions labeled by the 'names' field }
+      -- |      x         y
+      -- | ```
+      -- |
+      -- | We label this net as 's' and 't', and glue it together into s&t:
+      -- |
+      -- | ```
+      -- |      s =            t =
+      -- |      _       _       _       _
+      -- |     |_|-(1)-|_|     |_|-(1)-|_|
+      -- |      x       y       x       y
+      -- |
+      -- |      |   |   \_______/   |   |
+      -- |      |   |       |       |   |
+      -- |      V   V       V       V   V
+      -- |      _       _________       _
+      -- |     |_|-(1)-|_________|-(1)-|_|
+      -- |     s.x s.1     x&y     t.1 t.y
       -- | ```
       wiring :: Wiring
       wiring =
