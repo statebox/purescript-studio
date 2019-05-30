@@ -29,39 +29,39 @@ suite = do
       -- |
       -- |   = [],[1],[1],[].              { [] encodes empty sets of pre- and post places }
       -- |     \____/ \____/
-      -- |      x         y
+      -- |      t         u
       -- |      _         _
-      -- |   = [_]->(1)->[_]               { x,y are transitions labeled by the 'names' field }
-      -- |      x         y
+      -- |   = [_]->(1)->[_]               { t,u are transitions labeled by the 'names' field }
+      -- |      t         u
       -- | ```
       -- |
-      -- | We label this net as 's' and 't', and glue it together into s&t:
+      -- | We label this net as 'n' and 'm', and glue it together into n&m:
       -- |
       -- | ```
-      -- |      s =            t =
+      -- |      n =             m =
       -- |      _       _       _       _
       -- |     |_|-(1)-|_|     |_|-(1)-|_|
-      -- |      x       y       x       y
+      -- |      t       u       t       u
       -- |
       -- |      |   |   \_______/   |   |
       -- |      |   |       |       |   |
       -- |      V   V       V       V   V
       -- |      _       _________       _
       -- |     |_|-(1)-|_________|-(1)-|_|
-      -- |     s.x s.1     x&y     t.1 t.y
+      -- |     n.t n.1     u&t     m.1 m.u
       -- | ```
       wiring :: Wiring
       wiring =
         { nets: [ { name: "a"
                   , partition: [0,1,0,1,0,0]
-                  , names: ["x","y"]
+                  , names: ["t","u"]
                   -- , placeNames: Nothing
                   }
                 ]
         , diagrams: [ { name: "z"
                       , width: 1
                       , pixels: [1,2]
-                      , names: ["s","t"]
+                      , names: ["m","n"]
                       }
                     ]
         , labels: [0,0]
@@ -91,9 +91,9 @@ suite = do
         firing1 = spy "firing 1" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 1)
         firing2 = spy "firing 2" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 2)
 
-      firing2 `shouldEqual` Just { pre: [ [ 1 ], []    ], post: "y"   }
-      firing1 `shouldEqual` Just { pre: [ [ 1 ], [ 1 ] ], post: "y&x" }
-      firing0 `shouldEqual` Just { pre: [ []   , [ 1 ] ], post: "x"   }
+      firing2 `shouldEqual` Just { pre: [ [ 1 ], []    ], post: "u"   }
+      firing1 `shouldEqual` Just { pre: [ [ 1 ], [ 1 ] ], post: "u&t" }
+      firing0 `shouldEqual` Just { pre: [ []   , [ 1 ] ], post: "t"   }
 
     it "should be well-behaved at non-existing transitions" do
       let
