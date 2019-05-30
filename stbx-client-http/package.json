@@ -10,7 +10,7 @@
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",
   "devDependencies": {
-    "purescript": "^0.12.5",
+    "purescript": "^0.13.0",
     "spago": "^0.8.0"
   }
 }
