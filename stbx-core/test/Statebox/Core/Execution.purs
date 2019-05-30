@@ -22,29 +22,46 @@ suite :: Spec Unit
 suite = do
   describe "Protocol executions" do
     let
-      -- | Gluing `s` and `t` into a single net `s&t`:
       -- | ```
-      -- |        s =         t=
-      -- |      _     _      _     _
-      -- |     |_|-O-|_|    |_|-O-|_|
-      -- |      x     y      x     y
+      -- | a = 010100
       -- |
-      -- |      _     ________     _
-      -- |     |_|-O-|________|-O-|_|
-      -- |     s.x       x&y      t.y
+      -- |   = ,1,1,.                      { interpret 0 as a separator and terminator, digits as place ids }
+      -- |
+      -- |   = [],[1],[1],[].              { [] encodes empty sets of pre- and post places }
+      -- |     \____/ \____/
+      -- |      t         u
+      -- |      _         _
+      -- |   = [_]->(1)->[_]               { t,u are transitions labeled by the 'names' field }
+      -- |      t         u
+      -- | ```
+      -- |
+      -- | We label this net as 'n' and 'm', and glue it together into n&m:
+      -- |
+      -- | ```
+      -- |      n =             m =
+      -- |      _       _       _       _
+      -- |     |_|-(1)-|_|     |_|-(1)-|_|
+      -- |      t       u       t       u
+      -- |
+      -- |      |   |   \_______/   |   |
+      -- |      |   |       |       |   |
+      -- |      V   V       V       V   V
+      -- |      _       _________       _
+      -- |     |_|-(1)-|_________|-(1)-|_|
+      -- |     n.t n.1     u&t     m.1 m.u
       -- | ```
       wiring :: Wiring
       wiring =
         { nets: [ { name: "a"
                   , partition: [0,1,0,1,0,0]
-                  , names: ["x","y"]
+                  , names: ["t","u"]
                   -- , placeNames: Nothing
                   }
                 ]
         , diagrams: [ { name: "z"
                       , width: 1
                       , pixels: [1,2]
-                      , names: ["s","t"]
+                      , names: ["m","n"]
                       }
                     ]
         , labels: [0,0]
@@ -74,9 +91,9 @@ suite = do
         firing1 = spy "firing 1" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 1)
         firing2 = spy "firing 2" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 2)
 
-      firing2 `shouldEqual` Just { pre: [ [ 1 ], []    ], post: "y"   }
-      firing1 `shouldEqual` Just { pre: [ [ 1 ], [ 1 ] ], post: "y&x" }
-      firing0 `shouldEqual` Just { pre: [ []   , [ 1 ] ], post: "x"   }
+      firing2 `shouldEqual` Just { pre: [ [ 1 ], []    ], post: "u"   }
+      firing1 `shouldEqual` Just { pre: [ [ 1 ], [ 1 ] ], post: "u&t" }
+      firing0 `shouldEqual` Just { pre: [ []   , [ 1 ] ], post: "t"   }
 
     it "should be well-behaved at non-existing transitions" do
       let
