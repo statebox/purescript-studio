@@ -1,6 +1,7 @@
 module Statebox.Core.Transaction where
 
-import Statebox.Core.Types
+import Prelude
+import Statebox.Core.Types (Firing, HexStr, Wiring)
 
 type HashStr = HexStr
 
@@ -28,10 +29,29 @@ type FiringTx =
 
 --------------------------------------------------------------------------------
 
+-- TODO implement Show instance?
 data TxSum
-  = LeInitial HashStr
-  | LeWiring WiringTx
-  | LeFiring FiringTx
+  = InitialTxInj HashStr
+  | WiringTxInj WiringTx
+  | FiringTxInj FiringTx
+
+evalTxSum
+  :: forall a
+   . (HashStr  -> a)
+  -> (WiringTx -> a)
+  -> (FiringTx -> a)
+  -> TxSum
+  -> a
+evalTxSum fi fw ff = case _ of
+  InitialTxInj i -> fi i
+  WiringTxInj  w -> fw w
+  FiringTxInj  f -> ff f
+
+instance showTxSum :: Show TxSum where
+  show = evalTxSum
+    (\x -> "(InitialTxInj " <>      x <> ")")
+    (\x -> "(WiringTxInj "  <> show x <> ")")
+    (\x -> "(FiringTxInj "  <> show x <> ")")
 
 namespaceRootHash_HACK = "deadbeef"
 
@@ -39,7 +59,4 @@ uberRoot_HACK = ""
 
 -- TODO Newer proto versions have a previous hash for initial tx as well.
 getPrevious :: TxSum -> HashStr
-getPrevious val = case val of
-  LeWiring  w -> w.previous
-  LeFiring  f -> f.previous
-  LeInitial i -> uberRoot_HACK
+getPrevious = evalTxSum (\_ -> uberRoot_HACK) (_.previous) (_.previous)

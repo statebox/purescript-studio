@@ -51,7 +51,7 @@ import Statebox.Client (DecodingError(..))
 import Statebox.Core.Types as Stbx
 import Statebox.Core.Types (Diagram, PathElem)
 import Statebox.Core.Transaction as Stbx
-import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
+import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
 import Statebox.Core.Lenses (_leWiring, _leFiring)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
@@ -134,7 +134,7 @@ ui =
           (\err   -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
           (either (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a wiring or firing: " <> show err)
                   (\txSum               -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace hash txSum })
-                                              H.liftEffect $ log $ dumpTxSum txSum
+                                              H.liftEffect $ log $ show txSum
                   )
           )
         pure next
@@ -382,16 +382,19 @@ transactionMenu t hash valueMaybe itemKids =
         valueMaybe
   where
     mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
-    mkItem2 hash tx itemKids = case tx of
-      LeInitial x -> mkItem ("🌐 "  <> shortHash hash)
-                            (Just $ NamespaceR x)
-                            :< itemKids
-      LeWiring  w -> mkItem ("🥨 " <> shortHash hash)
-                            (Just $ WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
-                            :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
-      LeFiring  f -> mkItem ("🔥 " <> shortHash hash)
-                            (Just $ FiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
-                            :< itemKids
+    mkItem2 hash tx itemKids = evalTxSum
+      (\x -> mkItem ("🌐 "  <> shortHash hash)
+                    (Just $ NamespaceR x)
+                    :< itemKids
+      )
+      (\w -> mkItem ("🥨 " <> shortHash hash)
+                    (Just $ WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
+                    :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
+      )
+      (\f -> mkItem ("🔥 " <> shortHash hash)
+                    (Just $ FiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
+                    :< itemKids
+      ) tx
       where
         fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
         fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
@@ -407,9 +410,3 @@ transactionMenu t hash valueMaybe itemKids =
 
 shortHash :: HashStr -> String
 shortHash = take 8
-
-dumpTxSum :: TxSum -> String
-dumpTxSum = case _ of
-  LeInitial hash -> "initial: " <> hash
-  LeWiring wiring -> "wiring: " <> show wiring
-  LeFiring firing -> "firing: " <> show firing
