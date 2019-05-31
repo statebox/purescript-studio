@@ -6,6 +6,12 @@ type PathElem = Int
 
 --------------------------------------------------------------------------------
 
+-- | About how wirings are encoded:
+-- |
+-- | 1) The root (top-level) diagram is always `diagrams[0]`.
+-- |
+-- | 2) The elements of `labels: [0,0]` are the labels of this root diagram, and they are indices
+-- |    into the list `(nets <> diagrams)`.
 type Wiring =
   { nets     :: Array Net
   , diagrams :: Array Diagram

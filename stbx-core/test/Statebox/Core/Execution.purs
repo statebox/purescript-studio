@@ -38,7 +38,7 @@ suite = do
       -- | We label this net as 'n' and 'm', and glue it together into n&m:
       -- |
       -- | ```
-      -- |      n =             m =
+      -- |      m =             n =
       -- |      _       _       _       _
       -- |     |_|-(1)-|_|     |_|-(1)-|_|
       -- |      t       u       t       u
@@ -48,7 +48,7 @@ suite = do
       -- |      V   V       V       V   V
       -- |      _       _________       _
       -- |     |_|-(1)-|_________|-(1)-|_|
-      -- |     n.t n.1     u&t     m.1 m.u
+      -- |     m.t m.1     u&t     n.1 n.u
       -- | ```
       wiring :: Wiring
       wiring =
