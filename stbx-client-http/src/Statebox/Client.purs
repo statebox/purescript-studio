@@ -8,16 +8,14 @@ import Affjax.ResponseFormat as ResponseFormat
 import Affjax.ResponseFormat (ResponseFormatError)
 import Affjax.RequestHeader as RequestHeader
 import Affjax.StatusCode (StatusCode(..))
-import Control.Alt ((<|>))
-import Data.Bifunctor (lmap)
 import Data.Argonaut.Core (Json)
-import Data.Argonaut.Decode (decodeJson)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
 import Data.HTTP.Method (Method(GET))
 import Effect.Aff (Aff)
 
-import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, namespaceRootHash_HACK)
+import Statebox.Core.Transaction (HashStr, TxSum(..), namespaceRootHash_HACK)
+import Statebox.Core.Transaction.Codec (decodeTxSum, DecodingError)
 
 requestTransaction :: URL -> HashStr -> Aff (ResponseFormatError \/ (DecodingError \/ TxSum))
 requestTransaction apiBaseUrl hash =
@@ -33,21 +31,3 @@ requestTransactionJson apiBaseUrl hash =
                                          , method = Left GET
                                          , responseFormat = ResponseFormat.json
                                          }
-
---------------------------------------------------------------------------------
-
-newtype DecodingError = DecodingError String
-
-instance showDecodingError :: Show DecodingError where
-  show = case _ of
-    DecodingError e -> "(DecodingError " <> show e <> ")"
-
-decodeTxSum :: HashStr -> Json -> DecodingError \/ TxSum
-decodeTxSum hash json =
-  lmap DecodingError (decodeWiring json <|> decodeFiring json)
-  where
-    decodeWiring :: Json -> String \/ TxSum
-    decodeWiring json = WiringTxInj <<< _.decoded <$> decodeJson json :: String \/ Tx WiringTx
-
-    decodeFiring :: Json -> String \/ TxSum
-    decodeFiring json = FiringTxInj <<< _.decoded <$> decodeJson json :: String \/ Tx FiringTx
