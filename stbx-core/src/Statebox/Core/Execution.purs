@@ -42,7 +42,24 @@ type TID = Int
 unTID :: TID -> Int
 unTID i = i
 
-data TransitionSort = Initial | Glued | Final
+-- | When gluing two nets together, the resulting transitions are classified as follows:
+-- | ```
+-- |      _     _     _        _     _
+-- |     |_|-O-|_|-O-|_|      |_|-O-|_|
+-- |
+-- |      |     |     \________/     |
+-- |      |     |          |         |
+-- |  Initial  Normal    Glued     Final
+-- |      |     |          |         |
+-- |      V     V          V         V
+-- |      _     _          _         _
+-- |     |_|-O-|_|-O------|_|-----O-|_|
+-- | ```
+data TransitionSort
+  = Initial
+  | Normal
+  | Glued
+  | Final
 
 fromTransitionSortString :: String -> Maybe TransitionSort
 fromTransitionSortString = case _ of
@@ -56,6 +73,7 @@ derive instance eqTransitionSort :: Eq TransitionSort
 instance showTransitionSort :: Show TransitionSort where
   show = case _ of
     Initial -> "initial"
+    Normal  -> "normal"
     Glued   -> "glued"
     Final   -> "final"
 
