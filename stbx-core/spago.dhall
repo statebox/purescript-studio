@@ -3,6 +3,7 @@
 , dependencies =
     [ "prelude"
     , "arrays"
+    , "argonaut"
     , "foldable-traversable"
     , "integers"
     , "profunctor-lenses"
