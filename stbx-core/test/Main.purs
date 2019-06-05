@@ -15,8 +15,6 @@ import Test.Spec.Runner (run)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 
-import Statebox.Core.Execution (PID, TID)
-
 import Test.Statebox.Core.Execution as Execution
 
 main :: Effect Unit
