@@ -24,7 +24,6 @@ derive instance eqGluedTransitionId :: Eq GluedTransitionId
 instance showGluedTransitionId :: Show GluedTransitionId where
   show (GluedTransitionId i) = "(GluedTransitionId " <> show i <> ")"
 
-
 --------------------------------------------------------------------------------
 
 -- | About how wirings are encoded:

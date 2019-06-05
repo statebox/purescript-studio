@@ -5,10 +5,9 @@ import Data.Array (index, length, (..))
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
+import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionId(..))
-
-import Unsafe.Coerce (unsafeCoerce)
 
 
 -- | ReasonML-encoded representation of a marked net.
