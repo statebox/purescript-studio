@@ -56,8 +56,8 @@ data TransitionSort
 
 fromTransitionSortString :: String -> Maybe TransitionSort
 fromTransitionSortString = case _ of
-  "vanilla" -> Just Normal
   "initial" -> Just Initial
+  "vanilla" -> Just Normal
   "glued"   -> Just Glued
   "final"   -> Just Final
   _         -> Nothing
@@ -67,7 +67,7 @@ derive instance eqTransitionSort :: Eq TransitionSort
 instance showTransitionSort :: Show TransitionSort where
   show = case _ of
     Initial -> "initial"
-    Normal  -> "normal"
+    Normal  -> "vanilla"
     Glued   -> "glued"
     Final   -> "final"
 
