@@ -71,10 +71,9 @@ instance showTransitionSort :: Show TransitionSort where
     Glued   -> "glued"
     Final   -> "final"
 
--- TODO In at least some contexts, a Path should be an Array of GluedTransitionId, but we may want to hide that it's an Array.
--- TODO The field 'path' in Statebox.Types.Firing is ALWAYS a singleton list containing a firing number, so let's find a nice type.
 type PathElem = Int
 
+-- | A path to a leaf (i.e. a net) in the diagram tree.
 type Path = Array PathElem
 
 -- TODO Since we already have Path as an isolated type, this PathIndexed may not add much value
