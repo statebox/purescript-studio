@@ -245,19 +245,33 @@ suite = do
       -- |     \____/ \____/ \____/
       -- |      l       m      n
       -- |
-      -- | y = 21233                               https://adoring-curie-7b92fd.netlify.com/#!/21233
+      -- | y = 21233  (root diagram)               https://statebox-brick-diagrams.netlify.com/#!/21233
       -- |   |
-      -- |   = 1 --┐
+      -- |   = 1 --┐  (replaced by the glueing of a and a via z)
       -- |         |
       -- |         v
-      -- |         3
+      -- |         3  (replaced by c)
       -- |         ^
       -- |         |
-      -- |     2 --┘
+      -- |     2 --┘  (replaces by b)
       -- |
-      -- | z = 112                                 https://adoring-curie-7b92fd.netlify.com/#!/112
+      -- | z = 112                                 https://statebox-brick-diagrams.netlify.com/#!/112
       -- |   |
-      -- |   = 1 -> 2
+      -- |   = 1 -> 2 (both 1 and 2 gets replaced by a)
+      -- |
+      -- | the net resulting from the glueing is the following, where
+      -- | - (1_a) indicates the place 1 in the a net
+      -- | - the ' in used to differentiates two copies of the same net
+      -- | - the numbers near the arrows indicate the transaction id asseigned to the glued net
+      -- |
+      -- |  _  0        2         5        7   _
+      -- | |_| -> (1_a) -> (1_a') -> (1_c) -> |_|
+      -- |                                 ^
+      -- |  _  1        3                  |
+      -- | |_| -> (1_b) -> (2_b)           |
+      -- |          |        |             | 6
+      -- |          └--------└-> (3_b) ----┘
+      -- |              4
       -- | ```
       wiring :: Wiring
       wiring =
@@ -279,7 +293,7 @@ suite = do
                       , pixels : [1,2,3,3]
                       , names: ["p", "q", "r"]
                       }
-                    ,{ name: "z"
+                    , { name: "z"
                       , width: 1
                       , pixels: [1,2]
                       , names: ["s","t"]
