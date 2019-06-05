@@ -47,8 +47,9 @@ import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Statebox.Client as Stbx
+import Statebox.Core.Execution (PathElem)
 import Statebox.Core.Types as Stbx
-import Statebox.Core.Types (Diagram, PathElem)
+import Statebox.Core.Types (Diagram)
 import Statebox.Core.Transaction as Stbx
 import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
 import Statebox.Core.Lenses (_leWiring, _leFiring)

@@ -24,7 +24,6 @@ derive instance eqGluedTransitionId :: Eq GluedTransitionId
 instance showGluedTransitionId :: Show GluedTransitionId where
   show (GluedTransitionId i) = "(GluedTransitionId " <> show i <> ")"
 
-
 --------------------------------------------------------------------------------
 
 -- | About how wirings are encoded:
@@ -57,12 +56,11 @@ type Diagram =
 
 type Firing =
   { execution :: HexStr
-  , path      :: Singleton PathElem
+  , path      :: Singleton GluedTransitionIdRaw
   }
 
--- TODO I think this should be GluedTransitionId.
--- TODO Furthermore I think this should be unified with the `PathElem` defined in Execution.
-type PathElem = Int
+-- TODO This should be the newtype GluedTransitionId.
+type GluedTransitionIdRaw = Int
 
 type HexStr = String
 
