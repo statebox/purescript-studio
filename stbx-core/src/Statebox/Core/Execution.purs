@@ -57,6 +57,7 @@ data TransitionSort
 
 fromTransitionSortString :: String -> Maybe TransitionSort
 fromTransitionSortString = case _ of
+  "vanilla" -> Just Normal
   "initial" -> Just Initial
   "glued"   -> Just Glued
   "final"   -> Just Final
