@@ -1,8 +1,29 @@
 module Statebox.Core.Types where
 
-type HexStr = String
+import Prelude
+import Data.Newtype (class Newtype, unwrap)
 
-type PathElem = Int
+-- | Place id.
+type PID = Int
+
+-- TODO newtype
+-- | Transition id.
+type TID = Int
+
+unTID :: TID -> Int
+unTID i = i
+
+--------------------------------------------------------------------------------
+
+newtype GluedTransitionId = GluedTransitionId TID
+
+derive instance newtypeGluedTransitionId :: Newtype GluedTransitionId _
+
+derive instance eqGluedTransitionId :: Eq GluedTransitionId
+
+instance showGluedTransitionId :: Show GluedTransitionId where
+  show (GluedTransitionId i) = "(GluedTransitionId " <> show i <> ")"
+
 
 --------------------------------------------------------------------------------
 
@@ -36,5 +57,14 @@ type Diagram =
 
 type Firing =
   { execution :: HexStr
-  , path      :: Array PathElem
+  , path      :: Singleton PathElem
   }
+
+-- TODO I think this should be GluedTransitionId.
+-- TODO Furthermore I think this should be unified with the `PathElem` defined in Execution.
+type PathElem = Int
+
+type HexStr = String
+
+-- | This tags an Array that is expected (but not guaranteed) to have exactly one element. (TODO: newtype.)
+type Singleton = Array

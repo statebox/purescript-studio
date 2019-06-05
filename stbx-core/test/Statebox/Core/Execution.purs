@@ -13,7 +13,7 @@ import Test.Spec.Runner (run)
 
 import Statebox.Core.Execution
 import Statebox.Core.Execution as Stbx
-import Statebox.Core.Types (Wiring)
+import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionId(..))
 
 -- | We define this FFI value in order to load the FFI module, which imports (requires) stbx.js.
 foreign import requireStbxJs_HACK :: String

@@ -4,11 +4,12 @@ import Prelude
 import Data.Array (index, length, (..))
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (unwrap)
 
-import Statebox.Core.Types (Wiring)
+import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionId(..))
 
 import Unsafe.Coerce (unsafeCoerce)
+
 
 -- | ReasonML-encoded representation of a marked net.
 foreign import data Marked :: Type
@@ -21,7 +22,7 @@ type GluedTransition1 =
   , tset   :: TSet
   }
 
--- TDOO Statebox.Types.Firing has a field 'path', which should be called 'firing', says Jelle
+-- TODO Statebox.Types.Firing has a field 'path', which should be called 'firing', says Jelle
 foreign import data GluedTransition2JS :: Type
 
 fromGluedTransition2JS :: GluedTransition2JS -> GluedTransition2
@@ -34,13 +35,6 @@ type GluedTransition2 =
   { pre  :: Array (Array TID)
   , post :: String
   }
-
--- TODO newtype
--- | Transition id.
-type TID = Int
-
-unTID :: TID -> Int
-unTID i = i
 
 -- | When gluing two nets together, the resulting transitions are classified as follows:
 -- | ```
@@ -77,9 +71,6 @@ instance showTransitionSort :: Show TransitionSort where
     Glued   -> "glued"
     Final   -> "final"
 
--- | Place id.
-type PID = Int
-
 -- TODO In at least some contexts, a Path should be an Array of GluedTransitionId, but we may want to hide that it's an Array.
 -- TODO The field 'path' in Statebox.Types.Firing is ALWAYS a singleton list containing a firing number, so let's find a nice type.
 type PathElem = Int
@@ -96,10 +87,10 @@ type GluedMarking = Array MarkingRec
 type MarkingRec = Record (PathIndexed (marking :: ArrayMultiset PID))
 
 -- | Constructor.
-foreign import fromWiring      :: Wiring -> StbxObj
+foreign import fromWiring       :: Wiring -> StbxObj
 
 -- | Constructor.
-foreign import fromMarked      :: Marked -> StbxObj
+foreign import fromMarked       :: Marked -> StbxObj
 
 foreign import marking          :: StbxObj -> GluedMarking
 
@@ -140,15 +131,6 @@ foreign import enabledOrDefault :: forall a. (Unit -> a) -> (Boolean -> a) -> St
 --------------------------------------------------------------------------------
 
 foreign import gluedTransitions :: StbxObj -> Array GluedTransition1
-
-newtype GluedTransitionId = GluedTransitionId TID
-
-derive instance newtypeGluedTransitionId :: Newtype GluedTransitionId _
-
-derive instance eqGluedTransitionId :: Eq GluedTransitionId
-
-instance showGluedTransitionId :: Show GluedTransitionId where
-  show (GluedTransitionId i) = "(GluedTransitionId " <> show i <> ")"
 
 -- als we dit hebben dan willen we wellicht de fn 'transitions' hiden? want die geeft een array terug
 -- TODO is it inefficient not to cache these?
