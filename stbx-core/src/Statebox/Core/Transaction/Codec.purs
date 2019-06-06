@@ -7,13 +7,16 @@ import Data.Bifunctor (lmap)
 import Control.Alt ((<|>))
 import Data.Either.Nested (type (\/))
 
-import Statebox.Core.Transaction (Tx, WiringTx, FiringTx, TxSum(..), HashStr)
+import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), HashStr)
 
 
 decodeTxSum :: HashStr -> Json -> DecodingError \/ TxSum
 decodeTxSum hash json =
-  lmap DecodingError (decodeWiring json <|> decodeFiring json)
+  lmap DecodingError (decodeFiring json <|> decodeWiring json <|> decodeInitial json)
   where
+    decodeInitial :: Json -> String \/ TxSum
+    decodeInitial json = InitialTxInj <<< _.decoded <$> decodeJson json :: String \/ Tx InitialTx
+
     decodeWiring :: Json -> String \/ TxSum
     decodeWiring json = WiringTxInj <<< _.decoded <$> decodeJson json :: String \/ Tx WiringTx
 

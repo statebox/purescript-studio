@@ -237,7 +237,7 @@ ui =
                 , br []
                 , p [] [ pre [] [ text $ show firingTx ] ]
                 , br []
-                , p [] [ text $ "execution: " <> show firingTx.firing.execution ]
+                , p [] [ text $ "message: " <> show firingTx.firing.message ]
                 , br []
                 , p [] [ text $ "path: " <> show firingTx.firing.path ]
                 ]
@@ -385,7 +385,7 @@ transactionMenu t hash valueMaybe itemKids =
     mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
     mkItem2 hash tx itemKids = evalTxSum
       (\x -> mkItem ("🌐 "  <> shortHash hash)
-                    (Just $ NamespaceR x)
+                    (Just $ NamespaceR x.root.message)
                     :< itemKids
       )
       (\w -> mkItem ("🥨 " <> shortHash hash)

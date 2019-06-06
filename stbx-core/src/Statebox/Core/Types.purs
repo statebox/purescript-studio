@@ -13,6 +13,9 @@ type TID = Int
 unTID :: TID -> Int
 unTID i = i
 
+-- | Some transaction types have a 'message' field, and they have this type.
+type Message = String
+
 --------------------------------------------------------------------------------
 
 newtype GluedTransitionId = GluedTransitionId TID
@@ -23,6 +26,12 @@ derive instance eqGluedTransitionId :: Eq GluedTransitionId
 
 instance showGluedTransitionId :: Show GluedTransitionId where
   show (GluedTransitionId i) = "(GluedTransitionId " <> show i <> ")"
+
+--------------------------------------------------------------------------------
+
+type Initial =
+  { message :: Message
+  }
 
 --------------------------------------------------------------------------------
 
@@ -55,8 +64,8 @@ type Diagram =
 --------------------------------------------------------------------------------
 
 type Firing =
-  { execution :: HexStr
-  , path      :: Singleton GluedTransitionIdRaw
+  { message :: Message
+  , path    :: Singleton GluedTransitionIdRaw
   }
 
 -- TODO This should be the newtype GluedTransitionId.
