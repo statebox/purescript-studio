@@ -13,6 +13,9 @@ type TID = Int
 unTID :: TID -> Int
 unTID i = i
 
+-- | Some transaction types have a 'message' field, and they have this type.
+type Message = String
+
 --------------------------------------------------------------------------------
 
 newtype GluedTransitionId = GluedTransitionId TID
@@ -27,7 +30,7 @@ instance showGluedTransitionId :: Show GluedTransitionId where
 --------------------------------------------------------------------------------
 
 type Initial =
-  { message :: String
+  { message :: Message
   }
 
 --------------------------------------------------------------------------------
@@ -61,7 +64,7 @@ type Diagram =
 --------------------------------------------------------------------------------
 
 type Firing =
-  { message :: String
+  { message :: Message
   , path    :: Singleton GluedTransitionIdRaw
   }
 

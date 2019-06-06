@@ -48,7 +48,7 @@ evalTxSum
   -> TxSum
   -> a
 evalTxSum fi fw ff = case _ of
-  InitialTxInj i -> fi i
+  InitialTxInj i -> fi i.root.message
   WiringTxInj  w -> fw w
   FiringTxInj  f -> ff f
 
@@ -57,8 +57,6 @@ instance showTxSum :: Show TxSum where
     (\x -> "(InitialTxInj " <>      x <> ")")
     (\x -> "(WiringTxInj "  <> show x <> ")")
     (\x -> "(FiringTxInj "  <> show x <> ")")
-
-namespaceRootHash_HACK = "deadbeef"
 
 uberRoot_HACK = ""
 
