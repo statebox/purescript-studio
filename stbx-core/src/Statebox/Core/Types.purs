@@ -26,6 +26,12 @@ instance showGluedTransitionId :: Show GluedTransitionId where
 
 --------------------------------------------------------------------------------
 
+type Initial =
+  { message :: String
+  }
+
+--------------------------------------------------------------------------------
+
 -- | About how wirings are encoded:
 -- |
 -- | 1) The root (top-level) diagram is always `diagrams[0]`.
@@ -55,8 +61,8 @@ type Diagram =
 --------------------------------------------------------------------------------
 
 type Firing =
-  { execution :: HexStr
-  , path      :: Singleton GluedTransitionIdRaw
+  { message :: String
+  , path    :: Singleton GluedTransitionIdRaw
   }
 
 -- TODO This should be the newtype GluedTransitionId.

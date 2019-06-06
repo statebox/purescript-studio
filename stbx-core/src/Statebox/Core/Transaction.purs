@@ -1,7 +1,7 @@
 module Statebox.Core.Transaction where
 
 import Prelude
-import Statebox.Core.Types (Firing, HexStr, Wiring)
+import Statebox.Core.Types (Initial, Firing, Wiring, HexStr)
 
 type HashStr = HexStr
 
@@ -17,6 +17,11 @@ type Tx a =
 
 --------------------------------------------------------------------------------
 
+type InitialTx =
+  { root     :: Initial
+  , previous :: TxId
+  }
+
 type WiringTx =
   { wiring   :: Wiring
   , previous :: TxId
@@ -31,7 +36,7 @@ type FiringTx =
 
 -- TODO implement Show instance?
 data TxSum
-  = InitialTxInj HashStr
+  = InitialTxInj InitialTx
   | WiringTxInj WiringTx
   | FiringTxInj FiringTx
 

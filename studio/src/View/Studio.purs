@@ -237,7 +237,7 @@ ui =
                 , br []
                 , p [] [ pre [] [ text $ show firingTx ] ]
                 , br []
-                , p [] [ text $ "execution: " <> show firingTx.firing.execution ]
+                , p [] [ text $ "message: " <> show firingTx.firing.message ]
                 , br []
                 , p [] [ text $ "path: " <> show firingTx.firing.path ]
                 ]
