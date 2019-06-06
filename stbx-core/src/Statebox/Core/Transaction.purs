@@ -34,7 +34,10 @@ type FiringTx =
 
 --------------------------------------------------------------------------------
 
--- TODO implement Show instance?
+-- | There are 3 types of transaction, and an additional 'virtual' transaction called
+-- | the 'über-root', which terminates the transaction chain in the `previous` direction.
+-- | This über-root has a hash code (see `uberRootHash`) that identifies it, but it has
+-- | no body and is never actually sent, hence the 'virtual'.
 data TxSum
   = InitialTxInj InitialTx
   | WiringTxInj WiringTx
@@ -58,7 +61,9 @@ instance showTxSum :: Show TxSum where
     (\x -> "(WiringTxInj "  <> show x <> ")")
     (\x -> "(FiringTxInj "  <> show x <> ")")
 
-uberRoot_HACK = ""
+-- | `InitialTx` ('root') transactions are children of the virtual 'über-root', indicated by this hash.
+uberRootHash :: HashStr
+uberRootHash = "z"
 
 -- TODO Newer proto versions have a previous hash for initial tx as well.
 getPrevious :: TxSum -> HashStr
