@@ -45,19 +45,19 @@ data TxSum
 
 evalTxSum
   :: forall a
-   . (HashStr  -> a)
+   . (InitialTx -> a)
   -> (WiringTx -> a)
   -> (FiringTx -> a)
   -> TxSum
   -> a
 evalTxSum fi fw ff = case _ of
-  InitialTxInj i -> fi i.root.message
+  InitialTxInj i -> fi i
   WiringTxInj  w -> fw w
   FiringTxInj  f -> ff f
 
 instance showTxSum :: Show TxSum where
   show = evalTxSum
-    (\x -> "(InitialTxInj " <>      x <> ")")
+    (\x -> "(InitialTxInj " <> show x <> ")")
     (\x -> "(WiringTxInj "  <> show x <> ")")
     (\x -> "(FiringTxInj "  <> show x <> ")")
 
@@ -65,6 +65,5 @@ instance showTxSum :: Show TxSum where
 uberRootHash :: HashStr
 uberRootHash = "z"
 
--- TODO Newer proto versions have a previous hash for initial tx as well.
 getPrevious :: TxSum -> HashStr
-getPrevious = evalTxSum (\_ -> uberRoot_HACK) (_.previous) (_.previous)
+getPrevious = evalTxSum (_.previous) (_.previous) (_.previous)
