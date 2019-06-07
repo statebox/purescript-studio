@@ -218,7 +218,7 @@ suite = do
   describe "More complicated diagram protocol execution" do
     let
       -- | ```
-      -- | a = 010100                              https://mermaidjs.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFJcblxucDEoKF8pKVxucDIoKDEpKVxucDMoKF8pKVxuXG5wMSAtLT4gdDFcbnQxLS0-IHAyXG5cbnAyIC0tPiB0MlxudDIgLS0-IHAzXG5cbnN0eWxlIHAxIGZpbGw6d2hpdGUsIHN0cm9rZTpncmV5XG5zdHlsZSBwMiBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuc3R5bGUgcDMgZmlsbDp3aGl0ZSwgc3Ryb2tlOmdyZXlcblxuc3R5bGUgdDEgZmlsbDpjeWFuXG5zdHlsZSB0MiBmaWxsOmN5YW4iLCJtZXJtYWlkIjp7InRoZW1lIjoiZGVmYXVsdCJ9fQ
+      -- | a = 010100                              { https://mermaidjs.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFJcblxucDEoKF8pKVxucDIoKDEpKVxucDMoKF8pKVxuXG5wMSAtLT4gdDFcbnQxLS0-IHAyXG5cbnAyIC0tPiB0MlxudDIgLS0-IHAzXG5cbnN0eWxlIHAxIGZpbGw6d2hpdGUsIHN0cm9rZTpncmV5XG5zdHlsZSBwMiBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuc3R5bGUgcDMgZmlsbDp3aGl0ZSwgc3Ryb2tlOmdyZXlcblxuc3R5bGUgdDEgZmlsbDpjeWFuXG5zdHlsZSB0MiBmaWxsOmN5YW4iLCJtZXJtYWlkIjp7InRoZW1lIjoiZGVmYXVsdCJ9fQ }
       -- |   |
       -- |   = ,1,1,.                              { interpret 0 as a separator and terminator, digits as place ids }
       -- |   |
@@ -229,7 +229,7 @@ suite = do
       -- |   = [_]->(1)->[_]                       { t,u are transitions labeled by the 'names' field }
       -- |      u         v
       -- |
-      -- | b = 01101020120330300                   https://mermaidjs.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFJcblxucDEoKF8pKVxucDIoKDEpKVxucDMoKDIpKVxucDQoKDMpKVxucDUoKF8pKVxuXG5wMSAtLT4gdDFcbnQxIC0tIDIgLS0-IHAyXG5cbnAyIC0tPiB0MlxudDIgLS0-IHAzXG5cbnAyIC0tPiB0M1xucDMgLS0-IHQzXG50MyAtLSAyIC0tPiBwNFxuXG5wNCAtLT4gdDRcbnQ0IC0tPiBwNVxuXG5zdHlsZSBwMSBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuc3R5bGUgcDIgZmlsbDp3aGl0ZSwgc3Ryb2tlOmdyZXlcbnN0eWxlIHAzIGZpbGw6d2hpdGUsIHN0cm9rZTpncmV5XG5zdHlsZSBwNCBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuc3R5bGUgcDUgZmlsbDp3aGl0ZSwgc3Ryb2tlOmdyZXlcblxuc3R5bGUgdDEgZmlsbDpjeWFuXG5zdHlsZSB0MiBmaWxsOmN5YW5cbnN0eWxlIHQzIGZpbGw6Y3lhblxuc3R5bGUgdDQgZmlsbDpjeWFuIiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifX0
+      -- | b = 01101020120330300                   { https://mermaidjs.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFJcblxucDEoKF8pKVxucDIoKDEpKVxucDMoKDIpKVxucDQoKDMpKVxucDUoKF8pKVxuXG5wMSAtLT4gdDFcbnQxIC0tIDIgLS0-IHAyXG5cbnAyIC0tPiB0MlxudDIgLS0-IHAzXG5cbnAyIC0tPiB0M1xucDMgLS0-IHQzXG50MyAtLSAyIC0tPiBwNFxuXG5wNCAtLT4gdDRcbnQ0IC0tPiBwNVxuXG5zdHlsZSBwMSBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuc3R5bGUgcDIgZmlsbDp3aGl0ZSwgc3Ryb2tlOmdyZXlcbnN0eWxlIHAzIGZpbGw6d2hpdGUsIHN0cm9rZTpncmV5XG5zdHlsZSBwNCBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuc3R5bGUgcDUgZmlsbDp3aGl0ZSwgc3Ryb2tlOmdyZXlcblxuc3R5bGUgdDEgZmlsbDpjeWFuXG5zdHlsZSB0MiBmaWxsOmN5YW5cbnN0eWxlIHQzIGZpbGw6Y3lhblxuc3R5bGUgdDQgZmlsbDpjeWFuIiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifX0 }
       -- |   |
       -- |   = ,11,1,2,12,33,3,.
       -- |   |
@@ -237,7 +237,7 @@ suite = do
       -- |     \_____/ \_____/ \_______/ \____/
       -- |      f        g         h         i
       -- |
-      -- | c = 010010100                           https://mermaidjs.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFJcblxucDEoKF8pKVxucDIoKF8pKVxucDMoKDEpKVxucDQoKF8pKVxuXG5wMSAtLT4gdDFcbnQxIC0tPiBwM1xuXG5wMiAtLT4gdDJcbnQyIC0tPiBwM1xuXG5wMyAtLT4gdDNcbnQzIC0tPiBwNFxuXG5zdHlsZSBwMSBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuc3R5bGUgcDIgZmlsbDp3aGl0ZSwgc3Ryb2tlOmdyZXlcbnN0eWxlIHAzIGZpbGw6d2hpdGUsIHN0cm9rZTpncmV5XG5zdHlsZSBwNCBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuXG5zdHlsZSB0MSBmaWxsOmN5YW5cbnN0eWxlIHQyIGZpbGw6Y3lhblxuc3R5bGUgdDMgZmlsbDpjeWFuIiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifX0
+      -- | c = 010010100                           { https://mermaidjs.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggTFJcblxucDEoKF8pKVxucDIoKF8pKVxucDMoKDEpKVxucDQoKF8pKVxuXG5wMSAtLT4gdDFcbnQxIC0tPiBwM1xuXG5wMiAtLT4gdDJcbnQyIC0tPiBwM1xuXG5wMyAtLT4gdDNcbnQzIC0tPiBwNFxuXG5zdHlsZSBwMSBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuc3R5bGUgcDIgZmlsbDp3aGl0ZSwgc3Ryb2tlOmdyZXlcbnN0eWxlIHAzIGZpbGw6d2hpdGUsIHN0cm9rZTpncmV5XG5zdHlsZSBwNCBmaWxsOndoaXRlLCBzdHJva2U6Z3JleVxuXG5zdHlsZSB0MSBmaWxsOmN5YW5cbnN0eWxlIHQyIGZpbGw6Y3lhblxuc3R5bGUgdDMgZmlsbDpjeWFuIiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifX0 }
       -- |   |
       -- |   = ,1,,1,1,.
       -- |   |
@@ -245,28 +245,32 @@ suite = do
       -- |     \____/ \____/ \____/
       -- |      l       m      n
       -- |
-      -- | y = 21233  (root diagram)               https://statebox-brick-diagrams.netlify.com/#!/21233
+      -- | y = 21233  { root diagram }             { https://statebox-brick-diagrams.netlify.com/#!/21233 }
       -- |   |
-      -- |   = 1 --┐  (replaced by the glueing of a and a via z)
+      -- |   = 1 --┐  { replaced by the glueing of a and a via }
       -- |         |
       -- |         v
-      -- |         3  (replaced by c)
+      -- |         3  { replaced by c }
       -- |         ^
       -- |         |
-      -- |     2 --┘  (replaces by b)
+      -- |     2 --┘  { replaced by b }
       -- |
-      -- | z = 112                                 https://statebox-brick-diagrams.netlify.com/#!/112
+      -- | z = 112                                 { https://statebox-brick-diagrams.netlify.com/#!/112 }
       -- |   |
-      -- |   = 1 -> 2 (both 1 and 2 gets replaced by a)
+      -- |   = 1 -> 2 { both 1 and 2 gets replaced by a }
+      -- | ```
       -- |
-      -- | the net resulting from the glueing is the following, where
-      -- | - (1_a) indicates the place 1 in the a net
-      -- | - the ' in used to differentiates two copies of the same net
-      -- | - the numbers near the arrows indicate the transaction id asseigned to the glued net
+      -- | The net resulting from the gluing is the following, where:
       -- |
-      -- |  _  0        2         5        7   _
-      -- | |_| -> (1_a) -> (1_a') -> (1_c) -> |_|
+      -- | - `(1_a)` indicates the place 1 in the a net.
+      -- | - The `'` is used to differentiate two copies of the same net.
+      -- | - The numbers near the arrows indicate the transaction id assigned to the glued net.
+      -- |
+      -- | ```
+      -- |  _  0        2         5         7   _
+      -- | |_| -> (1_a) -> (1_a') -> (1_c) --> |_|
       -- |                                 ^
+      -- |                                 |
       -- |  _  1        3                  |
       -- | |_| -> (1_b) -> (2_b)           |
       -- |          |        |             | 6
@@ -342,9 +346,11 @@ suite = do
       let
         firing0 = spy "firing 0" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 0)
         firing1 = spy "firing 1" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 1)
+        -- TODO this fails, see https://github.com/statebox/stbx-core-js/issues/45
         -- firing2 = spy "firing 2" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 2)
         firing3 = spy "firing 3" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 3)
         firing4 = spy "firing 4" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 4)
+        -- TODO this fails, see https://github.com/statebox/stbx-core-js/issues/45
         -- firing5 = spy "firing 5" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 5)
         firing6 = spy "firing 6" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 6)
         firing7 = spy "firing 7" $ fromGluedTransition2JS <$> Stbx.getFiring s0 (GluedTransitionId 7)
