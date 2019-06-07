@@ -1,6 +1,7 @@
 module Statebox.Core.Transaction where
 
 import Prelude
+import Data.Maybe (Maybe(..))
 import Statebox.Core.Types (Initial, Firing, Wiring, HexStr)
 
 type HashStr = HexStr
@@ -39,31 +40,35 @@ type FiringTx =
 -- | This über-root has a hash code (see `uberRootHash`) that identifies it, but it has
 -- | no body and is never actually sent, hence the 'virtual'.
 data TxSum
-  = InitialTxInj InitialTx
+  = UberRootTxInj
+  | InitialTxInj InitialTx
   | WiringTxInj WiringTx
   | FiringTxInj FiringTx
 
 evalTxSum
   :: forall a
-   . (InitialTx -> a)
+   . (Unit -> a)
+  -> (InitialTx -> a)
   -> (WiringTx -> a)
   -> (FiringTx -> a)
   -> TxSum
   -> a
-evalTxSum fi fw ff = case _ of
+evalTxSum fu fi fw ff = case _ of
+  UberRootTxInj  -> fu unit
   InitialTxInj i -> fi i
   WiringTxInj  w -> fw w
   FiringTxInj  f -> ff f
 
 instance showTxSum :: Show TxSum where
   show = evalTxSum
-    (\x -> "(InitialTxInj " <> show x <> ")")
-    (\x -> "(WiringTxInj "  <> show x <> ")")
-    (\x -> "(FiringTxInj "  <> show x <> ")")
+    (\x -> "(UberRootTxInj " <> show x <> ")")
+    (\x -> "(InitialTxInj "  <> show x <> ")")
+    (\x -> "(WiringTxInj "   <> show x <> ")")
+    (\x -> "(FiringTxInj "   <> show x <> ")")
 
 -- | `InitialTx` ('root') transactions are children of the virtual 'über-root', indicated by this hash.
 uberRootHash :: HashStr
 uberRootHash = "z"
 
-getPrevious :: TxSum -> HashStr
-getPrevious = evalTxSum (_.previous) (_.previous) (_.previous)
+getPrevious :: TxSum -> Maybe HashStr
+getPrevious = evalTxSum (const Nothing) (Just <<< _.previous) (Just <<< _.previous) (Just <<< _.previous)

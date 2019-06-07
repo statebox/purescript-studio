@@ -252,6 +252,7 @@ ui =
                                Auths      projectName        -> [ projectName, "Authorisation" ]
                                Net        projectName name   -> [ projectName, name ]
                                Diagram    projectName name _ -> [ projectName, name ]
+                               UberRootR  url                -> [ "über-namespace", url ]
                                NamespaceR hash               -> [ "namespace", shortHash hash ]
                                WiringR    x                  -> [ x.endpointUrl, "wiring " <> shortHash x.hash ]
                                FiringR    x                  -> [ x.endpointUrl, shortHash x.hash ]
@@ -308,6 +309,7 @@ resolveRoute route {projects, hashSpace} = case route of
                                                        DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
                                                        NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                                           pure $ ResolvedDiagram diagram node
+  UberRootR  hash                   -> Nothing -- TODO
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
   WiringR    x                      -> ResolvedWiring x <$> findWiringTx hashSpace x.hash
   FiringR    x                      -> ResolvedFiring x <$> findFiringTx hashSpace x.hash
@@ -384,6 +386,10 @@ transactionMenu t hash valueMaybe itemKids =
   where
     mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
     mkItem2 hash tx itemKids = evalTxSum
+      (\x -> mkItem ("☁️ "  <> shortHash hash)
+                    (Just $ UberRootR "TODO-fake-url")
+                    :< itemKids
+      )
       (\x -> mkItem ("🌐 "  <> shortHash hash)
                     (Just $ NamespaceR x.root.message)
                     :< itemKids
