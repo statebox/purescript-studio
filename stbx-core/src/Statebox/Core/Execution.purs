@@ -50,10 +50,11 @@ type GluedTransition2 =
 -- | ```
 data TransitionSort
   = Initial
-  | Normal
+  | Normal -- ^ TODO RENAME
   | Glued
   | Final
 
+-- The JavaScript has lowercase strings, so we decode them here as such.
 fromTransitionSortString :: String -> Maybe TransitionSort
 fromTransitionSortString = case _ of
   "initial" -> Just Initial
@@ -64,10 +65,19 @@ fromTransitionSortString = case _ of
 
 derive instance eqTransitionSort :: Eq TransitionSort
 
+-- TODO add test for encoding and decoding.
+-- This should be inverse to fromTransitionSortString.
 instance showTransitionSort :: Show TransitionSort where
   show = case _ of
     Initial -> "initial"
     Normal  -> "vanilla"
+    Glued   -> "glued"
+    Final   -> "final"
+
+pretty :: TransitionSort -> String
+pretty = case _ of
+    Initial -> "initial"
+    Normal  -> "normal"
     Glued   -> "glued"
     Final   -> "final"
 
