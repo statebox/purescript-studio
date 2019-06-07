@@ -221,6 +221,9 @@ ui =
                       ]
                 ]
 
+          ResolvedUberRoot url ->
+            text $ "Service über-root " <> url
+
           ResolvedNamespace hash ->
             text $ "Namespace " <> hash
 
@@ -309,7 +312,7 @@ resolveRoute route {projects, hashSpace} = case route of
                                                        DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
                                                        NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                                           pure $ ResolvedDiagram diagram node
-  UberRootR  hash                   -> Nothing -- TODO
+  UberRootR  url                    -> pure $ ResolvedUberRoot url
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
   WiringR    x                      -> ResolvedWiring x <$> findWiringTx hashSpace x.hash
   FiringR    x                      -> ResolvedFiring x <$> findFiringTx hashSpace x.hash
@@ -387,7 +390,7 @@ transactionMenu t hash valueMaybe itemKids =
     mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
     mkItem2 hash tx itemKids = evalTxSum
       (\x -> mkItem ("☁️ "  <> shortHash hash)
-                    (Just $ UberRootR "TODO-fake-url")
+                    (Just $ UberRootR Ex.endpointUrl)
                     :< itemKids
       )
       (\x -> mkItem ("🌐 "  <> shortHash hash)
