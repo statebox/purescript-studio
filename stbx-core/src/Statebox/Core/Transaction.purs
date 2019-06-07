@@ -35,14 +35,22 @@ type FiringTx =
 
 --------------------------------------------------------------------------------
 
--- | There are 3 types of transaction, and an additional 'virtual' transaction called
--- | the 'über-root', which terminates the transaction chain in the `previous` direction.
--- | This über-root has a hash code (see `uberRootHash`) that identifies it, but it has
--- | no body and is never actually sent, hence the 'virtual'.
+-- | The transaction types used in the Statebox protocol.
 data TxSum
+
+  -- | The 'über-root' is a 'virtual' transaction that terminates the transaction chain in the `previous` direction.
+  -- | It has a hash code (see `uberRootHash`) that identifies it, but it has no body and is never actually sent,
+  -- | hence the 'virtual'.
   = UberRootTxInj
+
+  -- | The initial root namespace transaction.
   | InitialTxInj InitialTx
+
+  -- | This describes the protocol net in terms diagrams of open Petri Nets.
   | WiringTxInj WiringTx
+
+  -- | This represents a firing of the protocol net, as part of the current execution chain. The history of this
+  -- | is found by traversing the chain along its `previous` transactions.
   | FiringTxInj FiringTx
 
 evalTxSum
