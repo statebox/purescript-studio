@@ -14,13 +14,16 @@ import Data.Either.Nested (type (\/))
 import Data.HTTP.Method (Method(GET))
 import Effect.Aff (Aff)
 
-import Statebox.Core.Transaction (HashStr, TxSum(..))
+import Statebox.Core.Transaction (HashStr, TxSum(..), isUberRootHash)
 import Statebox.Core.Transaction.Codec (decodeTxSum, DecodingError)
 
 requestTransaction :: URL -> HashStr -> Aff (ResponseFormatError \/ (DecodingError \/ TxSum))
-requestTransaction apiBaseUrl hash = do
-  res <- requestTransactionJson apiBaseUrl hash
-  pure $ decodeTxSum hash <$> res.body
+requestTransaction apiBaseUrl hash =
+  if isUberRootHash hash then
+    pure $ Right <<< Right $ UberRootTxInj
+  else do
+    res <- requestTransactionJson apiBaseUrl hash
+    pure $ decodeTxSum hash <$> res.body
 
 requestTransactionJson :: URL -> HashStr -> Aff (Response (ResponseFormatError \/ Json))
 requestTransactionJson apiBaseUrl hash =

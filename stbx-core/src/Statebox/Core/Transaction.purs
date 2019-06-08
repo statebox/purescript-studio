@@ -78,5 +78,8 @@ instance showTxSum :: Show TxSum where
 uberRootHash :: HashStr
 uberRootHash = "z"
 
+isUberRootHash :: HashStr -> Boolean
+isUberRootHash hash = hash == uberRootHash
+
 getPrevious :: TxSum -> Maybe HashStr
 getPrevious = evalTxSum (const Nothing) (Just <<< _.previous) (Just <<< _.previous) (Just <<< _.previous)
