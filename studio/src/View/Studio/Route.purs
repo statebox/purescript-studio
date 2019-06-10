@@ -24,6 +24,7 @@ data RouteF p d n
   | Diagram    p d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
 
   -- Statebox API-related constructors
+  | UberRootR  URL
   | NamespaceR HashStr
   | WiringR    WiringFiringInfo
   | FiringR    WiringFiringInfo
@@ -45,6 +46,7 @@ data ResolvedRouteF p d n
   | ResolvedAuths     p
 
   -- Statebox API-specific constructors
+  | ResolvedUberRoot  URL
   | ResolvedNamespace HashStr
   | ResolvedWiring    WiringFiringInfo WiringTx
   | ResolvedFiring    WiringFiringInfo FiringTx

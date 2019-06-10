@@ -29,14 +29,14 @@ lookup :: ∀ a. Key -> AdjacencySpace Key a -> Maybe a
 lookup k t = Map.lookup k t.values
 
 -- TODO optimisation: unify parents and values? maintaining two indices that are the same seems expensive.
-update :: ∀ a. (a -> Key) -> AdjacencySpace Key a -> Key -> a -> AdjacencySpace Key a
-update getParent t curKey val =
-  t { kids    = Map.alter  updateKids parent t.kids
-    , parents = Map.insert curKey     parent t.parents
-    , values  = Map.insert curKey     val    t.values
+update :: ∀ a. (a -> Maybe Key) -> AdjacencySpace Key a -> Key -> a -> AdjacencySpace Key a
+update getParentKeyMaybe t curKey val =
+  t { kids    = parentMaybe # maybe t.kids    (\parent -> Map.alter  updateKids parent t.kids)
+    , parents = parentMaybe # maybe t.parents (\parent -> Map.insert curKey     parent t.parents)
+    , values  =                                           Map.insert curKey     val    t.values
     }
   where
-    parent = getParent val
+    parentMaybe = getParentKeyMaybe val
     updateKids = Just <<< Set.insert curKey <<< fromMaybe mempty
 
 kids :: ∀ f v. Monoid (Set Key) => AdjacencySpace Key v -> Key -> Set Key

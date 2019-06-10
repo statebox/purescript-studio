@@ -1,6 +1,7 @@
 module Statebox.Core.Transaction where
 
 import Prelude
+import Data.Maybe (Maybe(..))
 import Statebox.Core.Types (Initial, Firing, Wiring, HexStr)
 
 type HashStr = HexStr
@@ -34,36 +35,51 @@ type FiringTx =
 
 --------------------------------------------------------------------------------
 
--- | There are 3 types of transaction, and an additional 'virtual' transaction called
--- | the 'über-root', which terminates the transaction chain in the `previous` direction.
--- | This über-root has a hash code (see `uberRootHash`) that identifies it, but it has
--- | no body and is never actually sent, hence the 'virtual'.
+-- | The transaction types used in the Statebox protocol.
 data TxSum
-  = InitialTxInj InitialTx
+
+  -- | The 'über-root' is a 'virtual' transaction that terminates the transaction chain in the `previous` direction.
+  -- | It has a hash code (see `uberRootHash`) that identifies it, but it has no body and is never actually sent,
+  -- | hence the 'virtual'.
+  = UberRootTxInj
+
+  -- | The initial root namespace transaction.
+  | InitialTxInj InitialTx
+
+  -- | This describes the protocol net in terms diagrams of open Petri Nets.
   | WiringTxInj WiringTx
+
+  -- | This represents a firing of the protocol net, as part of the current execution chain. The history of this
+  -- | is found by traversing the chain along its `previous` transactions.
   | FiringTxInj FiringTx
 
 evalTxSum
   :: forall a
-   . (InitialTx -> a)
+   . (Unit -> a)
+  -> (InitialTx -> a)
   -> (WiringTx -> a)
   -> (FiringTx -> a)
   -> TxSum
   -> a
-evalTxSum fi fw ff = case _ of
+evalTxSum fu fi fw ff = case _ of
+  UberRootTxInj  -> fu unit
   InitialTxInj i -> fi i
   WiringTxInj  w -> fw w
   FiringTxInj  f -> ff f
 
 instance showTxSum :: Show TxSum where
   show = evalTxSum
-    (\x -> "(InitialTxInj " <> show x <> ")")
-    (\x -> "(WiringTxInj "  <> show x <> ")")
-    (\x -> "(FiringTxInj "  <> show x <> ")")
+    (\x -> "(UberRootTxInj " <> show x <> ")")
+    (\x -> "(InitialTxInj "  <> show x <> ")")
+    (\x -> "(WiringTxInj "   <> show x <> ")")
+    (\x -> "(FiringTxInj "   <> show x <> ")")
 
 -- | `InitialTx` ('root') transactions are children of the virtual 'über-root', indicated by this hash.
 uberRootHash :: HashStr
 uberRootHash = "z"
 
-getPrevious :: TxSum -> HashStr
-getPrevious = evalTxSum (_.previous) (_.previous) (_.previous)
+isUberRootHash :: HashStr -> Boolean
+isUberRootHash hash = hash == uberRootHash
+
+getPrevious :: TxSum -> Maybe HashStr
+getPrevious = evalTxSum (const Nothing) (Just <<< _.previous) (Just <<< _.previous) (Just <<< _.previous)
