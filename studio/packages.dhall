@@ -122,10 +122,10 @@ let additions =
         (../stbx-core/spago.dhall).dependencies
         "../stbx-core"
         "development"
-  , stbx-client-http =
+  , stbx-client-rest =
       mkPackage
-        (../stbx-client-http/spago.dhall).dependencies
-        "../stbx-client-http"
+        (../stbx-client-rest/spago.dhall).dependencies
+        "../stbx-client-rest"
         "development"
   }
 
