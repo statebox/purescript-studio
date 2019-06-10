@@ -1,4 +1,4 @@
-module View.Studio.ObjectTree where
+module TreeMenu where
 
 import Prelude hiding (div)
 import Effect.Aff.Class (class MonadAff)
