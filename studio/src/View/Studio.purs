@@ -41,6 +41,8 @@ import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes, src, href, placeholder)
 import Halogen.HTML.Properties.ARIA as ARIA
 import Record as Record
+import TreeMenu as ObjectTree
+import TreeMenu (mkItem, MenuTree)
 
 import Data.Diagram.FromNLL as FromNLL
 import Data.Diagram.FromNLL (ErrDiagramEncoding)
@@ -63,8 +65,6 @@ import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, QueryF(..), Msg(NetUpdated))
 import View.Petrinet.Model.NLL as NLL
-import View.Studio.ObjectTree as ObjectTree
-import View.Studio.ObjectTree (mkItem, MenuTree)
 import View.Studio.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..), NamespaceInfo(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 

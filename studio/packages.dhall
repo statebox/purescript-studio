@@ -137,6 +137,11 @@ let additions =
 		]
         "https://github.com/statebox/purescript-halogen-svg.git"
         "master"
+  , halogen-tree-menu =
+      mkPackage
+        (../halogen-tree-menu/spago.dhall).dependencies
+        "../halogen-tree-menu"
+        "development"
   }
 
 in  upstream // overrides // additions

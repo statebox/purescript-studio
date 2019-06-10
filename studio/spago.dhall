@@ -10,6 +10,7 @@
 	, "group"
 	, "halogen"
 	, "halogen-svg"
+	, "halogen-tree-menu"
 	, "prelude"
 	, "stbx-core"
 	, "stbx-client-rest"
