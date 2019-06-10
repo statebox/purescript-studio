@@ -122,6 +122,19 @@ let additions =
         (../stbx-core/spago.dhall).dependencies
         "../stbx-core"
         "development"
+  , express =
+      mkPackage
+        [ "aff"
+        , "effect"
+        , "console"
+        , "foreign"
+        , "foreign-generic"
+        , "node-http"
+        , "psci-support"
+        , "test-unit"
+        ]
+        "https://github.com/nkly/purescript-express.git"
+        "v0.8.0"
   }
 
 in  upstream // overrides // additions
