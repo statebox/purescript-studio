@@ -1,5 +1,5 @@
 {
-  "name": "stbx-client-http",
+  "name": "stbx-client-rest",
   "version": "1.0.0",
   "description": "Statebox Cloud API REST Client",
   "main": "index.js",
