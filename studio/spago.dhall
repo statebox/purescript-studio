@@ -9,6 +9,7 @@
 	, "effect"
 	, "group"
 	, "halogen"
+	, "halogen-svg"
 	, "prelude"
 	, "stbx-core"
 	, "stbx-client-rest"

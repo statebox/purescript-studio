@@ -127,6 +127,16 @@ let additions =
         (../stbx-client-rest/spago.dhall).dependencies
         "../stbx-client-rest"
         "development"
+  , halogen-svg =
+      mkPackage
+        [ "prelude"
+		, "halogen"
+		, "strings"
+		, "web-uievents"
+		, "effect"
+		]
+        "https://github.com/statebox/purescript-halogen-svg.git"
+        "master"
   }
 
 in  upstream // overrides // additions
