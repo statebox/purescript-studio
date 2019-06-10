@@ -1,0 +1,19 @@
+{
+  "name": "stbx-service-rest",
+  "version": "1.0.0",
+  "description": "Statebox REST API",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "spago install",
+    "init": "spago init",
+    "build": "spago build",
+    "test": "spago test",
+    "repl": "spago repl"
+  },
+  "author": "Erik Post <erik@shinsetsu.nl>",
+  "license": "ISC",
+  "devDependencies": {
+    "purescript": "^0.12.5",
+    "spago": "^0.8.0"
+  }
+}
