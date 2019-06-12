@@ -1,7 +1,7 @@
 { name =
 	"stbx-example-data"
 , dependencies =
-	[] : List Text
+	[ "stbx-core" ]
 , packages =
 	./packages.dhall
 }
