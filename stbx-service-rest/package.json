@@ -17,5 +17,8 @@
   "devDependencies": {
     "purescript": "^0.12.5",
     "spago": "^0.8.5"
+  },
+  "dependencies": {
+    "express": "^4.17.1"
   }
 }
