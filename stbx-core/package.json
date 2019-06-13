@@ -7,6 +7,7 @@
     "postinstall": "spago install",
     "build": "spago build",
     "test": "spago test",
+    "docs": "spago docs",
     "repl": "spago repl"
   },
   "repository": {
@@ -27,7 +28,7 @@
   "homepage": "https://github.com/statebox/purescript-stbx#readme",
   "dependencies": {
     "purescript": "^0.12.5",
-    "spago": "^0.8.0",
+    "spago": "^0.8.4",
     "@statebox/stbx-js": "0.0.31"
   }
 }

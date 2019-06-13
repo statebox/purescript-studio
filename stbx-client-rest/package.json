@@ -5,12 +5,13 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build"
+    "build": "spago build",
+    "docs": "spago docs"
   },
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",
   "devDependencies": {
     "purescript": "^0.12.5",
-    "spago": "^0.8.0"
+    "spago": "^0.8.4"
   }
 }
