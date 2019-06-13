@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build"
+    "build": "spago build",
+    "docs": "spago docs"
   },
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",
