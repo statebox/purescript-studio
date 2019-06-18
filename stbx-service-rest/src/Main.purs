@@ -7,19 +7,19 @@ import Effect (Effect)
 import Effect.Console (log)
 import Effect.Exception (error)
 import Node.Express.App (App, listenHttp, get)
-import Node.Express.Handler (nextThrow)
+import Node.Express.Handler (Handler, nextThrow)
 import Node.Express.Request (getRouteParam)
 import Node.Express.Response (send)
 import Node.HTTP (Server)
 
-healthcheck :: App
-healthcheck = get "/healthcheck" $ send ""
+healthcheck :: Handler
+healthcheck = send ""
 
 -- | Transaction endpoint
 -- | responds to /tx/<hash>
 -- | returns a json-encoded Stbx.Core.Transaction.Tx
-transaction :: App
-transaction = get "/tx/:hash" $ do
+transaction :: Handler
+transaction =  do
   maybeHash <- getRouteParam "hash"
   case maybeHash of
     Nothing -> nextThrow $ error "Hash is required"
@@ -27,8 +27,8 @@ transaction = get "/tx/:hash" $ do
 
 app :: App
 app = do
-  healthcheck
-  transaction
+  get "/healthcheck" healthcheck
+  get "/tx/:hash"    transaction
 
 main :: Effect Server
 main = do
