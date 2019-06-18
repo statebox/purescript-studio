@@ -9,14 +9,16 @@
     "build": "spago build",
     "test": "spago test",
     "repl": "spago repl",
+    "docs": "spago docs",
     "watch": "spago build --watch",
-    "serve": "spago run --watch"
+    "serve": "spago run --watch --verbose"
   },
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",
   "devDependencies": {
     "purescript": "^0.12.5",
-    "spago": "^0.8.5"
+    "spago": "^0.8.5",
+    "xhr2": "^0.2.0"
   },
   "dependencies": {
     "express": "^4.17.1"
