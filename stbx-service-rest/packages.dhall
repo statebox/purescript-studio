@@ -12,6 +12,11 @@ let additions =
         (../stbx-core/spago.dhall).dependencies
         "../stbx-core"
         "development"
+  , stbx-client-rest =
+      mkPackage
+      (../stbx-client-rest/spago.dhall).dependencies
+      "../stbx-client-rest"
+      "development"
   , express =
       mkPackage
         [ "aff"
