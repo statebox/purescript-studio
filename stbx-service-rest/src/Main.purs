@@ -28,6 +28,16 @@ errorHandler err = do
 
 -- handlers
 
+index :: Handler
+index = sendJson
+  { name        : "Statebox could API"
+  , description : "collection of endpoints to interact with the Statebox protocol"
+  , endpoints   :
+    { healthcheck    : "/healthcheck"
+    , getTransaction : "/tx/:hash"
+    }
+  }
+
 healthcheck :: Handler
 healthcheck = sendJson {health: "I'm fine"}
 
@@ -38,7 +48,7 @@ transaction :: Handler
 transaction =  do
   maybeHash <- getRouteParam "hash"
   case maybeHash of
-    Nothing -> nextThrow $ error "Hash is required"
+    Nothing   -> nextThrow $ error "Hash is required"
     Just hash -> sendJson {hash: hash}
 
 -- application definition with routing
@@ -46,6 +56,7 @@ transaction =  do
 app :: App
 app = do
   use                logger
+  get "/"            index
   get "/healthcheck" healthcheck
   get "/tx/:hash"    transaction
   useOnError         errorHandler
