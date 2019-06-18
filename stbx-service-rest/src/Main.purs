@@ -2,9 +2,13 @@ module Main where
 
 import Prelude
 
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Console (log)
+import Effect.Exception (error)
 import Node.Express.App (App, listenHttp, get)
+import Node.Express.Handler (nextThrow)
+import Node.Express.Request (getRouteParam)
 import Node.Express.Response (send)
 import Node.HTTP (Server)
 
@@ -15,7 +19,11 @@ healthcheck = get "/healthcheck" $ send ""
 -- | responds to /tx/<hash>
 -- | returns a json-encoded Stbx.Core.Transaction.Tx
 transaction :: App
-transaction = get "/tx/:hash" $ send "tx"
+transaction = get "/tx/:hash" $ do
+  maybeHash <- getRouteParam "hash"
+  case maybeHash of
+    Nothing -> nextThrow $ error "Hash is required"
+    Just hash -> send hash
 
 app :: App
 app = do
