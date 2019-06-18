@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
+import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Effect.Exception (Error, error, message)
@@ -12,6 +13,14 @@ import Node.Express.Handler (Handler, next, nextThrow)
 import Node.Express.Request (getRouteParam, getOriginalUrl)
 import Node.Express.Response (sendJson, setStatus)
 import Node.HTTP (Server)
+
+import Statebox.Client (requestTransactionJson)
+
+-- data
+
+-- TODO: move this elsewhere
+endpointUrl :: String
+endpointUrl = "https://testapi.statebox.io"
 
 -- middleware
 
@@ -41,15 +50,19 @@ index = sendJson
 healthcheck :: Handler
 healthcheck = sendJson {health: "I'm fine"}
 
--- | Transaction endpoint
+-- | getTransaction endpoint
 -- | responds to /tx/<hash>
 -- | returns a json-encoded Stbx.Core.Transaction.Tx
-transaction :: Handler
-transaction =  do
+getTransaction :: Handler
+getTransaction =  do
   maybeHash <- getRouteParam "hash"
   case maybeHash of
     Nothing   -> nextThrow $ error "Hash is required"
-    Just hash -> sendJson {hash: hash}
+    Just hash -> do
+      transaction <- liftAff $ requestTransactionJson endpointUrl hash
+      sendJson { hash: hash
+               , transaction : transaction
+               }
 
 -- application definition with routing
 
@@ -58,7 +71,7 @@ app = do
   use                logger
   get "/"            index
   get "/healthcheck" healthcheck
-  get "/tx/:hash"    transaction
+  get "/tx/:hash"    getTransaction
   useOnError         errorHandler
 
 main :: Effect Server
