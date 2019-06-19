@@ -3,8 +3,9 @@ module Model where
 import Prelude
 
 import Control.Monad.Free (Free, liftF, runFreeM)
+import Control.Monad.Rec.Class (class MonadRec)
 import Data.Maybe (Maybe(..))
-import Effect.Aff (Aff)
+import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log)
 
 import Statebox.Core.Transaction (Tx, TxSum)
@@ -29,7 +30,7 @@ putTransaction transaction = liftF $ PutTransaction transaction unit
 
 -- loggingInstance
 
-loggingActions :: forall a. Actions a -> Aff a
+loggingActions :: forall a m. MonadEffect m => MonadRec m => Actions a -> m a
 loggingActions = runFreeM $ \action -> case action of
   GetTransaction txHash next      -> do
     log $ "get transaction " <> txHash
