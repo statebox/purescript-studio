@@ -17,8 +17,7 @@
   "license": "ISC",
   "devDependencies": {
     "purescript": "^0.12.5",
-    "spago": "^0.8.5",
-    "xhr2": "^0.2.0"
+    "spago": "^0.8.5"
   },
   "dependencies": {
     "express": "^4.17.1"

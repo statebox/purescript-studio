@@ -14,7 +14,7 @@ import Node.Express.Request (getRouteParam, getOriginalUrl)
 import Node.Express.Response (sendJson, setStatus)
 import Node.HTTP (Server)
 
-import Statebox.Client (requestTransactionJson)
+import Model (getTransaction, loggingActions)
 
 -- data
 
@@ -53,15 +53,15 @@ healthcheck = sendJson {health: "I'm fine"}
 -- | getTransaction endpoint
 -- | responds to /tx/<hash>
 -- | returns a json-encoded Stbx.Core.Transaction.Tx
-getTransaction :: Handler
-getTransaction =  do
+getTransactionHandler :: Handler
+getTransactionHandler =  do
   maybeHash <- getRouteParam "hash"
   case maybeHash of
     Nothing   -> nextThrow $ error "Hash is required"
     Just hash -> do
-      transaction <- liftAff $ requestTransactionJson endpointUrl hash
+      maybeTransaction <- liftAff $ loggingActions $ getTransaction hash
       sendJson { hash: hash
-               , transaction : transaction
+               , transaction : maybeTransaction
                }
 
 -- application definition with routing
@@ -71,7 +71,7 @@ app = do
   use                logger
   get "/"            index
   get "/healthcheck" healthcheck
-  get "/tx/:hash"    getTransaction
+  get "/tx/:hash"    getTransactionHandler
   useOnError         errorHandler
 
 main :: Effect Server
