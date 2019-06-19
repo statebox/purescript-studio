@@ -5,6 +5,7 @@
 	, "console"
 	, "effect"
 	, "express"
+	, "free"
 	, "psci-support"
 	, "stbx-core"
 	, "stbx-client-rest"
