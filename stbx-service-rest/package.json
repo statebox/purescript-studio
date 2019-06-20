@@ -11,7 +11,7 @@
     "repl": "spago repl",
     "docs": "spago docs",
     "watch": "spago build --watch",
-    "serve": "spago run --watch --verbose"
+    "serve": "spago run"
   },
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",
