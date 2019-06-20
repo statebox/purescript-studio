@@ -2,6 +2,7 @@
 	"stbx-client-rest"
 , dependencies =
 	[ "affjax"
+	, "aff-coroutines"
 	, "argonaut"
 	, "effect"
 	, "free"
