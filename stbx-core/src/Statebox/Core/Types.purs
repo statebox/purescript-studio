@@ -1,6 +1,7 @@
 module Statebox.Core.Types where
 
 import Prelude
+import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, unwrap)
 
 -- | Place id.
@@ -64,7 +65,7 @@ type Diagram =
 --------------------------------------------------------------------------------
 
 type Firing =
-  { message :: Message
+  { message :: Maybe Message
   , path    :: Singleton GluedTransitionIdRaw
   }
 

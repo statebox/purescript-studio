@@ -16,6 +16,7 @@ import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 
 import Test.Statebox.Core.Execution as Execution
+import Test.Statebox.Core.Transaction.Codec as Transaction.Codec
 
 main :: Effect Unit
 main = run [consoleReporter] do
@@ -28,3 +29,4 @@ main = run [consoleReporter] do
     pending "should infer a single trailing zero?"
 
   Execution.suite
+  Transaction.Codec.suite
