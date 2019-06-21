@@ -2,7 +2,10 @@ module Main where
 
 import Prelude
 
+import Control.Monad.Except (runExcept)
 import Control.Monad.State.Trans (runStateT)
+import Data.Either (Either(..))
+import Data.Function.Uncurried (Fn3)
 import Data.Map (empty)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
@@ -11,13 +14,18 @@ import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Effect.Ref (Ref, new, read)
 import Effect.Exception (Error, error, message)
-import Node.Express.App (App, listenHttp, get, use, useOnError)
+import Foreign (F)
+import Node.Express.App (App, listenHttp, get, post, use, useExternal, useOnError)
 import Node.Express.Handler (Handler, next, nextThrow)
-import Node.Express.Request (getRouteParam, getOriginalUrl)
+import Node.Express.Request (getBody, getRouteParam, getOriginalUrl)
 import Node.Express.Response (sendJson, setStatus)
+import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 
 import Model (TransactionDictionary, getTransaction, inMemoryActions)
+
+-- import body parser
+foreign import jsonBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
 -- TODO: move this elsewhere
 endpointUrl :: String
@@ -59,7 +67,7 @@ healthcheck :: Handler
 healthcheck = sendJson {health: "I'm fine"}
 
 -- | getTransaction endpoint
--- | responds to /tx/<hash>
+-- | responds to GET /tx/<hash>
 -- | returns a json-encoded Stbx.Core.Transaction.Tx
 getTransactionHandler :: AppState -> Handler
 getTransactionHandler appState = do
@@ -73,15 +81,28 @@ getTransactionHandler appState = do
                , transaction : maybeTransaction
                }
 
+-- | postTransaction endpoint
+-- | responds to POST /tx
+postTransactionHandler :: AppState -> Handler
+postTransactionHandler appState = do
+  fBody :: F (Array String) <- getBody
+  case runExcept fBody of
+    Left errors -> sendJson { status: "ko"
+                            , errors : show errors
+                            }
+    Right hash  -> sendJson { status: "ok" }
+
 -- application definition with routing
 
 app :: AppState -> App
 app state = do
-  use                logger
-  get "/"            index
-  get "/healthcheck" healthcheck
-  get "/tx/:hash"    (getTransactionHandler state)
-  useOnError         errorHandler
+  useExternal         jsonBodyParser
+  use                 logger
+  get  "/"            index
+  get  "/healthcheck" healthcheck
+  get  "/tx/:hash"    (getTransactionHandler state)
+  post "/tx"          (postTransactionHandler state)
+  useOnError          errorHandler
 
 -- run application
 
