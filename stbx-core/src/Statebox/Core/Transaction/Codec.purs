@@ -15,8 +15,8 @@ import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), 
 import Statebox.Core.Types (Firing)
 
 
-decodeTxSum :: HashStr -> Json -> DecodingError \/ TxSum
-decodeTxSum hash json =
+decodeTxSum :: Json -> DecodingError \/ TxSum
+decodeTxSum json =
   lmap DecodingError (decodeFiring json <|> decodeWiring json <|> decodeInitial json)
   where
     decodeInitial :: Json -> String \/ TxSum
@@ -29,6 +29,9 @@ decodeTxSum hash json =
     decodeFiring json = FiringTxInj <<< _.decoded <$> (decodeTxFiringTx =<< decodeJson json)
 
 newtype DecodingError = DecodingError String
+
+instance eqDecodingError :: Eq DecodingError where
+  eq (DecodingError x) (DecodingError y) = x == y
 
 instance showDecodingError :: Show DecodingError where
   show = case _ of

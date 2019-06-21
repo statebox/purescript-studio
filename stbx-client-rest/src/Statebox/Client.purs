@@ -38,7 +38,7 @@ requestTransaction apiBaseUrl hash =
     pure $ Right <<< Right $ UberRootTxInj
   else do
     res <- requestTransactionJson apiBaseUrl hash
-    pure $ decodeTxSum hash <$> res.body
+    pure $ decodeTxSum <$> res.body
 
 -- | Request the transaction corresponding to the specified `startHash`, as well as all of its
 -- | parent transactions up to the root.

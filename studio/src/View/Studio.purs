@@ -49,11 +49,12 @@ import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Statebox.Client as Stbx
+import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Execution (PathElem)
 import Statebox.Core.Types as Stbx
 import Statebox.Core.Types (Diagram)
 import Statebox.Core.Transaction as Stbx
-import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum, evalTransactionResponse)
+import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
 import Statebox.Core.Lenses (_leWiring, _leFiring)
 import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Auth.RolesEditor as RolesEditor
@@ -127,7 +128,7 @@ ui =
       LoadTransaction endpointUrl hash next -> do
         H.liftEffect $ log $ "LoadTransaction: requesting transaction " <> hash <> " from " <> endpointUrl
         res <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
-        res <#> evalTransactionResponse
+        res # evalTransactionResponse
           (\err                 -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
           (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
           (\txSum               -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace hash txSum })
