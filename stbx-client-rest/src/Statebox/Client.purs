@@ -10,12 +10,11 @@ import Affjax.RequestHeader as RequestHeader
 import Affjax.StatusCode (StatusCode(..))
 import Control.Coroutine (Producer)
 import Control.Coroutine.Aff (emit, close, produceAff, Emitter)
-import Control.Monad.Rec.Class (class MonadRec, Step(Loop, Done), tailRecM)
+import Control.Monad.Rec.Class (Step(Loop, Done), tailRecM)
 import Data.Argonaut.Core (Json)
 import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
 import Data.HTTP.Method (Method(GET))
-import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 
 import Statebox.Core.Transaction (HashStr, TxSum(..), evalTxSum, isUberRootHash)

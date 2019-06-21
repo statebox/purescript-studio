@@ -12,7 +12,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Foreign.Object (Object(..), lookup)
 
 import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), HashStr)
-import Statebox.Core.Types (Wiring, Firing)
+import Statebox.Core.Types (Firing)
 
 
 decodeTxSum :: HashStr -> Json -> DecodingError \/ TxSum

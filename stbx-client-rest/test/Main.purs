@@ -5,16 +5,14 @@ import Prelude
 import Affjax (URL)
 import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
 import Data.Either (either)
-import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe(Nothing))
 import Effect (Effect)
-import Effect.Aff (Aff, Milliseconds(..), delay, runAff)
-import Effect (Effect)
+import Effect.Aff (Aff, runAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 
 import Statebox.Client (requestTransactionsToRoot)
-import Statebox.Core.Transaction (HashStr, TxSum(..), Tx(..), FiringTx, evalTxSum, isUberRootHash)
+import Statebox.Core.Transaction (TxSum(..))
 
 apiBaseUrl :: URL
 apiBaseUrl = "https://testapi.statebox.io"
