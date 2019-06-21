@@ -14,14 +14,14 @@ import Statebox.Core.Transaction (Tx, TxSum)
 
 -- define possible actions
 
-type PutHashTransaction =
+type AddTransactionData =
   { hash        :: String
   , transaction :: Tx TxSum
   }
 
 data ActionsF a
   = GetTransaction String (Maybe (Tx TxSum) -> a)
-  | PutTransaction PutHashTransaction a
+  | AddTransaction AddTransactionData a
 
 derive instance functorActions :: Functor (ActionsF)
 
@@ -33,7 +33,7 @@ getTransaction :: String -> Actions (Maybe (Tx TxSum))
 getTransaction txHash = liftF $ GetTransaction txHash identity
 
 putTransaction :: String -> Tx TxSum -> Actions Unit
-putTransaction hash transaction = liftF $ PutTransaction {hash: hash, transaction: transaction} unit
+putTransaction hash transaction = liftF $ AddTransaction {hash: hash, transaction: transaction} unit
 
 -- logging instance
 
@@ -42,7 +42,7 @@ loggingActions = runFreeM $ \action -> case action of
   GetTransaction txHash next      -> do
     log $ "get transaction " <> txHash
     pure $ next Nothing
-  PutTransaction transaction next -> do
+  AddTransaction transaction next -> do
     log $ "put transaction" <> show transaction
     pure next
 
@@ -55,6 +55,6 @@ inMemoryActions = runFreeM $ \action -> case action of
   GetTransaction txHash next -> do
     transactionsMap <- get
     pure $ next $ lookup txHash transactionsMap
-  PutTransaction {hash: hash, transaction: transaction} next -> do
+  AddTransaction {hash: hash, transaction: transaction} next -> do
     modify_ $ insert hash transaction
     pure next
