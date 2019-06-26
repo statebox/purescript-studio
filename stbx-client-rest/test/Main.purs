@@ -12,7 +12,7 @@ import Effect.Class (liftEffect)
 import Effect.Console (log)
 
 import Statebox.Client (requestTransactionsToRoot)
-import Statebox.Core.Transaction (TxSum(..))
+import Statebox.Core.Transaction (HashTx)
 
 apiBaseUrl :: URL
 apiBaseUrl = "https://testapi.statebox.io"
@@ -25,10 +25,10 @@ fetchExampleTransactions :: Process Aff Unit
 fetchExampleTransactions =
   transactionProducer `connect` transactionConsumer
   where
-    transactionProducer :: Producer TxSum Aff Unit
+    transactionProducer :: Producer HashTx Aff Unit
     transactionProducer = requestTransactionsToRoot apiBaseUrl exampleFiringHash1
       where
         exampleFiringHash1 = "zFsGM27HNS66qmGp1Y1STK48FUA1F12VHLRB51RGWNYWV"
 
-    transactionConsumer :: Consumer TxSum Aff Unit
-    transactionConsumer = consumer \tx -> liftEffect (log $ show tx) $> Nothing
+    transactionConsumer :: Consumer HashTx Aff Unit
+    transactionConsumer = consumer \hashTx -> liftEffect (log $ show hashTx) $> Nothing
