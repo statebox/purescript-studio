@@ -153,12 +153,11 @@ ui =
                 H.liftEffect $ log $ show hashTx
                 pure Nothing
 
-          -- | This sucks transactions from the HTTP API into our transaction storage.
-          txSucker :: Process (HalogenM State Query _ _ Void m) Unit
-          txSucker =
-            txProducer `connect` txConsumer
+          -- | This ingests transactions from the HTTP API into our transaction storage.
+          txIngester :: Process (HalogenM State Query _ _ Void m) Unit
+          txIngester = txProducer `connect` txConsumer
 
-        runProcess txSucker
+        runProcess txIngester
         pure next
 
       LoadPNPRO url next -> do
