@@ -11,13 +11,15 @@ import Affjax.StatusCode (StatusCode(..))
 import Control.Coroutine (Producer)
 import Control.Coroutine.Aff (emit, close, produceAff, Emitter)
 import Control.Monad.Rec.Class (Step(Loop, Done), tailRecM)
+import Control.Monad.Free.Trans (hoistFreeT)
 import Data.Argonaut.Core (Json)
 import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
 import Data.HTTP.Method (Method(GET))
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff)
 
-import Statebox.Core.Transaction (HashStr, TxSum(..), evalTxSum, isUberRootHash)
+import Statebox.Core.Transaction (HashStr, HashTx, TxSum(..), evalTxSum, isUberRootHash)
 import Statebox.Core.Transaction.Codec (decodeTxSum, DecodingError)
 
 -- | A convenience function for processing API responses.
@@ -44,28 +46,41 @@ requestTransaction apiBaseUrl hash =
 -- | parent transactions up to the root.
 -- |
 -- | The transactions are loaded one by one and emitted (streamed) onto a `Producer` coroutine.
-requestTransactionsToRoot :: URL -> HashStr -> Producer TxSum Aff Unit
+-- |
+-- | This is an `Aff`- specialized version of `requestTransactionsToRootM`. (In fact, the more
+-- | general one is implemented in terms of this one.)
+requestTransactionsToRoot :: URL -> HashStr -> Producer HashTx Aff Unit
 requestTransactionsToRoot apiBaseUrl startHash =
-  produceAff $ \emitter -> (tailRecM (fetchEmitStep emitter)) startHash
-  where
-    fetchEmitStep :: Emitter Aff TxSum Unit -> HashStr -> Aff (Step HashStr Unit)
-    fetchEmitStep emitter hash = do
-      requestTransaction apiBaseUrl hash >>= evalTransactionResponse
-        (\e -> do close emitter unit -- TODO emit error?
-                  pure $ Done unit)
-        (\e -> do close emitter unit -- TODO emit error?
-                  pure $ Done unit)
-        (\tx -> evalTxSum
-           (\x -> do close emitter unit
-                     pure $ Done unit)
-           (\x -> do emit emitter tx
-                     pure $ Loop x.previous)
-           (\x -> do emit emitter tx
-                     pure $ Loop x.previous)
-           (\x -> do emit emitter tx
-                     pure $ Loop x.previous)
-           tx
-        )
+  produceAff $ \emitter -> tailRecM (fetchEmitStep emitter apiBaseUrl) startHash
+
+-- | Request the transaction corresponding to the specified `startHash`, as well as all of its
+-- | parent transactions up to the root.
+-- |
+-- | The transactions are loaded one by one and emitted (streamed) onto a `Producer` coroutine.
+-- |
+-- | This is a generalized version of `requestTransactionsToRoot`.
+requestTransactionsToRootM :: forall m. MonadAff m => URL -> HashStr -> Producer HashTx m Unit
+requestTransactionsToRootM apiBaseUrl startHash =
+  hoistFreeT liftAff $ requestTransactionsToRoot apiBaseUrl startHash
+
+fetchEmitStep :: Emitter Aff HashTx Unit -> URL -> HashStr -> Aff (Step HashStr Unit)
+fetchEmitStep emitter apiBaseUrl hash = liftAff $ do
+  requestTransaction apiBaseUrl hash >>= evalTransactionResponse
+    (\e -> do close emitter unit -- TODO emit error?
+              pure $ Done unit)
+    (\e -> do close emitter unit -- TODO emit error?
+              pure $ Done unit)
+    (\tx -> evalTxSum
+       (\x -> do close emitter unit
+                 pure $ Done unit)
+       (\x -> do emit emitter { hash, tx }
+                 pure $ Loop x.previous)
+       (\x -> do emit emitter { hash, tx }
+                 pure $ Loop x.previous)
+       (\x -> do emit emitter { hash, tx }
+                 pure $ Loop x.previous)
+       tx
+    )
 
 requestTransactionJson :: URL -> HashStr -> Aff (Response (ResponseFormatError \/ Json))
 requestTransactionJson apiBaseUrl hash =

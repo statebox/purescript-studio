@@ -16,6 +16,8 @@ type Tx a =
   , decoded :: a
   }
 
+type HashTx = { hash :: HashStr, tx :: TxSum }
+
 --------------------------------------------------------------------------------
 
 type InitialTx =
