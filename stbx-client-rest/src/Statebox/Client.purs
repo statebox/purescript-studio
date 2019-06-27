@@ -47,21 +47,21 @@ requestTransaction apiBaseUrl hash =
 -- |
 -- | The transactions are loaded one by one and emitted (streamed) onto a `Producer` coroutine.
 -- |
--- | This is an `Aff`- specialized version of `requestTransactionsToRootM`. (In fact, the more
--- | general one is implemented in terms of this one.)
-requestTransactionsToRoot :: URL -> HashStr -> Producer HashTx Aff Unit
-requestTransactionsToRoot apiBaseUrl startHash =
-  produceAff $ \emitter -> tailRecM (fetchEmitStep emitter apiBaseUrl) startHash
+-- | This is a generalized version of `requestTransactionsToRoot`.
+requestTransactionsToRootM :: forall m. MonadAff m => URL -> HashStr -> Producer HashTx m Unit
+requestTransactionsToRootM apiBaseUrl startHash =
+  hoistFreeT liftAff $ requestTransactionsToRoot apiBaseUrl startHash
 
 -- | Request the transaction corresponding to the specified `startHash`, as well as all of its
 -- | parent transactions up to the root.
 -- |
 -- | The transactions are loaded one by one and emitted (streamed) onto a `Producer` coroutine.
 -- |
--- | This is a generalized version of `requestTransactionsToRoot`.
-requestTransactionsToRootM :: forall m. MonadAff m => URL -> HashStr -> Producer HashTx m Unit
-requestTransactionsToRootM apiBaseUrl startHash =
-  hoistFreeT liftAff $ requestTransactionsToRoot apiBaseUrl startHash
+-- | This is an `Aff`- specialized version of `requestTransactionsToRootM`. (In fact, the more
+-- | general one is implemented in terms of this one.)
+requestTransactionsToRoot :: URL -> HashStr -> Producer HashTx Aff Unit
+requestTransactionsToRoot apiBaseUrl startHash =
+  produceAff $ \emitter -> tailRecM (fetchEmitStep emitter apiBaseUrl) startHash
 
 fetchEmitStep :: Emitter Aff HashTx Unit -> URL -> HashStr -> Aff (Step HashStr Unit)
 fetchEmitStep emitter apiBaseUrl hash = liftAff $ do
