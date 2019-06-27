@@ -85,14 +85,14 @@ fetchAndEmitTxStep emitter apiBaseUrl hash = liftAff $ do
               pure $ Done unit)
     (\e -> do close emitter unit -- TODO emit error?
               pure $ Done unit)
-    (\{hash: _, tx} -> evalTxSum
+    (\{id, tx} -> evalTxSum
        (\x -> do close emitter unit
                  pure $ Done unit)
-       (\x -> do emit emitter { hash, tx }
+       (\x -> do emit emitter { id, tx }
                  pure $ Loop x.previous)
-       (\x -> do emit emitter { hash, tx }
+       (\x -> do emit emitter { id, tx }
                  pure $ Loop x.previous)
-       (\x -> do emit emitter { hash, tx }
+       (\x -> do emit emitter { id, tx }
                  pure $ Loop x.previous)
        tx
     )

@@ -134,7 +134,7 @@ ui =
         res # evalTransactionResponse
           (\err                 -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
           (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
-          (\{hash, tx}          -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace hash tx })
+          (\{id, tx}            -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
                                       H.liftEffect $ log $ show tx)
         pure next
 
@@ -148,9 +148,9 @@ ui =
           txConsumer = consumer txStorer
             where
               txStorer :: HashTx -> (HalogenM State Query _ _ Void m) (Maybe _)
-              txStorer hashTx = do
-                H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace hashTx.hash hashTx.tx })
-                H.liftEffect $ log $ show hashTx
+              txStorer itx@{id, tx} = do
+                H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
+                H.liftEffect $ log $ show itx
                 pure Nothing
 
           -- | This ingests transactions from the HTTP API into our transaction storage.
