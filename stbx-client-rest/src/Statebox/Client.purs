@@ -33,6 +33,8 @@ evalTransactionResponse
 evalTransactionResponse onResponseFormatError onDecodingError onTx =
   (onResponseFormatError `either` (onDecodingError `either` onTx))
 
+--------------------------------------------------------------------------------
+
 -- | Request a single transaction from the API.
 requestTransaction :: URL -> TxId -> Aff (ResponseFormatError \/ (DecodingError \/ HashTx))
 requestTransaction apiBaseUrl hash =
@@ -45,6 +47,15 @@ requestTransaction' apiBaseUrl hash =
   else do
     res <- requestTransactionJson apiBaseUrl hash
     pure $ decodeTxSum <$> res.body
+
+requestTransactionJson :: URL -> TxId -> Aff (Response (ResponseFormatError \/ Json))
+requestTransactionJson apiBaseUrl hash =
+  Affjax.request $ Affjax.defaultRequest { url = apiBaseUrl <> "/tx/" <> hash
+                                         , method = Left GET
+                                         , responseFormat = ResponseFormat.json
+                                         }
+
+--------------------------------------------------------------------------------
 
 -- | Request the transaction corresponding to the specified `startHash`, as well as all of its
 -- | parent transactions up to the root.
@@ -85,10 +96,3 @@ fetchAndEmitTxStep emitter apiBaseUrl hash = liftAff $ do
                  pure $ Loop x.previous)
        tx
     )
-
-requestTransactionJson :: URL -> TxId -> Aff (Response (ResponseFormatError \/ Json))
-requestTransactionJson apiBaseUrl hash =
-  Affjax.request $ Affjax.defaultRequest { url = apiBaseUrl <> "/tx/" <> hash
-                                         , method = Left GET
-                                         , responseFormat = ResponseFormat.json
-                                         }
