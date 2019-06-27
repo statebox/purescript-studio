@@ -134,8 +134,8 @@ ui =
         res # evalTransactionResponse
           (\err                 -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
           (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
-          (\txSum               -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace hash txSum })
-                                      H.liftEffect $ log $ show txSum)
+          (\{hash, tx}          -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace hash tx })
+                                      H.liftEffect $ log $ show tx)
         pure next
 
       LoadTransactions endpointUrl startHash next -> do

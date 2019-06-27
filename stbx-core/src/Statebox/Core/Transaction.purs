@@ -16,7 +16,10 @@ type Tx a =
   , decoded :: a
   }
 
-type HashTx = { hash :: HashStr, tx :: TxSum }
+type HashTx = { hash :: TxId, tx :: TxSum }
+
+attachTxId :: TxId -> TxSum -> HashTx
+attachTxId hash tx = {hash, tx}
 
 --------------------------------------------------------------------------------
 
