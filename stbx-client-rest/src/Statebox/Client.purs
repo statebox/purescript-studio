@@ -65,10 +65,10 @@ requestTransactionsToRootM apiBaseUrl startHash =
 -- | general one is implemented in terms of this one.)
 requestTransactionsToRoot :: URL -> TxId -> Producer HashTx Aff Unit
 requestTransactionsToRoot apiBaseUrl startHash =
-  produceAff $ \emitter -> tailRecM (fetchEmitStep emitter apiBaseUrl) startHash
+  produceAff $ \emitter -> tailRecM (fetchAndEmitTxStep emitter apiBaseUrl) startHash
 
-fetchEmitStep :: Emitter Aff HashTx Unit -> URL -> TxId -> Aff (Step TxId Unit)
-fetchEmitStep emitter apiBaseUrl hash = liftAff $ do
+fetchAndEmitTxStep :: Emitter Aff HashTx Unit -> URL -> TxId -> Aff (Step TxId Unit)
+fetchAndEmitTxStep emitter apiBaseUrl hash = liftAff $ do
   requestTransaction apiBaseUrl hash >>= evalTransactionResponse
     (\e -> do close emitter unit -- TODO emit error?
               pure $ Done unit)
