@@ -1,0 +1,11 @@
+{
+  "name": "purescript-halogen-petrinet-editor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Erik Post <shinsetsu.nl>",
+  "license": "ISC"
+}

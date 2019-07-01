@@ -137,6 +137,11 @@ let additions =
 		]
         "https://github.com/statebox/purescript-halogen-svg.git"
         "master"
+  , halogen-petrinet-editor =
+      mkPackage
+        (../halogen-petrinet-editor/spago.dhall).dependencies
+        "../halogen-petrinet-editor"
+        "development"
   , halogen-tree-menu =
       mkPackage
         (../halogen-tree-menu/spago.dhall).dependencies

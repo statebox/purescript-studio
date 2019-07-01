@@ -10,6 +10,7 @@
 	, "group"
 	, "halogen"
 	, "halogen-svg"
+	, "halogen-petrinet-editor"
 	, "halogen-tree-menu"
 	, "prelude"
 	, "stbx-core"
