@@ -117,16 +117,19 @@ let upstream =
 let overrides = {=}
 
 let additions =
-	{ stbx-core =
+	{ express =
 		mkPackage
-		(./stbx-core/spago.dhall).dependencies
-		"../stbx-core"
-		"development"
-	, stbx-client-rest =
-		mkPackage
-		(./stbx-client-rest/spago.dhall).dependencies
-		"../stbx-client-rest"
-		"development"
+		[ "aff"
+		, "effect"
+		, "console"
+		, "foreign"
+		, "foreign-generic"
+		, "node-http"
+		, "psci-support"
+		, "test-unit"
+		]
+		"https://github.com/nkly/purescript-express.git"
+		"v0.8.0"
 	, halogen-svg =
 		mkPackage
 		[ "prelude", "halogen", "strings", "web-uievents", "effect" ]
@@ -136,6 +139,16 @@ let additions =
 		mkPackage
 		(./halogen-tree-menu/spago.dhall).dependencies
 		"../halogen-tree-menu"
+		"development"
+	, stbx-core =
+		mkPackage
+		(./stbx-core/spago.dhall).dependencies
+		"../stbx-core"
+		"development"
+	, stbx-client-rest =
+		mkPackage
+		(./stbx-client-rest/spago.dhall).dependencies
+		"../stbx-client-rest"
 		"development"
 	}
 
