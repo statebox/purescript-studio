@@ -5,6 +5,7 @@ import Affjax as Affjax
 import Affjax (URL)
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Comonad.Cofree (Cofree, (:<))
+import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
 import Data.Array (cons, index)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
@@ -40,6 +41,7 @@ import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes, src, href, placeholder)
 import Halogen.HTML.Properties.ARIA as ARIA
+import Halogen.Query.HalogenM (HalogenM(..))
 import Record as Record
 import TreeMenu as ObjectTree
 import TreeMenu (mkItem, MenuTree)
@@ -54,7 +56,7 @@ import Statebox.Core.Execution (PathElem)
 import Statebox.Core.Types as Stbx
 import Statebox.Core.Types (Diagram)
 import Statebox.Core.Transaction as Stbx
-import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
+import Statebox.Core.Transaction (HashStr, Tx, HashTx, TxSum(..), WiringTx, FiringTx, evalTxSum)
 import Statebox.Core.Lenses (_leWiring, _leFiring)
 import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Auth.RolesEditor as RolesEditor
@@ -84,6 +86,7 @@ data Query a
   = SelectRoute Route a
   | LoadPNPRO URL a
   | LoadTransaction URL HashStr a
+  | LoadTransactions URL HashStr a
   | HandleObjectTreeMsg (ObjectTree.Msg Route) a
   | HandlePetrinetEditorMsg Msg a
   | HandleDiagramEditorMsg DiagramEditor.Msg a
@@ -131,8 +134,30 @@ ui =
         res # evalTransactionResponse
           (\err                 -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
           (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
-          (\txSum               -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace hash txSum })
-                                      H.liftEffect $ log $ show txSum)
+          (\{id, tx}            -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
+                                      H.liftEffect $ log $ show tx)
+        pure next
+
+      LoadTransactions endpointUrl startHash next -> do
+        H.liftEffect $ log $ "LoadTransactions: requesting transactions up to root, starting at " <> startHash <> " from " <> endpointUrl
+        let
+          txProducer :: Producer HashTx (HalogenM State Query _ _ Void m) Unit
+          txProducer = Stbx.requestTransactionsToRootM endpointUrl startHash
+
+          txConsumer :: Consumer HashTx (HalogenM State Query _ _ Void m) Unit
+          txConsumer = consumer txStorer
+            where
+              txStorer :: HashTx -> (HalogenM State Query _ _ Void m) (Maybe _)
+              txStorer itx@{id, tx} = do
+                H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
+                H.liftEffect $ log $ show itx
+                pure Nothing
+
+          -- | This ingests transactions from the HTTP API into our transaction storage.
+          txIngester :: Process (HalogenM State Query _ _ Void m) Unit
+          txIngester = txProducer `connect` txConsumer
+
+        runProcess txIngester
         pure next
 
       LoadPNPRO url next -> do
@@ -184,7 +209,7 @@ ui =
                 , br [], br []
                 , HH.input [ HP.value ""
                            , placeholder "Enter Statebox Cloud transaction hash"
-                           , HE.onValueInput $ HE.input (LoadTransaction Ex.endpointUrl)
+                           , HE.onValueInput $ HE.input (LoadTransactions Ex.endpointUrl)
                            , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                            ]
                 , br []
