@@ -1,7 +1,16 @@
-{ name =
-	"halogen-petrinet-editor"
+{ sources =
+    [ "src/**/*.purs", "test/**/*.purs" ]
+, name =
+    "halogen-petrinet-editor"
 , dependencies =
-	[ "console", "effect", "halogen-svg", "psci-support" ]
+    [ "console"
+    , "effect"
+    , "group"
+    , "halogen-svg"
+    , "psci-support"
+    , "stbx-core"
+    , "studio-common"
+    ]
 , packages =
-	./packages.dhall
+    ./packages.dhall
 }

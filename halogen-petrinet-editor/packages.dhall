@@ -1,18 +1,13 @@
 let mkPackage =
-      https://raw.githubusercontent.com/purescript/package-sets/psc-0.13.0-20190607/src/mkPackage.dhall sha256:0b197efa1d397ace6eb46b243ff2d73a3da5638d8d0ac8473e8e4a8fc528cf57
+      https://raw.githubusercontent.com/purescript/package-sets/psc-0.12.5-20190427/src/mkPackage.dhall sha256:0b197efa1d397ace6eb46b243ff2d73a3da5638d8d0ac8473e8e4a8fc528cf57
 
 let upstream =
-      https://raw.githubusercontent.com/purescript/package-sets/psc-0.13.0-20190607/src/packages.dhall sha256:96b28e434b8a62caea5f10376b4f7dc1736a668592cabe914f117ecf5673c2ff
+      https://raw.githubusercontent.com/purescript/package-sets/psc-0.12.5-20190427/src/packages.dhall sha256:6b17811247e1f825034fa4dacc4b8ec5eddd0e832e0e1579c2ba3b9b2a1c63fe
 
 let overrides = {=}
 
 let additions =
-  { stbx-core =
-      mkPackage
-        (../stbx-core/spago.dhall).dependencies
-        "../stbx-core"
-        "development"
-  , halogen-svg =
+  { halogen-svg =
       mkPackage
         [ "prelude"
 		, "halogen"
@@ -22,6 +17,17 @@ let additions =
 		]
         "https://github.com/statebox/purescript-halogen-svg.git"
         "master"
+  , stbx-core =
+      mkPackage
+        (../stbx-core/spago.dhall).dependencies
+        "../stbx-core"
+        "development"
+  , studio-common =
+      mkPackage
+        [ "prelude"
+		]
+        "../studio-common"
+        "development"
   }
 
 in  upstream // overrides // additions

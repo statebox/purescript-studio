@@ -127,6 +127,11 @@ let additions =
         (../stbx-client-rest/spago.dhall).dependencies
         "../stbx-client-rest"
         "development"
+  , studio-common =
+      mkPackage
+        [ "prelude" ]
+        "../studio-common"
+        "development"
   , halogen-svg =
       mkPackage
         [ "prelude"

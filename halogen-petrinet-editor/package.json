@@ -1,11 +1,16 @@
 {
   "name": "purescript-halogen-petrinet-editor",
   "version": "1.0.0",
-  "description": "",
+  "description": "Halogen Petri net editor component",
+  "author": "Erik Post <erik@shinsetsu.nl>",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postinstall": "spago install",
+    "build": "spago build"
   },
-  "author": "Erik Post <shinsetsu.nl>",
+  "devDependencies": {
+    "purescript": "^0.12.5",
+    "spago": "^0.8.5"
+  },
   "license": "ISC"
 }

@@ -169,7 +169,7 @@ ui =
                pnproDocumentE <- H.liftEffect $ try $ PNPRO.fromString body
                pnproDocumentE # either
                  (\err      -> H.liftEffect $ log $ "Error decoding PNPRO document: " <> show err)
-                 (\pnproDoc -> H.modify_ $ \state -> state { projects = PNPRO.toProject pnproDoc.project `cons` state.projects })
+                 (\pnproDoc -> H.modify_ $ \state -> state { projects = fromPNPROProject pnproDoc.project `cons` state.projects })
           )
         pure next
 
@@ -440,3 +440,14 @@ transactionMenu t hash valueMaybe itemKids =
 
 shortHash :: HashStr -> String
 shortHash = take 8
+
+--------------------------------------------------------------------------------
+
+fromPNPROProject :: PNPRO.Project -> Project
+fromPNPROProject project =
+  { name:      project.name
+  , nets:      PNPRO.toNetInfo <$> project.gspn
+  , diagrams:  mempty
+  , roleInfos: mempty
+  , types:     mempty
+  }

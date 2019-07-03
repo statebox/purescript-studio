@@ -2,24 +2,19 @@ module Data.Petrinet.Representation.PNPRO where
 
 import Prelude
 
-import Control.MonadZero (guard)
 import Data.Array ((..), catMaybes, filter, length, zip, partition)
 import Effect (Effect)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 
-import Data.Auth as Auth
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
-import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
-import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, mkNetInfo)
+import Data.Vec3 (Vec2D, Box(..), vec2)
+import View.Petrinet.Model (PID, Typedef(..), NetRep, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetInfo)
 import View.Petrinet.Model as Model
-import View.Model as Model
 
 --------------------------------------------------------------------------------
 
@@ -158,15 +153,6 @@ toNetRep gspn =
       }
 
     transitionAuthsDict = mempty
-
-toProject :: Project -> Model.Project
-toProject project =
-  { name:      project.name
-  , nets:      toNetInfo <$> project.gspn
-  , diagrams:  mempty
-  , roleInfos: mempty
-  , types:     mempty
-  }
 
 --------------------------------------------------------------------------------
 
