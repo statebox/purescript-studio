@@ -138,17 +138,17 @@ let additions =
 	, halogen-tree-menu =
 		mkPackage
 		(./halogen-tree-menu/spago.dhall).dependencies
-		"../halogen-tree-menu"
+		"./halogen-tree-menu"
 		"development"
 	, stbx-core =
 		mkPackage
 		(./stbx-core/spago.dhall).dependencies
-		"../stbx-core"
+		"./stbx-core"
 		"development"
 	, stbx-client-rest =
 		mkPackage
 		(./stbx-client-rest/spago.dhall).dependencies
-		"../stbx-client-rest"
+		"./stbx-client-rest"
 		"development"
 	}
 
