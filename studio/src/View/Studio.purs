@@ -15,12 +15,10 @@ import Data.Foldable (find, foldMap)
 import Data.Functor.Coproduct.Nested (Coproduct3)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lens (preview)
-import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Monoid (guard)
 import Data.Set as Set
-import Data.Set (Set)
 import Data.String.CodePoints (take)
 import Data.Traversable (traverse)
 import Data.Tuple (uncurry)
@@ -37,7 +35,6 @@ import Halogen.HTML as HH
 import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i, br, pre)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
-import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes, src, href, placeholder)
 import Halogen.HTML.Properties.ARIA as ARIA
@@ -50,13 +47,13 @@ import Data.Diagram.FromNLL as FromNLL
 import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
+import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Execution (PathElem)
-import Statebox.Core.Types as Stbx
 import Statebox.Core.Types (Diagram)
 import Statebox.Core.Transaction as Stbx
-import Statebox.Core.Transaction (HashStr, Tx, HashTx, TxSum(..), WiringTx, FiringTx, evalTxSum)
+import Statebox.Core.Transaction (HashStr, HashTx, TxSum, WiringTx, FiringTx, evalTxSum)
 import Statebox.Core.Lenses (_leWiring, _leFiring)
 import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Auth.RolesEditor as RolesEditor
@@ -66,9 +63,9 @@ import View.Diagram.Update as DiagramEditor
 import View.Model (Project, ProjectName)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, QueryF(..), Msg(NetUpdated))
+import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, Msg(NetUpdated))
 import View.Petrinet.Model.NLL as NLL
-import View.Studio.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..), NamespaceInfo(..))
+import View.Studio.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex

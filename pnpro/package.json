@@ -1,0 +1,20 @@
+{
+  "name": "purescript-pnpro",
+  "version": "1.0.0",
+  "description": "PureScript library for working with the PNPRO Petri Net format",
+  "author": "Erik Post <erik@shinsetsu.nl>",
+  "license": "ISC",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "spago install",
+    "build": "spago build",
+    "test": "spago test"
+  },
+  "keywords": [
+    "petrinet"
+  ],
+  "devDependencies": {
+    "purescript": "^0.12.5",
+    "spago": "^0.8.5"
+  }
+}

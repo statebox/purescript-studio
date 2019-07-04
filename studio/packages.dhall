@@ -152,6 +152,11 @@ let additions =
         (../halogen-tree-menu/spago.dhall).dependencies
         "../halogen-tree-menu"
         "development"
+  , pnpro =
+      mkPackage
+        [ "prelude" ]
+        "../pnpro"
+        "development"
   }
 
 in  upstream // overrides // additions
