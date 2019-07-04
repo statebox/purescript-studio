@@ -8,7 +8,6 @@
     , "group"
     , "halogen-svg"
     , "psci-support"
-    , "stbx-core"
     , "studio-common"
     ]
 , packages =

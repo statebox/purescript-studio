@@ -12,8 +12,11 @@ import Test.Spec.Runner (run)
 
 import Data.Diagram.FromNLL as Diagram
 
+import Test.View.Petrinet.Model.NLL (suite) as NLL
+
 main :: Effect Unit
 main = run [consoleReporter] do
+  NLL.suite
   describe "Brick diagram encoding" do
     it "should decode a simple graph" do
        Diagram.fromNLL "test" [2, 2, 1, 8, 8, 8, 3] `shouldEqual`

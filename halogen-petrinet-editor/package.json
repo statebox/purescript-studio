@@ -6,8 +6,7 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build",
-    "test": "spago test"
+    "build": "spago build"
   },
   "devDependencies": {
     "purescript": "^0.12.5",

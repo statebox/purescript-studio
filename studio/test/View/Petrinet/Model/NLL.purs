@@ -1,23 +1,18 @@
-module Test.Main where
+module Test.View.Petrinet.Model.NLL where
 
 import Prelude
 
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
-import Effect (Effect)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
-import Test.Spec.Reporter.Console (consoleReporter)
-import Test.Spec.Runner (run)
 
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 import View.Petrinet.Model (PID, NetRep)
 import View.Petrinet.Model.NLL as NLLToNet
 
-main :: Effect Unit
-main = run [consoleReporter] do
-
+suite = do
   describe "NetRep should be constructed correctly from" do
     it "an empty NLL-encoded net" do
       let netRep = NLLToNet.toNetRepWithDefaults mempty mempty mempty
