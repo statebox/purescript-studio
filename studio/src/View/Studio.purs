@@ -144,7 +144,7 @@ ui =
           txConsumer :: Consumer HashTx (HalogenM State Query _ _ Void m) Unit
           txConsumer = consumer txStorer
             where
-              txStorer :: HashTx -> HalogenM State Query _ _ Void m (Maybe _)
+              txStorer :: HashTx -> (HalogenM State Query _ _ Void m) (Maybe _)
               txStorer itx@{id, tx} = do
                 H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
                 H.liftEffect $ log $ show itx
