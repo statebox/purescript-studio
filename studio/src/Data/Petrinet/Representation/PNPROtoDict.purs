@@ -1,86 +1,20 @@
-module Data.Petrinet.Representation.PNPRO where
+module Data.Petrinet.Representation.PNPROtoDict where
 
 import Prelude
-
-import Control.MonadZero (guard)
 import Data.Array ((..), catMaybes, filter, length, zip, partition)
-import Effect (Effect)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..))
-import Data.Tuple.Nested (type (/\), (/\))
-
-import Data.Auth as Auth
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
-import Data.Vec3 (Vec2D, Vec2(..), Box(..), vec2)
-import View.Petrinet.Model (PID, TID, Typedef(..), NetRep, NetApi, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetApi, mkNetInfo)
+import Data.Petrinet.Representation.PNPRO
+import Data.Tuple.Nested (type (/\), (/\))
+import Data.Vec3 (Vec2D, Box(..), vec2)
+
+import Data.Petrinet.Representation.PNPRO
 import View.Petrinet.Model as Model
-import View.Model as Model
-
---------------------------------------------------------------------------------
-
-foreign import fromString :: String -> Effect Document
-
-foreign import fromStringUnsafe :: String -> Document
-
---------------------------------------------------------------------------------
-
-type Document = { project :: Project }
-
-type Project =
-  { name    :: String
-  , version :: String -- ^ TODO should be Int
-  , gspn    :: Array GSPN
-  }
-
-type GSPN =
-  { name  :: String
-  , nodes :: Nodes
-  , edges :: { arc :: Array Arc }
-  }
-
-type Nodes =
-  { place      :: Array Place
-  , transition :: Array Transition
-  , textBox    :: Array TextBox
-  }
-
-type Node r =
-  { name    :: String
-  , x       :: Number
-  , y       :: Number
-  | r
-  }
-
-type Place = Node
-  ( marking :: Tokens -- TODO it looks like this appears in the js data as ("1" :: String), but also as (0 :: Int)
-  )
-
-type Transition = Node
-  ( "type" :: String -- ^ TODO should be an ADT: "EXP", ...?
-  )
-
-type TextBox = Node
-  ( text   :: String
-  , height :: Number
-  , width  :: Number
-  )
-
-type PidOrTid = String
-
-type Arc =
-  { head   :: PidOrTid
-  , tail   :: PidOrTid
-  , kind   :: String   -- ^ TODO should be an ADT: "INPUT", "OUTPUT", ...?
-  , isPost :: Boolean
-  , mult   :: Int      -- ^ Multiplicity
-  }
-
---------------------------------------------------------------------------------
+import View.Petrinet.Model (PID, Typedef(..), NetRep, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetInfo)
 
 toNetInfo :: GSPN -> NetInfo
 toNetInfo gspn = mkNetInfo (toNetRep gspn) gspn.name (toModelTextBox <$> gspn.nodes.textBox)
@@ -158,15 +92,6 @@ toNetRep gspn =
       }
 
     transitionAuthsDict = mempty
-
-toProject :: Project -> Model.Project
-toProject project =
-  { name:      project.name
-  , nets:      toNetInfo <$> project.gspn
-  , diagrams:  mempty
-  , roleInfos: mempty
-  , types:     mempty
-  }
 
 --------------------------------------------------------------------------------
 

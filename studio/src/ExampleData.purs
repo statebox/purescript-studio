@@ -26,6 +26,7 @@ import Data.Vec3 (Vec2D, Vec2(..), vec2, vec3, _x, _y, _z)
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.PNPRO as PNPRO
+import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Data.Typedef.Typedef2 (Typedef2(..))
 import View.Model (Project)
 import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, mkNetApi, NetApi, NetInfo, NetInfoFRow, TextBox)

@@ -41,8 +41,6 @@ import Data.Auth
 import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef.Typedef2 (Typedef2)
-import ExampleData as Ex
-import ExampleData as Net
 import View.Common (HtmlId, emptyHtml)
 import View.Petrinet.Arrow
 import View.Petrinet.Arrow as Arrow

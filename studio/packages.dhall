@@ -127,6 +127,11 @@ let additions =
         (../stbx-client-rest/spago.dhall).dependencies
         "../stbx-client-rest"
         "development"
+  , studio-common =
+      mkPackage
+        [ "prelude" ]
+        "../studio-common"
+        "development"
   , halogen-svg =
       mkPackage
         [ "prelude"
@@ -137,10 +142,20 @@ let additions =
 		]
         "https://github.com/statebox/purescript-halogen-svg.git"
         "master"
+  , halogen-petrinet-editor =
+      mkPackage
+        (../halogen-petrinet-editor/spago.dhall).dependencies
+        "../halogen-petrinet-editor"
+        "development"
   , halogen-tree-menu =
       mkPackage
         (../halogen-tree-menu/spago.dhall).dependencies
         "../halogen-tree-menu"
+        "development"
+  , pnpro =
+      mkPackage
+        [ "prelude" ]
+        "../pnpro"
         "development"
   }
 

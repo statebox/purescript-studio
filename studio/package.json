@@ -24,7 +24,7 @@
   "license": "Commercial",
   "devDependencies": {
     "purescript": "^0.12.5",
-    "spago": "^0.8.4"
+    "spago": "^0.8.5"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.6.3",
