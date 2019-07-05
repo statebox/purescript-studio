@@ -8,7 +8,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Auth (RoleInfo)
 import Data.Typedef.Typedef2 (Typedef2)
 import View.Diagram.Model (DiagramInfo)
-import View.Petrinet.Model (NetInfo, NetInfoWithTypesAndRoles)
+import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRolesFRow, Typedef)
 
 type Project =
   { name         :: String
@@ -19,3 +19,7 @@ type Project =
   }
 
 type ProjectName = String
+
+--------------------------------------------------------------------------------
+
+type NetInfoWithTypesAndRoles = Record (NetInfoWithTypesAndRolesFRow PID TID Typedef Typedef2 ())

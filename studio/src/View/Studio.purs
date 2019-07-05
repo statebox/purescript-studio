@@ -61,10 +61,10 @@ import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
-import View.Model (Project, ProjectName)
+import View.Model (Project, ProjectName, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, Msg(NetUpdated))
+import View.Petrinet.Model (PID, TID, NetInfo, Msg(NetUpdated), Typedef)
 import View.Petrinet.Model.NLL as NLL
 import View.Studio.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
@@ -199,7 +199,7 @@ ui =
               ]
         ]
       where
-        mainView :: ResolvedRouteF Project DiagramInfo (NetInfoWithTypesAndRoles Typedef2) -> ParentHTML Query ChildQuery ChildSlot m
+        mainView :: ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ParentHTML Query ChildQuery ChildSlot m
         mainView route = case route of
           ResolvedHome ->
             div []
@@ -316,7 +316,7 @@ ui =
 
 --------------------------------------------------------------------------------
 
-resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo (NetInfoWithTypesAndRoles Typedef2))
+resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveRoute route {projects, hashSpace} = case route of
   Home                              -> pure ResolvedHome
   Types     projectName             -> ResolvedTypes <$> findProject projects projectName
@@ -343,7 +343,7 @@ findProject projects projectName = find (\p -> p.name == projectName) projects
 findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
 
-findNetInfoWithTypesAndRoles :: Project -> NetName -> Maybe (NetInfoWithTypesAndRoles Typedef2)
+findNetInfoWithTypesAndRoles :: Project -> NetName -> Maybe NetInfoWithTypesAndRoles
 findNetInfoWithTypesAndRoles project netName =
   Record.merge { types: project.types, roleInfos: project.roleInfos } <$> findNetInfo project netName
 
@@ -356,7 +356,7 @@ findWiringTx hashSpace wiringHash = preview _leWiring =<< AdjacencySpace.lookup 
 findFiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe FiringTx
 findFiringTx hashSpace firingHash = preview _leFiring =<< AdjacencySpace.lookup firingHash hashSpace
 
-findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe (NetInfoWithTypesAndRoles Typedef2)
+findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe NetInfoWithTypesAndRoles
 findNetInfoInWirings hashSpace wiringHash ix = do
   wiring      <- findWiringTx hashSpace wiringHash
   netW        <- spy "findNetInfoInWirings: netW"    $ wiring.wiring.nets `index` ix

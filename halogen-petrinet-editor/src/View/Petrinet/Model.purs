@@ -110,8 +110,6 @@ type NetApi = NetApiF PID TID Tokens
 
 type NetInfo = Record (NetInfoFRow PID TID Typedef ())
 
-type NetInfoWithTypesAndRoles ty2 = Record (NetInfoWithTypesAndRolesFRow PID TID Typedef ty2 ())
-
 --------------------------------------------------------------------------------
 
 mkNetRep
