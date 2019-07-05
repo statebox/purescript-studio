@@ -17,15 +17,9 @@ let additions =
 		]
         "https://github.com/statebox/purescript-halogen-svg.git"
         "master"
-  , stbx-core =
-      mkPackage
-        (../stbx-core/spago.dhall).dependencies
-        "../stbx-core"
-        "development"
   , studio-common =
       mkPackage
-        [ "prelude"
-		]
+        [ "prelude" ]
         "../studio-common"
         "development"
   }
