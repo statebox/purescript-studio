@@ -22,11 +22,10 @@ import Data.Petrinet.Representation.Dict as Dict
 import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
-import Data.Typedef.Typedef2 (Typedef2, TypeName)
 import Data.Vec3 (Vec2, Vec2D, Box(..))
 
-data QueryF pid tid a
-  = LoadNet (NetInfoWithTypesAndRolesF pid tid Typedef Typedef2 ()) a
+data QueryF pid tid ty2 a
+  = LoadNet (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ()) a
   | FireTransition tid a
   | FocusTransition tid a
   | FocusPlace pid a
@@ -50,6 +49,8 @@ data NetElemKind = Arc | Place | Transition
 newtype Typedef = Typedef String
 
 derive instance newtypeTypedef :: Newtype Typedef _
+
+type TypeName = String
 
 --------------------------------------------------------------------------------
 
@@ -109,7 +110,7 @@ type NetApi = NetApiF PID TID Tokens
 
 type NetInfo = Record (NetInfoFRow PID TID Typedef ())
 
-type NetInfoWithTypesAndRoles = Record (NetInfoWithTypesAndRolesFRow PID TID Typedef Typedef2 ())
+type NetInfoWithTypesAndRoles ty2 = Record (NetInfoWithTypesAndRolesFRow PID TID Typedef ty2 ())
 
 --------------------------------------------------------------------------------
 
