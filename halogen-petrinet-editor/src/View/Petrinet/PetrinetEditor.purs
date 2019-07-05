@@ -40,13 +40,14 @@ import Svg.Util as SvgUtil
 import Data.Auth
 import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
 import Data.Petrinet.Representation.Marking as Marking
+import Data.Typedef (Typedef(..))
 import View.Common (HtmlId, emptyHtml)
 import View.Petrinet.Arrow
 import View.Petrinet.Arrow as Arrow
 import View.Petrinet.Config as Config
 import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration)
 import View.Petrinet.Model as NetInfo -- TODO move the NetInfo stuff out of Model into its own module
-import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceQueryF(..), QueryF(..), Tokens, TransitionQueryF(..), Typedef(..), TextBox)
+import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceQueryF(..), QueryF(..), Tokens, TransitionQueryF(..), TextBox)
 import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
 

@@ -19,7 +19,8 @@ import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, va
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), RoleInfo, rolesElem, isPrivileged, toPrivilege, CSSColor(..))
 import Data.Auth as Auth
-import View.Petrinet.Model (TransitionQueryF(..), Typedef(..))
+import Data.Typedef (Typedef(..))
+import View.Petrinet.Model (TransitionQueryF(..))
 import View.Common (styleStr, classesWithNames)
 
 type TransitionEditorFormModel tid =

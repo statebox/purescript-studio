@@ -18,6 +18,7 @@ import Data.Vec3.Box as Box
 import Data.Vec3.Box (Box(..))
 
 import Data.Auth (Role, Roles, RoleInfo)
+import Data.Typedef (Typedef(..), TypeName)
 import Data.Petrinet.Representation.Dict as Dict
 import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF)
 import Data.Petrinet.Representation.Marking as Marking
@@ -43,16 +44,6 @@ data TransitionQueryF tid a
 --------------------------------------------------------------------------------
 
 data NetElemKind = Arc | Place | Transition
-
---------------------------------------------------------------------------------
-
-newtype Typedef = Typedef String
-
-derive instance newtypeTypedef :: Newtype Typedef _
-
-type TypeName = String
-
---------------------------------------------------------------------------------
 
 type TextBoxF n =
   { name   :: String

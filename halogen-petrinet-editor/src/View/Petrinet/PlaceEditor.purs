@@ -12,7 +12,8 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, value, rows, placeholder, InputType(..), checked, name)
 import Halogen.HTML.Core (ClassName(..))
 
-import View.Petrinet.Model (PlaceQueryF(..), Typedef, Msg(..))
+import Data.Typedef (Typedef(..))
+import View.Petrinet.Model (PlaceQueryF(..), Msg(..))
 
 type PlaceEditorFormModel pid =
   { pid         :: pid
