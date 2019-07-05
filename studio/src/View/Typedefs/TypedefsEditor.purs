@@ -9,7 +9,6 @@ import Data.Typedef.Typedef2
 import Halogen.HTML (HTML, text, div, pre, table, tr, td)
 import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Core (ClassName(..))
-import View.Petrinet.Model (Typedef(..))
 
 typedefsTreeView :: ∀ a b. Array (TypeName /\ Typedef2) -> HTML a b
 typedefsTreeView tdefs =

@@ -27,9 +27,10 @@ import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColo
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
+import Data.Typedef (Typedef(..))
 import Data.Typedef.Typedef2 (Typedef2(..))
 import View.Model (Project)
-import View.Petrinet.Model (PID, TID, Tokens, Typedef(..), Transition, Marking, PlaceMarking, NetRep, mkNetRep, mkNetApi, NetApi, NetInfo, NetInfoFRow, TextBox)
+import View.Petrinet.Model (PID, TID, Tokens, Transition, Marking, PlaceMarking, NetRep, mkNetRep, mkNetApi, NetApi, NetInfo, NetInfoFRow, TextBox)
 import View.Diagram.Model (DiagramInfo)
 
 -- TODO hardcoded for now, but we should decide how we want to come by this

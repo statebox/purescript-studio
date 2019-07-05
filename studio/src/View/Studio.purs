@@ -48,6 +48,8 @@ import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
+import Data.Typedef (Typedef(..))
+import Data.Typedef.Typedef2 (Typedef2)
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Execution (PathElem)
@@ -60,10 +62,10 @@ import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
-import View.Model (Project, ProjectName)
+import View.Model (Project, ProjectName, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRoles, Msg(NetUpdated))
+import View.Petrinet.Model (PID, TID, NetInfo, Msg(NetUpdated))
 import View.Petrinet.Model.NLL as NLL
 import View.Studio.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
@@ -88,7 +90,7 @@ data Query a
   | HandlePetrinetEditorMsg Msg a
   | HandleDiagramEditorMsg DiagramEditor.Msg a
 
-type ChildQuery = Coproduct3 (ObjectTree.Query Route) (PetrinetEditor.QueryF PID TID) DiagramEditor.Query
+type ChildQuery = Coproduct3 (ObjectTree.Query Route) (PetrinetEditor.QueryF PID TID Typedef2) DiagramEditor.Query
 
 type ChildSlot = Either3 Unit Unit Unit
 
