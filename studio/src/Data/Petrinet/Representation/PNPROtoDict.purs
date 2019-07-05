@@ -10,11 +10,12 @@ import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
 import Data.Petrinet.Representation.PNPRO
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Typedef (Typedef(..))
 import Data.Vec3 (Vec2D, Box(..), vec2)
 
 import Data.Petrinet.Representation.PNPRO
 import View.Petrinet.Model as Model
-import View.Petrinet.Model (PID, Typedef(..), NetRep, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetInfo)
+import View.Petrinet.Model (PID, NetRep, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetInfo)
 
 toNetInfo :: GSPN -> NetInfo
 toNetInfo gspn = mkNetInfo (toNetRep gspn) gspn.name (toModelTextBox <$> gspn.nodes.textBox)

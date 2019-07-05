@@ -48,6 +48,7 @@ import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
+import Data.Typedef (Typedef(..))
 import Data.Typedef.Typedef2 (Typedef2)
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
@@ -64,7 +65,7 @@ import View.Diagram.Update as DiagramEditor
 import View.Model (Project, ProjectName, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Petrinet.Model (PID, TID, NetInfo, Msg(NetUpdated), Typedef)
+import View.Petrinet.Model (PID, TID, NetInfo, Msg(NetUpdated))
 import View.Petrinet.Model.NLL as NLL
 import View.Studio.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
