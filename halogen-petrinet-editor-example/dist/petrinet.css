@@ -1,4 +1,9 @@
 .css-petrinet-component svg {
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+
     background: #eee;
     background-image:
         linear-gradient(to top, pink, rgba(0,0,255,0.5)),
