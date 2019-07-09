@@ -7,29 +7,12 @@ let upstream =
 let overrides = {=}
 
 let additions =
-  -- ((../halogen-petrinet-editor/packages.dhall).dependencies) //
-  -- (../halogen-petrinet-editor/packages.dhall) //
+  (../halogen-petrinet-editor/packages.dhall) //
   { halogen-petrinet-editor =
       mkPackage
         (../halogen-petrinet-editor/spago.dhall).dependencies
         "../halogen-petrinet-editor"
         "development"
-
-  , halogen-svg =
-      mkPackage
-        [ "prelude"
-		, "halogen"
-		, "strings"
-		, "web-uievents"
-		, "effect"
-		]
-        "https://github.com/statebox/purescript-halogen-svg.git"
-        "master"
-  , studio-common =
-      mkPackage
-        [ "prelude" ]
-        "../studio-common"
-        "development"
   }
 
-in  upstream // overrides // additions
+in upstream // overrides // additions

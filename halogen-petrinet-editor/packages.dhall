@@ -24,10 +24,9 @@ let additions =
         "development"
   , studio-common =
       mkPackage
-        [ "prelude"
-		]
+        [ "prelude" ]
         "../studio-common"
         "development"
   }
 
-in  upstream // overrides // additions
+in upstream // overrides // additions
