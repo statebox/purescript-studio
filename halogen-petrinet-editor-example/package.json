@@ -1,0 +1,26 @@
+{
+  "name": "purescript-halogen-petrinet-editor-example",
+  "version": "1.0.0",
+  "description": "Petri net editor example in PureScript Halogen",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "spago install",
+    "build": "spago build",
+    "bundle": "spago bundle-app --main Main --to dist/app.js",
+    "watch": "spago bundle-app --watch --main Main --to dist/app.js",
+    "test": "spago test"
+  },
+  "keywords": [
+    "purescript",
+    "halogen",
+    "petrinet",
+    "editor",
+    "example"
+  ],
+  "author": "Erik Post <erik@shinsetsu.nl>",
+  "license": "ISC",
+  "devDependencies": {
+    "purescript": "^0.12.5",
+    "spago": "^0.8.5"
+  }
+}
