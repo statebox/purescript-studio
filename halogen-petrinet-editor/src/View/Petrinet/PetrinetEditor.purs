@@ -109,6 +109,8 @@ type ArcModel tid = ArcModelF tid String Vec2D
 -- | animations to the current component, when you have multiple Petri net editor components on the same HTML page.
 -- | Otherwise, firing a transition in one component will also cause firings in other Petri net editor components
 -- | to SVG-animate.
+-- |
+-- | *WARNING*: SVG animations will break when this id contains dashes. Underscores work though.
 ui ::
    ∀ pid tid ty2 m
    . MonadAff m

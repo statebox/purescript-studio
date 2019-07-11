@@ -226,7 +226,7 @@ ui =
             RolesEditor.roleInfosHtml project.roleInfos
 
           ResolvedNet netInfo ->
-            HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (Just "main-net")) netInfo (HE.input HandlePetrinetEditorMsg)
+            HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (Just "main_net")) netInfo (HE.input HandlePetrinetEditorMsg)
 
           ResolvedDiagram diagramInfo nodeMaybe ->
             div [ classes [ ClassName "flex" ] ]
@@ -234,7 +234,7 @@ ui =
                       [ HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg) ]
                 , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
                       [ case nodeMaybe of
-                          Just (NetNode netInfo)          -> HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (Just "diagram-node-net")) netInfo (HE.input HandlePetrinetEditorMsg)
+                          Just (NetNode netInfo)          -> HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (HE.input HandlePetrinetEditorMsg)
                           Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
                           Nothing                         -> text "Click a node to show the corresponding net or diagram."
                       ]
