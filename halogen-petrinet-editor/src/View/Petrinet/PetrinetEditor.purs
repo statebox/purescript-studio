@@ -103,13 +103,26 @@ type ArcModel tid = ArcModelF tid String Vec2D
 
 --------------------------------------------------------------------------------
 
-ui :: ∀ pid tid ty2 m. MonadAff m => Ord pid => Show pid => Ord tid => Show tid => H.Component HTML (QueryF pid tid ty2) (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ()) Msg m
-ui =
+-- | A Halogen Petri net viewer and editor component.
+-- |
+-- | The `htmlIdPrefixMaybe` is used to provide distinct HTML element ids, which is necessary to isolate transition
+-- | animations to the current component, when you have multiple Petri net editor components on the same HTML page.
+-- | Otherwise, firing a transition in one component will also cause firings in other Petri net editor components
+-- | to SVG-animate.
+-- |
+-- | *WARNING*: SVG animations will break when this id contains dashes. Underscores work though.
+ui ::
+   ∀ pid tid ty2 m
+   . MonadAff m
+   => Ord pid
+   => Show pid
+   => Ord tid
+   => Show tid
+   => Maybe HtmlId
+   -> H.Component HTML (QueryF pid tid ty2) (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ()) Msg m
+ui htmlIdPrefixMaybe =
   H.component { initialState, render, eval, receiver: HE.input LoadNet }
   where
-    -- TODO should come from component state
-    htmlIdPrefixMaybe = Just "todo_net_prefix"
-
     initialState :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> StateF pid tid ty2
     initialState netInfo =
       { netInfo:                 netInfo
