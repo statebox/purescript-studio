@@ -8,12 +8,19 @@
     "init": "spago init",
     "build": "spago build",
     "test": "spago test",
-    "repl": "spago repl"
+    "repl": "spago repl",
+    "docs": "spago docs",
+    "watch": "spago build --watch",
+    "serve": "spago run"
   },
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",
   "devDependencies": {
     "purescript": "^0.12.5",
     "spago": "^0.8.5"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1"
   }
 }
