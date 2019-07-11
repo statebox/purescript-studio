@@ -1,15 +1,17 @@
-{ name =
-	"stbx-client-rest"
+{ sources =
+    [ "src/**/*.purs", "test/**/*.purs" ]
+, name =
+    "stbx-client-rest"
 , dependencies =
-	[ "affjax"
-	, "aff-coroutines"
-	, "argonaut"
-	, "effect"
-	, "free"
-	, "console"
-	, "psci-support"
-	, "stbx-core"
-	]
+    [ "affjax"
+    , "aff-coroutines"
+    , "argonaut"
+    , "effect"
+    , "free"
+    , "console"
+    , "psci-support"
+    , "stbx-core"
+    ]
 , packages =
-	./packages.dhall
+    ./packages.dhall
 }
