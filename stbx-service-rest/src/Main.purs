@@ -6,7 +6,6 @@ import Control.Monad.Except (runExcept)
 import Control.Monad.State.Trans (runStateT)
 import Data.Either (Either(..))
 import Data.Function.Uncurried (Fn3)
-import Data.Map (empty)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Aff.Class (liftAff)
@@ -22,7 +21,7 @@ import Node.Express.Response (sendJson, setStatus)
 import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 
-import Model (TransactionDictionary, getTransaction, inMemoryActions)
+import Statebox.Service.Model (TransactionDictionary, getTransaction, inMemoryActions)
 
 -- import body parser
 foreign import jsonBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
@@ -31,44 +30,46 @@ foreign import jsonBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit
 endpointUrl :: String
 endpointUrl = "https://testapi.statebox.io"
 
+stbxPort :: Int
+stbxPort = 8080
+
 -- application state
 
 type AppState = Ref TransactionDictionary
 
 initState :: Effect AppState
-initState = new empty
+initState = new mempty
 
 -- middleware
 
 logger :: Handler
 logger = do
   url <- getOriginalUrl
-  liftEffect $ log (">>>" <> url)
+  liftEffect $ log (">>> " <> url)
   next
 
 errorHandler :: Error -> Handler
 errorHandler err = do
   setStatus 400
-  sendJson {error: message err}
+  sendJson { error: message err }
 
 -- handlers
 
 index :: Handler
 index = sendJson
-  { name        : "Statebox could API"
+  { name        : "Statebox REST API"
   , description : "collection of endpoints to interact with the Statebox protocol"
-  , endpoints   :
-    { healthcheck    : "/healthcheck"
-    , getTransaction : "/tx/:hash"
-    }
+  , endpoints   : { healthcheck    : "/healthcheck"
+                  , getTransaction : "/tx/:hash"
+                  }
   }
 
 healthcheck :: Handler
-healthcheck = sendJson {health: "I'm fine"}
+healthcheck = sendJson { health: "I'm fine" }
 
--- | getTransaction endpoint
--- | responds to GET /tx/<hash>
--- | returns a json-encoded Stbx.Core.Transaction.Tx
+-- | `getTransaction` endpoint
+-- | responds to `GET /tx/<hash>`
+-- | returns a json-encoded `Stbx.Core.Transaction.Tx`
 getTransactionHandler :: AppState -> Handler
 getTransactionHandler appState = do
   maybeHash <- getRouteParam "hash"
@@ -81,8 +82,8 @@ getTransactionHandler appState = do
                , transaction : maybeTransaction
                }
 
--- | postTransaction endpoint
--- | responds to POST /tx
+-- | `postTransaction` endpoint
+-- | responds to `POST /tx`
 postTransactionHandler :: AppState -> Handler
 postTransactionHandler appState = do
   fBody :: F (Array String) <- getBody
@@ -109,5 +110,5 @@ app state = do
 main :: Effect Server
 main = do
   state <- initState
-  listenHttp (app state) 8080 \_ ->
-    log $ "Listening on " <> show 8080
+  listenHttp (app state) stbxPort \_ ->
+    log $ "Listening on " <> show stbxPort

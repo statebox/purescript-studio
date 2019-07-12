@@ -1,4 +1,4 @@
-module Model where
+module Statebox.Service.Model where
 
 import Prelude
 
@@ -55,6 +55,6 @@ inMemoryActions = runFreeM $ \action -> case action of
   GetTransaction txHash next -> do
     transactionsMap <- get
     pure $ next $ lookup txHash transactionsMap
-  AddTransaction {hash: hash, transaction: transaction} next -> do
+  AddTransaction { hash, transaction } next -> do
     modify_ $ insert hash transaction
     pure next
