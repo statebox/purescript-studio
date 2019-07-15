@@ -4,9 +4,10 @@ import Prelude
 
 import Control.Monad.Except (runExcept)
 import Control.Monad.State.Trans (runStateT)
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.Function.Uncurried (Fn3)
 import Data.Maybe (Maybe(..))
+import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
@@ -21,7 +22,10 @@ import Node.Express.Response (sendJson, setStatus)
 import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 
-import Statebox.Service.Model (TransactionDictionary, getTransaction, inMemoryActions)
+import Statebox.Core.Transaction (TxId, TxSum)
+import Statebox.Service.Model (LeTx, TransactionDictionary, getTransaction, inMemoryActions)
+
+import ExampleData as Ex
 
 -- import body parser
 foreign import jsonBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
@@ -37,8 +41,8 @@ stbxPort = 8080
 
 type AppState = Ref TransactionDictionary
 
-initState :: Effect AppState
-initState = new mempty
+initialState :: Effect AppState
+initialState = new $ either mempty identity Ex.txIdsDictE
 
 -- middleware
 
@@ -69,7 +73,6 @@ healthcheck = sendJson { health: "I'm fine" }
 
 -- | `getTransaction` endpoint
 -- | responds to `GET /tx/<hash>`
--- | returns a json-encoded `Stbx.Core.Transaction.Tx`
 getTransactionHandler :: AppState -> Handler
 getTransactionHandler appState = do
   maybeHash <- getRouteParam "hash"
@@ -78,9 +81,13 @@ getTransactionHandler appState = do
     Just hash -> do
       transactionDictionary <- liftEffect $ read appState
       maybeTransaction <- liftAff $ runStateT (inMemoryActions $ getTransaction hash) transactionDictionary
-      sendJson { hash: hash
-               , transaction : maybeTransaction
-               }
+      case maybeTransaction of
+        Just transaction /\ _ -> sendJson { hash: hash
+                                          , transaction: (transaction :: LeTx)
+                                          }
+        Nothing          /\ _ -> sendJson { hash: hash
+                                          , error: show TxNotFound
+                                          }
 
 -- | `postTransaction` endpoint
 -- | responds to `POST /tx`
@@ -109,6 +116,14 @@ app state = do
 
 main :: Effect Server
 main = do
-  state <- initState
+  state <- initialState
   listenHttp (app state) stbxPort \_ ->
     log $ "Listening on " <> show stbxPort
+
+--------------------------------------------------------------------------------
+
+-- | TODO this is now used ad hoc in JSON responses; these should be made to conform to the Statebox protocol spec.
+data Err = TxNotFound
+
+instance showErr :: Show Err where
+  show TxNotFound = "TxNotFound"

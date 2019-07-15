@@ -39,12 +39,31 @@ instance showDecodingError :: Show DecodingError where
 
 --------------------------------------------------------------------------------
 
-decodeTxFiringTx :: Object Json -> String \/ Tx FiringTx
-decodeTxFiringTx x = do
+-- | The 'body' of a `Tx` envelope is in the `decoded` field. This field (of type `a`) is
+-- | polymorphic, and you can specify a decoder for it.
+decodeTxWith :: forall a. DecodeJson a => (Json -> String \/ a) -> Object Json -> String \/ Tx a
+decodeTxWith aDecoder x = do
   status  <- x .:  "status"
+  hash    <- x .:  "hash"
   hex     <- x .:  "hex"
-  decoded <- getFieldWith decoder x "decoded"
-  pure { status, hex, decoded }
+  decoded <- getFieldWith aDecoder x "decoded"
+  pure { status, hash, hex, decoded }
+
+--------------------------------------------------------------------------------
+
+decodeTxUnit'' :: Object Json -> String \/ Tx Unit
+decodeTxUnit'' = decodeTxWith (\json -> pure unit)
+
+decodeTxUnit' :: Json -> String \/ Tx Unit
+decodeTxUnit' = decodeTxUnit'' <=< decodeJson
+
+decodeTxUnit :: Json -> DecodingError \/ Tx Unit
+decodeTxUnit = lmap DecodingError <<< decodeTxUnit'
+
+--------------------------------------------------------------------------------
+
+decodeTxFiringTx :: Object Json -> String \/ Tx FiringTx
+decodeTxFiringTx x = decodeTxWith decoder x
   where
     decoder = decodeJson >=> decodeFiringTx
 

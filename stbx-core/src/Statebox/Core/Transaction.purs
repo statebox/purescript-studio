@@ -12,6 +12,7 @@ type StatusStr = String
 
 type Tx a =
   { status  :: StatusStr
+  , hash    :: TxId
   , hex     :: String
   , decoded :: a
   }
@@ -80,11 +81,11 @@ instance showTxSum :: Show TxSum where
     (\x -> "(FiringTxInj "   <> show x <> ")")
 
 -- | `InitialTx` ('root') transactions are children of the virtual 'über-root', indicated by this hash.
-uberRootHash :: HashStr
+uberRootHash :: TxId
 uberRootHash = "z"
 
-isUberRootHash :: HashStr -> Boolean
+isUberRootHash :: TxId -> Boolean
 isUberRootHash hash = hash == uberRootHash
 
-getPrevious :: TxSum -> Maybe HashStr
+getPrevious :: TxSum -> Maybe TxId
 getPrevious = evalTxSum (const Nothing) (Just <<< _.previous) (Just <<< _.previous) (Just <<< _.previous)
