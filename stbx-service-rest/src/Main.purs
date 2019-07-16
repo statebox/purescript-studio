@@ -18,12 +18,13 @@ import Foreign (F)
 import Node.Express.App (App, listenHttp, get, post, use, useExternal, useOnError)
 import Node.Express.Handler (Handler, next, nextThrow)
 import Node.Express.Request (getBody, getRouteParam, getOriginalUrl)
-import Node.Express.Response (sendJson, setStatus)
+import Node.Express.Response (sendJson, setStatus, setResponseHeader)
 import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 
 import Statebox.Core.Transaction (TxId, TxSum)
 import Statebox.Service.Model (LeTx, TransactionDictionary, getTransaction, inMemoryActions)
+import Statebox.Core.Transaction.Codec.Encode (encodeTxWith, encodeTxSum)
 
 import ExampleData as Ex
 
@@ -75,6 +76,7 @@ healthcheck = sendJson { health: "I'm fine" }
 -- | responds to `GET /tx/<hash>`
 getTransactionHandler :: AppState -> Handler
 getTransactionHandler appState = do
+  setResponseHeader "Access-Control-Allow-Origin" "*"
   maybeHash <- getRouteParam "hash"
   case maybeHash of
     Nothing   -> nextThrow $ error "Hash is required"
@@ -82,9 +84,12 @@ getTransactionHandler appState = do
       transactionDictionary <- liftEffect $ read appState
       maybeTransaction <- liftAff $ runStateT (inMemoryActions $ getTransaction hash) transactionDictionary
       case maybeTransaction of
-        Just transaction /\ _ -> sendJson { hash: hash
-                                          , transaction: (transaction :: LeTx)
-                                          }
+        Just transaction /\ _ -> sendJson $ encodeTxWith encodeTxSum
+          { status: "ok"
+          , hash: hash
+          , hex: "TODO"
+          , decoded: transaction
+          }
         Nothing          /\ _ -> sendJson { hash: hash
                                           , error: show TxNotFound
                                           }

@@ -1,4 +1,3 @@
-
 module Statebox.Core.Transaction.Codec where
 
 import Prelude
