@@ -17,6 +17,9 @@ type Tx a =
   , decoded :: a
   }
 
+mapTx :: ∀ a b. (a -> b) -> Tx a -> Tx b
+mapTx f x = x { decoded = f x.decoded }
+
 type HashTx = { id :: TxId, tx :: TxSum }
 
 attachTxId :: TxId -> TxSum -> HashTx

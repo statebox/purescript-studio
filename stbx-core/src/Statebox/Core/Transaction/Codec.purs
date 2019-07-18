@@ -2,7 +2,9 @@ module Statebox.Core.Transaction.Codec where
 
 import Prelude
 import Control.Alt ((<|>))
-import Data.Argonaut.Core (Json)
+import Data.Argonaut.Core (Json, jsonEmptyObject, jsonNull)
+import Data.Argonaut.Encode.Combinators ((:=), (:=?), (~>), (~>?))
+import Data.Argonaut.Encode.Class (class EncodeJson, encodeJson)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.:), (.:?))
 import Data.Bifunctor (lmap, bimap)
 import Data.Either (Either(..))
@@ -10,7 +12,7 @@ import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe(..), maybe)
 import Foreign.Object (Object(..), lookup)
 
-import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), HashStr, mapTx)
+import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), HashStr, mapTx, evalTxSum)
 import Statebox.Core.Types (Firing)
 
 -- | NOTA BENE: This produces a `TxSum`, but it expects a JSON structure corresponding to `Tx TxSum`, and then takes
@@ -100,3 +102,20 @@ elaborateFailure s e =
   lmap msg e
   where
     msg m = "Failed to decode key '" <> s <> "': " <> m
+
+--------------------------------------------------------------------------------
+
+encodeTxSum :: TxSum -> Json
+encodeTxSum = evalTxSum
+  (\_ -> jsonEmptyObject) -- TODO do we want to encode/decode this?
+  (\i -> encodeJson i)
+  (\w -> encodeJson w)
+  (\f -> encodeJson f)
+
+encodeTxWith :: forall a. (a -> Json) -> Tx a -> Json
+encodeTxWith encodeBody t =
+     "status"  := t.status
+  ~> "hash"    := t.hash
+  ~> "hex"     := t.hex
+  ~> "decoded" := encodeBody t.decoded
+  ~> jsonEmptyObject

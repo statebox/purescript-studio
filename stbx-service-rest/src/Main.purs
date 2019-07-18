@@ -24,7 +24,7 @@ import Node.HTTP (Server)
 
 import Statebox.Core.Transaction (TxId, TxSum)
 import Statebox.Service.Model (LeTx, TransactionDictionary, getTransaction, inMemoryActions)
-import Statebox.Core.Transaction.Codec.Encode (encodeTxWith, encodeTxSum)
+import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
 
 import ExampleData as Ex
 
