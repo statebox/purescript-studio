@@ -4,28 +4,46 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.:), (.:?))
-import Data.Bifunctor (lmap)
+import Data.Bifunctor (lmap, bimap)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe(..), maybe)
 import Foreign.Object (Object(..), lookup)
 
-import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), HashStr)
+import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), HashStr, mapTx)
 import Statebox.Core.Types (Firing)
 
-
+-- | NOTA BENE: This produces a `TxSum`, but it expects a JSON structure corresponding to `Tx TxSum`, and then takes
+-- | the `Tx`'s `decoded` field and wraps that as the returned `TxSum`.
 decodeTxSum :: Json -> DecodingError \/ TxSum
-decodeTxSum json =
-  lmap DecodingError (decodeFiring json <|> decodeWiring json <|> decodeInitial json)
+decodeTxSum = bimap DecodingError (_.decoded) <<< decodeTxTxSum
+
+decodeTxTxSum :: Json -> String \/ Tx TxSum
+decodeTxTxSum json =
+  decodeFiring json <|> decodeWiring json <|> decodeInitial json
   where
-    decodeInitial :: Json -> String \/ TxSum
-    decodeInitial json = InitialTxInj <<< _.decoded <$> decodeJson json :: String \/ Tx InitialTx
+    decodeInitial :: Json -> String \/ Tx TxSum
+    decodeInitial = map (mapTx InitialTxInj) <<< decodeTxInitialTx
 
-    decodeWiring :: Json -> String \/ TxSum
-    decodeWiring json = WiringTxInj <<< _.decoded <$> decodeJson json :: String \/ Tx WiringTx
+    decodeWiring :: Json -> String \/ Tx TxSum
+    decodeWiring = map (mapTx WiringTxInj) <<< decodeTxWiringTx
 
-    decodeFiring :: Json -> String \/ TxSum
-    decodeFiring json = FiringTxInj <<< _.decoded <$> (decodeTxFiringTx =<< decodeJson json)
+    decodeFiring :: Json -> String \/ Tx TxSum
+    decodeFiring = map (mapTx FiringTxInj) <<< decodeTxFiringTx
+
+decodeTxInitialTx :: Json -> String \/ Tx InitialTx
+decodeTxInitialTx = decodeJson
+
+decodeTxWiringTx :: Json -> String \/ Tx WiringTx
+decodeTxWiringTx = decodeJson
+
+decodeTxFiringTx :: Json -> String \/ Tx FiringTx
+decodeTxFiringTx = decodeTxWith decodeFiringTx' <=< decodeJson
+  where
+    decodeFiringTx' :: Json -> String \/ FiringTx
+    decodeFiringTx' = decodeFiringTx <=< decodeJson
+
+--------------------------------------------------------------------------------
 
 newtype DecodingError = DecodingError String
 
@@ -40,31 +58,15 @@ instance showDecodingError :: Show DecodingError where
 
 -- | The 'body' of a `Tx` envelope is in the `decoded` field. This field (of type `a`) is
 -- | polymorphic, and you can specify a decoder for it.
-decodeTxWith :: forall a. DecodeJson a => (Json -> String \/ a) -> Object Json -> String \/ Tx a
+decodeTxWith :: ∀ a. (Json -> String \/ a) -> Object Json -> String \/ Tx a
 decodeTxWith aDecoder x = do
-  status  <- x .:  "status"
-  hash    <- x .:  "hash"
-  hex     <- x .:  "hex"
+  status  <- x .: "status"
+  hash    <- x .: "hash"
+  hex     <- x .: "hex"
   decoded <- getFieldWith aDecoder x "decoded"
   pure { status, hash, hex, decoded }
 
 --------------------------------------------------------------------------------
-
-decodeTxUnit'' :: Object Json -> String \/ Tx Unit
-decodeTxUnit'' = decodeTxWith (\json -> pure unit)
-
-decodeTxUnit' :: Json -> String \/ Tx Unit
-decodeTxUnit' = decodeTxUnit'' <=< decodeJson
-
-decodeTxUnit :: Json -> DecodingError \/ Tx Unit
-decodeTxUnit = lmap DecodingError <<< decodeTxUnit'
-
---------------------------------------------------------------------------------
-
-decodeTxFiringTx :: Object Json -> String \/ Tx FiringTx
-decodeTxFiringTx x = decodeTxWith decoder x
-  where
-    decoder = decodeJson >=> decodeFiringTx
 
 decodeFiringTx :: Object Json -> String \/ FiringTx
 decodeFiringTx x = do
@@ -85,7 +87,7 @@ decodeFiring x = do
 --------------------------------------------------------------------------------
 
 -- Adapted `getField` that allows you to override the decoder, See [Argonaut.Decode.Combinators](from https://github.com/purescript-contrib/purescript-argonaut-codecs/blob/9a1c0e09ca523ba7a290461e5346b818059f3d2a/src/Data/Argonaut/Decode/Combinators.purs#L58).
-getFieldWith :: forall a. DecodeJson a => (Json -> String \/ a) -> Object Json -> String -> String \/ a
+getFieldWith :: ∀ a. (Json -> String \/ a) -> Object Json -> String -> String \/ a
 getFieldWith decoder o s =
   maybe
     (Left $ "Expected field " <> show s)

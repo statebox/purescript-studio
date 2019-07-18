@@ -5,7 +5,7 @@ import Prelude
 import Data.Argonaut.Core (Json, toArray)
 import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
-import Data.Bifunctor (lmap)
+import Data.Profunctor.Strong ((&&&))
 import Data.Either (Either(..))
 import Data.Either (either)
 import Data.Either.Nested (type (\/))
@@ -13,63 +13,32 @@ import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Traversable (sequence)
+import Data.Traversable (sequence, traverse)
 import Statebox.Core.Transaction (TxId, Tx, TxSum(..))
-import Statebox.Core.Transaction.Codec (decodeTxUnit, decodeTxSum, DecodingError(..))
+import Statebox.Core.Transaction.Codec (decodeTxWith, decodeTxTxSum, DecodingError(..))
 
 import Debug.Trace (spy)
 
-txIdsDictE :: DecodingError \/ Map TxId TxSum
-txIdsDictE = map (Map.fromFoldable) txsIds''''''''
-
-txsIds'''''''' :: DecodingError \/ Array (TxId /\ TxSum)
-txsIds'''''''' = map (map (lmap (_.hash))) txsIds'''''''
-
-txsIds''''''' :: DecodingError \/ Array (Tx Unit /\ TxSum)
-txsIds''''''' = sequence txsIds''''''
-
-txsIds'''''' :: Array (DecodingError \/ (Tx Unit /\ TxSum))
-txsIds'''''' = map (fromEither (Left <<< DecodingError)) txsIds'''''
-
-txsIds''''' :: Array (String \/ (DecodingError \/ (Tx Unit /\ TxSum)))
-txsIds''''' = sequence (ftxsIds'''' txsIds''')
-
-txsIds'''' :: String \/ Array (DecodingError \/ (Tx Unit /\ TxSum))
-txsIds'''' = ftxsIds'''' txsIds'''
-
-ftxsIds''''
-  :: String \/ Array ((DecodingError \/ Tx Unit) /\ (DecodingError \/ TxSum))
-  -> String \/ Array (DecodingError \/ (Tx Unit  /\                   TxSum))
-ftxsIds'''' exs = map (map f) exs
+transactionsDictionary :: String \/ Map TxId TxSum
+transactionsDictionary = spy "transactionsDictionary" $ map Map.fromFoldable txsPairs'
   where
-    f :: (DecodingError \/ Tx Unit) /\ (DecodingError \/ TxSum)
-      -> DecodingError              \/ (Tx Unit /\ TxSum)
-    f = case _ of
-      Right txw /\ Right txSum -> Right (txw /\ txSum)
-      _                        -> Left (DecodingError "Expected a (Tx Unit) and a TxSum")
+    txsPairs' :: String \/ Array (TxId /\ TxSum)
+    txsPairs' = spy "txsPairs'" $ map (map (_.hash &&& _.decoded)) txTxSums''
 
+    txTxSums'' :: String \/ Array (Tx TxSum)
+    txTxSums'' = spy "txTxSums''" $ fromEither Left txTxSums'
 
-txsIds''' :: String \/ Array ((DecodingError \/ Tx Unit) /\ (DecodingError \/ TxSum))
-txsIds''' = spy "txs'''" $ map (map (\j -> decodeTxUnit j /\ decodeTxSum j)) txs''
+    txTxSums' :: String \/ (String \/ Array (Tx TxSum))
+    txTxSums' = spy "txTxSums'" $ map (traverse decodeTxTxSum) txsJson''
 
-txs''' :: String \/ Array (DecodingError \/ TxSum)
-txs''' = spy "txs'''" $ map (map decodeTxSum) txs''
+    txsJson'' :: String \/ Array Json
+    txsJson'' = either Left (maybe (Left "not a JSON Array") Right) txsJson'
 
-txs'' :: String \/ Array Json
-txs'' = either (Left) (maybe (Left "not a JSON Array") Right) txs'
+    txsJson' :: String \/ Maybe (Array Json)
+    txsJson' = toArray <$> txsJson
 
-txs' :: String \/ Maybe (Array Json)
-txs' = toArray <$> txsJson
-
-txsJson :: String \/ Json
-txsJson = jsonParser txsJsonStr
-
---------------------------------------------------------------------------------
-
-fromEither :: forall a b. (a -> b) -> Either a b ->  b
-fromEither f = either f identity
-
---------------------------------------------------------------------------------
+    txsJson :: String \/ Json
+    txsJson = jsonParser txsJsonStr
 
 txsJsonStr :: String
 txsJsonStr = """
@@ -221,3 +190,6 @@ txsJsonStr = """
   }
 ]
 """
+
+fromEither :: forall a b. (a -> b) -> Either a b ->  b
+fromEither f = either f identity

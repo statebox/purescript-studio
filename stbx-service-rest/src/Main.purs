@@ -43,7 +43,7 @@ stbxPort = 8080
 type AppState = Ref TransactionDictionary
 
 initialState :: Effect AppState
-initialState = new $ either mempty identity Ex.txIdsDictE
+initialState = new $ either mempty identity Ex.transactionsDictionary
 
 -- middleware
 
