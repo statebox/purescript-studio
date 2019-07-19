@@ -5,6 +5,7 @@ import Prelude
 import Data.Argonaut.Core (Json, toArray)
 import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
+import Data.Profunctor.Choice ((|||))
 import Data.Profunctor.Strong ((&&&))
 import Data.Either (Either(..))
 import Data.Either (either)
@@ -32,7 +33,7 @@ transactionsDictionary = spy "transactionsDictionary" $ map Map.fromFoldable txs
     txTxSums' = spy "txTxSums'" $ map (traverse decodeTxTxSum) txsJson''
 
     txsJson'' :: String \/ Array Json
-    txsJson'' = either Left (maybe (Left "not a JSON Array") Right) txsJson'
+    txsJson'' = Left ||| (maybe (Left "not a JSON Array") Right) $ txsJson'
 
     txsJson' :: String \/ Maybe (Array Json)
     txsJson' = toArray <$> txsJson

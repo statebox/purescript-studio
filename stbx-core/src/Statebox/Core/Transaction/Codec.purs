@@ -6,7 +6,7 @@ import Data.Argonaut.Core (Json, jsonEmptyObject, jsonNull)
 import Data.Argonaut.Encode.Combinators ((:=), (:=?), (~>), (~>?))
 import Data.Argonaut.Encode.Class (class EncodeJson, encodeJson)
 import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.:), (.:?))
-import Data.Bifunctor (lmap, bimap)
+import Data.Profunctor.Choice (left)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe(..), maybe)
@@ -14,11 +14,6 @@ import Foreign.Object (Object(..), lookup)
 
 import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), HashStr, mapTx, evalTxSum)
 import Statebox.Core.Types (Firing)
-
--- | NOTA BENE: This produces a `TxSum`, but it expects a JSON structure corresponding to `Tx TxSum`, and then takes
--- | the `Tx`'s `decoded` field and wraps that as the returned `TxSum`.
-decodeTxSum :: Json -> DecodingError \/ TxSum
-decodeTxSum = bimap DecodingError (_.decoded) <<< decodeTxTxSum
 
 decodeTxTxSum :: Json -> String \/ Tx TxSum
 decodeTxTxSum json =
@@ -44,17 +39,6 @@ decodeTxFiringTx = decodeTxWith decodeFiringTx' <=< decodeJson
   where
     decodeFiringTx' :: Json -> String \/ FiringTx
     decodeFiringTx' = decodeFiringTx <=< decodeJson
-
---------------------------------------------------------------------------------
-
-newtype DecodingError = DecodingError String
-
-instance eqDecodingError :: Eq DecodingError where
-  eq (DecodingError x) (DecodingError y) = x == y
-
-instance showDecodingError :: Show DecodingError where
-  show = case _ of
-    DecodingError e -> "(DecodingError " <> show e <> ")"
 
 --------------------------------------------------------------------------------
 
@@ -99,9 +83,21 @@ getFieldWith decoder o s =
 -- Duplicate of https://github.com/purescript-contrib/purescript-argonaut-codecs/blob/9a1c0e09ca523ba7a290461e5346b818059f3d2a/src/Data/Argonaut/Decode/Combinators.purs#L132.
 elaborateFailure :: ∀ a. String -> String \/ a -> String \/ a
 elaborateFailure s e =
-  lmap msg e
+  left msg e
   where
     msg m = "Failed to decode key '" <> s <> "': " <> m
+
+--------------------------------------------------------------------------------
+
+-- TODO This is no longer used in this module and should probably be moved into Client
+newtype DecodingError = DecodingError String
+
+instance eqDecodingError :: Eq DecodingError where
+  eq (DecodingError x) (DecodingError y) = x == y
+
+instance showDecodingError :: Show DecodingError where
+  show = case _ of
+    DecodingError e -> "(DecodingError " <> show e <> ")"
 
 --------------------------------------------------------------------------------
 

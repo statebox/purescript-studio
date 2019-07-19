@@ -53,7 +53,7 @@ suite = do
           """}"""
 
         txFiringTxWithMessageField :: _ \/ (DecodingError \/ TxSum)
-        txFiringTxWithMessageField = spy "txFiringTxWithMessageFieldStr" $ map decodeTxSum    $ decodeJson =<< jsonParser txFiringTxWithMessageFieldStr
+        txFiringTxWithMessageField = spy "txFiringTxWithMessageFieldStr" $ map decodeTxSum $ decodeJson =<< jsonParser txFiringTxWithMessageFieldStr
 
       txFiringTxWithMessageField # either fail (either (fail <<< show) (evalTxSum
         (\ur -> fail "UberRootTxInj")

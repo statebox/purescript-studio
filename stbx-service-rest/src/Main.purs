@@ -31,10 +31,6 @@ import ExampleData as Ex
 -- import body parser
 foreign import jsonBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
--- TODO: move this elsewhere
-endpointUrl :: String
-endpointUrl = "https://testapi.statebox.io"
-
 stbxPort :: Int
 stbxPort = 8080
 
