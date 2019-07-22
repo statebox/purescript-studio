@@ -11,6 +11,7 @@
     , "psci-support"
     , "stbx-core"
     , "stbx-client-rest"
+    , "stbx-example-data"
     ]
 , packages =
     ./packages.dhall

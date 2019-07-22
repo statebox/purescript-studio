@@ -13,14 +13,16 @@ import Control.Coroutine.Aff (emit, close, produceAff, Emitter)
 import Control.Monad.Rec.Class (Step(Loop, Done), tailRecM)
 import Control.Monad.Free.Trans (hoistFreeT)
 import Data.Argonaut.Core (Json)
-import Data.Either (Either(..), either)
+import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
+import Data.Profunctor.Choice ((|||), (+++))
 import Data.HTTP.Method (Method(GET))
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff)
 
-import Statebox.Core.Transaction (HashTx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
-import Statebox.Core.Transaction.Codec (decodeTxSum, DecodingError)
+import Statebox.Core.Transaction (HashTx, Tx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
+import Statebox.Core.Transaction.Codec (decodeTxTxSum, DecodingError(..))
+
 
 -- | A convenience function for processing API responses.
 evalTransactionResponse
@@ -31,7 +33,7 @@ evalTransactionResponse
   -> ResponseFormatError \/ (DecodingError \/ HashTx)
   -> a
 evalTransactionResponse onResponseFormatError onDecodingError onTx =
-  (onResponseFormatError `either` (onDecodingError `either` onTx))
+  onResponseFormatError ||| onDecodingError ||| onTx
 
 --------------------------------------------------------------------------------
 
@@ -46,7 +48,12 @@ requestTransaction' apiBaseUrl hash =
     pure $ Right <<< Right $ UberRootTxInj
   else do
     res <- requestTransactionJson apiBaseUrl hash
-    pure $ decodeTxSum <$> res.body
+    let
+      tx :: ResponseFormatError \/ DecodingError \/ TxSum
+      tx = (DecodingError +++ _.decoded) <<< decodeTxTxSum <$> res.body
+    pure tx
+
+--------------------------------------------------------------------------------
 
 requestTransactionJson :: URL -> TxId -> Aff (Response (ResponseFormatError \/ Json))
 requestTransactionJson apiBaseUrl hash =

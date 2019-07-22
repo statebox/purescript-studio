@@ -10,17 +10,17 @@ import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log)
 
-import Statebox.Core.Transaction (Tx, TxSum)
+import Statebox.Core.Transaction (Tx, TxSum, TxId)
 
 -- define possible actions
 
 type AddTransactionData =
   { hash        :: String
-  , transaction :: Tx TxSum
+  , transaction :: TransactionDictionaryValue
   }
 
 data ActionsF a
-  = GetTransaction String (Maybe (Tx TxSum) -> a)
+  = GetTransaction String (Maybe TransactionDictionaryValue -> a)
   | AddTransaction AddTransactionData a
 
 derive instance functorActions :: Functor (ActionsF)
@@ -29,10 +29,10 @@ type Actions = Free ActionsF
 
 -- define basic interactions
 
-getTransaction :: String -> Actions (Maybe (Tx TxSum))
+getTransaction :: String -> Actions (Maybe TransactionDictionaryValue)
 getTransaction txHash = liftF $ GetTransaction txHash identity
 
-putTransaction :: String -> Tx TxSum -> Actions Unit
+putTransaction :: String -> TransactionDictionaryValue -> Actions Unit
 putTransaction hash transaction = liftF $ AddTransaction {hash: hash, transaction: transaction} unit
 
 -- logging instance
@@ -48,7 +48,11 @@ loggingActions = runFreeM $ \action -> case action of
 
 -- in-memory instance
 
-type TransactionDictionary = Map String (Tx TxSum)
+
+-- TODO #237 Discuss whether this should be `TxSum` or `Tx TxSum`, then eliminate this alias.
+type TransactionDictionaryValue = TxSum
+
+type TransactionDictionary = Map TxId TransactionDictionaryValue
 
 inMemoryActions :: forall a m. MonadRec m => MonadState TransactionDictionary m => Actions a -> m a
 inMemoryActions = runFreeM $ \action -> case action of
