@@ -81,14 +81,14 @@ getTransactionHandler appState = do
       maybeTransaction <- liftAff $ runStateT (inMemoryActions $ getTransaction hash) transactionDictionary
       case maybeTransaction of
         Just transaction /\ _ -> sendJson $ encodeTxWith encodeTxSum
-          { status: "ok"
+          { status: errToStr Ok
           , hash: hash
-          , hex: "TODO"
+          , hex: "TODO" -- TODO #237
           , decoded: transaction
           }
-        Nothing          /\ _ -> sendJson { hash: hash
-                                          , error: show TxNotFound
-                                          }
+        Nothing /\ _ -> sendJson { status: errToStr TxNotFound
+                                 , hash: hash
+                                 }
 
 -- | `postTransaction` endpoint
 -- | responds to `POST /tx`
@@ -96,10 +96,10 @@ postTransactionHandler :: AppState -> Handler
 postTransactionHandler appState = do
   fBody :: F (Array String) <- getBody
   case runExcept fBody of
-    Left errors -> sendJson { status: "ko"
-                            , errors : show errors
+    Left errors -> sendJson { status: errToStr NotOk
+                            , errors: show errors
                             }
-    Right hash  -> sendJson { status: "ok" }
+    Right hash  -> sendJson { status: errToStr Ok }
 
 -- application definition with routing
 
@@ -124,7 +124,13 @@ main = do
 --------------------------------------------------------------------------------
 
 -- | TODO this is now used ad hoc in JSON responses; these should be made to conform to the Statebox protocol spec.
-data Err = TxNotFound
+data Err = Ok | NotOk | TxNotFound
 
 instance showErr :: Show Err where
-  show TxNotFound = "TxNotFound"
+  show = case _ of
+    Ok         -> "Ok"
+    NotOk      -> "NotOk"
+    TxNotFound -> "TxNotFound"
+
+errToString :: Err -> String
+errToString = show
