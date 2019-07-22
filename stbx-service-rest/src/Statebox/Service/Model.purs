@@ -16,11 +16,11 @@ import Statebox.Core.Transaction (Tx, TxSum, TxId)
 
 type AddTransactionData =
   { hash        :: String
-  , transaction :: LeTx
+  , transaction :: TransactionDictionaryValue
   }
 
 data ActionsF a
-  = GetTransaction String (Maybe LeTx -> a)
+  = GetTransaction String (Maybe TransactionDictionaryValue -> a)
   | AddTransaction AddTransactionData a
 
 derive instance functorActions :: Functor (ActionsF)
@@ -29,10 +29,10 @@ type Actions = Free ActionsF
 
 -- define basic interactions
 
-getTransaction :: String -> Actions (Maybe LeTx)
+getTransaction :: String -> Actions (Maybe TransactionDictionaryValue)
 getTransaction txHash = liftF $ GetTransaction txHash identity
 
-putTransaction :: String -> LeTx -> Actions Unit
+putTransaction :: String -> TransactionDictionaryValue -> Actions Unit
 putTransaction hash transaction = liftF $ AddTransaction {hash: hash, transaction: transaction} unit
 
 -- logging instance
@@ -48,10 +48,11 @@ loggingActions = runFreeM $ \action -> case action of
 
 -- in-memory instance
 
--- TODO this is a *temporary* alias
-type LeTx = TxSum
 
-type TransactionDictionary = Map TxId LeTx
+-- TODO #237 Discuss whether this should be `TxSum` or `Tx TxSum`, then eliminate this alias.
+type TransactionDictionaryValue = TxSum
+
+type TransactionDictionary = Map TxId TransactionDictionaryValue
 
 inMemoryActions :: forall a m. MonadRec m => MonadState TransactionDictionary m => Actions a -> m a
 inMemoryActions = runFreeM $ \action -> case action of
