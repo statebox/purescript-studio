@@ -12,10 +12,9 @@ import Data.Map (Map)
 import Data.Monoid (guard)
 import Data.Tuple.Nested (type (/\), (/\))
 import Halogen as H
-import Halogen (Component, ComponentDSL, ParentHTML)
+import Halogen (Component, ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML (HTML, nav, div, p, a, text, ul, li, aside, span, i)
 import Halogen.HTML.Core (ClassName(..))
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, src, href, id_)
 import Halogen.HTML.Properties.ARIA as ARIA
@@ -28,10 +27,10 @@ componentCssClassName = ClassName componentCssClassNameStr
 
 --------------------------------------------------------------------------------
 
-data Query r a
-  = VisitRoute NodeId r a
-  | ToggleExpandCollapse NodeId a
-  | UpdateTree (RoseTree (Item r)) a
+data Action r
+  = VisitRoute NodeId r
+  | ToggleExpandCollapse NodeId
+  | UpdateTree (RoseTree (Item r))
 
 -- | What the component emits to the outside world.
 data Msg r = Clicked NodeId r
@@ -60,12 +59,19 @@ type NodeId = Array Int
 --------------------------------------------------------------------------------
 
 menuComponent
-  :: forall m r
+  :: forall m r q
    . MonadAff m
   => (r -> Boolean)
-  -> Component HTML (Query r) (RoseTree (Item r)) (Msg r) m
+  -> Component HTML q (RoseTree (Item r)) (Msg r) m
 menuComponent isSelected =
-  H.component { initialState, render, eval, receiver: HE.input UpdateTree }
+  H.mkComponent 
+    { initialState
+    , render
+    , eval: mkEval $ defaultEval 
+      { handleAction = handleAction
+      , receive = Just <<< UpdateTree
+      }
+    }
   where
     initialState :: RoseTree (Item r) -> State r
     initialState tree =
@@ -75,26 +81,23 @@ menuComponent isSelected =
       , hideRoot: true
       }
 
-    eval :: Query r ~> ComponentDSL (State r) (Query r) _ m
-    eval = case _ of
-      UpdateTree tree next -> do
+    handleAction :: Action r -> HalogenM (State r) (Action r) () (Msg r) m Unit
+    handleAction = case _ of
+      UpdateTree tree -> do
         H.modify_ \state -> state { tree = pure $ decorateWithIds tree }
-        pure next
 
-      VisitRoute pathId route next -> do
+      VisitRoute pathId route -> do
         H.modify_ (\state -> state { activeItem = Just pathId })
         H.raise (Clicked pathId route)
-        pure next
 
-      ToggleExpandCollapse pathId next -> do
+      ToggleExpandCollapse pathId -> do
         state <- H.get
         let e = Map.lookup pathId state.expansion
         let e' = not (fromMaybe true e)
         let state' = state { expansion = Map.insert pathId e' state.expansion }
         H.put state'
-        pure next
 
-    render :: State r -> HTML Void (Query r Unit)
+    render :: State r -> ComponentHTML (Action r) () m
     render state = fromMaybe (div [] []) $ state.tree <#> \tree ->
       nav [ classesWithNames [ componentCssClassNameStr, "p-4" ] ]
           [ ul [ classesWithNames [ "list-reset" ] ] $
@@ -102,7 +105,7 @@ menuComponent isSelected =
                                  else [semifoldCofree menuItemHtml  $       tree]
           ]
       where
-        menuItemHtml :: (NodeId /\ Item r)  -> Array (HTML Void (Query r Unit)) -> HTML Void (Query r Unit)
+        menuItemHtml :: (NodeId /\ Item r)  -> Array (ComponentHTML (Action r) () m) -> ComponentHTML (Action r) () m
         menuItemHtml (treeNodeId /\ treeNode) kids =
           li [ classesWithNames [ "block", "flex", "cursor-pointer", "pr-2", "text-grey-darkest" ] ]
              [ div [ classesWithNames [ "inline-flex" ] ]
@@ -137,8 +140,8 @@ menuComponent isSelected =
             isExpanded = not null kids && (fromMaybe true $ Map.lookup treeNodeId state.expansion)
             isActive = state.activeItem == pure treeNodeId
 
-            onClickVisitRoute     = maybe [] (pure <<< onClick <<< HE.input_ <<< VisitRoute treeNodeId) treeNode.route
-            onClickExpandCollapse = guard (not null kids) [ onClick <<< HE.input_ $ ToggleExpandCollapse treeNodeId ]
+            onClickVisitRoute     = maybe [] (pure <<< onClick <<< const <<< Just <<< VisitRoute treeNodeId) treeNode.route
+            onClickExpandCollapse = guard (not null kids) [ onClick <<< const <<< Just $ ToggleExpandCollapse treeNodeId ]
 
 decorateWithIds :: forall r. RoseTree (Item r) -> RoseTree (NodeId /\ Item r)
 decorateWithIds tree = mapWithIndexCofree (/\) tree
