@@ -12,7 +12,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML (HTML, div, span, text, a, br, hr, button, input, textarea, select, option, label, fieldset, legend)
 import Halogen.HTML.Core (ClassName(..))
-import Halogen.HTML.Events (input_, onClick, onChecked, onValueInput, onValueChange)
+import Halogen.HTML.Events (onClick, onChecked, onValueInput, onValueChange)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, value, rows, placeholder, InputType(..), checked, name)
@@ -20,7 +20,7 @@ import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, va
 import Data.Auth (Role(..), Roles(..), Privilege(..), RoleInfo, rolesElem, isPrivileged, toPrivilege, CSSColor(..))
 import Data.Auth as Auth
 import Data.Typedef (Typedef(..))
-import View.Petrinet.Model (TransitionQueryF(..))
+import View.Petrinet.Model (TransitionAction(..))
 import View.Common (styleStr, classesWithNames)
 
 type TransitionEditorFormModel tid =
@@ -31,10 +31,10 @@ type TransitionEditorFormModel tid =
   , auths       :: Roles
   }
 
-form' :: ∀ tid a. Array RoleInfo -> TransitionEditorFormModel tid -> HTML a ((TransitionQueryF tid) Unit)
+form' :: ∀ tid m. Array RoleInfo -> TransitionEditorFormModel tid -> H.ComponentHTML (TransitionAction tid) () m
 form' allRoleInfos m = form allRoleInfos (Just m)
 
-form :: ∀ tid a. Array RoleInfo -> Maybe (TransitionEditorFormModel tid) -> HTML a ((TransitionQueryF tid) Unit)
+form :: ∀ tid m. Array RoleInfo -> Maybe (TransitionEditorFormModel tid) -> H.ComponentHTML (TransitionAction tid) () m
 form allRoleInfos mm =
   titledPanel "Transition properties" $
     formContainer
@@ -42,14 +42,14 @@ form allRoleInfos mm =
           input [ classesWithNames inputClasses1
                 , value (maybe "" (_.label) mm)
                 , maybe (disabled true)
-                        (\tid -> onValueChange (HE.input (UpdateTransitionName tid)))
+                        (\tid -> onValueChange (Just <<< UpdateTransitionName tid))
                         (mm <#> _.tid)
                 ]
       , fieldContainer "type"  "grid-label-type" $
           input [ classesWithNames inputClasses1
                 , value (maybe "" (un Typedef <<< _.typedef) mm)
                 , maybe (disabled true)
-                        (\tid -> onValueChange (HE.input (UpdateTransitionType tid <<< Typedef)))
+                        (\tid -> onValueChange (Just <<< UpdateTransitionType tid <<< Typedef))
                         (mm <#> _.tid)
                 ]
       , fieldContainer "roles" "grid-label-roles" $

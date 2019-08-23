@@ -7,13 +7,13 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe, isNothing)
 import Halogen as H
 import Halogen.HTML (HTML, div, text, a, br, hr, button, input, textarea, select, option, label, fieldset, legend)
-import Halogen.HTML.Events (input_, onClick, onChecked, onValueInput, onValueChange)
+import Halogen.HTML.Events (onClick, onChecked, onValueInput, onValueChange)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, disabled, src, width, height, type_, value, rows, placeholder, InputType(..), checked, name)
 import Halogen.HTML.Core (ClassName(..))
 
 import Data.Typedef (Typedef(..))
-import View.Petrinet.Model (PlaceQueryF(..), Msg(..))
+import View.Petrinet.Model (PlaceAction(..), Msg(..))
 
 type PlaceEditorFormModel pid =
   { pid         :: pid
@@ -22,10 +22,10 @@ type PlaceEditorFormModel pid =
   , isWriteable :: Boolean
   }
 
-form' :: ∀ pid a. PlaceEditorFormModel pid -> HTML a ((PlaceQueryF pid) Unit)
+form' :: ∀ pid m. PlaceEditorFormModel pid -> H.ComponentHTML (PlaceAction pid) () m
 form' = form <<< Just
 
-form :: ∀ pid a. Maybe (PlaceEditorFormModel pid) -> HTML a ((PlaceQueryF pid) Unit)
+form :: ∀ pid m. Maybe (PlaceEditorFormModel pid) -> H.ComponentHTML (PlaceAction pid) () m
 form mm =
   div []
       [ div [ classes [ ClassName "field", ClassName "is-horizontal" ] ]
@@ -39,7 +39,7 @@ form mm =
                               [ input [ classes [ ClassName "input" ]
                                       , value (maybe "" (_.label) mm)
                                       , maybe (disabled true)
-                                              (\pid -> onValueChange (HE.input (UpdatePlaceLabel pid)))
+                                              (\pid -> onValueChange (Just <<< UpdatePlaceLabel pid))
                                               (mm <#> _.pid)
                                       ]
                               ]

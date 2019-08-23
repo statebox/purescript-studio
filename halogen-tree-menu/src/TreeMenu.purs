@@ -64,14 +64,7 @@ menuComponent
   => (r -> Boolean)
   -> Component HTML q (RoseTree (Item r)) (Msg r) m
 menuComponent isSelected =
-  H.mkComponent 
-    { initialState
-    , render
-    , eval: mkEval $ defaultEval 
-      { handleAction = handleAction
-      , receive = Just <<< UpdateTree
-      }
-    }
+  H.mkComponent { eval: mkEval $ defaultEval { receive = Just <<< UpdateTree, handleAction = handleAction }, initialState, render }
   where
     initialState :: RoseTree (Item r) -> State r
     initialState tree =

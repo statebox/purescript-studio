@@ -1,9 +1,10 @@
 module View.Common where
 
 import Prelude
-import Halogen.HTML (HTML, text)
+import Halogen.HTML (ComponentHTML, HTML, text)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Core as HC
+import Data.Bifunctor (class Bifunctor, bimap)
 import Data.Foldable (intercalate)
 import Data.Tuple.Nested (type (/\), (/\))
 
@@ -18,3 +19,6 @@ emptyHtml = text ""
 
 classesWithNames :: ∀ r i. Array String -> HP.IProp (class :: String | r) i
 classesWithNames names = HP.classes (HC.ClassName <$> names)
+
+mapAction :: ∀ m a b. (a -> b) -> ComponentHTML a () m -> ComponentHTML b () m
+mapAction f = bimap (map f) f
