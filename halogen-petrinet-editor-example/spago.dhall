@@ -1,16 +1,17 @@
 { name =
-	"halogen-petrinet-editor-example"
+    "halogen-petrinet-editor-example"
 , dependencies =
-	[ "console"
-	, "effect"
-	, "halogen"
-	, "halogen-petrinet-editor"
-	, "prelude"
-	, "psci-support"
-	, "studio-common"
-	]
+    [ "console"
+    , "effect"
+    , "halogen"
+    , "halogen-petrinet-editor"
+    , "prelude"
+    , "psci-support"
+    , "record"
+    , "studio-common"
+    ]
 , packages =
-	./packages.dhall
+    ./packages.dhall
 , sources =
-	[ "src/**/*.purs", "test/**/*.purs" ]
+    [ "src/**/*.purs", "test/**/*.purs" ]
 }
