@@ -8,7 +8,7 @@ import Data.Tuple.Nested ((/\))
 import Data.Vec3 (vec2)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
-import Halogen (ComponentDSL, HalogenM)
+import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML as HH
 import Halogen.HTML (HTML, div)
 import Halogen.HTML.Core (ClassName(..))
@@ -44,22 +44,24 @@ initialState ops =
   , componentElemMaybe: Nothing
   }
 
-ui :: ∀ m. MonadAff m => H.Component HTML Query Operators Msg m
-ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: HE.input UpdateDiagram, initializer: Just (Initialize unit), finalizer: Nothing }
+ui :: ∀ m q. MonadAff m => H.Component HTML q Operators Msg m
+ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval { 
+    handleAction = handleAction, receive = Just <<< UpdateDiagram, initialize = Just Initialize
+  }}
   where
-    render :: State -> HTML Void (Query Unit)
+    render :: State -> ComponentHTML Action () m
     render state =
       div [ classes [ ClassName "css-diagram-editor" ] ]
           [ div [ classes [] ]
-                [ View.diagramEditorSVG state.componentElemMaybe state.model <#> \msg -> MouseAction msg unit
+                [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
                 , div [ classes [ ClassName "mt-4", ClassName "rb-2", ClassName "p-4", ClassName "bg-grey-lightest", ClassName "text-grey-dark", ClassName "rounded", ClassName "text-sm" ] ]
                       [ Inspector.view state ]
                 ]
           ]
 
-    eval :: Query ~> ComponentDSL State Query Msg m
-    eval = case _ of
-      MouseAction msg next -> do
+    handleAction :: Action -> HalogenM State Action () Msg m Unit
+    handleAction = case _ of
+      MouseAction msg -> do
         state <- H.get
         let state' = state { model = evalModel msg state.model }
 
@@ -76,22 +78,19 @@ ui = H.lifecycleComponent { initialState: initialState, render, eval, receiver: 
 
         H.put state''
 
-        _ <- maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
-        pure next
+        maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
 
-      UpdateDiagram ops next -> do
+      UpdateDiagram ops -> do
         H.modify_ \state -> state { model = state.model { ops = ops } }
-        pure next
 
-      Initialize next -> do
+      Initialize -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         H.modify_ \state -> state { componentElemMaybe = componentElemMaybe }
-        pure next
 
 -- TODO this is generally useful; move elsewhere
 -- This was made because the original implementation from Halogen.Query doesn't seem to work, at least in this case:
 --      getHTMLElementRef = map (HTMLElement.fromElement =<< _) <<< getRef
-getHTMLElementRef' :: forall s f g p o m. H.RefLabel -> HalogenM s f g p o m (Maybe HTMLElement)
+getHTMLElementRef' :: forall s a i o m. H.RefLabel -> HalogenM s a i o m (Maybe HTMLElement)
 getHTMLElementRef' = map (map elementToHTMLElement) <<< H.getRef
   where
     elementToHTMLElement :: Element -> HTMLElement

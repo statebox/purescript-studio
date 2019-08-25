@@ -10,27 +10,21 @@ import Data.Array (cons, index)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
 import Data.Either (either, hush)
-import Data.Either.Nested (type (\/), Either3)
+import Data.Either.Nested (type (\/))
 import Data.Foldable (find, foldMap)
-import Data.Functor.Coproduct.Nested (Coproduct3)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lens (preview)
-import Data.Map (Map)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
-import Data.Monoid (guard)
 import Data.Set as Set
 import Data.String.CodePoints (take)
-import Data.Traversable (traverse)
-import Data.Tuple (uncurry)
+import Data.Symbol (SProxy(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Debug.Trace (spy)
 import Effect.Exception (try)
-import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Console (log)
 import Halogen as H
-import Halogen (ParentDSL, ParentHTML)
-import Halogen.Component.ChildPath as ChildPath
+import Halogen (ComponentHTML, mkEval, defaultEval)
 import Halogen.HTML as HH
 import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i, br, pre)
 import Halogen.HTML.Core (ClassName(..))
@@ -48,8 +42,6 @@ import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
-import Data.Typedef (Typedef(..))
-import Data.Typedef.Typedef2 (Typedef2)
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Execution (PathElem)
@@ -81,32 +73,35 @@ type State =
 
 --------------------------------------------------------------------------------
 
-data Query a
-  = SelectRoute Route a
-  | LoadPNPRO URL a
-  | LoadTransaction URL HashStr a
-  | LoadTransactions URL HashStr a
-  | HandleObjectTreeMsg (ObjectTree.Msg Route) a
-  | HandlePetrinetEditorMsg Msg a
-  | HandleDiagramEditorMsg DiagramEditor.Msg a
+data Action
+  = SelectRoute Route
+  | LoadPNPRO URL
+  | LoadTransaction URL HashStr
+  | LoadTransactions URL HashStr
+  | HandleObjectTreeMsg (ObjectTree.Msg Route)
+  | HandlePetrinetEditorMsg PetrinetEditor.Msg
+  | HandleDiagramEditorMsg DiagramEditor.Msg
 
-type ChildQuery = Coproduct3 (ObjectTree.Query Route) (PetrinetEditor.QueryF PID TID Typedef2) DiagramEditor.Query
+data VoidF a
 
-type ChildSlot = Either3 Unit Unit Unit
+type ChildSlots =
+  ( objectTree :: H.Slot VoidF (ObjectTree.Msg Route) Unit
+  , petrinetEditor :: H.Slot VoidF PetrinetEditor.Msg Unit
+  , diagramEditor :: H.Slot VoidF DiagramEditor.Msg Unit
+  )
 
-objectTreeSlotPath     = ChildPath.cp1
-petrinetEditorSlotPath = ChildPath.cp2
-diagramEditorSlotPath  = ChildPath.cp3
+_objectTree = SProxy :: SProxy "objectTree"
+_petrinetEditor = SProxy :: SProxy "petrinetEditor"
+_diagramEditor = SProxy :: SProxy "diagramEditor"
 
 --------------------------------------------------------------------------------
 
-ui :: forall m. MonadAff m => H.Component HTML Query Unit Void m
+ui :: ∀ m q. MonadAff m => H.Component HTML q Unit Void m
 ui =
-  H.parentComponent
+  H.mkComponent
     { initialState: const initialState
     , render
-    , eval
-    , receiver: const Nothing
+    , eval: mkEval $ defaultEval { handleAction = handleAction }
     }
   where
     initialState :: State
@@ -117,17 +112,16 @@ ui =
       , route:       Home
       }
 
-    eval :: Query ~> ParentDSL State Query ChildQuery ChildSlot Void m
-    eval = case _ of
-      HandleObjectTreeMsg (ObjectTree.Clicked pathId route) next -> do
-        eval (SelectRoute route next)
+    handleAction :: Action -> HalogenM State Action ChildSlots Void m Unit
+    handleAction = case _ of
+      HandleObjectTreeMsg (ObjectTree.Clicked pathId route) -> do
+        handleAction (SelectRoute route)
 
-      SelectRoute route next -> do
+      SelectRoute route -> do
         -- H.liftEffect $ log $ "route = " <> show route
         H.modify_ \state -> state { route = route }
-        pure next
 
-      LoadTransaction endpointUrl hash next -> do
+      LoadTransaction endpointUrl hash -> do
         H.liftEffect $ log $ "LoadTransaction: requesting transaction " <> hash <> " from " <> endpointUrl
         res <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
         res # evalTransactionResponse
@@ -135,31 +129,29 @@ ui =
           (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
           (\{id, tx}            -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
                                       H.liftEffect $ log $ show tx)
-        pure next
 
-      LoadTransactions endpointUrl startHash next -> do
+      LoadTransactions endpointUrl startHash -> do
         H.liftEffect $ log $ "LoadTransactions: requesting transactions up to root, starting at " <> startHash <> " from " <> endpointUrl
         let
-          txProducer :: Producer HashTx (HalogenM State Query _ _ Void m) Unit
+          txProducer :: Producer HashTx (HalogenM State Action _ Void m) Unit
           txProducer = Stbx.requestTransactionsToRootM endpointUrl startHash
 
-          txConsumer :: Consumer HashTx (HalogenM State Query _ _ Void m) Unit
+          txConsumer :: Consumer HashTx (HalogenM State Action _ Void m) Unit
           txConsumer = consumer txStorer
             where
-              txStorer :: HashTx -> (HalogenM State Query _ _ Void m) (Maybe _)
+              txStorer :: HashTx -> (HalogenM State Action _ Void m) (Maybe _)
               txStorer itx@{id, tx} = do
                 H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
                 H.liftEffect $ log $ show itx
                 pure Nothing
 
           -- | This ingests transactions from the HTTP API into our transaction storage.
-          txIngester :: Process (HalogenM State Query _ _ Void m) Unit
+          txIngester :: Process (HalogenM State Action _ Void m) Unit
           txIngester = txProducer `connect` txConsumer
 
         runProcess txIngester
-        pure next
 
-      LoadPNPRO url next -> do
+      LoadPNPRO url -> do
         H.liftEffect $ log $ "LoadPNPRO: requesting PNPRO file from " <> url
         res <- H.liftAff $ Affjax.request $ Affjax.defaultRequest { url = url, responseFormat = ResponseFormat.string }
         res.body # either
@@ -170,9 +162,8 @@ ui =
                  (\err      -> H.liftEffect $ log $ "Error decoding PNPRO document: " <> show err)
                  (\pnproDoc -> H.modify_ $ \state -> state { projects = fromPNPROProject pnproDoc.project `cons` state.projects })
           )
-        pure next
 
-      HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) next -> do
+      HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) -> do
         H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
         state <- H.get
         let
@@ -181,18 +172,18 @@ ui =
           newRouteMaybe = case state.route of
             Diagram pname dname _ -> Just (Diagram pname dname (Just (NetNode opId)))
             _                     -> Nothing
-        maybe (pure next) (\route -> eval (SelectRoute route next)) newRouteMaybe
+        maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
-      HandlePetrinetEditorMsg NetUpdated next -> do
-        pure next
+      HandlePetrinetEditorMsg NetUpdated -> do
+        pure unit
 
-    render :: State -> ParentHTML Query ChildQuery ChildSlot m
+    render :: State -> ComponentHTML Action ChildSlots m
     render state =
       div []
         [ navBar
         , div [ classes [ ClassName "flex" ] ]
               [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
-                    [ HH.slot' objectTreeSlotPath unit (ObjectTree.menuComponent (_ == state.route)) (stateMenu state) (HE.input HandleObjectTreeMsg) ]
+                    [ HH.slot _objectTree unit (ObjectTree.menuComponent (_ == state.route)) (stateMenu state) (Just <<< HandleObjectTreeMsg) ]
               , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                     [ routeBreadcrumbs
                     , maybe (text "Couldn't find project/net/diagram.") mainView (resolveRoute state.route state)
@@ -200,7 +191,7 @@ ui =
               ]
         ]
       where
-        mainView :: ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ParentHTML Query ChildQuery ChildSlot m
+        mainView :: ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ComponentHTML Action ChildSlots m
         mainView route = case route of
           ResolvedHome ->
             div []
@@ -208,14 +199,14 @@ ui =
                 , br [], br []
                 , HH.input [ HP.value ""
                            , placeholder "Enter Statebox Cloud transaction hash"
-                           , HE.onValueInput $ HE.input (LoadTransactions Ex.endpointUrl)
+                           , HE.onValueInput $ Just <<< LoadTransactions Ex.endpointUrl
                            , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                            ]
                 , br []
                 , br []
                 , HH.input [ HP.value ""
                            , placeholder "Enter http URL to PNPRO file"
-                           , HE.onValueInput $ HE.input LoadPNPRO
+                           , HE.onValueInput $ Just <<< LoadPNPRO
                            , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                            ]
                 ]
@@ -226,15 +217,15 @@ ui =
             RolesEditor.roleInfosHtml project.roleInfos
 
           ResolvedNet netInfo ->
-            HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (Just "main_net")) netInfo (HE.input HandlePetrinetEditorMsg)
+            HH.slot _petrinetEditor unit (PetrinetEditor.ui (Just "main_net")) netInfo (Just <<< HandlePetrinetEditorMsg)
 
           ResolvedDiagram diagramInfo nodeMaybe ->
             div [ classes [ ClassName "flex" ] ]
                 [ div [ classes [ ClassName "w-1/2" ] ]
-                      [ HH.slot' diagramEditorSlotPath unit DiagramEditor.ui diagramInfo.ops (HE.input HandleDiagramEditorMsg) ]
+                      [ HH.slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
                 , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
                       [ case nodeMaybe of
-                          Just (NetNode netInfo)          -> HH.slot' petrinetEditorSlotPath unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (HE.input HandlePetrinetEditorMsg)
+                          Just (NetNode netInfo)          -> HH.slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
                           Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
                           Nothing                         -> text "Click a node to show the corresponding net or diagram."
                       ]
@@ -264,7 +255,7 @@ ui =
                 , p [] [ text $ "path: " <> show firingTx.firing.path ]
                 ]
 
-        routeBreadcrumbs :: ParentHTML Query ChildQuery ChildSlot m
+        routeBreadcrumbs :: ComponentHTML Action ChildSlots m
         routeBreadcrumbs =
           nav [ classes $ ClassName <$> [ "css-route-breadcrumbs", "rounded", "font-sans", "w-full", "mt-4", "mb-4" ] ]
               [ ol [ classes $ ClassName <$> [ "list-reset", "flex", "text-grey-dark" ] ] $
@@ -284,7 +275,7 @@ ui =
           where
             crumb str = li [] [ a [ href "#" ] [ text str ] ]
 
-        navBar :: ParentHTML Query ChildQuery ChildSlot m
+        navBar :: ComponentHTML Action ChildSlots m
         navBar =
           nav [ classes $ ClassName <$> [ "css-navbar", "flex", "items-center", "justify-between", "flex-wrap", "bg-purple-darker", "p-6" ] ]
               [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
@@ -311,7 +302,7 @@ ui =
                   [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ]
                   , href "#"
                   ]
-                  <> ((\r -> [ HE.onClick $ HE.input_ (SelectRoute r) ]) `foldMap` routeMaybe)
+                  <> ((\r -> [ HE.onClick $ const $ Just $ SelectRoute r ]) `foldMap` routeMaybe)
                 )
                 [ text label ]
 

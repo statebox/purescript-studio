@@ -1,6 +1,6 @@
 module Data.AdjacencySpace where
 
-import Prelude hiding
+import Prelude
 import Control.Bind ((<=<))
 import Control.Comonad.Cofree (Cofree, (:<))
 import Control.Plus as Plus
