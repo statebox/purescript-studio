@@ -85,14 +85,14 @@ data Action
 data VoidF a
 
 type ChildSlots =
-  ( objectTree :: H.Slot VoidF (ObjectTree.Msg Route) Unit
+  ( objectTree     :: H.Slot VoidF (ObjectTree.Msg Route) Unit
   , petrinetEditor :: H.Slot VoidF PetrinetEditor.Msg Unit
-  , diagramEditor :: H.Slot VoidF DiagramEditor.Msg Unit
+  , diagramEditor  :: H.Slot VoidF DiagramEditor.Msg Unit
   )
 
-_objectTree = SProxy :: SProxy "objectTree"
+_objectTree     = SProxy :: SProxy "objectTree"
 _petrinetEditor = SProxy :: SProxy "petrinetEditor"
-_diagramEditor = SProxy :: SProxy "diagramEditor"
+_diagramEditor  = SProxy :: SProxy "diagramEditor"
 
 --------------------------------------------------------------------------------
 
@@ -302,7 +302,7 @@ ui =
                   [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ]
                   , href "#"
                   ]
-                  <> ((\r -> [ HE.onClick $ const $ Just $ SelectRoute r ]) `foldMap` routeMaybe)
+                  <> ((\r -> [ HE.onClick \_ -> Just (SelectRoute r) ]) `foldMap` routeMaybe)
                 )
                 [ text label ]
 
