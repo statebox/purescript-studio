@@ -11,7 +11,7 @@ let additions =
           mkPackage
           [ "prelude", "halogen", "strings", "web-uievents", "effect" ]
           "https://github.com/statebox/purescript-halogen-svg.git"
-          "halogen-v5"
+          "master"
       }
 
 in  upstream // overrides // additions
