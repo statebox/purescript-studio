@@ -1,27 +1,12 @@
-let mkPackage =
-      https://raw.githubusercontent.com/purescript/package-sets/psc-0.12.5-20190508/src/mkPackage.dhall sha256:0b197efa1d397ace6eb46b243ff2d73a3da5638d8d0ac8473e8e4a8fc528cf57
-
 let upstream =
-      https://raw.githubusercontent.com/purescript/package-sets/psc-0.12.5-20190508/src/packages.dhall sha256:8ef3a6d6d123e05933997426da68ef07289e1cbbdd2a844b5d10c9159deef65a
+      https://github.com/purescript/package-sets/releases/download/psc-0.13.3-20190818/packages.dhall sha256:c95c4a8b8033a48a350106b759179f68a695c7ea2208228c522866fd43814dc8
 
 let overrides = {=}
 
 let additions =
-  { stbx-core =
-      mkPackage
-        (../stbx-core/spago.dhall).dependencies
-        "../stbx-core"
-        "development"
-  , stbx-client-rest =
-      mkPackage
-      (../stbx-client-rest/spago.dhall).dependencies
-      "../stbx-client-rest"
-      "development"
-  , stbx-example-data =
-      mkPackage
-      (../stbx-example-data/spago.dhall).dependencies
-      "../stbx-example-data"
-      "development"
+  { stbx-core = ../stbx-core/spago.dhall as Location
+  , stbx-client-rest =../stbx-client-rest/spago.dhall as Location
+  , stbx-example-data = ../stbx-example-data/spago.dhall as Location
   , express =
       mkPackage
         [ "aff"
