@@ -15,6 +15,6 @@
   ],
   "devDependencies": {
     "purescript": "^0.12.5",
-    "spago": "^0.8.5"
+    "spago": "^0.9.0"
   }
 }
