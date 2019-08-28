@@ -20,6 +20,9 @@ type Tx a =
 mapTx :: ∀ a b. (a -> b) -> Tx a -> Tx b
 mapTx f x = x { decoded = f x.decoded }
 
+-- TODO in newer versions of the protocol, transactions have a field 'hash', which here is called 'id' so those are two names for the same thing
+-- TODO in newer versions of the protocol, transactions have a field 'hash', which here is called 'id' so those are two names for the same thing
+-- TODO in newer versions of the protocol, transactions have a field 'hash', which here is called 'id' so those are two names for the same thing
 type HashTx = { id :: TxId, tx :: TxSum }
 
 attachTxId :: TxId -> TxSum -> HashTx

@@ -48,10 +48,17 @@ loggingActions = runFreeM $ \action -> case action of
 
 -- in-memory instance
 
+--------------------------------------------------------------------------------
 
+-- TODO qua data we need, (Tx TxSum) is more correct (can we deserialize that?)
+-- TODO qua data we need, (Tx TxSum) is more correct (can we deserialize that?)
+-- TODO qua data we need, (Tx TxSum) is more correct (can we deserialize that?)
+-- type TransactionDictionaryValue = Tx TxSum
 -- TODO #237 Discuss whether this should be `TxSum` or `Tx TxSum`, then eliminate this alias.
 type TransactionDictionaryValue = TxSum
 
+-- type TransactionDictionary = Map TxId (Tx TxSum)
+-- type TransactionDictionary = Map TxId TxSum
 type TransactionDictionary = Map TxId TransactionDictionaryValue
 
 inMemoryActions :: forall a m. MonadRec m => MonadState TransactionDictionary m => Actions a -> m a
@@ -59,6 +66,9 @@ inMemoryActions = runFreeM $ \action -> case action of
   GetTransaction txHash next -> do
     transactionsMap <- get
     pure $ next $ lookup txHash transactionsMap
+    -- TODO this hash, transaction thing is iso to the existing type HashTx
+    -- TODO this hash, transaction thing is iso to the existing type HashTx
+    -- TODO this hash, transaction thing is iso to the existing type HashTx
   AddTransaction { hash, transaction } next -> do
     modify_ $ insert hash transaction
     pure next

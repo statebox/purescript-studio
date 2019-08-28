@@ -1,3 +1,16 @@
+-- - https://discourse.purescript.org/t/why-are-there-two-libraries-named-codec-argonaut-and-argonaut-codecs-what-is-the-difference-between-them/857
+--
+-- TODO error the out if empty transactionsDictionary in initialState?
+--
+-- TODO getTransactionHandler:
+--      - hier moet ie idd gewrapt in een Tx met hash, status, decoded, etc velden
+--        Marco had (Tx Nogwat), maar kunnen we (Tx TxSum) doen?
+-- TODO van al die decodeTxUnit helpers willen we eigenlijk af
+--
+-- - TODO de studio geeft heel geen error als er een JSON pakketje binnenkomt met velden die nergens op slaan
+--
+-- - TODO module 'Codec' ertussenuit en dir omhoog en dan deze dir wegtaffen?
+--        module Statebox.Core.Transaction.Codec.Encode where
 module Main where
 
 import Prelude
@@ -72,6 +85,9 @@ healthcheck = sendJson { health: "I'm fine" }
 -- | responds to `GET /tx/<hash>`
 getTransactionHandler :: AppState -> Handler
 getTransactionHandler appState = do
+-- TODO CORS
+-- TODO CORS
+-- TODO CORS
   setResponseHeader "Access-Control-Allow-Origin" "*"
   maybeHash <- getRouteParam "hash"
   case maybeHash of

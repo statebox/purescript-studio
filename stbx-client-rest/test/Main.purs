@@ -15,7 +15,8 @@ import Statebox.Client (requestTransactionsToRoot)
 import Statebox.Core.Transaction (HashTx)
 
 apiBaseUrl :: URL
-apiBaseUrl = "https://testapi.statebox.io"
+-- apiBaseUrl = "https://testapi.statebox.io"
+apiBaseUrl = "http://localhost:8080"
 
 main :: Effect Unit
 main = do
