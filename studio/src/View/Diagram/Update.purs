@@ -17,10 +17,10 @@ type State =
   , componentElemMaybe      :: Maybe HTMLElement
   }
 
-data Query a
-  = Initialize a
-  | MouseAction MouseMsg a
-  | UpdateDiagram Operators a
+data Action
+  = Initialize
+  | MouseAction MouseMsg
+  | UpdateDiagram Operators
 
 data MouseMsg
   = MouseIsOver Operator OperatorHandle

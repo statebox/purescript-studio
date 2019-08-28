@@ -1,162 +1,24 @@
-{-
-Welcome to your new Dhall package-set!
-
-Below are instructions for how to edit this file for most use
-cases, so that you don't need to know Dhall to use it.
-
-## Warning: Don't Move This Top-Level Comment!
-
-Due to how `dhall format` currently works, this comment's
-instructions cannot appear near corresponding sections below
-because `dhall format` will delete the comment. However,
-it will not delete a top-level comment like this one.
-
-## Use Cases
-
-Most will want to do one or both of these options:
-1. Override/Patch a package's dependency
-2. Add a package not already in the default package set
-
-This file will continue to work whether you use one or both options.
-Instructions for each option are explained below.
-
-### Overriding/Patching a package
-
-Purpose:
-- Change a package's dependency to a newer/older release than the
-    default package set's release
-- Use your own modified version of some dependency that may
-    include new API, changed API, removed API by
-    using your custom git repo of the library rather than
-    the package set's repo
-
-Syntax:
-Replace the overrides' "{=}" (an empty record) with the following idea
-The "//" or "⫽" means "merge these two records and
-  when they have the same value, use the one on the right:"
--------------------------------
-let override =
-  { packageName =
-      upstream.packageName // { updateEntity1 = "new value", updateEntity2 = "new value" }
-  , packageName =
-      upstream.packageName // { version = "v4.0.0" }
-  , packageName =
-      upstream.packageName // { repo = "https://www.example.com/path/to/new/repo.git" }
-  }
--------------------------------
-
-Example:
--------------------------------
-let overrides =
-  { halogen =
-      upstream.halogen // { version = "master" }
-  , halogen-vdom =
-      upstream.halogen-vdom // { version = "v4.0.0" }
-  }
--------------------------------
-
-### Additions
-
-Purpose:
-- Add packages that aren't already included in the default package set
-
-Syntax:
-Replace the additions' "{=}" (an empty record) with the following idea:
--------------------------------
-let additions =
-  { "package-name" =
-       mkPackage
-         [ "dependency1"
-         , "dependency2"
-         ]
-         "https://example.com/path/to/git/repo.git"
-         "tag ('v4.0.0') or branch ('master')"
-  , "package-name" =
-       mkPackage
-         [ "dependency1"
-         , "dependency2"
-         ]
-         "https://example.com/path/to/git/repo.git"
-         "tag ('v4.0.0') or branch ('master')"
-  , etc.
-  }
--------------------------------
-
-Example:
--------------------------------
-let additions =
-  { benchotron =
-      mkPackage
-        [ "arrays"
-        , "exists"
-        , "profunctor"
-        , "strings"
-        , "quickcheck"
-        , "lcg"
-        , "transformers"
-        , "foldable-traversable"
-        , "exceptions"
-        , "node-fs"
-        , "node-buffer"
-        , "node-readline"
-        , "datetime"
-        , "now"
-        ]
-        "https://github.com/hdgarrood/purescript-benchotron.git"
-        "v7.0.0"
-  }
--------------------------------
--}
-
 let mkPackage =
       https://raw.githubusercontent.com/purescript/package-sets/psc-0.12.5-20190427/src/mkPackage.dhall sha256:0b197efa1d397ace6eb46b243ff2d73a3da5638d8d0ac8473e8e4a8fc528cf57
 
 let upstream =
-      https://raw.githubusercontent.com/purescript/package-sets/psc-0.12.5-20190427/src/packages.dhall sha256:6b17811247e1f825034fa4dacc4b8ec5eddd0e832e0e1579c2ba3b9b2a1c63fe
+      https://github.com/purescript/package-sets/releases/download/psc-0.13.3-20190818/packages.dhall sha256:c95c4a8b8033a48a350106b759179f68a695c7ea2208228c522866fd43814dc8
 
-let overrides = {=}
+let overrides =
+      { stbx-core = ../stbx-core/spago.dhall as Location
+      , stbx-client-rest = ../stbx-client-rest/spago.dhall as Location
+      , studio-common = ../studio-common/spago.dhall as Location
+      , halogen-petrinet-editor = ../halogen-petrinet-editor/spago.dhall as Location
+      , halogen-tree-menu = ../halogen-tree-menu/spago.dhall as Location
+      , pnpro = ../pnpro/spago.dhall as Location
+      }
 
-let additions =
-  { stbx-core =
-      mkPackage
-        (../stbx-core/spago.dhall).dependencies
-        "../stbx-core"
-        "development"
-  , stbx-client-rest =
-      mkPackage
-        (../stbx-client-rest/spago.dhall).dependencies
-        "../stbx-client-rest"
-        "development"
-  , studio-common =
-      mkPackage
-        [ "prelude" ]
-        "../studio-common"
-        "development"
-  , halogen-svg =
-      mkPackage
-        [ "prelude"
-		, "halogen"
-		, "strings"
-		, "web-uievents"
-		, "effect"
-		]
-        "https://github.com/statebox/purescript-halogen-svg.git"
-        "master"
-  , halogen-petrinet-editor =
-      mkPackage
-        (../halogen-petrinet-editor/spago.dhall).dependencies
-        "../halogen-petrinet-editor"
-        "development"
-  , halogen-tree-menu =
-      mkPackage
-        (../halogen-tree-menu/spago.dhall).dependencies
-        "../halogen-tree-menu"
-        "development"
-  , pnpro =
-      mkPackage
-        [ "prelude" ]
-        "../pnpro"
-        "development"
-  }
+let additions = 
+      { halogen-svg =
+          mkPackage
+          [ "prelude", "halogen", "strings", "web-uievents", "effect" ]
+          "https://github.com/statebox/purescript-halogen-svg.git"
+          "master"
+      }
 
 in  upstream // overrides // additions

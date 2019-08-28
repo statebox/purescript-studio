@@ -24,7 +24,7 @@ import Data.Vec3 (bounds) as Vec2D
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff(..))
 import Halogen as H
-import Halogen (ComponentDSL)
+import Halogen (Component, ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML as HH
 import Halogen.HTML (HTML, div, br)
 import Halogen.HTML.Properties as HP
@@ -42,13 +42,13 @@ import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, isTransiti
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
 
-import View.Common (HtmlId, emptyHtml)
+import View.Common (HtmlId, emptyHtml, mapAction)
 import View.Petrinet.Arrow
 import View.Petrinet.Arrow as Arrow
 import View.Petrinet.Config as Config
 import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration)
 import View.Petrinet.Model as NetInfo -- TODO move the NetInfo stuff out of Model into its own module
-import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceQueryF(..), QueryF(..), Tokens, TransitionQueryF(..), TextBox)
+import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceAction(..), Action(..), Tokens, TransitionAction(..), TextBox)
 import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
 
@@ -112,16 +112,16 @@ type ArcModel tid = ArcModelF tid String Vec2D
 -- |
 -- | *WARNING*: SVG animations will break when this id contains dashes. Underscores work though.
 ui ::
-   ∀ pid tid ty2 m
+   ∀ pid tid ty2 q m
    . MonadAff m
    => Ord pid
    => Show pid
    => Ord tid
    => Show tid
    => Maybe HtmlId
-   -> H.Component HTML (QueryF pid tid ty2) (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ()) Msg m
+   -> H.Component HTML q (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ()) Msg m
 ui htmlIdPrefixMaybe =
-  H.component { initialState, render, eval, receiver: HE.input LoadNet }
+  H.mkComponent { eval: mkEval $ defaultEval { receive = Just <<< LoadNet, handleAction = handleAction }, initialState, render }
   where
     initialState :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> StateF pid tid ty2
     initialState netInfo =
@@ -134,7 +134,7 @@ ui htmlIdPrefixMaybe =
       , arcLabelsVisible:        false
       }
 
-    render :: StateF pid tid ty2 -> HTML Void (QueryF pid tid ty2 Unit)
+    render :: StateF pid tid ty2 -> ComponentHTML (Action pid tid ty2) () m
     render state =
       div [ classes [ ClassName "flex" ] ]
           [ div [ classes [ ClassName "w-5/6" ] ]
@@ -153,11 +153,11 @@ ui htmlIdPrefixMaybe =
                         ]
                 ]
           , div [ classes [ ClassName "w-1/6", ClassName "px-2" ] ]
-                [ maybe emptyHtml (map UpdatePlace <<< PlaceEditor.form <<< Just) do
+                [ maybe emptyHtml (mapAction UpdatePlace <<< PlaceEditor.form') do
                     pid <- state.focusedPlace
                     label <- Map.lookup pid state.netInfo.net.placeLabelsDict
                     pure { pid: pid, label: label, typedef: Typedef "Unit", isWriteable: false }
-                , maybe emptyHtml (map UpdateTransition <<< TransitionEditor.form' state.netInfo.roleInfos) do
+                , maybe emptyHtml (mapAction UpdateTransition <<< TransitionEditor.form' state.netInfo.roleInfos) do
                     tid   <- state.focusedTransition
                     label <- Map.lookup tid state.netInfo.net.transitionLabelsDict
                     typ   <- Map.lookup tid state.netInfo.net.transitionTypesDict
@@ -175,42 +175,36 @@ ui htmlIdPrefixMaybe =
         placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible)      "css-hide-place-labels"
         transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
 
-    eval :: ∀ tid. Ord tid => Show tid => QueryF pid tid ty2 ~> ComponentDSL (StateF pid tid ty2) (QueryF pid tid ty2) Msg m
-    eval = case _ of
-      LoadNet newNetInfo next -> do
+    handleAction :: ∀ tid. Ord tid => Show tid => Action pid tid ty2 -> HalogenM (StateF pid tid ty2) (Action pid tid ty2) () Msg m Unit
+    handleAction = case _ of
+      LoadNet newNetInfo -> do
         let scaledNetInfo = (NetInfo.translateAndScale Config.netScale newNetInfo) { netApi = mkNetApiF newNetInfo.net }
         H.modify_ (\state -> state { netInfo = scaledNetInfo })
-        pure next
-      FocusPlace pid next -> do
+      FocusPlace pid -> do
         state <- H.get
         let focusedPlace' = toggleMaybe pid state.focusedPlace
         H.put $ state { focusedPlace = focusedPlace'
                       , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> " (" <> (fold $ Map.lookup pid state.netInfo.net.placeLabelsDict) <> ")."
                       }
-        pure next
-      UpdatePlace (UpdatePlaceLabel pid newLabel next) -> do
+      UpdatePlace (UpdatePlaceLabel pid newLabel) -> do
         H.modify_ $ \state -> state { netInfo = state.netInfo { net = state.netInfo.net {  placeLabelsDict = Map.insert pid newLabel state.netInfo.net.placeLabelsDict } }
                                     , msg = "Updated place " <> show pid <> "."
                                     }
-        pure next
-      UpdateTransition (UpdateTransitionName tid newLabel next) -> do
+      UpdateTransition (UpdateTransitionName tid newLabel) -> do
         H.modify_ $ \state -> state { netInfo = state.netInfo { net = state.netInfo.net { transitionLabelsDict = Map.insert tid newLabel state.netInfo.net.transitionLabelsDict } }
                                     , msg = "Updated transition " <> show tid <> "."
                                     }
-        pure next
-      UpdateTransition (UpdateTransitionType tid newType next) -> do
+      UpdateTransition (UpdateTransitionType tid newType) -> do
         H.modify_ $ \state -> state { netInfo = state.netInfo { net = state.netInfo.net { transitionTypesDict = Map.insert tid newType state.netInfo.net.transitionTypesDict } }
                                     , msg = "Updated transition " <> show tid <> "."
                                     }
-        pure next
-      FocusTransition tid next -> do
+      FocusTransition tid -> do
         state <- H.get
         let focusedTransition' = toggleMaybe tid state.focusedTransition
         H.put $ state { focusedTransition = focusedTransition'
                       , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <> " transition " <> show tid <> " (" <> (fold $ Map.lookup tid state.netInfo.net.transitionLabelsDict) <> ")."
                       }
-        pure next
-      FireTransition tid next -> do
+      FireTransition tid -> do
         numElems <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid)
         state <- H.get
         let
@@ -219,16 +213,14 @@ ui htmlIdPrefixMaybe =
         H.put $ state { netInfo = state.netInfo { net = net'}
                       , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
                       }
-        pure next
-      ToggleLabelVisibility obj next -> do
+      ToggleLabelVisibility obj -> do
         state <- H.get
         H.put $ case obj of
           Arc ->        state { arcLabelsVisible        = not state.arcLabelsVisible }
           Place ->      state { placeLabelsVisible      = not state.placeLabelsVisible }
           Transition -> state { transitionLabelsVisible = not state.transitionLabelsVisible }
-        pure next
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> Maybe pid -> Maybe tid -> Array (HTML a ((QueryF pid tid ty2) Unit))
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> Maybe pid -> Maybe tid -> Array (ComponentHTML (Action pid tid ty2) () m)
     netToSVG netInfo@{net, netApi} focusedPlace focusedTransition =
       svgDefs <> svgTextBoxes <> svgTransitions <> svgPlaces
       where
@@ -270,19 +262,19 @@ ui htmlIdPrefixMaybe =
 
     --------------------------------------------------------------------------------
 
-    svgTransitionAndArcs :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid ty2) Unit)
+    svgTransitionAndArcs :: ∀ tid m. Show tid => TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgTransitionAndArcs t =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
-           , HE.onClick (HE.input_ (FocusTransition t.id))
-           , HE.onDoubleClick (HE.input_ (if t.isEnabled then FireTransition t.id else FocusTransition t.id))
+           , HE.onClick (\_ -> Just $ FocusTransition t.id)
+           , HE.onDoubleClick (\_ -> Just $ if t.isEnabled then FireTransition t.id else FocusTransition t.id)
            ]
            ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t] <> [svgTransitionLabel t])
            where
              roleClasses :: Array String
              roleClasses = map (\r -> "css-role-" <> show r) <<< Set.toUnfoldable <<< un Roles $ t.auths
 
-    svgTransitionRect :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid ty2) Unit)
+    svgTransitionRect :: ∀ tid m. Show tid => TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgTransitionRect t =
       SE.rect [ SA.class_  ("css-transition-rect" <> guard t.isFocused " focused")
               , SA.width   transitionWidth
@@ -291,7 +283,7 @@ ui htmlIdPrefixMaybe =
               , SA.y       (_y t.point - transitionHeight / 2.0)
               ]
 
-    svgTransitionLabel :: ∀ tid a. Show tid => TransitionModelF tid String Vec2D -> HTML a ((QueryF pid tid ty2) Unit)
+    svgTransitionLabel :: ∀ tid m. Show tid => TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
               , SA.x         (_x t.point - 0.5 * transitionWidth)
@@ -300,7 +292,7 @@ ui htmlIdPrefixMaybe =
               ]
               [ HH.text t.label ]
 
-    svgArc :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid ty2) Unit)
+    svgArc :: ∀ pid tid m. Show tid => ArcModel tid -> ComponentHTML (Action pid tid ty2) () m
     svgArc arc =
       SE.g [ SA.class_ "css-arc-container" ]
            [ SE.path
@@ -322,7 +314,7 @@ ui htmlIdPrefixMaybe =
 
     -- | A token that moves along the path of the enclosing arc. This should happen
     -- | when the transition to which this arc is connected fires.
-    svgTokenAnimated :: ∀ pid tid a. Show tid => ArcModel tid -> HTML a ((QueryF pid tid ty2) Unit)
+    svgTokenAnimated :: ∀ pid tid m. Show tid => ArcModel tid -> ComponentHTML (Action pid tid ty2) () m
     svgTokenAnimated arc =
       SE.circleNode
         [ SA.class_ "css-token-animated"
@@ -375,10 +367,10 @@ ui htmlIdPrefixMaybe =
 
     --------------------------------------------------------------------------------
 
-    svgPlace :: ∀ pid tid a. Show pid => PlaceModelF pid Tokens String Vec2D -> HTML a ((QueryF pid tid ty2) Unit)
+    svgPlace :: ∀ pid tid m. Show pid => PlaceModelF pid Tokens String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
       SE.g [ SA.id (mkPlaceIdStr id)
-           , HE.onClick (HE.input_ (FocusPlace id))
+           , HE.onClick (\_ -> Just $ FocusPlace id)
            ]
            [ SE.title [] [ Core.text label ]
            , SE.circle
@@ -402,7 +394,7 @@ ui htmlIdPrefixMaybe =
                      [ HH.text $ if tokens == 0 || tokens == 1 then "" else show tokens ]
            ]
       where
-        svgTokens :: Tokens -> Vec2D -> HTML a ((QueryF pid tid ty2) Unit)
+        svgTokens :: Tokens -> Vec2D -> ComponentHTML (Action pid tid ty2) () m
         svgTokens tokens point = if Additive tokens == mempty then HH.text "" else
           SE.circle
             [ SA.r      tokenRadius
@@ -413,7 +405,7 @@ ui htmlIdPrefixMaybe =
 
     --------------------------------------------------------------------------------
 
-    svgTextBox :: ∀ tid a. TextBox -> HTML a ((QueryF pid tid ty2) Unit)
+    svgTextBox :: ∀ tid m. TextBox -> ComponentHTML (Action pid tid ty2) () m
     svgTextBox tb =
       SE.g [ SA.class_ "css-textbox" ]
            [ SE.rect [ SA.x       x
@@ -476,7 +468,7 @@ ui htmlIdPrefixMaybe =
 
 --------------------------------------------------------------------------------
 
-htmlMarking :: ∀ a n pid tid ty2. Show a => Show n => BagF a n -> HTML Void (QueryF pid tid ty2 Unit)
+htmlMarking :: ∀ a n pid tid ty2 m. Show a => Show n => BagF a n -> ComponentHTML (Action pid tid ty2) () m
 htmlMarking bag =
   HH.table [ classes [ ClassName "table", ClassName "is-striped", ClassName "is-narrow", ClassName "is-hoverable" ] ]
            [ HH.thead []
@@ -494,22 +486,22 @@ htmlMarking bag =
 
 --------------------------------------------------------------------------------
 
-labelVisibilityButtons :: ∀ pid tid ty2. HTML Void (QueryF tid pid ty2 Unit)
+labelVisibilityButtons :: ∀ pid tid ty2 m. ComponentHTML (Action pid tid ty2) () m
 labelVisibilityButtons =
   div [ classes [ ClassName "field has-addons" ] ]
       [ HH.p [ classes [ ClassName "control" ] ]
              [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
-                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Place ]
+                    , HE.onClick $ \_ -> Just $ ToggleLabelVisibility Place ]
                     [ HH.span [] [ HH.text "Place labels" ] ]
              ]
       , HH.p [ classes [ ClassName "control" ] ]
              [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
-                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Transition ]
+                    , HE.onClick $ \_ -> Just $ ToggleLabelVisibility Transition ]
                     [ HH.span [] [ HH.text "Transition labels" ] ]
              ]
       , HH.p [ classes [ ClassName "control" ] ]
              [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
-                    , HE.onClick $ HE.input_ $ ToggleLabelVisibility Arc ]
+                    , HE.onClick $ \_ -> Just $ ToggleLabelVisibility Arc ]
                     [ HH.span [] [ HH.text "Arc labels" ] ]
              ]
       ]

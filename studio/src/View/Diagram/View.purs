@@ -6,7 +6,7 @@ import Data.Int (toNumber)
 import Data.Maybe
 import Data.Monoid (guard)
 import Data.Ord (abs)
-import Data.Vec3 (Vec3, _x, _y, _z, vec2, vec3)
+import Data.Vec3 (Vec3(..), _x, _y, _z, vec2, vec3)
 import Halogen as H
 import Halogen.HTML (HTML)
 import Halogen.HTML as HH
@@ -23,11 +23,9 @@ import View.Diagram.Update
 import Web.HTML (HTMLElement)
 import Web.UIEvent.MouseEvent (clientX, clientY)
 
--- TODO eliminate?
-type Svg a = HTML Void a
 
 -- TODO: if there is no HTMLElement it does not make sense to draw anything
-diagramEditorSVG :: Maybe HTMLElement -> Model -> Svg MouseMsg
+diagramEditorSVG :: ∀ a. Maybe HTMLElement -> Model -> HTML a MouseMsg
 diagramEditorSVG maybeElement model =
   SE.svg [ SA.viewBox sceneLeft sceneTop w h
          , HP.ref componentRefLabel
@@ -42,7 +40,8 @@ diagramEditorSVG maybeElement model =
     w         = toNumber model.config.width
     h         = toNumber model.config.height
     s         = model.config.scale
-    svg e     = maybe zero (\el -> domToSvgCoordinates el (vec2 (clientX e) (clientY e)))
+    svg e     = maybe zero (\el -> xy2Vec3 (domToSvgCoordinates el { x: clientX e, y: clientY e }))
+    xy2Vec3 { x, y } = vec3 x y 0
 
     -- TODO ???
     sceneLeft = zero
@@ -53,7 +52,7 @@ componentRefLabel = H.RefLabel "diagram-editor-ref-label"
 
 --------------------------------------------------------------------------------
 
-operator :: (OperatorId -> Boolean) -> Int -> Operator -> Svg MouseMsg
+operator :: ∀ a. (OperatorId -> Boolean) -> Int -> Operator -> HTML a MouseMsg
 operator isSelected s o =
   SE.g [ SA.class_ $ "css-operator-container" <> guard (isSelected o.identifier) " css-selected" ]
        [ operatorSegment o OpCenter x             y w   h
@@ -75,7 +74,7 @@ operator isSelected s o =
     pad = 9
     pp  = pad + pad
 
-operatorSegment :: Operator -> OperatorHandle -> Int -> Int -> Int -> Int -> Svg MouseMsg
+operatorSegment :: ∀ a. Operator -> OperatorHandle -> Int -> Int -> Int -> Int -> HTML a MouseMsg
 operatorSegment op region x y w h =
   SE.rect $
     [ SA.class_      $ case region of OpCenter -> "css-operator-center"
@@ -93,7 +92,7 @@ operatorSegment op region x y w h =
 -- ghosts ----------------------------------------------------------------------
 
 -- TODO parameter s is redundant, equals model.config.scale
-operatorGhosts :: Int -> Model -> Array (Svg MouseMsg)
+operatorGhosts :: ∀ a. Int -> Model -> Array (HTML a MouseMsg)
 operatorGhosts s model =
   let
     ddModel = dragDelta model
@@ -116,7 +115,7 @@ operatorGhosts s model =
           ]
       _ -> []
 
-operatorGhost :: Int -> Vec3 Int -> Int -> Svg MouseMsg
+operatorGhost :: ∀ a. Int -> Vec3 Int -> Int -> HTML a MouseMsg
 operatorGhost s xyw h =
   rect [ SA.class_ "css-ghost"
        , SA.width  $ toNumber (_z xyw)
@@ -125,7 +124,7 @@ operatorGhost s xyw h =
        , SA.y      $ toNumber (_y xyw)
        ]
 
-operatorGhostSnapped :: Int -> Vec3 Int -> Int -> Svg MouseMsg
+operatorGhostSnapped :: ∀ a. Int -> Vec3 Int -> Int -> HTML a MouseMsg
 operatorGhostSnapped s xyw h =
   rect [ SA.class_ "css-ghost-snapped"
        , SA.width  $ toNumber $ snap s (_z xyw)

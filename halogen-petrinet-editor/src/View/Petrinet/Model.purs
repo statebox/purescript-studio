@@ -25,21 +25,21 @@ import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
 import Data.Vec3 (Vec2, Vec2D, Box(..))
 
-data QueryF pid tid ty2 a
-  = LoadNet (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ()) a
-  | FireTransition tid a
-  | FocusTransition tid a
-  | FocusPlace pid a
-  | UpdatePlace (PlaceQueryF pid a)
-  | UpdateTransition (TransitionQueryF tid a)
-  | ToggleLabelVisibility NetElemKind a
+data Action pid tid ty2
+  = LoadNet (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ())
+  | FireTransition tid
+  | FocusTransition tid
+  | FocusPlace pid
+  | UpdatePlace (PlaceAction pid)
+  | UpdateTransition (TransitionAction tid)
+  | ToggleLabelVisibility NetElemKind
 
-data PlaceQueryF pid a
-  = UpdatePlaceLabel pid String a
+data PlaceAction pid
+  = UpdatePlaceLabel pid String
 
-data TransitionQueryF tid a
-  = UpdateTransitionName tid String a
-  | UpdateTransitionType tid Typedef a
+data TransitionAction tid
+  = UpdateTransitionName tid String
+  | UpdateTransitionType tid Typedef
 
 --------------------------------------------------------------------------------
 

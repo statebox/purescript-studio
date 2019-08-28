@@ -1,7 +1,9 @@
-{ name =
-	"halogen-tree-menu"
+{ sources =
+    [ "src/**/*.purs", "test/**/*.purs" ]
+, name =
+    "halogen-tree-menu"
 , dependencies =
-	[ "halogen", "psci-support" ]
+    [ "halogen", "psci-support" ]
 , packages =
-	./packages.dhall
+    ./packages.dhall
 }

@@ -1,7 +1,7 @@
 {
-  "name": "purescript-halogen-petrinet-editor",
+  "name": "purescript-tree-menu",
   "version": "1.0.0",
-  "description": "Halogen Petri net editor component",
+  "description": "Halogen tree menu component",
   "author": "Erik Post <erik@shinsetsu.nl>",
   "main": "index.js",
   "scripts": {

@@ -2,19 +2,18 @@ module View.Diagram.Inspector where
 
 import Prelude hiding (div)
 
-import Data.Maybe (maybe)
 import Data.Vec3 (vec2)
 
+import Halogen (ComponentHTML)
 import Halogen.HTML as HH
-import Halogen.HTML (HTML)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Properties (classes)
 
-import View.Diagram.Model
-import View.Diagram.Update (Query, State)
+import View.Diagram.Model (dragDelta, isValidDrag)
+import View.Diagram.Update (Action, State)
 import View.Diagram.Common (snap)
 
-view :: State -> HTML Void (Query Unit)
+view :: ∀ m. State -> ComponentHTML Action () m
 view state@{model} =
   HH.pre [ classes [ ClassName "css-diagram-editor-properties-view" ] ]
          [ prop "ops"         $ show $ map (_.identifier) model.ops
@@ -30,7 +29,7 @@ view state@{model} =
          , code "-----------------------\n"
          ]
     where
-      prop :: String -> String -> HTML Void (Query Unit)
+      prop :: String -> String -> ComponentHTML Action () m
       prop k v = code $ k <> " = " <> v <> "\n"
 
       code str = HH.code [] [ HH.text str ]
