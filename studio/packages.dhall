@@ -10,12 +10,12 @@ let overrides =
       , pnpro = ../pnpro/spago.dhall as Location
       }
 
-let additions = 
+let additions =
       { halogen-svg =
-          mkPackage
-          [ "prelude", "halogen", "strings", "web-uievents", "effect" ]
-          "https://github.com/statebox/purescript-halogen-svg.git"
-          "master"
+          { dependencies = [ "prelude", "halogen", "strings", "web-uievents", "effect" ]
+          , repo = "https://github.com/statebox/purescript-halogen-svg.git"
+          , version = "d0a4cbc79b5513296cb746576824dce967aedbab"
+          }
       }
 
 in  upstream // overrides // additions
