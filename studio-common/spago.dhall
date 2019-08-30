@@ -3,7 +3,7 @@
 , dependencies =
     [ "effect", "console", "psci-support" ]
 , packages =
-    ./packages.dhall
+    ../packages.dhall
 , sources =
     [ "src/**/*.purs", "test/**/*.purs" ]
 }

@@ -15,5 +15,5 @@
     , "spec"
     ]
 , packages =
-    ./packages.dhall
+    ../packages.dhall
 }

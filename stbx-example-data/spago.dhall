@@ -3,5 +3,5 @@
 , dependencies =
 	[ "stbx-core" ]
 , packages =
-	./packages.dhall
+	../packages.dhall
 }

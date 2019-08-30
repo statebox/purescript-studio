@@ -11,5 +11,5 @@
     , "studio-common"
     ]
 , packages =
-    ./packages.dhall
+    ../packages.dhall
 }
