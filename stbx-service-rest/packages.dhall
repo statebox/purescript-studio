@@ -8,7 +8,7 @@ let additions =
   , stbx-client-rest = ../stbx-client-rest/spago.dhall as Location
   , stbx-example-data = ../stbx-example-data/spago.dhall as Location
   , express =
-      mkPackage
+      { dependencies =
         [ "aff"
         , "effect"
         , "console"
@@ -18,8 +18,9 @@ let additions =
         , "psci-support"
         , "test-unit"
         ]
-        "https://github.com/nkly/purescript-express.git"
-        "v0.8.0"
+      , repo = "https://github.com/nkly/purescript-express.git"
+      , version = "v0.8.0"
+      }
   }
 
 in  upstream // overrides // additions
