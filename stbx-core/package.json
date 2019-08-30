@@ -28,7 +28,7 @@
   "homepage": "https://github.com/statebox/purescript-stbx#readme",
   "dependencies": {
     "purescript": "^0.12.5",
-    "spago": "^0.8.5",
+    "spago": "^0.9.0",
     "@statebox/stbx-js": "0.0.31"
   }
 }
