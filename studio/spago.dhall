@@ -25,5 +25,5 @@
     , "web-uievents"
     ]
 , packages =
-    ./packages.dhall
+    ../packages.dhall
 }

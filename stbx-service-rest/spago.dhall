@@ -14,5 +14,5 @@
     , "stbx-example-data"
     ]
 , packages =
-    ./packages.dhall
+    ../packages.dhall
 }
