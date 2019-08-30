@@ -5,7 +5,7 @@ let overrides = {=}
 
 let additions =
   { stbx-core = ../stbx-core/spago.dhall as Location
-  , stbx-client-rest =../stbx-client-rest/spago.dhall as Location
+  , stbx-client-rest = ../stbx-client-rest/spago.dhall as Location
   , stbx-example-data = ../stbx-example-data/spago.dhall as Location
   , express =
       mkPackage

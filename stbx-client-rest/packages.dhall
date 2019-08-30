@@ -3,8 +3,6 @@ let upstream =
 
 let overrides = {=}
 
-let additions =
-  { stbx-core =../stbx-core/spago.dhall as Location
-  }
+let additions = { stbx-core = ../stbx-core/spago.dhall as Location }
 
 in  upstream // overrides // additions
