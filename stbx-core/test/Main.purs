@@ -7,6 +7,7 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
+import Effect.Aff (Aff)
 import Test.Spec (pending, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
@@ -18,7 +19,7 @@ import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 import Test.Statebox.Core.Execution as Execution
 import Test.Statebox.Core.Transaction.Codec as Transaction.Codec
 
-main :: Effect Unit
+main :: Aff Unit
 main = run [consoleReporter] do
 
   describe "NLL Petri net encoding" do

@@ -15,7 +15,7 @@ import Test.Spec.Runner (run)
 
 import Statebox.Core.Transaction (TxSum(..), Tx, FiringTx, evalTxSum)
 import Statebox.Core.Types (Firing)
-import Statebox.Core.Transaction.Codec (decodeTxSum, decodeFiringTx, decodeTxFiringTx, DecodingError)
+import Statebox.Core.Transaction.Codec (decodeTxTxSum, decodeFiringTx, decodeTxFiringTx, DecodingError)
 
 suite :: Spec Unit
 suite = do
@@ -52,10 +52,10 @@ suite = do
           """    }""" <>
           """}"""
 
-        txFiringTxWithMessageField :: _ \/ (DecodingError \/ TxSum)
-        txFiringTxWithMessageField = spy "txFiringTxWithMessageFieldStr" $ map decodeTxSum $ decodeJson =<< jsonParser txFiringTxWithMessageFieldStr
+        txFiringTxWithMessageField :: _ \/ (String \/ Tx TxSum)
+        txFiringTxWithMessageField = spy "txFiringTxWithMessageFieldStr" $ map decodeTxTxSum $ decodeJson =<< jsonParser txFiringTxWithMessageFieldStr
 
-      txFiringTxWithMessageField # either fail (either (fail <<< show) (evalTxSum
+      txFiringTxWithMessageField # either fail (either (show >>> fail) (_.decoded >>> evalTxSum
         (\ur -> fail "UberRootTxInj")
         (\r  -> fail "InitialTxInj")
         (\w  -> fail "WiringInj")
