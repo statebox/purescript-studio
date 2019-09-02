@@ -16,8 +16,9 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Auth (Role, Roles, RoleInfo)
 import Data.Typedef (Typedef(..), TypeName)
 import Data.Petrinet.Representation.Dict as Dict
-import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF, NetLayoutF)
+import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF)
 import Data.Petrinet.Representation.Layout as Layout
+import Data.Petrinet.Representation.Layout (NetLayoutF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
 import Data.Vec3 as Vec3
@@ -156,12 +157,9 @@ mkLayout
   -> Array Vec2D
   -> NetLayoutF PID TID
 mkLayout firstTransitionIndex placePoints transitionPoints =
-  { placePointsDict:      placePointsDict
-  , transitionPointsDict: transitionPointsDict
-  }
-  where
-    placePointsDict      = Map.fromFoldable placePoints
-    transitionPointsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
+   { placePointsDict:      Map.fromFoldable placePoints
+   , transitionPointsDict: Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
+   }
 
 mkNetApi :: NetRep -> NetApi
 mkNetApi = mkNetApiF
