@@ -12,18 +12,17 @@ import Data.Newtype (class Newtype, ala)
 import Data.Ord.Max (Max(..))
 import Data.Tuple (snd)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec3 as Vec3
-import Data.Vec3 (Vec3(..))
-import Data.Vec3.Box as Box
-import Data.Vec3.Box (Box(..))
+import Record as Record
 
 import Data.Auth (Role, Roles, RoleInfo)
 import Data.Typedef (Typedef(..), TypeName)
 import Data.Petrinet.Representation.Dict as Dict
-import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF)
+import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF, NetLayoutF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
-import Data.Vec3 (Vec2, Vec2D, Box(..))
+import Data.Vec3 as Vec3
+import Data.Vec3 (Vec2D, Box, Vec3)
+import Data.Vec3.Box as Box
 
 data Action pid tid ty2
   = LoadNet (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ())
@@ -115,34 +114,59 @@ mkNetRep
   -> Array Roles
   -> NetRep
 mkNetRep pids transitions marking placeLabels placePoints transitionLabels transitionTypes transitionPoints transitionAuths =
-  { places:               pids
-  , transitionsDict:      transitionsDict
-  , marking:              marking
-  , placeLabelsDict:      placeLabelsDict
-  , placePointsDict:      placePointsDict
-  , transitionLabelsDict: transitionLabelsDict
-  , transitionTypesDict:  transitionTypesDict
-  , transitionPointsDict: transitionPointsDict
-  , transitionAuthsDict:  transitionAuthsDict
-  }
+  mkNetRepUsingLayout pids transitions marking placeLabels transitionLabels (mkLayout firstTransitionIndex placePoints transitionPoints) transitionTypes transitionAuths
   where
     firstTransitionIndex = length pids + 1
 
-    transitionsDict :: Map Int Transition
-    transitionsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitions
+mkNetRepUsingLayout
+  :: Array PID
+  -> Array Transition
+  -> Marking
+  -> Array (PID /\ String)
+  -> Array String
+  -> NetLayoutF PID TID ()
+  -> Array Typedef
+  -> Array Roles
+  -> NetRep
+mkNetRepUsingLayout pids transitions marking placeLabels transitionLabels layout transitionTypes transitionAuths =
+  Record.merge
+    { places:               pids
+    , placeLabelsDict:      placeLabelsDict
+
+    , transitionsDict:      labelTransitionsWith transitions
+    , transitionLabelsDict: labelTransitionsWith transitionLabels
+    , transitionTypesDict:  labelTransitionsWith transitionTypes
+    , transitionAuthsDict:  labelTransitionsWith transitionAuths
+
+    , marking:              marking
+    }
+    layout
+  where
+    firstTransitionIndex = length pids + 1
 
     placeLabelsDict :: Map Int String
     placeLabelsDict = Map.fromFoldable placeLabels
 
-    placePointsDict = Map.fromFoldable placePoints
+    labelTransitionsWith :: forall a. Array a -> Map TID a
+    labelTransitionsWith = Map.fromFoldable <<< zipWithIndexFrom firstTransitionIndex
 
-    transitionLabelsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionLabels
 
-    transitionTypesDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionTypes
-
+-- TODO hier meteen die asymmetrie fixen tussen [PID /\ Vec] en [Vec]?
+mkLayout
+  :: Int
+  -> Array (PID /\ Vec2D)
+  -> Array Vec2D
+  -> NetLayoutF PID TID ()
+mkLayout firstTransitionIndex placePoints transitionPoints =
+  { placePointsDict:      placePointsDict
+  , transitionPointsDict: transitionPointsDict
+  }
+  where
+    placePointsDict      = Map.fromFoldable placePoints
+    -- TODO hier gebruiken we eigenlijk ook weer labelTransitionsWith
+    -- TODO hier gebruiken we eigenlijk ook weer labelTransitionsWith
+    -- TODO hier gebruiken we eigenlijk ook weer labelTransitionsWith
     transitionPointsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
-
-    transitionAuthsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionAuths
 
 mkNetApi :: NetRep -> NetApi
 mkNetApi = mkNetApiF

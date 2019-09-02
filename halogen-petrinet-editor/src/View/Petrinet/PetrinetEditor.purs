@@ -10,6 +10,7 @@ import Data.HeytingAlgebra (not)
 import Data.Int (toNumber, floor, round)
 import Data.List as List
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Map (Map)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Monoid.Additive (Additive(..))
@@ -38,7 +39,7 @@ import Svg.Attributes (Duration, DurationF(..), seconds, FillState(..), FontSize
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
-import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
+import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, NetLayoutFRow, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
 
@@ -229,17 +230,35 @@ ui htmlIdPrefixMaybe =
         svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
         svgTextBoxes   = svgTextBox <$> netInfo.textBoxes
 
+--------------------------------------------------------------------------------
+
+        placePointsDict :: Map pid Vec2D
+        placePointsDict = net.placePointsDict
+
+        transitionPointsDict :: Map tid Vec2D
+        transitionPointsDict = net.transitionPointsDict
+
+        layout :: NetLayoutF pid tid _
+        -- layout :: forall r. NetLayoutF pid tid r
+        layout = net
+
+        -- getLayout :: forall r. NetRepF pid tid tok _ -> NetLayoutF pid tid _
+        -- -- layout :: forall r. NetLayoutF pid tid r
+        -- getLayout = net
+
+--------------------------------------------------------------------------------
+
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
           label <- Map.lookup id net.placeLabelsDict
-          point <- Map.lookup id net.placePointsDict
+          point <- Map.lookup id layout.placePointsDict
           let tokens = Marking.findTokens net.marking id
           pure $ { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
         mkTransitionAndArcsModel :: tid -> TransitionF pid Tokens -> Maybe (TransitionModelF tid String Vec2D)
         mkTransitionAndArcsModel tid tr = do
-          trPoint  <- Map.lookup tid net.transitionPointsDict
+          trPoint  <- Map.lookup tid layout.transitionPointsDict
           preArcs  <- mkPreArc  tid trPoint `traverse` tr.pre
           postArcs <- mkPostArc tid trPoint `traverse` tr.post
           let auths = fromMaybe (Roles mempty) (Map.lookup tid net.transitionAuthsDict)
@@ -255,10 +274,10 @@ ui htmlIdPrefixMaybe =
                }
           where
             mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place net.placePointsDict
+            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
 
             mkPreArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place net.placePointsDict
+            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
 
     --------------------------------------------------------------------------------
 

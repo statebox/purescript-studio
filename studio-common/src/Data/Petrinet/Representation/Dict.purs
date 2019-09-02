@@ -1,13 +1,11 @@
 module Data.Petrinet.Representation.Dict
   ( NetRepF
-  , mapPoints
 
   , NetApiF
   , mkNetApiF
 
   , TransitionF
   , PlaceMarkingF
-
   , fire
   , fireAtMarking
   , isTransitionEnabled
@@ -15,6 +13,8 @@ module Data.Petrinet.Representation.Dict
   , preMarking
   , postMarking
   , trMarking
+
+  , module Data.Petrinet.Representation.Layout
   ) where
 
 import Prelude hiding ((-))
@@ -33,34 +33,30 @@ import Data.Group (class Group, ginverse)
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF, tokensAt)
+import Data.Petrinet.Representation.Layout
 
--- | A representation of a Petri net.
+-- TODO als we die record merge hier handhaven, dan mss die merge even cleaner doen indien mogelijk?
+-- TODO perhaps it's easier and more 'logical' to have layout be a field (could then also be a Maybe)
+-- TODO also consider we want MULTIPLE layouters
+-- | A representation of a Petri net with some additional labelings and metadata.
 type NetRepF pid tid tok typ r =
-  { places                :: Array pid
-  , marking               :: MarkingF pid tok
+  Record (NetLayoutFRow
+            pid
+            tid
+            ( places                :: Array pid
+            , marking               :: MarkingF pid tok
 
-  , placeLabelsDict       :: Map pid String
-  , placePointsDict       :: Map pid Vec2D
+            , placeLabelsDict       :: Map pid String
 
-  , transitionsDict       :: Map tid (TransitionF pid tok)
-  , transitionLabelsDict  :: Map tid String
-  , transitionPointsDict  :: Map tid Vec2D
+            , transitionsDict       :: Map tid (TransitionF pid tok)
+            , transitionLabelsDict  :: Map tid String
 
-  -- Statebox-specific fields
-  , transitionTypesDict   :: Map tid typ
-  , transitionAuthsDict   :: Map tid Auth.Roles
-  | r
-  }
-
-mapPoints
-  :: forall pid tid tok typ r
-   . (Vec2D -> Vec2D)
-  -> NetRepF pid tid tok typ r
-  -> NetRepF pid tid tok typ r
-mapPoints f n =
-  n { placePointsDict      = f <$> n.placePointsDict
-    , transitionPointsDict = f <$> n.transitionPointsDict
-    }
+            -- Statebox-specific labelings
+            , transitionTypesDict   :: Map tid typ
+            , transitionAuthsDict   :: Map tid Auth.Roles
+            | r
+            )
+         )
 
 --------------------------------------------------------------------------------
 
