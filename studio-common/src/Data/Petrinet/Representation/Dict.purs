@@ -46,7 +46,7 @@ type NetRepF pid tid tok typ r =
   , transitionsDict       :: Map tid (TransitionF pid tok)
   , transitionLabelsDict  :: Map tid String
 
-  , layout                :: NetLayoutF pid tid ()
+  , layout                :: NetLayoutF pid tid
 
   -- Statebox-specific labelings
   , transitionTypesDict   :: Map tid typ

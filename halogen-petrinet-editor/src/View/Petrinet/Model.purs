@@ -124,7 +124,7 @@ mkNetRepUsingLayout
   -> Marking
   -> Array (PID /\ String)
   -> Array String
-  -> NetLayoutF PID TID ()
+  -> NetLayoutF PID TID
   -> Array Typedef
   -> Array Roles
   -> NetRep
@@ -154,7 +154,7 @@ mkLayout
   :: Int
   -> Array (PID /\ Vec2D)
   -> Array Vec2D
-  -> NetLayoutF PID TID ()
+  -> NetLayoutF PID TID
 mkLayout firstTransitionIndex placePoints transitionPoints =
   { placePointsDict:      placePointsDict
   , transitionPointsDict: transitionPointsDict

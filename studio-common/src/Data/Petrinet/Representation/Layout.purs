@@ -12,19 +12,19 @@ type NetLayoutFRow pid tid r =
   | r
   )
 
-type NetLayoutF pid tid r = Record (NetLayoutFRow pid tid r)
+type NetLayoutF pid tid = Record (NetLayoutFRow pid tid ())
 
 mapVec2D
-  :: forall pid tid r
+  :: forall pid tid
    . (Vec3 Number -> Vec3 Number)
-  -> NetLayoutF pid tid r
-  -> NetLayoutF pid tid r
+  -> NetLayoutF pid tid
+  -> NetLayoutF pid tid
 mapVec2D f l =
   l { placePointsDict      = f <$> l.placePointsDict
     , transitionPointsDict = f <$> l.transitionPointsDict
     }
 
-bounds :: ∀ pid tid r. NetLayoutF pid tid r -> { min :: Vec3 Number, max :: Vec3 Number }
+bounds :: ∀ pid tid. NetLayoutF pid tid -> { min :: Vec3 Number, max :: Vec3 Number }
 bounds layout =
   Vec3.bounds $
     Map.values layout.placePointsDict <>

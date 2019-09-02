@@ -231,7 +231,7 @@ ui htmlIdPrefixMaybe =
         svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
         svgTextBoxes   = svgTextBox <$> netInfo.textBoxes
 
-        layout :: NetLayoutF pid tid ()
+        layout :: NetLayoutF pid tid
         layout = net.layout
 
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
