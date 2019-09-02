@@ -12,12 +12,12 @@ import Data.Newtype (class Newtype, ala)
 import Data.Ord.Max (Max(..))
 import Data.Tuple (snd)
 import Data.Tuple.Nested (type (/\), (/\))
-import Record as Record
 
 import Data.Auth (Role, Roles, RoleInfo)
 import Data.Typedef (Typedef(..), TypeName)
 import Data.Petrinet.Representation.Dict as Dict
 import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF, NetLayoutF)
+import Data.Petrinet.Representation.Layout as Layout
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
 import Data.Vec3 as Vec3
@@ -129,18 +129,18 @@ mkNetRepUsingLayout
   -> Array Roles
   -> NetRep
 mkNetRepUsingLayout pids transitions marking placeLabels transitionLabels layout transitionTypes transitionAuths =
-  Record.merge
-    { places:               pids
-    , placeLabelsDict:      placeLabelsDict
+  { places:               pids
+  , placeLabelsDict:      placeLabelsDict
 
-    , transitionsDict:      labelTransitionsWith transitions
-    , transitionLabelsDict: labelTransitionsWith transitionLabels
-    , transitionTypesDict:  labelTransitionsWith transitionTypes
-    , transitionAuthsDict:  labelTransitionsWith transitionAuths
+  , transitionsDict:      labelTransitionsWith transitions
+  , transitionLabelsDict: labelTransitionsWith transitionLabels
+  , transitionTypesDict:  labelTransitionsWith transitionTypes
+  , transitionAuthsDict:  labelTransitionsWith transitionAuths
 
-    , marking:              marking
-    }
-    layout
+  , layout:               layout
+
+  , marking:              marking
+  }
   where
     firstTransitionIndex = length pids + 1
 
@@ -150,8 +150,6 @@ mkNetRepUsingLayout pids transitions marking placeLabels transitionLabels layout
     labelTransitionsWith :: forall a. Array a -> Map TID a
     labelTransitionsWith = Map.fromFoldable <<< zipWithIndexFrom firstTransitionIndex
 
-
--- TODO hier meteen die asymmetrie fixen tussen [PID /\ Vec] en [Vec]?
 mkLayout
   :: Int
   -> Array (PID /\ Vec2D)
@@ -163,9 +161,6 @@ mkLayout firstTransitionIndex placePoints transitionPoints =
   }
   where
     placePointsDict      = Map.fromFoldable placePoints
-    -- TODO hier gebruiken we eigenlijk ook weer labelTransitionsWith
-    -- TODO hier gebruiken we eigenlijk ook weer labelTransitionsWith
-    -- TODO hier gebruiken we eigenlijk ook weer labelTransitionsWith
     transitionPointsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
 
 mkNetApi :: NetRep -> NetApi
@@ -183,7 +178,7 @@ mkNetInfo net name textBoxes =
 
 mapPoints :: ∀ pid tid ty r. (Vec2D -> Vec2D) -> NetInfoF pid tid ty r -> NetInfoF pid tid ty r
 mapPoints f n =
-  n { net       = Dict.mapPoints f n.net
+  n { net       = n.net { layout = Layout.mapVec2D f n.net.layout }
     , textBoxes = mapTextBoxF f <$> n.textBoxes
     }
 
@@ -212,8 +207,8 @@ boundingBox n =
   Vec3.bounds points
   where -- TODO optimisation: foldMap over the three components to avoid intermediate arrays
     points           = placeCoords <> transitionCoords <> textBoxCoords
-    placeCoords      = snd <$> Map.toUnfoldable n.net.placePointsDict
-    transitionCoords = snd <$> Map.toUnfoldable n.net.transitionPointsDict
+    placeCoords      = snd <$> Map.toUnfoldable n.net.layout.placePointsDict
+    transitionCoords = snd <$> Map.toUnfoldable n.net.layout.transitionPointsDict
     textBoxCoords    = (Box.toArray <<< _.box) =<< n.textBoxes
 
 --------------------------------------------------------------------------------

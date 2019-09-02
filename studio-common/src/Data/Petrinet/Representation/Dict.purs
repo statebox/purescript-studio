@@ -40,23 +40,23 @@ import Data.Petrinet.Representation.Layout
 -- TODO also consider we want MULTIPLE layouters
 -- | A representation of a Petri net with some additional labelings and metadata.
 type NetRepF pid tid tok typ r =
-  Record (NetLayoutFRow
-            pid
-            tid
-            ( places                :: Array pid
-            , marking               :: MarkingF pid tok
+  { places                :: Array pid
+  , placeLabelsDict       :: Map pid String
 
-            , placeLabelsDict       :: Map pid String
+  , transitionsDict       :: Map tid (TransitionF pid tok)
+  , transitionLabelsDict  :: Map tid String
 
-            , transitionsDict       :: Map tid (TransitionF pid tok)
-            , transitionLabelsDict  :: Map tid String
+  , layout                :: NetLayoutF pid tid ()
 
-            -- Statebox-specific labelings
-            , transitionTypesDict   :: Map tid typ
-            , transitionAuthsDict   :: Map tid Auth.Roles
-            | r
-            )
-         )
+  -- Statebox-specific labelings
+  , transitionTypesDict   :: Map tid typ
+  , transitionAuthsDict   :: Map tid Auth.Roles
+
+  -- net state (TODO should be segregated from fields related to the net's topology)
+  , marking               :: MarkingF pid tok
+
+  | r
+  }
 
 --------------------------------------------------------------------------------
 
@@ -82,7 +82,7 @@ mkNetApiF
 mkNetApiF rep =
   { transition: \tid -> Map.lookup tid rep.transitionsDict
   , placeLabel: \pid -> Map.lookup pid rep.placeLabelsDict
-  , placePoint: \pid -> Map.lookup pid rep.placePointsDict
+  , placePoint: \pid -> Map.lookup pid rep.layout.placePointsDict
   , findTokens: Marking.findTokens rep.marking
   }
 

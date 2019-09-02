@@ -8,7 +8,6 @@
     , "group"
     , "halogen-svg"
     , "psci-support"
-    , "record"
     , "studio-common"
     ]
 , packages =

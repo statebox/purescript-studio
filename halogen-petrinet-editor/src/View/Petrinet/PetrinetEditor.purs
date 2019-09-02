@@ -21,7 +21,7 @@ import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Vec3 (Vec2D, Vec2(..), vec2, _x, _y, Box(..))
-import Data.Vec3 (bounds) as Vec2D
+import Data.Vec3 (bounds, appendMinMax, minMaxVecs) as Vec2D
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff(..))
 import Halogen as H
@@ -40,6 +40,7 @@ import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
 import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, NetLayoutFRow, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
+import Data.Petrinet.Representation.Layout as Layout
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
 
@@ -230,23 +231,8 @@ ui htmlIdPrefixMaybe =
         svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
         svgTextBoxes   = svgTextBox <$> netInfo.textBoxes
 
---------------------------------------------------------------------------------
-
-        placePointsDict :: Map pid Vec2D
-        placePointsDict = net.placePointsDict
-
-        transitionPointsDict :: Map tid Vec2D
-        transitionPointsDict = net.transitionPointsDict
-
-        layout :: NetLayoutF pid tid _
-        -- layout :: forall r. NetLayoutF pid tid r
-        layout = net
-
-        -- getLayout :: forall r. NetRepF pid tid tok _ -> NetLayoutF pid tid _
-        -- -- layout :: forall r. NetLayoutF pid tid r
-        -- getLayout = net
-
---------------------------------------------------------------------------------
+        layout :: NetLayoutF pid tid ()
+        layout = net.layout
 
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
@@ -532,12 +518,12 @@ svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
 
 --------------------------------------------------------------------------------
 
-boundingBox :: ∀ pid tid ty ty2 a. NetInfoWithTypesAndRolesF pid tid ty ty2 a -> { min :: Vec2D, max :: Vec2D }
+boundingBox :: ∀ pid tid ty ty2 r. NetInfoWithTypesAndRolesF pid tid ty ty2 r -> { min :: Vec2D, max :: Vec2D }
 boundingBox netInfo =
-  Vec2D.bounds $ Map.values netInfo.net.placePointsDict <>
-                 Map.values netInfo.net.transitionPointsDict <>
-                 (List.fromFoldable $ (_.bottomRight <<< un Box <<< _.box) <$> netInfo.textBoxes) <>
-                 (List.fromFoldable $ (_.topLeft     <<< un Box <<< _.box) <$> netInfo.textBoxes)
+  textBoxesBounds `Vec2D.appendMinMax` Layout.bounds netInfo.net.layout
+  where
+    textBoxesBounds = Vec2D.bounds $ (List.fromFoldable $ (_.bottomRight <<< un Box <<< _.box) <$> netInfo.textBoxes) <>
+                                     (List.fromFoldable $ (_.topLeft     <<< un Box <<< _.box) <$> netInfo.textBoxes)
 
 toggleMaybe :: ∀ a b. b -> Maybe a -> Maybe b
 toggleMaybe z mx = case mx of
