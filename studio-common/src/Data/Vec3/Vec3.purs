@@ -7,8 +7,9 @@ module Data.Vec3.Vec3
   , _z
   , toArray
   , bounds
-  , appendMinMax
+  , minMax
   , minMaxVecs
+  , minMaxZero
 
   , Vec2()
   , vec2
@@ -112,24 +113,23 @@ instance maxMonoidVec3 :: (Semigroup (Vec3 (Max a)), Monoid (Max a)) => Monoid (
 bounds :: ∀ f a. Bounded a => Ord a => Foldable f => f (Vec3 a) -> { min :: Vec3 a, max :: Vec3 a }
 bounds vecs =
   foldl minMaxVecs minMaxZero vecs
-  where
-    minMaxZero = { min: pure top, max: pure bottom }
+
+minMaxZero = { min: pure top, max: pure bottom }
 
 minMaxVecs :: ∀ a. Bounded a => Ord a => { min :: Vec3 a, max :: Vec3 a } -> Vec3 a -> { min :: Vec3 a, max :: Vec3 a }
 minMaxVecs { min: vMin, max: vMax } v = { min: min <$> vMin <*> v, max: max <$> vMax <*> v }
 
-
--- this would be something like the monoid operation on the {min, max} record of (Vec3 a) type
-appendMinMax
+-- this would be something like the monoidal (append) operation on the {min, max} record of (Vec3 a) type
+minMax
   :: ∀ a
    . Bounded a
   => Ord a
   => { min :: Vec3 a, max :: Vec3 a }
   -> { min :: Vec3 a, max :: Vec3 a }
   -> { min :: Vec3 a, max :: Vec3 a }
-appendMinMax m n =
+minMax m n =
   { min: binOp min m.min n.min
-  , max: binOp max m.min n.min
+  , max: binOp max m.max n.max
   }
 
 toArray :: forall a. Vec3 a -> Array a

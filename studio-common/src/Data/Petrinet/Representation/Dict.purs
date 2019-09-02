@@ -6,6 +6,7 @@ module Data.Petrinet.Representation.Dict
 
   , TransitionF
   , PlaceMarkingF
+
   , fire
   , fireAtMarking
   , isTransitionEnabled
@@ -14,7 +15,7 @@ module Data.Petrinet.Representation.Dict
   , postMarking
   , trMarking
 
-  , module Data.Petrinet.Representation.Layout
+  , module Data.Petrinet.Representation.Layout -- TODO better to do specific exports (NetLayoutF, etc)
   ) where
 
 import Prelude hiding ((-))
@@ -46,7 +47,7 @@ type NetRepF pid tid tok typ r =
   , transitionsDict       :: Map tid (TransitionF pid tok)
   , transitionLabelsDict  :: Map tid String
 
-  , layout                :: NetLayoutF pid tid
+  , layout                :: Maybe (NetLayoutF pid tid)
 
   -- Statebox-specific labelings
   , transitionTypesDict   :: Map tid typ
@@ -66,7 +67,6 @@ type NetApiF pid tid tok =
 
   -- data that should go through the schema mapping instead
   , placeLabel :: pid -> Maybe String
-  , placePoint :: pid -> Maybe Vec2D
 
   -- net state and execution
   , findTokens :: pid -> tok
@@ -82,7 +82,6 @@ mkNetApiF
 mkNetApiF rep =
   { transition: \tid -> Map.lookup tid rep.transitionsDict
   , placeLabel: \pid -> Map.lookup pid rep.placeLabelsDict
-  , placePoint: \pid -> Map.lookup pid rep.layout.placePointsDict
   , findTokens: Marking.findTokens rep.marking
   }
 

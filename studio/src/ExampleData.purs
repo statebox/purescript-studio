@@ -186,7 +186,7 @@ textBoxes1 :: Array TextBox
 textBoxes1 = []
 
 net1 :: NetRep
-net1 = mkNetRep places1 transitions1 marking1 placeLabels1 placePoints1 transitionLabels1 transitionTypes1 transitionPoints1 transitionRoles1
+net1 = mkNetRep places1 transitions1 marking1 placeLabels1 (pure placePoints1) transitionLabels1 transitionTypes1 (pure transitionPoints1) transitionRoles1
 
 netInfo1 :: NetInfo
 netInfo1 = { name: "Traffic lights", net: net1, netApi: mkNetApi net1, textBoxes: textBoxes1 }
@@ -285,7 +285,7 @@ textBoxes2 =
   ]
 
 net2 :: NetRep
-net2 = mkNetRep places2 transitions2 marking2 placeLabels2 placePoints2 transitionLabels2 transitionTypes2 transitionPoints2 transitionRoles2
+net2 = mkNetRep places2 transitions2 marking2 placeLabels2 (pure placePoints2) transitionLabels2 transitionTypes2 (pure transitionPoints2) transitionRoles2
 
 netInfo2 :: NetInfo
 netInfo2 = { name: "Producer-consumer", net: net2, netApi: mkNetApi net2, textBoxes: textBoxes2 }

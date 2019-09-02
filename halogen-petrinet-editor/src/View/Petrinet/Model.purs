@@ -7,7 +7,7 @@ import Data.Foldable (foldMap)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Map (Map)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe, maybe)
 import Data.Newtype (class Newtype, ala)
 import Data.Ord.Max (Max(..))
 import Data.Tuple (snd)
@@ -22,7 +22,8 @@ import Data.Petrinet.Representation.Layout (NetLayoutF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
 import Data.Vec3 as Vec3
-import Data.Vec3 (Vec2D, Box, Vec3)
+import Data.Vec3 (Vec2D, Box, Vec3, minMax)
+import Data.Vec3 (bounds, minMaxZero) as Vec2D
 import Data.Vec3.Box as Box
 
 data Action pid tid ty2
@@ -108,15 +109,16 @@ mkNetRep
   -> Array Transition
   -> Marking
   -> Array (PID /\ String)
-  -> Array (PID /\ Vec2D)
+  -> Maybe (Array (PID /\ Vec2D))
   -> Array String
   -> Array Typedef
-  -> Array Vec2D
+  -> Maybe (Array Vec2D)
   -> Array Roles
   -> NetRep
 mkNetRep pids transitions marking placeLabels placePoints transitionLabels transitionTypes transitionPoints transitionAuths =
-  mkNetRepUsingLayout pids transitions marking placeLabels transitionLabels (mkLayout firstTransitionIndex placePoints transitionPoints) transitionTypes transitionAuths
+  mkNetRepUsingLayout pids transitions marking placeLabels transitionLabels layout transitionTypes transitionAuths
   where
+    layout = mkLayout <$> pure firstTransitionIndex <*> placePoints <*> transitionPoints
     firstTransitionIndex = length pids + 1
 
 mkNetRepUsingLayout
@@ -125,7 +127,7 @@ mkNetRepUsingLayout
   -> Marking
   -> Array (PID /\ String)
   -> Array String
-  -> NetLayoutF PID TID
+  -> Maybe (NetLayoutF PID TID)
   -> Array Typedef
   -> Array Roles
   -> NetRep
@@ -176,7 +178,7 @@ mkNetInfo net name textBoxes =
 
 mapPoints :: ∀ pid tid ty r. (Vec2D -> Vec2D) -> NetInfoF pid tid ty r -> NetInfoF pid tid ty r
 mapPoints f n =
-  n { net       = n.net { layout = Layout.mapVec2D f n.net.layout }
+  n { net       = n.net { layout = Layout.mapVec2D f <$> n.net.layout }
     , textBoxes = mapTextBoxF f <$> n.textBoxes
     }
 
@@ -201,13 +203,11 @@ translateAndScale factor n =
     bounds = boundingBox n
 
 boundingBox :: ∀ pid tid ty r. NetInfoF pid tid ty r -> { min :: Vec2D, max :: Vec2D }
-boundingBox n =
-  Vec3.bounds points
-  where -- TODO optimisation: foldMap over the three components to avoid intermediate arrays
-    points           = placeCoords <> transitionCoords <> textBoxCoords
-    placeCoords      = snd <$> Map.toUnfoldable n.net.layout.placePointsDict
-    transitionCoords = snd <$> Map.toUnfoldable n.net.layout.transitionPointsDict
-    textBoxCoords    = (Box.toArray <<< _.box) =<< n.textBoxes
+boundingBox netInfo =
+  layoutBounds `minMax` textBoxesBounds
+  where
+    layoutBounds = maybe Vec2D.minMaxZero Layout.bounds netInfo.net.layout
+    textBoxesBounds = Vec2D.bounds ((Box.toArray <<< _.box) =<< netInfo.textBoxes)
 
 --------------------------------------------------------------------------------
 

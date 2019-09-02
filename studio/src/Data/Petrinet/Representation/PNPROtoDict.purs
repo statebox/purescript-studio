@@ -27,10 +27,10 @@ toNetRep gspn =
     transitions'
     marking
     placeLabels
-    placePoints
+    (pure placePoints)
     transitionLabels
     (Typedef "1" <$ transitions)
-    (toVec2D <$> transitions)
+    (pure $ toVec2D <$> transitions)
     transitionAuthsDict
   where
     firstPlaceIndex      = 1

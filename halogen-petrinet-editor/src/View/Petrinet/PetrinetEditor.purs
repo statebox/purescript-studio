@@ -21,7 +21,6 @@ import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Vec3 (Vec2D, Vec2(..), vec2, _x, _y, Box(..))
-import Data.Vec3 (bounds, appendMinMax, minMaxVecs) as Vec2D
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff(..))
 import Halogen as H
@@ -170,7 +169,7 @@ ui htmlIdPrefixMaybe =
       where
         sceneSize                       = bounds.max - bounds.min + padding
         sceneTopLeft                    = bounds.min - (padding / pure 2.0)
-        bounds                          = boundingBox state.netInfo
+        bounds                          = NetInfo.boundingBox state.netInfo
         padding                         = vec2 (4.0 * transitionWidth) (4.0 * transitionHeight)
 
         arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible)        "css-hide-arc-labels"
@@ -232,7 +231,10 @@ ui htmlIdPrefixMaybe =
         svgTextBoxes   = svgTextBox <$> netInfo.textBoxes
 
         layout :: NetLayoutF pid tid
-        layout = net.layout
+        layout = fromMaybe zeroLayout net.layout
+          where
+            zeroLayout :: NetLayoutF pid tid
+            zeroLayout = { placePointsDict: mempty, transitionPointsDict: mempty }
 
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
@@ -515,15 +517,6 @@ labelVisibilityButtons =
 
 svgPath :: Vec2D -> Vec2D -> Array SA.D
 svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
-
---------------------------------------------------------------------------------
-
-boundingBox :: ∀ pid tid ty ty2 r. NetInfoWithTypesAndRolesF pid tid ty ty2 r -> { min :: Vec2D, max :: Vec2D }
-boundingBox netInfo =
-  textBoxesBounds `Vec2D.appendMinMax` Layout.bounds netInfo.net.layout
-  where
-    textBoxesBounds = Vec2D.bounds $ (List.fromFoldable $ (_.bottomRight <<< un Box <<< _.box) <$> netInfo.textBoxes) <>
-                                     (List.fromFoldable $ (_.topLeft     <<< un Box <<< _.box) <$> netInfo.textBoxes)
 
 toggleMaybe :: ∀ a b. b -> Maybe a -> Maybe b
 toggleMaybe z mx = case mx of

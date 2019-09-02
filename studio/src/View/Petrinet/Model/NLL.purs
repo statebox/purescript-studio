@@ -50,10 +50,10 @@ toNetRep net placeNames transitionNames placePositions transitionPositions typed
            transitions
            mempty
            placeNamesIndexed
-           placePositions
+           (pure placePositions)
            transitionNames
            typedefs
-           transitionPositions
+           (pure transitionPositions)
            roles
   where
     places            :: Array PID

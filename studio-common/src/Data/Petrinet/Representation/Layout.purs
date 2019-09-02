@@ -6,13 +6,13 @@ import Data.Map (Map)
 import Data.Vec3 as Vec3
 import Data.Vec3 (Vec3)
 
+type NetLayoutF pid tid = Record (NetLayoutFRow pid tid ())
+
 type NetLayoutFRow pid tid r =
   ( placePointsDict      :: Map pid (Vec3 Number)
   , transitionPointsDict :: Map tid (Vec3 Number)
   | r
   )
-
-type NetLayoutF pid tid = Record (NetLayoutFRow pid tid ())
 
 mapVec2D
   :: forall pid tid
@@ -25,8 +25,4 @@ mapVec2D f l =
     }
 
 bounds :: ∀ pid tid. NetLayoutF pid tid -> { min :: Vec3 Number, max :: Vec3 Number }
-bounds layout =
-  Vec3.bounds $
-    Map.values layout.placePointsDict <>
-    Map.values layout.transitionPointsDict
-
+bounds layout = Vec3.bounds (Map.values layout.placePointsDict <> Map.values layout.transitionPointsDict)
