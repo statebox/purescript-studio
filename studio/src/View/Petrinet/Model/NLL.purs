@@ -10,6 +10,7 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.Int (toNumber)
 import Data.Map as Map
 import Data.Map (Map)
+import Data.Maybe (Maybe(..))
 import Data.Monoid
 import Data.Profunctor.Strong
 import Data.Set (Set, fromFoldable, toUnfoldable)
@@ -17,17 +18,16 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Tuple (fst, snd, uncurry)
 import Data.Foldable (foldl, fold)
 import Data.Traversable (traverse)
-import Data.Vec3 (Vec3, vec2)
 
 import Data.Petrinet.Representation.NLL (NetF)
 import Data.Typedef (Typedef(..))
 import View.Petrinet.Model (PID, Transition, NetRep, NetInfo, TextBox, mkNetRep, mkNetApi, mkNetInfo)
 
-toNetInfo :: NetF PID -> String -> Array String -> Array String -> Array (PID /\ Vec3 Number) -> Array (Vec3 Number) -> Array Typedef -> Array Roles -> NetInfo
-toNetInfo net name placeNames transitionNames placePositions transitionPositions typedefs roles =
+toNetInfo :: NetF PID -> String -> Array String -> Array String -> Array Typedef -> Array Roles -> NetInfo
+toNetInfo net name placeNames transitionNames typedefs roles =
   mkNetInfo netRep name mempty
   where
-    netRep = toNetRep net placeNames transitionNames placePositions transitionPositions typedefs roles
+    netRep = toNetRep net placeNames transitionNames typedefs roles
 
 toNetInfoWithDefaults :: NetF PID -> String -> Array String -> Array String -> NetInfo
 toNetInfoWithDefaults net name placeNames transitionNames =
@@ -37,23 +37,22 @@ toNetInfoWithDefaults net name placeNames transitionNames =
 
 toNetRepWithDefaults :: NetF PID -> Array String -> Array String -> NetRep
 toNetRepWithDefaults net placeNames transitionNames =
-  toNetRep net placeNames transitionNames layout.placePositions layout.transitionPositions typedefs roles
+  toNetRep net placeNames transitionNames typedefs roles
   where
     transitions = net
     typedefs    = Typedef "1" <$ transitions
     roles       = mempty
-    layout      = layoutBipartiteIn2ColsNetF net
 
-toNetRep :: NetF PID -> Array String -> Array String -> Array (PID /\ Vec3 Number) -> Array (Vec3 Number) -> Array Typedef -> Array Roles -> NetRep
-toNetRep net placeNames transitionNames placePositions transitionPositions typedefs roles =
+toNetRep :: NetF PID -> Array String -> Array String -> Array Typedef -> Array Roles -> NetRep
+toNetRep net placeNames transitionNames typedefs roles =
   mkNetRep places
            transitions
            mempty
            placeNamesIndexed
-           (pure placePositions)
+           Nothing
            transitionNames
            typedefs
-           (pure transitionPositions)
+           Nothing
            roles
   where
     places            :: Array PID
@@ -74,19 +73,6 @@ toNetRep net placeNames transitionNames placePositions transitionPositions typed
       }
 
 --------------------------------------------------------------------------------
-
-layoutBipartiteIn2ColsNetF :: NetF PID -> { placePositions :: Array (PID /\ Vec3 Number), transitionPositions :: Array (Vec3 Number) }
-layoutBipartiteIn2ColsNetF net =
-  { placePositions:      (\i p -> p /\ vec2 (-halfWidth) (scale <<< toNumber $ 1+i)) `mapWithIndex` places
-  , transitionPositions: (\i t ->      vec2   halfWidth  (scale <<< toNumber $ 1+i)) `mapWithIndex` net
-  }
-  where
-    places    = toUnfoldable $ uniquePlaceIds net
-    halfWidth = scale <<< (_ / 2.0) <<< toNumber $ maxIndex -- maxIndex determines height
-    maxIndex  = max (length places) (length net)
-
-scale :: Number -> Number
-scale n = 10.0*n
 
 defaultPlaceNames :: ∀ a. Ord a => Eq a => NetF a -> Array String
 defaultPlaceNames net = defaultPlaceNames' numPlaces
