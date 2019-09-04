@@ -3,11 +3,8 @@ module Statebox.Client where
 import Prelude
 import Affjax as Affjax
 import Affjax (URL, Response)
-import Affjax.RequestBody as RequestBody
 import Affjax.ResponseFormat as ResponseFormat
 import Affjax.ResponseFormat (ResponseFormatError)
-import Affjax.RequestHeader as RequestHeader
-import Affjax.StatusCode (StatusCode(..))
 import Control.Coroutine (Producer)
 import Control.Coroutine.Aff (emit, close, produceAff, Emitter)
 import Control.Monad.Rec.Class (Step(Loop, Done), tailRecM)
@@ -20,7 +17,7 @@ import Data.HTTP.Method (Method(GET))
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff)
 
-import Statebox.Core.Transaction (HashTx, Tx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
+import Statebox.Core.Transaction (HashTx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
 import Statebox.Core.Transaction.Codec (decodeTxTxSum, DecodingError(..))
 
 

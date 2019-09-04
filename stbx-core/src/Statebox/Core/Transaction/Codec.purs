@@ -2,17 +2,17 @@ module Statebox.Core.Transaction.Codec where
 
 import Prelude
 import Control.Alt ((<|>))
-import Data.Argonaut.Core (Json, jsonEmptyObject, jsonNull)
-import Data.Argonaut.Encode.Combinators ((:=), (:=?), (~>), (~>?))
-import Data.Argonaut.Encode.Class (class EncodeJson, encodeJson)
-import Data.Argonaut.Decode (class DecodeJson, decodeJson, (.:), (.:?))
+import Data.Argonaut.Core (Json, jsonEmptyObject)
+import Data.Argonaut.Encode.Combinators ((:=), (~>))
+import Data.Argonaut.Encode.Class (encodeJson)
+import Data.Argonaut.Decode (decodeJson, (.:), (.:?))
 import Data.Profunctor.Choice (left)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
-import Data.Maybe (Maybe(..), maybe)
-import Foreign.Object (Object(..), lookup)
+import Data.Maybe (maybe)
+import Foreign.Object (Object, lookup)
 
-import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), HashStr, mapTx, evalTxSum)
+import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), mapTx, evalTxSum)
 import Statebox.Core.Types (Firing)
 
 decodeTxTxSum :: Json -> String \/ Tx TxSum
