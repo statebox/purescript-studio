@@ -143,7 +143,7 @@ ui htmlIdPrefixMaybe =
                       , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
                       ]
                       [ SE.svg [ SA.viewBox (_x sceneTopLeft) (_y sceneTopLeft) (_x sceneSize) (_y sceneSize) ]
-                               (netToSVG state.netInfo state.focusedPlace state.focusedTransition)
+                               (netToSVG state.netInfo layout state.focusedPlace state.focusedTransition)
                       , HH.br []
                       , HH.text state.msg
                       ]
@@ -175,6 +175,14 @@ ui htmlIdPrefixMaybe =
         arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible)        "css-hide-arc-labels"
         placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible)      "css-hide-place-labels"
         transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
+
+        layout :: NetLayoutF pid tid
+        layout = fromMaybe zeroLayout state.netInfo.net.layout
+          where
+            -- TODO This shouldn't exist; we always need the correct number of places and transitions laid out
+            --      so we need to use a layouting function here to compute one. (issue #141)
+            zeroLayout :: NetLayoutF pid tid
+            zeroLayout = { placePointsDict: mempty, transitionPointsDict: mempty }
 
     handleAction :: ∀ tid. Ord tid => Show tid => Action pid tid ty2 -> HalogenM (StateF pid tid ty2) (Action pid tid ty2) () Msg m Unit
     handleAction = case _ of
@@ -221,20 +229,14 @@ ui htmlIdPrefixMaybe =
           Place ->      state { placeLabelsVisible      = not state.placeLabelsVisible }
           Transition -> state { transitionLabelsVisible = not state.transitionLabelsVisible }
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> Maybe pid -> Maybe tid -> Array (ComponentHTML (Action pid tid ty2) () m)
-    netToSVG netInfo@{net, netApi} focusedPlace focusedTransition =
+    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> NetLayoutF pid tid -> Maybe pid -> Maybe tid -> Array (ComponentHTML (Action pid tid ty2) () m)
+    netToSVG netInfo@{net, netApi} layout focusedPlace focusedTransition =
       svgDefs <> svgTextBoxes <> svgTransitions <> svgPlaces
       where
         svgDefs        = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
         svgTransitions = catMaybes $ map (map svgTransitionAndArcs <<< uncurry mkTransitionAndArcsModel) $ Map.toUnfoldable $ net.transitionsDict
         svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
         svgTextBoxes   = svgTextBox <$> netInfo.textBoxes
-
-        layout :: NetLayoutF pid tid
-        layout = fromMaybe zeroLayout net.layout
-          where
-            zeroLayout :: NetLayoutF pid tid
-            zeroLayout = { placePointsDict: mempty, transitionPointsDict: mempty }
 
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
