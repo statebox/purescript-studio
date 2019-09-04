@@ -1,6 +1,4 @@
 language: node_js
-deploy:
-  provider: script
-  script: bash scripts/build.sh
-  on:
-    branch: develop
+node_js: stable
+script:
+  - make test
