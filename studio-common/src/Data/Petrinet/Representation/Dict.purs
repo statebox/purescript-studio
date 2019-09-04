@@ -1,6 +1,5 @@
 module Data.Petrinet.Representation.Dict
   ( NetRepF
-  , mapPoints
 
   , NetApiF
   , mkNetApiF
@@ -15,6 +14,8 @@ module Data.Petrinet.Representation.Dict
   , preMarking
   , postMarking
   , trMarking
+
+  , module Data.Petrinet.Representation.Layout -- TODO better to do specific exports (NetLayoutF, etc)
   ) where
 
 import Prelude hiding ((-))
@@ -33,34 +34,27 @@ import Data.Group (class Group, ginverse)
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF, tokensAt)
+import Data.Petrinet.Representation.Layout
 
--- | A representation of a Petri net.
+-- | A representation of a Petri net with some additional labelings and metadata.
 type NetRepF pid tid tok typ r =
   { places                :: Array pid
-  , marking               :: MarkingF pid tok
-
   , placeLabelsDict       :: Map pid String
-  , placePointsDict       :: Map pid Vec2D
 
   , transitionsDict       :: Map tid (TransitionF pid tok)
   , transitionLabelsDict  :: Map tid String
-  , transitionPointsDict  :: Map tid Vec2D
 
-  -- Statebox-specific fields
+  , layout                :: Maybe (NetLayoutF pid tid)
+
+  -- Statebox-specific labelings
   , transitionTypesDict   :: Map tid typ
   , transitionAuthsDict   :: Map tid Auth.Roles
+
+  -- net state (TODO should be segregated from fields related to the net's topology)
+  , marking               :: MarkingF pid tok
+
   | r
   }
-
-mapPoints
-  :: forall pid tid tok typ r
-   . (Vec2D -> Vec2D)
-  -> NetRepF pid tid tok typ r
-  -> NetRepF pid tid tok typ r
-mapPoints f n =
-  n { placePointsDict      = f <$> n.placePointsDict
-    , transitionPointsDict = f <$> n.transitionPointsDict
-    }
 
 --------------------------------------------------------------------------------
 
@@ -70,7 +64,6 @@ type NetApiF pid tid tok =
 
   -- data that should go through the schema mapping instead
   , placeLabel :: pid -> Maybe String
-  , placePoint :: pid -> Maybe Vec2D
 
   -- net state and execution
   , findTokens :: pid -> tok
@@ -86,7 +79,6 @@ mkNetApiF
 mkNetApiF rep =
   { transition: \tid -> Map.lookup tid rep.transitionsDict
   , placeLabel: \pid -> Map.lookup pid rep.placeLabelsDict
-  , placePoint: \pid -> Map.lookup pid rep.placePointsDict
   , findTokens: Marking.findTokens rep.marking
   }
 

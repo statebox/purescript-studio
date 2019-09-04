@@ -10,6 +10,7 @@ import Data.HeytingAlgebra (not)
 import Data.Int (toNumber, floor, round)
 import Data.List as List
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Map (Map)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Monoid.Additive (Additive(..))
@@ -20,7 +21,6 @@ import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Vec3 (Vec2D, Vec2(..), vec2, _x, _y, Box(..))
-import Data.Vec3 (bounds) as Vec2D
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff(..))
 import Halogen as H
@@ -38,7 +38,8 @@ import Svg.Attributes (Duration, DurationF(..), seconds, FillState(..), FontSize
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
-import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
+import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
+import Data.Petrinet.Representation.Layout as Layout
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
 
@@ -168,7 +169,7 @@ ui htmlIdPrefixMaybe =
       where
         sceneSize                       = bounds.max - bounds.min + padding
         sceneTopLeft                    = bounds.min - (padding / pure 2.0)
-        bounds                          = boundingBox state.netInfo
+        bounds                          = NetInfo.boundingBox state.netInfo
         padding                         = vec2 (4.0 * transitionWidth) (4.0 * transitionHeight)
 
         arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible)        "css-hide-arc-labels"
@@ -229,17 +230,23 @@ ui htmlIdPrefixMaybe =
         svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
         svgTextBoxes   = svgTextBox <$> netInfo.textBoxes
 
+        layout :: NetLayoutF pid tid
+        layout = fromMaybe zeroLayout net.layout
+          where
+            zeroLayout :: NetLayoutF pid tid
+            zeroLayout = { placePointsDict: mempty, transitionPointsDict: mempty }
+
         mkPlaceModel :: pid -> Maybe (PlaceModelF pid Tokens String Vec2D)
         mkPlaceModel id = do
           label <- Map.lookup id net.placeLabelsDict
-          point <- Map.lookup id net.placePointsDict
+          point <- Map.lookup id layout.placePointsDict
           let tokens = Marking.findTokens net.marking id
           pure $ { id: id, tokens: tokens, label: label, point: point, isFocused: id `elem` focusedPlace }
 
         -- TODO the do-block will fail as a whole if e.g. one findPlacePoint misses
         mkTransitionAndArcsModel :: tid -> TransitionF pid Tokens -> Maybe (TransitionModelF tid String Vec2D)
         mkTransitionAndArcsModel tid tr = do
-          trPoint  <- Map.lookup tid net.transitionPointsDict
+          trPoint  <- Map.lookup tid layout.transitionPointsDict
           preArcs  <- mkPreArc  tid trPoint `traverse` tr.pre
           postArcs <- mkPostArc tid trPoint `traverse` tr.post
           let auths = fromMaybe (Roles mempty) (Map.lookup tid net.transitionAuthsDict)
@@ -255,10 +262,10 @@ ui htmlIdPrefixMaybe =
                }
           where
             mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place net.placePointsDict
+            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
 
             mkPreArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place net.placePointsDict
+            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
 
     --------------------------------------------------------------------------------
 
@@ -510,15 +517,6 @@ labelVisibilityButtons =
 
 svgPath :: Vec2D -> Vec2D -> Array SA.D
 svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
-
---------------------------------------------------------------------------------
-
-boundingBox :: ∀ pid tid ty ty2 a. NetInfoWithTypesAndRolesF pid tid ty ty2 a -> { min :: Vec2D, max :: Vec2D }
-boundingBox netInfo =
-  Vec2D.bounds $ Map.values netInfo.net.placePointsDict <>
-                 Map.values netInfo.net.transitionPointsDict <>
-                 (List.fromFoldable $ (_.bottomRight <<< un Box <<< _.box) <$> netInfo.textBoxes) <>
-                 (List.fromFoldable $ (_.topLeft     <<< un Box <<< _.box) <$> netInfo.textBoxes)
 
 toggleMaybe :: ∀ a b. b -> Maybe a -> Maybe b
 toggleMaybe z mx = case mx of

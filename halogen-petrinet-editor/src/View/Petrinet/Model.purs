@@ -7,23 +7,24 @@ import Data.Foldable (foldMap)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Map (Map)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe, maybe)
 import Data.Newtype (class Newtype, ala)
 import Data.Ord.Max (Max(..))
 import Data.Tuple (snd)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec3 as Vec3
-import Data.Vec3 (Vec3(..))
-import Data.Vec3.Box as Box
-import Data.Vec3.Box (Box(..))
 
 import Data.Auth (Role, Roles, RoleInfo)
 import Data.Typedef (Typedef(..), TypeName)
 import Data.Petrinet.Representation.Dict as Dict
 import Data.Petrinet.Representation.Dict (TransitionF, PlaceMarkingF, NetRepF, NetApiF, mkNetApiF)
+import Data.Petrinet.Representation.Layout as Layout
+import Data.Petrinet.Representation.Layout (NetLayoutF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF)
-import Data.Vec3 (Vec2, Vec2D, Box(..))
+import Data.Vec3 as Vec3
+import Data.Vec3 (Vec2D, Box, Vec3, minMax)
+import Data.Vec3 (bounds, minMaxZero) as Vec2D
+import Data.Vec3.Box as Box
 
 data Action pid tid ty2
   = LoadNet (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ())
@@ -101,6 +102,8 @@ type NetApi = NetApiF PID TID Tokens
 
 type NetInfo = Record (NetInfoFRow PID TID Typedef ())
 
+type NetLayout = NetLayoutF PID TID
+
 --------------------------------------------------------------------------------
 
 mkNetRep
@@ -108,41 +111,59 @@ mkNetRep
   -> Array Transition
   -> Marking
   -> Array (PID /\ String)
-  -> Array (PID /\ Vec2D)
+  -> Maybe (Array (PID /\ Vec2D))
   -> Array String
   -> Array Typedef
-  -> Array Vec2D
+  -> Maybe (Array Vec2D)
   -> Array Roles
   -> NetRep
 mkNetRep pids transitions marking placeLabels placePoints transitionLabels transitionTypes transitionPoints transitionAuths =
+  mkNetRepUsingLayout pids transitions marking placeLabels transitionLabels layout transitionTypes transitionAuths
+  where
+    layout = mkLayout <$> pure firstTransitionIndex <*> placePoints <*> transitionPoints
+    firstTransitionIndex = length pids + 1
+
+mkNetRepUsingLayout
+  :: Array PID
+  -> Array Transition
+  -> Marking
+  -> Array (PID /\ String)
+  -> Array String
+  -> Maybe NetLayout
+  -> Array Typedef
+  -> Array Roles
+  -> NetRep
+mkNetRepUsingLayout pids transitions marking placeLabels transitionLabels layout transitionTypes transitionAuths =
   { places:               pids
-  , transitionsDict:      transitionsDict
-  , marking:              marking
   , placeLabelsDict:      placeLabelsDict
-  , placePointsDict:      placePointsDict
-  , transitionLabelsDict: transitionLabelsDict
-  , transitionTypesDict:  transitionTypesDict
-  , transitionPointsDict: transitionPointsDict
-  , transitionAuthsDict:  transitionAuthsDict
+
+  , transitionsDict:      labelTransitionsWith transitions
+  , transitionLabelsDict: labelTransitionsWith transitionLabels
+  , transitionTypesDict:  labelTransitionsWith transitionTypes
+  , transitionAuthsDict:  labelTransitionsWith transitionAuths
+
+  , layout:               layout
+
+  , marking:              marking
   }
   where
     firstTransitionIndex = length pids + 1
 
-    transitionsDict :: Map Int Transition
-    transitionsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitions
-
     placeLabelsDict :: Map Int String
     placeLabelsDict = Map.fromFoldable placeLabels
 
-    placePointsDict = Map.fromFoldable placePoints
+    labelTransitionsWith :: forall a. Array a -> Map TID a
+    labelTransitionsWith = Map.fromFoldable <<< zipWithIndexFrom firstTransitionIndex
 
-    transitionLabelsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionLabels
-
-    transitionTypesDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionTypes
-
-    transitionPointsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
-
-    transitionAuthsDict = Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionAuths
+mkLayout
+  :: Int
+  -> Array (PID /\ Vec2D)
+  -> Array Vec2D
+  -> NetLayout
+mkLayout firstTransitionIndex placePoints transitionPoints =
+   { placePointsDict:      Map.fromFoldable placePoints
+   , transitionPointsDict: Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
+   }
 
 mkNetApi :: NetRep -> NetApi
 mkNetApi = mkNetApiF
@@ -159,7 +180,7 @@ mkNetInfo net name textBoxes =
 
 mapPoints :: ∀ pid tid ty r. (Vec2D -> Vec2D) -> NetInfoF pid tid ty r -> NetInfoF pid tid ty r
 mapPoints f n =
-  n { net       = Dict.mapPoints f n.net
+  n { net       = n.net { layout = Layout.mapVec2D f <$> n.net.layout }
     , textBoxes = mapTextBoxF f <$> n.textBoxes
     }
 
@@ -184,13 +205,11 @@ translateAndScale factor n =
     bounds = boundingBox n
 
 boundingBox :: ∀ pid tid ty r. NetInfoF pid tid ty r -> { min :: Vec2D, max :: Vec2D }
-boundingBox n =
-  Vec3.bounds points
-  where -- TODO optimisation: foldMap over the three components to avoid intermediate arrays
-    points           = placeCoords <> transitionCoords <> textBoxCoords
-    placeCoords      = snd <$> Map.toUnfoldable n.net.placePointsDict
-    transitionCoords = snd <$> Map.toUnfoldable n.net.transitionPointsDict
-    textBoxCoords    = (Box.toArray <<< _.box) =<< n.textBoxes
+boundingBox netInfo =
+  layoutBounds `minMax` textBoxesBounds
+  where
+    layoutBounds = maybe Vec2D.minMaxZero Layout.bounds netInfo.net.layout
+    textBoxesBounds = Vec2D.bounds ((Box.toArray <<< _.box) =<< netInfo.textBoxes)
 
 --------------------------------------------------------------------------------
 
