@@ -1,5 +1,5 @@
 deploy:
-  - provider: script
-    script: bash scripts/build.sh
-    on:
-      branch: develop
+  provider: script
+  script: bash scripts/build.sh
+  on:
+    branch: develop
