@@ -38,7 +38,7 @@ import Svg.Attributes (Duration, DurationF(..), seconds, FillState(..), FontSize
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
-import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, NetLayoutFRow, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
+import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
 import Data.Petrinet.Representation.Layout as Layout
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))

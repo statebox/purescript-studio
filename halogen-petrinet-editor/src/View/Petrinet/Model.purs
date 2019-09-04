@@ -102,6 +102,8 @@ type NetApi = NetApiF PID TID Tokens
 
 type NetInfo = Record (NetInfoFRow PID TID Typedef ())
 
+type NetLayout = NetLayoutF PID TID
+
 --------------------------------------------------------------------------------
 
 mkNetRep
@@ -127,7 +129,7 @@ mkNetRepUsingLayout
   -> Marking
   -> Array (PID /\ String)
   -> Array String
-  -> Maybe (NetLayoutF PID TID)
+  -> Maybe NetLayout
   -> Array Typedef
   -> Array Roles
   -> NetRep
@@ -157,7 +159,7 @@ mkLayout
   :: Int
   -> Array (PID /\ Vec2D)
   -> Array Vec2D
-  -> NetLayoutF PID TID
+  -> NetLayout
 mkLayout firstTransitionIndex placePoints transitionPoints =
    { placePointsDict:      Map.fromFoldable placePoints
    , transitionPointsDict: Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
