@@ -36,9 +36,6 @@ import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF, tokensAt)
 import Data.Petrinet.Representation.Layout
 
--- TODO als we die record merge hier handhaven, dan mss die merge even cleaner doen indien mogelijk?
--- TODO perhaps it's easier and more 'logical' to have layout be a field (could then also be a Maybe)
--- TODO also consider we want MULTIPLE layouters
 -- | A representation of a Petri net with some additional labelings and metadata.
 type NetRepF pid tid tok typ r =
   { places                :: Array pid
