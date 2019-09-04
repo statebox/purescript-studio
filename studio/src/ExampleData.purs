@@ -24,13 +24,14 @@ import Data.Vec3.Box (Box(..))
 import Data.Vec3 (Vec2D, Vec2(..), vec2, vec3, _x, _y, _z)
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
+import Data.Petrinet.Representation.Dict (NetLayoutF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Data.Typedef (Typedef(..))
 import Data.Typedef.Typedef2 (Typedef2(..))
 import View.Model (Project)
-import View.Petrinet.Model (PID, TID, Tokens, Transition, Marking, PlaceMarking, NetRep, mkNetRep, mkNetApi, NetApi, NetInfo, NetInfoFRow, TextBox)
+import View.Petrinet.Model (PID, TID, Tokens, Transition, Marking, PlaceMarking, NetRep, mkNetRepUsingLayout, mkNetApi, NetApi, NetInfo, NetInfoFRow, TextBox)
 import View.Diagram.Model (DiagramInfo)
 
 -- TODO hardcoded for now, but we should decide how we want to come by this
@@ -112,17 +113,6 @@ marking1 = Marking.fromFoldable
   , 4 /\ 1
   ]
 
-placePoints1 :: Array (PID /\ Vec2D)
-placePoints1 =
-  [ 1 /\ vec2 10.0 30.0
-  , 2 /\ vec2 30.0 30.0
-  , 3 /\ vec2 90.0 30.0
-  , 4 /\ vec2 70.0 30.0
-  , 5 /\ vec2 50.0 30.0
-  ]
-
---------------------------------------------------------------------------------
-
 transitions1 :: Array Transition
 transitions1 =
   [ { pre:  ms [ m 1 1 ] -- a
@@ -166,13 +156,6 @@ transitionTypes1 =
   , Typedef "(* 1 (* 0 1))"
   ]
 
-transitionPoints1 =
-  [ vec2 30.0 20.0
-  , vec2 30.0 40.0
-  , vec2 70.0 20.0
-  , vec2 70.0 40.0
-  ]
-
 transitionRoles1 = rolesFromFoldable <$>
   [ []
   , [ Role 1 ]
@@ -180,13 +163,28 @@ transitionRoles1 = rolesFromFoldable <$>
   , []
   ]
 
---------------------------------------------------------------------------------
+layout1 :: NetLayoutF PID TID
+layout1 =
+  { placePointsDict: Map.fromFoldable
+      [ 1 /\ vec2 10.0 30.0
+      , 2 /\ vec2 30.0 30.0
+      , 3 /\ vec2 90.0 30.0
+      , 4 /\ vec2 70.0 30.0
+      , 5 /\ vec2 50.0 30.0
+      ]
+  , transitionPointsDict: Map.fromFoldable
+      [ 6 /\ vec2 30.0 20.0
+      , 7 /\ vec2 30.0 40.0
+      , 8 /\ vec2 70.0 20.0
+      , 9 /\ vec2 70.0 40.0
+      ]
+  }
 
 textBoxes1 :: Array TextBox
 textBoxes1 = []
 
 net1 :: NetRep
-net1 = mkNetRep places1 transitions1 marking1 placeLabels1 (pure placePoints1) transitionLabels1 transitionTypes1 (pure transitionPoints1) transitionRoles1
+net1 = mkNetRepUsingLayout places1 transitions1 marking1 placeLabels1 transitionLabels1 (pure layout1) transitionTypes1 transitionRoles1
 
 netInfo1 :: NetInfo
 netInfo1 = { name: "Traffic lights", net: net1, netApi: mkNetApi net1, textBoxes: textBoxes1 }
@@ -210,19 +208,6 @@ marking2 :: Marking
 marking2 = Marking.fromFoldable
   [ 1 /\ 1
   , 5 /\ 1
-  ]
-
-top2 = 10.0
-mid2 = 30.0
-bot2 = 50.0
-
-placePoints2 :: Array (TID /\ Vec2D)
-placePoints2 =
-  [ 1 /\ vec2 10.0 top2
-  , 2 /\ vec2 10.0 bot2
-  , 3 /\ vec2 50.0 mid2
-  , 4 /\ vec2 90.0 top2
-  , 5 /\ vec2 90.0 bot2
   ]
 
 transitions2 :: Array Transition
@@ -264,12 +249,26 @@ transitionLabels2 =
   , "T4"
   ]
 
-transitionPoints2 =
-  [ vec2 (-10.0) mid2
-  , vec2   30.0  mid2
-  , vec2   70.0  mid2
-  , vec2  110.0  mid2
-  ]
+layout2 :: NetLayoutF PID TID
+layout2 =
+  { placePointsDict: Map.fromFoldable
+      [ 1 /\ vec2 10.0 top2
+      , 2 /\ vec2 10.0 bot2
+      , 3 /\ vec2 50.0 mid2
+      , 4 /\ vec2 90.0 top2
+      , 5 /\ vec2 90.0 bot2
+      ]
+  , transitionPointsDict: Map.fromFoldable
+      [ 6 /\ vec2 (-10.0) mid2
+      , 7 /\ vec2   30.0  mid2
+      , 8 /\ vec2   70.0  mid2
+      , 9 /\ vec2  110.0  mid2
+      ]
+  }
+  where
+    top2 = 10.0
+    mid2 = 30.0
+    bot2 = 50.0
 
 transitionRoles2 = rolesFromFoldable <$>
   [ []
@@ -280,12 +279,12 @@ transitionRoles2 = rolesFromFoldable <$>
 
 textBoxes2 :: Array TextBox
 textBoxes2 =
-  [ { name: "producer", text: "Producer", box: Box { topLeft: vec2 (-14.0) 6.0, bottomRight: vec2  38.0 54.0 } }
-  , { name: "consumer", text: "Consumer", box: Box { topLeft: vec2   60.0  6.0, bottomRight: vec2 115.0 54.0 } }
+  [ { name: "producer", text: "Producer", box: Box { topLeft: vec2 (-14.0) 6.0, bottomRight: vec2  38.0 56.0 } }
+  , { name: "consumer", text: "Consumer", box: Box { topLeft: vec2   60.0  6.0, bottomRight: vec2 115.0 56.0 } }
   ]
 
 net2 :: NetRep
-net2 = mkNetRep places2 transitions2 marking2 placeLabels2 (pure placePoints2) transitionLabels2 transitionTypes2 (pure transitionPoints2) transitionRoles2
+net2 = mkNetRepUsingLayout places2 transitions2 marking2 placeLabels2 transitionLabels2 (pure layout2) transitionTypes2 transitionRoles2
 
 netInfo2 :: NetInfo
 netInfo2 = { name: "Producer-consumer", net: net2, netApi: mkNetApi net2, textBoxes: textBoxes2 }
