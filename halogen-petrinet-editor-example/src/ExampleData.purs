@@ -14,11 +14,10 @@ import Data.Vec3.Box (Box(..))
 import Data.Vec3 (Vec2D, Vec2(..), vec2, vec3, _x, _y, _z)
 
 import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
-import Data.Petrinet.Representation.Dict (NetLayoutF)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
 import Data.Typedef.Typedef2 (Typedef2(..))
-import View.Petrinet.Model (PID, TID, Tokens, Transition, Marking, PlaceMarking, NetRep, mkNetRepUsingLayout, mkNetApi, NetApi, NetInfo, NetInfoFRow, TextBox)
+import View.Petrinet.Model (PID, TID, Tokens, Transition, Marking, PlaceMarking, NetRep, mkNetRepUsingLayout, mkNetApi, NetApi, NetInfo, NetInfoFRow, NetLayout, TextBox)
 
 -- traffic lights net ----------------------------------------------------------
 
@@ -102,7 +101,7 @@ transitionRoles1 = rolesFromFoldable <$>
   , []
   ]
 
-layout1 :: NetLayoutF PID TID
+layout1 :: NetLayout
 layout1 =
   { placePointsDict: Map.fromFoldable
       [ 1 /\ vec2 10.0 30.0
@@ -195,7 +194,7 @@ transitionRoles2 = rolesFromFoldable <$>
   , []
   ]
 
-layout2 :: NetLayoutF PID TID
+layout2 :: NetLayout
 layout2 =
   { placePointsDict: Map.fromFoldable
       [ 1 /\ vec2 10.0 top2
