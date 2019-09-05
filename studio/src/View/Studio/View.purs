@@ -24,6 +24,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes, src, href, placeholder)
 import Halogen.Query.HalogenM (HalogenM)
+import TreeMenu as MenuTree
 import TreeMenu (mkItem, MenuTree)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
@@ -49,7 +50,7 @@ import ExampleData as Ex
 --------------------------------------------------------------------------------
 
 type ChildSlots =
-  ( objectTree     :: H.Slot VoidF (ObjectTree.Msg Route) Unit
+  ( objectTree     :: H.Slot VoidF (MenuTree.Msg Route) Unit
   , petrinetEditor :: H.Slot VoidF PetrinetEditor.Msg Unit
   , diagramEditor  :: H.Slot VoidF DiagramEditor.Msg Unit
   )
@@ -68,7 +69,7 @@ render state =
     [ navBar
     , div [ classes [ ClassName "flex" ] ]
           [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
-                [ slot _objectTree unit (ObjectTree.menuComponent (_ == state.route)) (stateMenu state) (Just <<< HandleObjectTreeMsg) ]
+                [ slot _objectTree unit (MenuTree.menuComponent (_ == state.route)) (stateMenu state) (Just <<< HandleObjectTreeMsg) ]
           , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                 [ routeBreadcrumbs state.route
                 , maybe (text "Couldn't find project/net/diagram.") mainView (resolveRoute state.route state)

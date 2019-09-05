@@ -15,7 +15,7 @@ import Halogen as H
 import Halogen (mkEval, defaultEval)
 import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
-import TreeMenu as ObjectTree
+import TreeMenu as MenuTree
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Statebox.Client as Stbx
@@ -49,7 +49,7 @@ ui =
 
     handleAction :: Action -> HalogenM State Action ChildSlots Void m Unit
     handleAction = case _ of
-      HandleObjectTreeMsg (ObjectTree.Clicked pathId route) -> do
+      HandleObjectTreeMsg (MenuTree.Clicked pathId route) -> do
         handleAction (SelectRoute route)
 
       SelectRoute route -> do
