@@ -18,8 +18,7 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML as HH
-import Halogen.HTML (HTML, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i, br, pre)
+import Halogen.HTML (HTML, slot, input, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i, br, pre)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
@@ -69,7 +68,7 @@ render state =
     [ navBar
     , div [ classes [ ClassName "flex" ] ]
           [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
-                [ HH.slot _objectTree unit (ObjectTree.menuComponent (_ == state.route)) (stateMenu state) (Just <<< HandleObjectTreeMsg) ]
+                [ slot _objectTree unit (ObjectTree.menuComponent (_ == state.route)) (stateMenu state) (Just <<< HandleObjectTreeMsg) ]
           , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                 [ routeBreadcrumbs state.route
                 , maybe (text "Couldn't find project/net/diagram.") mainView (resolveRoute state.route state)
@@ -83,18 +82,18 @@ mainView route = case route of
     div []
         [ text "Please select an object from the menu, or enter a transaction hash below."
         , br [], br []
-        , HH.input [ HP.value ""
-                   , placeholder "Enter Statebox Cloud transaction hash"
-                   , HE.onValueInput $ Just <<< LoadTransactions Ex.endpointUrl
-                   , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
-                   ]
+        , input [ HP.value ""
+                , placeholder "Enter Statebox Cloud transaction hash"
+                , HE.onValueInput $ Just <<< LoadTransactions Ex.endpointUrl
+                , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
+                ]
         , br []
         , br []
-        , HH.input [ HP.value ""
-                   , placeholder "Enter http URL to PNPRO file"
-                   , HE.onValueInput $ Just <<< LoadPNPRO
-                   , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
-                   ]
+        , input [ HP.value ""
+                , placeholder "Enter http URL to PNPRO file"
+                , HE.onValueInput $ Just <<< LoadPNPRO
+                , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
+                ]
         ]
   ResolvedTypes project ->
     TypedefsEditor.typedefsTreeView project.types
@@ -103,15 +102,15 @@ mainView route = case route of
     RolesEditor.roleInfosHtml project.roleInfos
 
   ResolvedNet netInfo ->
-    HH.slot _petrinetEditor unit (PetrinetEditor.ui (Just "main_net")) netInfo (Just <<< HandlePetrinetEditorMsg)
+    slot _petrinetEditor unit (PetrinetEditor.ui (Just "main_net")) netInfo (Just <<< HandlePetrinetEditorMsg)
 
   ResolvedDiagram diagramInfo nodeMaybe ->
     div [ classes [ ClassName "flex" ] ]
         [ div [ classes [ ClassName "w-1/2" ] ]
-              [ HH.slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
+              [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
         , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
               [ case nodeMaybe of
-                  Just (NetNode netInfo)          -> HH.slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
+                  Just (NetNode netInfo)          -> slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
                   Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
                   Nothing                         -> text "Click a node to show the corresponding net or diagram."
               ]
