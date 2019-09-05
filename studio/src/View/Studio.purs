@@ -59,7 +59,7 @@ import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Petrinet.Model (PID, TID, NetInfo, Msg(NetUpdated))
 import View.Petrinet.Model.NLL as NLL
-import View.Studio.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
+import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
