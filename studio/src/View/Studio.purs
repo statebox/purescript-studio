@@ -2,26 +2,22 @@ module View.Studio where
 
 import Prelude hiding (div)
 import Affjax as Affjax
-import Affjax (URL)
 import Affjax.ResponseFormat as ResponseFormat
-import Control.Comonad.Cofree (Cofree, (:<))
+import Control.Comonad.Cofree ((:<))
 import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
-import Data.Array (cons, index)
+import Data.Array (cons)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
-import Data.Either (either, hush)
-import Data.Either.Nested (type (\/))
-import Data.Foldable (find, foldMap)
+import Data.Either (either)
+import Data.Foldable (foldMap)
 import Data.FunctorWithIndex (mapWithIndex)
-import Data.Lens (preview)
-import Data.Maybe (Maybe(..), maybe, fromMaybe)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
 import Data.String.CodePoints (take)
 import Data.Symbol (SProxy(..))
-import Data.Tuple.Nested (type (/\), (/\))
-import Debug.Trace (spy)
+import Data.Tuple.Nested ((/\))
 import Effect.Exception (try)
-import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML, mkEval, defaultEval)
@@ -31,58 +27,31 @@ import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes, src, href, placeholder)
-import Halogen.HTML.Properties.ARIA as ARIA
-import Halogen.Query.HalogenM (HalogenM(..))
-import Record as Record
+import Halogen.Query.HalogenM (HalogenM)
 import TreeMenu as ObjectTree
 import TreeMenu (mkItem, MenuTree)
 
-import Data.Diagram.FromNLL as FromNLL
-import Data.Diagram.FromNLL (ErrDiagramEncoding)
-import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
-import Statebox.Core.Execution (PathElem)
-import Statebox.Core.Types (Diagram)
 import Statebox.Core.Transaction as Stbx
-import Statebox.Core.Transaction (HashStr, HashTx, TxSum, WiringTx, FiringTx, evalTxSum)
-import Statebox.Core.Lenses (_leWiring, _leFiring)
+import Statebox.Core.Transaction (HashStr, HashTx, TxSum, evalTxSum)
 import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
-import View.Model (Project, ProjectName, NetInfoWithTypesAndRoles)
+import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Petrinet.Model (PID, TID, NetInfo, Msg(NetUpdated))
-import View.Petrinet.Model.NLL as NLL
-import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
+import View.Petrinet.Model (Msg(NetUpdated))
+import View.Studio.Model (Action(..), State, fromPNPROProject, resolveRoute)
+import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
 
-type State =
-  { route       :: Route
-  , projects    :: Array Project
-  , hashSpace   :: AdjacencySpace HashStr TxSum -- ^ Hashes and their (tree of) links.
-  , msg         :: String
-  }
-
 --------------------------------------------------------------------------------
-
-data Action
-  = SelectRoute Route
-  | LoadPNPRO URL
-  | LoadTransaction URL HashStr
-  | LoadTransactions URL HashStr
-  | HandleObjectTreeMsg (ObjectTree.Msg Route)
-  | HandlePetrinetEditorMsg PetrinetEditor.Msg
-  | HandleDiagramEditorMsg DiagramEditor.Msg
-
-data VoidF a
 
 type ChildSlots =
   ( objectTree     :: H.Slot VoidF (ObjectTree.Msg Route) Unit
@@ -93,6 +62,8 @@ type ChildSlots =
 _objectTree     = SProxy :: SProxy "objectTree"
 _petrinetEditor = SProxy :: SProxy "petrinetEditor"
 _diagramEditor  = SProxy :: SProxy "diagramEditor"
+
+data VoidF a
 
 --------------------------------------------------------------------------------
 
@@ -306,71 +277,6 @@ ui =
                 )
                 [ text label ]
 
---------------------------------------------------------------------------------
-
-resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
-resolveRoute route {projects, hashSpace} = case route of
-  Home                              -> pure ResolvedHome
-  Types     projectName             -> ResolvedTypes <$> findProject projects projectName
-  Auths     projectName             -> ResolvedAuths <$> findProject projects projectName
-  Net       projectName name        -> do project <- findProject projects projectName
-                                          net     <- findNetInfoWithTypesAndRoles project name
-                                          pure $ ResolvedNet net
-  Diagram   projectName name nodeId -> do project <- findProject projects projectName
-                                          diagram <- findDiagramInfo project name
-                                          let node = nodeId >>= case _ of
-                                                       DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
-                                                       NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
-                                          pure $ ResolvedDiagram diagram node
-  UberRootR  url                    -> pure $ ResolvedUberRoot url
-  NamespaceR hash                   -> pure $ ResolvedNamespace hash
-  WiringR    x                      -> ResolvedWiring x <$> findWiringTx hashSpace x.hash
-  FiringR    x                      -> ResolvedFiring x <$> findFiringTx hashSpace x.hash
-  DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> findDiagramInfoInWirings hashSpace wiringHash ix
-  NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> findNetInfoInWirings     hashSpace wiringHash ix
-
-findProject :: Array Project -> ProjectName -> Maybe Project
-findProject projects projectName = find (\p -> p.name == projectName) projects
-
-findNetInfo :: Project -> NetName -> Maybe NetInfo
-findNetInfo project netName = find (\n -> n.name == netName) project.nets
-
-findNetInfoWithTypesAndRoles :: Project -> NetName -> Maybe NetInfoWithTypesAndRoles
-findNetInfoWithTypesAndRoles project netName =
-  Record.merge { types: project.types, roleInfos: project.roleInfos } <$> findNetInfo project netName
-
-findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
-findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
-
-findWiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe WiringTx
-findWiringTx hashSpace wiringHash = preview _leWiring =<< AdjacencySpace.lookup wiringHash hashSpace
-
-findFiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe FiringTx
-findFiringTx hashSpace firingHash = preview _leFiring =<< AdjacencySpace.lookup firingHash hashSpace
-
-findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe NetInfoWithTypesAndRoles
-findNetInfoInWirings hashSpace wiringHash ix = do
-  wiring      <- findWiringTx hashSpace wiringHash
-  netW        <- spy "findNetInfoInWirings: netW"    $ wiring.wiring.nets `index` ix
-  netTopo     <- spy "findNetInfoInWirings: netTopo" $ Net.fromNLLMaybe 0 netW.partition
-  let
-    placeNames = NLL.defaultPlaceNames netTopo
-    netInfo    = spy "findNetInfoInWirings: netInfo" $ NLL.toNetInfoWithDefaults netTopo netW.name placeNames netW.names
-  pure $ Record.merge { types: [], roleInfos: [] } netInfo
-
-findDiagramInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe DiagramInfo
-findDiagramInfoInWirings hashSpace wiringHash ix =
-  hush =<< diagramEitherMaybe
-  where
-    diagramEitherMaybe :: Maybe (ErrDiagramEncoding \/ DiagramInfo)
-    diagramEitherMaybe = (\d -> FromNLL.fromNLL d.name (toNLL d)) <$> diagramMaybe
-
-    diagramMaybe :: Maybe Diagram
-    diagramMaybe = (flip index ix <<< _.wiring.diagrams) =<< findWiringTx hashSpace wiringHash
-
-    toNLL d = [d.width] <> d.pixels
-
---------------------------------------------------------------------------------
 
 stateMenu :: State -> MenuTree Route
 stateMenu { projects, hashSpace } =
@@ -430,14 +336,3 @@ transactionMenu t hash valueMaybe itemKids =
 
 shortHash :: HashStr -> String
 shortHash = take 8
-
---------------------------------------------------------------------------------
-
-fromPNPROProject :: PNPRO.Project -> Project
-fromPNPROProject project =
-  { name:      project.name
-  , nets:      PNPRO.toNetInfo <$> project.gspn
-  , diagrams:  mempty
-  , roleInfos: mempty
-  , types:     mempty
-  }
