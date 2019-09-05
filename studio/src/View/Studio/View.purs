@@ -69,7 +69,7 @@ render state =
     [ navBar
     , div [ classes [ ClassName "flex" ] ]
           [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
-                [ slot _objectTree unit (MenuTree.menuComponent (_ == state.route)) (stateMenu state) (Just <<< HandleObjectTreeMsg) ]
+                [ slot _objectTree unit (MenuTree.menuComponent (_ == state.route)) (stateMenu state) ((\(MenuTree.Clicked menuNodeId route) -> ShowDiagramNodeContent route) >>> Just) ]
           , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                 [ routeBreadcrumbs state.route
                 , maybe (text "Couldn't find project/net/diagram.") mainView (resolveRoute state.route state)

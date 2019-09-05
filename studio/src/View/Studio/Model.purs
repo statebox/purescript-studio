@@ -28,7 +28,6 @@ import View.Petrinet.Model.NLL as NLL
 import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
 
 -- deps needed for Action, for now
-import TreeMenu as ObjectTree -- TODO eliminate this dependency from Action, see #247
 import View.Petrinet.Model as PetrinetEditor
 import View.Diagram.Update as DiagramEditor
 
@@ -39,7 +38,7 @@ data Action
   | LoadPNPRO URL
   | LoadTransaction URL HashStr
   | LoadTransactions URL HashStr
-  | HandleObjectTreeMsg (ObjectTree.Msg Route) -- TODO eliminate ObjectTree reference #247
+  | ShowDiagramNodeContent Route
   | HandlePetrinetEditorMsg PetrinetEditor.Msg
   | HandleDiagramEditorMsg DiagramEditor.Msg
 

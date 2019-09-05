@@ -49,7 +49,7 @@ ui =
 
     handleAction :: Action -> HalogenM State Action ChildSlots Void m Unit
     handleAction = case _ of
-      HandleObjectTreeMsg (MenuTree.Clicked pathId route) -> do
+      ShowDiagramNodeContent route -> do
         handleAction (SelectRoute route)
 
       SelectRoute route -> do
