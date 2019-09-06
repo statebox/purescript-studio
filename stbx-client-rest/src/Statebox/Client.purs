@@ -54,10 +54,14 @@ requestTransaction' apiBaseUrl hash =
 
 requestTransactionJson :: URL -> TxId -> Aff (Response (ResponseFormatError \/ Json))
 requestTransactionJson apiBaseUrl hash =
-  Affjax.request $ Affjax.defaultRequest { url = apiBaseUrl <> "/tx/" <> hash
+  Affjax.request $ Affjax.defaultRequest { url = txUrl apiBaseUrl hash
                                          , method = Left GET
                                          , responseFormat = ResponseFormat.json
                                          }
+
+-- TODO consider defining a 1-ary helper that does this on WiringFiringInfo / NamespaceInfo / other
+txUrl :: URL -> TxId -> URL
+txUrl apiBaseUrl txId = apiBaseUrl <> "/tx/" <> txId
 
 --------------------------------------------------------------------------------
 

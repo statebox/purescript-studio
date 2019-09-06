@@ -15,15 +15,14 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, slot, input, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i, br, pre)
+import Halogen.HTML (HTML, slot, input, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i, br, pre, table, tr, td)
 import Halogen.HTML.Core (ClassName(..))
-import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties as HP
-import Halogen.HTML.Properties (classes, src, href, placeholder)
+import Halogen.HTML.Events (onClick, onValueInput)
+import Halogen.HTML.Properties (classes, src, href, placeholder, value)
 import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree)
 
-import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum)
+import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, evalTxSum)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -32,7 +31,8 @@ import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Studio.Model (Action(..), State, fromPNPROProject, resolveRoute)
-import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
+import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..), WiringFiringInfo)
+import View.Transaction (firingTxView)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
@@ -73,19 +73,20 @@ contentView route = case route of
     div []
         [ text "Please select an object from the menu, or enter a transaction hash below."
         , br [], br []
-        , input [ HP.value ""
+        , input [ value ""
                 , placeholder "Enter Statebox Cloud transaction hash"
-                , HE.onValueInput $ Just <<< LoadTransactions Ex.endpointUrl
+                , onValueInput $ Just <<< LoadTransactions Ex.endpointUrl
                 , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                 ]
         , br []
         , br []
-        , input [ HP.value ""
+        , input [ value ""
                 , placeholder "Enter http URL to PNPRO file"
-                , HE.onValueInput $ Just <<< LoadPNPRO
+                , onValueInput $ Just <<< LoadPNPRO
                 , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                 ]
         ]
+
   ResolvedTypes project ->
     TypedefsEditor.typedefsTreeView project.types
 
@@ -120,16 +121,7 @@ contentView route = case route of
         , pre [] [ text $ show wiringTx ]
         ]
 
-  ResolvedFiring wfi firingTx ->
-    div []
-        [ text $ "Firing " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
-        , br []
-        , p [] [ pre [] [ text $ show firingTx ] ]
-        , br []
-        , p [] [ text $ "message: " <> show firingTx.firing.message ]
-        , br []
-        , p [] [ text $ "path: " <> show firingTx.firing.path ]
-        ]
+  ResolvedFiring wfi firingTx -> firingTxView wfi firingTx
 
 routeBreadcrumbs :: ∀ m. Route -> ComponentHTML Action ChildSlots m
 routeBreadcrumbs route =
@@ -178,7 +170,7 @@ navBar =
           [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ]
           , href "#"
           ]
-          <> ((\r -> [ HE.onClick \_ -> Just (SelectRoute r) ]) `foldMap` routeMaybe)
+          <> ((\r -> [ onClick \_ -> Just (SelectRoute r) ]) `foldMap` routeMaybe)
         )
         [ text label ]
 
