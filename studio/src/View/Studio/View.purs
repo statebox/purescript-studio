@@ -2,10 +2,8 @@ module View.Studio.View where
 
 import Prelude hiding (div)
 import Control.Comonad.Cofree ((:<))
-import Data.Array (cons)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
-import Data.Either (either)
 import Data.Foldable (foldMap)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Maybe (Maybe(..), maybe)
@@ -13,7 +11,6 @@ import Data.Set as Set
 import Data.String.CodePoints (take)
 import Data.Symbol (SProxy(..))
 import Data.Tuple.Nested ((/\))
-import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
@@ -23,16 +20,10 @@ import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes, src, href, placeholder)
-import Halogen.Query.HalogenM (HalogenM)
-import TreeMenu as MenuTree
+import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree)
 
-import Data.Petrinet.Representation.PNPRO as PNPRO
-import Statebox.Client as Stbx
-import Statebox.Client (evalTransactionResponse)
-import Statebox.Core.Transaction as Stbx
-import Statebox.Core.Transaction (HashStr, HashTx, TxSum, evalTxSum)
-import Statebox.Core.Transaction.Codec (DecodingError(..))
+import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -40,7 +31,6 @@ import View.Diagram.Update as DiagramEditor
 import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Petrinet.Model (Msg(NetUpdated))
 import View.Studio.Model (Action(..), State, fromPNPROProject, resolveRoute)
 import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
 import View.Typedefs.TypedefsEditor as TypedefsEditor
@@ -50,7 +40,7 @@ import ExampleData as Ex
 --------------------------------------------------------------------------------
 
 type ChildSlots =
-  ( objectTree     :: H.Slot VoidF (MenuTree.Msg Route) Unit
+  ( objectTree     :: H.Slot VoidF (TreeMenu.Msg Route) Unit
   , petrinetEditor :: H.Slot VoidF PetrinetEditor.Msg Unit
   , diagramEditor  :: H.Slot VoidF DiagramEditor.Msg Unit
   )
@@ -69,16 +59,16 @@ render state =
     [ navBar
     , div [ classes [ ClassName "flex" ] ]
           [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
-                [ slot _objectTree unit (MenuTree.menuComponent (_ == state.route)) (stateMenu state) ((\(MenuTree.Clicked menuNodeId route) -> ShowDiagramNodeContent route) >>> Just) ]
+                [ slot _objectTree unit (TreeMenu.menuComponent (_ == state.route)) (stateMenu state) ((\(TreeMenu.Clicked menuNodeId route) -> ShowDiagramNodeContent route) >>> Just) ]
           , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                 [ routeBreadcrumbs state.route
-                , maybe (text "Couldn't find project/net/diagram.") mainView (resolveRoute state.route state)
+                , maybe (text "Couldn't find project/net/diagram.") contentView (resolveRoute state.route state)
                 ]
           ]
     ]
 
-mainView :: ∀ m. MonadAff m => ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ComponentHTML Action ChildSlots m
-mainView route = case route of
+contentView :: ∀ m. MonadAff m => ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ComponentHTML Action ChildSlots m
+contentView route = case route of
   ResolvedHome ->
     div []
         [ text "Please select an object from the menu, or enter a transaction hash below."

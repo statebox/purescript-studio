@@ -15,7 +15,6 @@ import Halogen as H
 import Halogen (mkEval, defaultEval)
 import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
-import TreeMenu as MenuTree
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Statebox.Client as Stbx
@@ -35,8 +34,8 @@ ui :: ∀ m q. MonadAff m => H.Component HTML q Unit Void m
 ui =
   H.mkComponent
     { initialState: const initialState
-    , render
-    , eval: mkEval $ defaultEval { handleAction = handleAction }
+    , eval:         mkEval $ defaultEval { handleAction = handleAction }
+    , render:       render
     }
   where
     initialState :: State
@@ -67,7 +66,12 @@ ui =
 
       LoadTransactions endpointUrl startHash -> do
         H.liftEffect $ log $ "LoadTransactions: requesting transactions up to root, starting at " <> startHash <> " from " <> endpointUrl
-        let
+        runProcess txIngester
+        where
+          -- | This ingests transactions produced from the HTTP API into our transaction storage.
+          txIngester :: Process (HalogenM State Action _ Void m) Unit
+          txIngester = txProducer `connect` txConsumer
+
           txProducer :: Producer HashTx (HalogenM State Action _ Void m) Unit
           txProducer = Stbx.requestTransactionsToRootM endpointUrl startHash
 
@@ -79,12 +83,6 @@ ui =
                 H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
                 H.liftEffect $ log $ show itx
                 pure Nothing
-
-          -- | This ingests transactions from the HTTP API into our transaction storage.
-          txIngester :: Process (HalogenM State Action _ Void m) Unit
-          txIngester = txProducer `connect` txConsumer
-
-        runProcess txIngester
 
       LoadPNPRO url -> do
         H.liftEffect $ log $ "LoadPNPRO: requesting PNPRO file from " <> url
