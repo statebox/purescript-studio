@@ -45,7 +45,7 @@ data ResolvedRouteF p d n
   | ResolvedTypes     p
   | ResolvedAuths     p
 
-  -- Statebox API-specific constructors
+  -- Statebox API transaction constructors
   | ResolvedUberRoot  URL
   | ResolvedNamespace HashStr
   | ResolvedWiring    WiringFiringInfo WiringTx

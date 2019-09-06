@@ -15,14 +15,14 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, slot, input, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i, br, pre, table, tr, td)
+import Halogen.HTML (a, br, div, img, input, li, nav, ol, slot, span, text)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, src, href, placeholder, value)
 import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree)
 
-import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, evalTxSum)
+import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -30,9 +30,9 @@ import View.Diagram.Update as DiagramEditor
 import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Studio.Model (Action(..), State, fromPNPROProject, resolveRoute)
+import View.Studio.Model (Action(..), State, resolveRoute)
 import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..), WiringFiringInfo)
-import View.Transaction (firingTxView)
+import View.Transaction (firingTxView, wiringTxView)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
@@ -115,13 +115,10 @@ contentView route = case route of
     text $ "Namespace " <> hash
 
   ResolvedWiring wfi wiringTx ->
-    div []
-        [ text $ "Wiring " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
-        , br [], br []
-        , pre [] [ text $ show wiringTx ]
-        ]
+    wiringTxView wfi wiringTx
 
-  ResolvedFiring wfi firingTx -> firingTxView wfi firingTx
+  ResolvedFiring wfi firingTx ->
+    firingTxView wfi firingTx
 
 routeBreadcrumbs :: ∀ m. Route -> ComponentHTML Action ChildSlots m
 routeBreadcrumbs route =
@@ -146,7 +143,7 @@ routeBreadcrumbs route =
 navBar :: ∀ m. ComponentHTML Action ChildSlots m
 navBar =
   nav [ classes $ ClassName <$> [ "css-navbar", "flex", "items-center", "justify-between", "flex-wrap", "bg-purple-darker", "p-6" ] ]
-      [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
+  [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
             [ img [ src "logo-statebox-white.svg"
                   , classes [ ClassName "css-logo-statebox" ]
                   ]
