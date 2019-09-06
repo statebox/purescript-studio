@@ -1,4 +1,4 @@
-module View.Studio.Route where
+module View.Studio.Model.Route where
 
 import Prelude
 import Affjax (URL)
