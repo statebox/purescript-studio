@@ -23,7 +23,7 @@ import Halogen.HTML.Properties (classes, src, href, placeholder, value)
 
 import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree, Item)
-import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum)
+import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -214,7 +214,7 @@ transactionMenu t hash valueMaybe itemKids =
                     (Just $ WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
                     :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
       )
-      (\f -> mkItem ("🔥 " <> shortHash hash)
+      (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash hash)
                     (Just $ FiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
                     :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
       )

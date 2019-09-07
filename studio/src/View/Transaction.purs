@@ -11,13 +11,13 @@ import Halogen.HTML.Properties (href)
 import View.Studio.Model (Action(..))
 import View.Studio.Model.Route (WiringFiringInfo)
 import Statebox.Client (txUrl)
-import Statebox.Core.Transaction (HashStr, FiringTx, WiringTx)
+import Statebox.Core.Transaction (HashStr, FiringTx, WiringTx, isExecution)
 
 
 firingTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> ComponentHTML Action s m
 firingTxView wfi tx =
   div []
-      [ p     [] [ text $ "Firing" ]
+      [ p     [] [ text $ if isExecution tx.firing then "Execution" else "Firing" ]
       , table [] $ txWrapperRows wfi tx <> firingTxBodyRows wfi tx
       ]
 
@@ -55,8 +55,9 @@ wiringTxBodyRows wfi tx =
 
 firingTxBodyRows :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> Array (ComponentHTML Action s m)
 firingTxBodyRows wfi tx =
-  [ row "path"            $ text $ show tx.firing.path
-  , row "message"         $ text $ maybe "<no message>" show tx.firing.message
+  [ row "path"      $ text $ show tx.firing.path
+  , row "message"   $ text $ maybe "<no message>" show tx.firing.message
+  , row "execution" $ text $ maybe "yes" show tx.firing.execution
   ]
 
 --------------------------------------------------------------------------------

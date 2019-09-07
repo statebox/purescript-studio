@@ -65,8 +65,9 @@ type Diagram =
 --------------------------------------------------------------------------------
 
 type Firing =
-  { message :: Maybe Message
-  , path    :: Singleton GluedTransitionIdRaw
+  { message   :: Maybe Message
+  , execution :: Maybe TxId                     -- ^ The execution that this firing is a descendent of.
+  , path      :: Singleton GluedTransitionIdRaw -- ^ The net and transition to fire.
   }
 
 -- TODO This should be the newtype GluedTransitionId.
@@ -76,3 +77,5 @@ type HexStr = String
 
 -- | This tags an Array that is expected (but not guaranteed) to have exactly one element. (TODO: newtype.)
 type Singleton = Array
+
+type TxId = String
