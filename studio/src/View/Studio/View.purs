@@ -4,7 +4,8 @@ import Prelude hiding (div)
 import Control.Comonad.Cofree ((:<))
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
-import Data.Foldable (foldMap)
+import Data.Array (cons)
+import Data.Foldable (foldMap, foldr)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
@@ -19,9 +20,9 @@ import Halogen.HTML (a, br, div, img, input, li, nav, ol, slot, span, text)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, src, href, placeholder, value)
-import TreeMenu as TreeMenu
-import TreeMenu (mkItem, MenuTree)
 
+import TreeMenu as TreeMenu
+import TreeMenu (mkItem, MenuTree, Item)
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
@@ -171,6 +172,8 @@ navBar =
         )
         [ text label ]
 
+--------------------------------------------------------------------------------
+
 stateMenu :: State -> MenuTree Route
 stateMenu { projects, hashSpace } =
   mkItem "Studio" Nothing :< (txItems <> projectItems)
@@ -190,6 +193,7 @@ projectMenu p =
     fromNets     p nets  = (\n -> mkItem n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
     fromDiagrams p diags = (\d -> mkItem d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
 
+-- It's not terribly efficient to construct a Cofree (sub)tree first only to subsequently flatten it, as we do with firings.
 transactionMenu :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Route) -> MenuTree Route
 transactionMenu t hash valueMaybe itemKids =
   maybe (mkUnloadedItem itemKids)
@@ -212,11 +216,21 @@ transactionMenu t hash valueMaybe itemKids =
       )
       (\f -> mkItem ("🔥 " <> shortHash hash)
                     (Just $ FiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
-                    :< itemKids
-      ) tx
+                    :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
+      )
+      tx
       where
         fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
         fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
+
+        flattenTree :: MenuTree Route -> Array (MenuTree Route)
+        flattenTree = treeifyElems <<< flattenTree'
+          where
+            treeifyElems :: Array (Item Route) -> Array (MenuTree Route)
+            treeifyElems = map pure
+
+            flattenTree' :: MenuTree Route -> Array (Item Route)
+            flattenTree' = foldr cons []
 
     mkUnloadedItem :: Array (MenuTree Route) -> MenuTree Route
     mkUnloadedItem itemKids = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
