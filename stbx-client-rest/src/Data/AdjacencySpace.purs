@@ -1,15 +1,18 @@
 module Data.AdjacencySpace where
 
 import Prelude
+import Data.Array (cons)
 import Control.Bind ((<=<))
 import Control.Comonad.Cofree (Cofree, (:<))
 import Control.Plus as Plus
 import Control.Plus (class Plus)
+import Data.Either (Either(..))
 import Data.Map as Map
 import Data.Map (Map, member)
 import Data.Maybe (Maybe(..), maybe, fromMaybe, isJust)
 import Data.Set as Set
 import Data.Set (Set)
+import Data.Tuple.Nested (type (/\), (/\))
 
 -- | Doubly linked adjacency data structure. Records ids, the (optional) values corresponding to those ids,
 -- | and the links between keys and their parent and child keys.
@@ -60,6 +63,25 @@ isLoadedIn :: ∀ v. AdjacencySpace Key v -> Key -> Boolean
 isLoadedIn t k = k `member` t.values
 
 --------------------------------------------------------------------------------
+
+-- | `Left` means that a parent key along the path was not found in the space, and here's the chain up to that point.
+-- |
+-- | - TODO This does a recursive call which will at some point blow the stack; look at buildCofree.
+-- | - TODO This function assumes the given `AdjacencySpace` encodes a tree.
+-- |        Computation will diverge in the presence of cycles among the keys and their parents/children.
+unsafeAncestorsBetween
+  :: ∀ v
+   . AdjacencySpace Key v
+  -> Key
+  -> Key
+  -> Either (Array Key) (Array Key)
+unsafeAncestorsBetween s from to =
+  go [] from
+  where
+    go :: ∀ v. Array Key -> Key -> Either (Array Key) (Array Key)
+    go path k | k == to = Right (k `cons` path)                        -- done
+    go path k           = parentKey s k # maybe (Left (k `cons` path)) -- parent key missing
+                                                (go   (k `cons` path)) -- next
 
 -- | - TODO This does a recursive call which will at some point blow the stack; look at buildCofree.
 -- | - TODO This function assumes the given `AdjacencySpace` encodes a tree.
