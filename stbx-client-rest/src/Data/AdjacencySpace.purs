@@ -65,13 +65,16 @@ isLoadedIn t k = k `member` t.values
 -- | - TODO This function assumes the given `AdjacencySpace` encodes a tree.
 -- |        Computation will diverge in the presence of cycles among the keys and their parents/children.
 unsafeToTree
-  :: forall v b
-   . (AdjacencySpace Key v -> Key -> Maybe v -> Array (Cofree Array b) -> Cofree Array b)
+  :: ∀ v v'
+   . (AdjacencySpace Key v -> Key -> Maybe v -> Array (Cofree Array v') -> Cofree Array v')
   -> AdjacencySpace Key v
   -> Key
-  -> Cofree Array b
-unsafeToTree mkNode t k =
-  mkNode t k (Map.lookup k t.values) nodeKids
+  -> Cofree Array v'
+unsafeToTree mkNode s k =
+  mkNode s k v nodeKids
   where
-    nodeKids :: Array (Cofree Array b)
-    nodeKids = unsafeToTree mkNode t <$> Set.toUnfoldable (kids t k)
+    v :: Maybe v
+    v = lookup k s
+
+    nodeKids :: Array (Cofree Array v')
+    nodeKids = unsafeToTree mkNode s <$> Set.toUnfoldable (kids s k)
