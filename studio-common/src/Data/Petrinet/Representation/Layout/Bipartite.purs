@@ -10,7 +10,7 @@ import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Data.Vec3 (vec2)
 
-import Data.Petrinet.Representation.Dict (NetRepF)
+import Data.Petrinet.Representation.Dict (NetRepF, computeTransitionIds)
 import Data.Petrinet.Representation.Layout (NetLayoutF)
 
 bipartite :: ∀ pid tid tok ty r. Ord pid => Ord tid => Number -> NetRepF pid tid tok ty r -> NetLayoutF pid tid
@@ -30,8 +30,6 @@ bipartite scaleFactor net =
 
     maxIndex         = numTransitions `max` length net.places
 
-    numTransitions = length tids
-
-    tids :: Array tid
-    tids = Set.toUnfoldable $ Map.keys net.transitionLabelsDict
+    numTransitions   = length tids
+    tids             = computeTransitionIds net
 

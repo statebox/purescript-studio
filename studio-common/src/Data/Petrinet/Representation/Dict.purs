@@ -4,6 +4,9 @@ module Data.Petrinet.Representation.Dict
   , NetApiF
   , mkNetApiF
 
+  , computeTransitionIds
+  , computeNumTransitions
+
   , TransitionF
   , PlaceMarkingF
 
@@ -19,6 +22,7 @@ module Data.Petrinet.Representation.Dict
   ) where
 
 import Prelude hiding ((-))
+import Data.Array (length)
 import Data.Foldable (all)
 import Data.Map as Map
 import Data.Map (Map)
@@ -28,6 +32,7 @@ import Data.Newtype (class Newtype, un, unwrap)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec2D, Vec2)
 import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
+import Data.Set as Set
 import Data.Group (class Group, ginverse)
 
 -- TODO this dependency should probably be eliminated in favour of a type parameter
@@ -81,6 +86,16 @@ mkNetApiF rep =
   , placeLabel: \pid -> Map.lookup pid rep.placeLabelsDict
   , findTokens: Marking.findTokens rep.marking
   }
+
+--------------------------------------------------------------------------------
+
+-- TODO Having to compute the transition ids from a labels dictionary seems fairly awkward and slow, so rethink NetRepF
+computeTransitionIds :: ∀ pid tid tok typ r. NetRepF pid tid tok typ r -> Array tid
+computeTransitionIds net = Set.toUnfoldable $ Map.keys net.transitionLabelsDict
+
+-- TODO see comments on computeTransitionIds
+computeNumTransitions :: ∀ pid tid tok typ r. NetRepF pid tid tok typ r -> Int
+computeNumTransitions = length <<< computeTransitionIds
 
 --------------------------------------------------------------------------------
 
