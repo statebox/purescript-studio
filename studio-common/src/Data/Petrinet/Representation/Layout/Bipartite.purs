@@ -13,8 +13,8 @@ import Data.Vec3 (vec2)
 import Data.Petrinet.Representation.Dict (NetRepF)
 import Data.Petrinet.Representation.Layout (NetLayoutF)
 
-bipartite :: ∀ pid tid tok ty r. Ord pid => Ord tid => NetRepF pid tid tok ty r -> NetLayoutF pid tid
-bipartite net =
+bipartite :: ∀ pid tid tok ty r. Ord pid => Ord tid => Number -> NetRepF pid tid tok ty r -> NetLayoutF pid tid
+bipartite scaleFactor net =
   { placePointsDict:      Map.fromFoldable placePoints
   , transitionPointsDict: Map.fromFoldable transitionPoints
   }
@@ -26,6 +26,7 @@ bipartite net =
     xRight           =  halfWidth
     halfHeight       = scale <<< (_ / 2.0) <<< toNumber $ maxIndex -- maxIndex determines height
     halfWidth        = halfHeight -- TODO improve this
+    scale n          = n * scaleFactor
 
     maxIndex         = numTransitions `max` length net.places
 
@@ -34,5 +35,3 @@ bipartite net =
     tids :: Array tid
     tids = Set.toUnfoldable $ Map.keys net.transitionLabelsDict
 
-scale :: Number -> Number
-scale n = 20.0*n

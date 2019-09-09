@@ -6,6 +6,10 @@ import Svg.Attributes (Duration, seconds)
 netScale :: Number
 netScale = 100.0
 
+-- TODO #141 this hardcoded constant should be eliminated because the number should depend on other factors
+bipartiteLayoutScale :: Number
+bipartiteLayoutScale = 10.0
+
 fontSize :: Number
 fontSize = 0.1
 
