@@ -13,7 +13,9 @@ import Data.Either (Either(..), hush)
 import Data.Int (even)
 import Data.Maybe (Maybe(..))
 import Data.NLL (mapWindow2, splitOn)
-import Data.Tuple (Tuple(..))
+import Data.Set as Set
+import Data.Set (Set)
+import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\))
 import Data.Traversable
 
@@ -48,3 +50,9 @@ fromNLL separator xs =
 
 fromNLLMaybe :: forall a. Eq a => a -> Array a -> Maybe (NetF a)
 fromNLLMaybe separator = hush <<< fromNLL separator
+
+--------------------------------------------------------------------------------
+
+-- TODO it seems this function gets called a lot, which is (unnecessarily?) costly b/c of strictness
+uniquePlaceIds :: ∀ a. Ord a => Eq a => NetF a -> Set a
+uniquePlaceIds net = Set.fromFoldable $ uncurry append =<< net

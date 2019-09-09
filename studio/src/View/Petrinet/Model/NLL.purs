@@ -13,12 +13,11 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Data.Monoid
 import Data.Profunctor.Strong
-import Data.Set (Set, fromFoldable, toUnfoldable)
+import Data.Set as Set
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Tuple (fst, snd, uncurry)
-import Data.Foldable (foldl, fold)
-import Data.Traversable (traverse)
 
+import Data.Petrinet.Representation.NLL as NLL
 import Data.Petrinet.Representation.NLL (NetF)
 import Data.Typedef (Typedef(..))
 import View.Petrinet.Model (PID, Transition, NetRep, NetInfo, TextBox, mkNetRep, mkNetApi, mkNetInfo)
@@ -56,7 +55,7 @@ toNetRep net placeNames transitionNames typedefs roles =
            roles
   where
     places            :: Array PID
-    places            = toUnfoldable $ uniquePlaceIds net
+    places            = Set.toUnfoldable $ NLL.uniquePlaceIds net
 
     firstPlaceIndex   = 1
     numPlaces         = length places
@@ -77,11 +76,7 @@ toNetRep net placeNames transitionNames typedefs roles =
 defaultPlaceNames :: ∀ a. Ord a => Eq a => NetF a -> Array String
 defaultPlaceNames net = defaultPlaceNames' numPlaces
   where
-    numPlaces = length $ toUnfoldable $ uniquePlaceIds net
+    numPlaces = length $ Set.toUnfoldable $ NLL.uniquePlaceIds net
 
 defaultPlaceNames' :: Int -> Array String
 defaultPlaceNames' numPlaces = (append "p" <<< show) <$> (0 .. (numPlaces-1))
-
--- TODO it seems this function gets called a lot, which is unnecessarily costly, given strictness
-uniquePlaceIds :: ∀ a. Ord a => Eq a => NetF a -> Set a
-uniquePlaceIds net = fromFoldable $ uncurry append =<< net
