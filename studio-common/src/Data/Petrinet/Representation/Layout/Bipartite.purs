@@ -32,4 +32,3 @@ bipartite scaleFactor net =
 
     numTransitions   = length tids
     tids             = computeTransitionIds net
-

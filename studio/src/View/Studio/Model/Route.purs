@@ -40,10 +40,12 @@ type NetName = String
 
 data ResolvedRouteF p d n
   = ResolvedHome
-  | ResolvedNet       n
-  | ResolvedDiagram   d (Maybe (NodeIdent d n))
   | ResolvedTypes     p
   | ResolvedAuths     p
+
+  -- Project-related *and* Statebox API-related constructors
+  | ResolvedNet       n
+  | ResolvedDiagram   d (Maybe (NodeIdent d n))
 
   -- Statebox API transaction constructors
   | ResolvedUberRoot  URL

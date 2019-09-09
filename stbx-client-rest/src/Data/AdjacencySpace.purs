@@ -29,38 +29,38 @@ empty :: ∀ v. AdjacencySpace Key v
 empty = { kids: mempty, parents: mempty, values: mempty }
 
 lookup :: ∀ a. Key -> AdjacencySpace Key a -> Maybe a
-lookup k t = Map.lookup k t.values
+lookup k s = Map.lookup k s.values
 
 -- TODO optimisation: unify parents and values? maintaining two indices that are the same seems expensive.
 update :: ∀ a. (a -> Maybe Key) -> AdjacencySpace Key a -> Key -> a -> AdjacencySpace Key a
-update getParentKeyMaybe t curKey val =
-  t { kids    = parentMaybe # maybe t.kids    (\parent -> Map.alter  updateKids parent t.kids)
-    , parents = parentMaybe # maybe t.parents (\parent -> Map.insert curKey     parent t.parents)
-    , values  =                                           Map.insert curKey     val    t.values
+update getParentKeyMaybe s curKey val =
+  s { kids    = parentMaybe # maybe s.kids    (\parent -> Map.alter  updateKids parent s.kids)
+    , parents = parentMaybe # maybe s.parents (\parent -> Map.insert curKey     parent s.parents)
+    , values  =                                           Map.insert curKey     val    s.values
     }
   where
     parentMaybe = getParentKeyMaybe val
     updateKids = Just <<< Set.insert curKey <<< fromMaybe mempty
 
 kids :: ∀ f v. Monoid (Set Key) => AdjacencySpace Key v -> Key -> Set Key
-kids t k = fromMaybe mempty (Map.lookup k t.kids)
+kids s k = fromMaybe mempty (Map.lookup k s.kids)
 
 -- | The tree roots of the forest of known keys. The values corresponding to these
 -- | keys may be either loaded or unloaded.
 rootKeys :: ∀ v. AdjacencySpace Key v -> Set Key
-rootKeys t = Set.filter (not isLoaded) parentKeys
+rootKeys s = Set.filter (not isLoaded) parentKeys
   where
-    parentKeys = Map.keys t.kids
-    isLoaded = isLoadedIn t
+    parentKeys = Map.keys s.kids
+    isLoaded = isLoadedIn s
 
 parentKey :: ∀ v. AdjacencySpace Key v -> Key -> Maybe Key
-parentKey t k = Map.lookup k t.parents
+parentKey s k = Map.lookup k s.parents
 
 hasParentKey :: ∀ v. AdjacencySpace Key v -> Key -> Boolean
-hasParentKey t = isJust <<< parentKey t
+hasParentKey s = isJust <<< parentKey s
 
 isLoadedIn :: ∀ v. AdjacencySpace Key v -> Key -> Boolean
-isLoadedIn t k = k `member` t.values
+isLoadedIn s k = k `member` s.values
 
 --------------------------------------------------------------------------------
 
@@ -80,7 +80,7 @@ unsafeAncestorsBetween s from to =
   where
     go :: ∀ v. Array Key -> Key -> Either (Array Key) (Array Key)
     go path k | k == to = Right (k `cons` path)                        -- done
-    go path k           = parentKey s k # maybe (Left (k `cons` path)) -- parent key missing
+    go path k           = parentKey s k # maybe (Left (k `cons` path)) -- parent key not in space
                                                 (go   (k `cons` path)) -- next
 
 -- | - TODO This does a recursive call which will at some point blow the stack; look at buildCofree.

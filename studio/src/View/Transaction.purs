@@ -48,9 +48,9 @@ txWrapperRows wfi tx =
 
 wiringTxBodyRows :: ∀ s m. MonadAff m => WiringFiringInfo -> WiringTx -> Array (ComponentHTML Action s m)
 wiringTxBodyRows wfi tx =
-  [ row "diagrams"    $ text $ show (tx.wiring.diagrams <#> _.name)
-  , row "nets"        $ text $ show (tx.wiring.nets <#> _.name)
-  , row "dump"        $ pre [] [ text $ show tx ]
+  [ row "diagrams"  $ text $ show (tx.wiring.diagrams <#> _.name)
+  , row "nets"      $ text $ show (tx.wiring.nets <#> _.name)
+  , row "dump"      $ pre [] [ text $ show tx ]
   ]
 
 firingTxBodyRows :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> Array (ComponentHTML Action s m)
