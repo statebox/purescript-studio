@@ -6,23 +6,15 @@ import Data.Array (catMaybes)
 import Data.Newtype (un, unwrap)
 import Data.Bag (BagF)
 import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
-import Data.HeytingAlgebra (not)
-import Data.Int (toNumber, floor, round)
-import Data.List as List
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Map (Map)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Monoid.Additive (Additive(..))
-import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple (Tuple(..), uncurry, snd)
-import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
-import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Vec3 (Vec2D, Vec2(..), vec2, _x, _y, Box(..))
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Aff (Aff(..))
 import Halogen as H
 import Halogen (Component, ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML as HH
