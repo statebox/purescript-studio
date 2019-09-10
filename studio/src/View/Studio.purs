@@ -24,8 +24,8 @@ import Statebox.Core.Transaction (HashStr, HashTx, TxSum, evalTxSum)
 import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
-import View.Studio.Model (Action(..), State, fromPNPROProject, resolveRoute)
-import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
+import View.Studio.Model (Action(..), State, fromPNPROProject)
+import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
 import ExampleData as Ex

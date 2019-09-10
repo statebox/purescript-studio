@@ -57,16 +57,17 @@ decodeTxWith aDecoder x = do
 decodeFiringTx :: Object Json -> String \/ FiringTx
 decodeFiringTx x = do
   firing   <- getFieldWith decoder x "firing"
-  previous <- x .:  "previous"
+  previous <- x .: "previous"
   pure { firing, previous }
   where
     decoder = decodeJson >=> decodeFiring
 
 decodeFiring :: Object Json -> String \/ Firing
 decodeFiring x = do
-  message <- x .:? "message"
-  path    <- x .:  "path"
-  pure { message, path }
+  message   <- x .:? "message"
+  execution <- x .:? "execution"
+  path      <- x .:  "path"
+  pure { message, execution, path }
 
 --------------------------------------------------------------------------------
 -- Helpers taken from [Data.Argonaut.Decode.Combinators](https://github.com/purescript-contrib/purescript-argonaut-codecs/blob/master/src/Data/Argonaut/Decode/Combinators.purs).

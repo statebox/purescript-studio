@@ -4,7 +4,8 @@ import Prelude hiding (div)
 import Control.Comonad.Cofree ((:<))
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
-import Data.Foldable (foldMap)
+import Data.Array (cons)
+import Data.Foldable (foldMap, foldr)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
@@ -15,15 +16,14 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, slot, input, nav, div, h1, p, a, img, text, ul, ol, li, aside, span, i, br, pre)
+import Halogen.HTML (a, br, div, img, input, li, nav, ol, slot, span, text)
 import Halogen.HTML.Core (ClassName(..))
-import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties as HP
-import Halogen.HTML.Properties (classes, src, href, placeholder)
-import TreeMenu as TreeMenu
-import TreeMenu (mkItem, MenuTree)
+import Halogen.HTML.Events (onClick, onValueInput)
+import Halogen.HTML.Properties (classes, src, href, placeholder, value)
 
-import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum)
+import TreeMenu as TreeMenu
+import TreeMenu (mkItem, MenuTree, Item)
+import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -31,8 +31,9 @@ import View.Diagram.Update as DiagramEditor
 import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Studio.Model (Action(..), State, fromPNPROProject, resolveRoute)
-import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
+import View.Studio.Model (Action(..), State, resolveRoute)
+import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..), WiringFiringInfo)
+import View.Transaction (firingTxView, wiringTxView)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 import ExampleData as Ex
@@ -73,19 +74,20 @@ contentView route = case route of
     div []
         [ text "Please select an object from the menu, or enter a transaction hash below."
         , br [], br []
-        , input [ HP.value ""
+        , input [ value ""
                 , placeholder "Enter Statebox Cloud transaction hash"
-                , HE.onValueInput $ Just <<< LoadTransactions Ex.endpointUrl
+                , onValueInput $ Just <<< LoadTransactions Ex.endpointUrl
                 , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                 ]
         , br []
         , br []
-        , input [ HP.value ""
+        , input [ value ""
                 , placeholder "Enter http URL to PNPRO file"
-                , HE.onValueInput $ Just <<< LoadPNPRO
+                , onValueInput $ Just <<< LoadPNPRO
                 , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                 ]
         ]
+
   ResolvedTypes project ->
     TypedefsEditor.typedefsTreeView project.types
 
@@ -114,22 +116,10 @@ contentView route = case route of
     text $ "Namespace " <> hash
 
   ResolvedWiring wfi wiringTx ->
-    div []
-        [ text $ "Wiring " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
-        , br [], br []
-        , pre [] [ text $ show wiringTx ]
-        ]
+    wiringTxView wfi wiringTx
 
   ResolvedFiring wfi firingTx ->
-    div []
-        [ text $ "Firing " <> wfi.hash <> " at " <> wfi.endpointUrl <> "."
-        , br []
-        , p [] [ pre [] [ text $ show firingTx ] ]
-        , br []
-        , p [] [ text $ "message: " <> show firingTx.firing.message ]
-        , br []
-        , p [] [ text $ "path: " <> show firingTx.firing.path ]
-        ]
+    firingTxView wfi firingTx
 
 routeBreadcrumbs :: ∀ m. Route -> ComponentHTML Action ChildSlots m
 routeBreadcrumbs route =
@@ -154,7 +144,7 @@ routeBreadcrumbs route =
 navBar :: ∀ m. ComponentHTML Action ChildSlots m
 navBar =
   nav [ classes $ ClassName <$> [ "css-navbar", "flex", "items-center", "justify-between", "flex-wrap", "bg-purple-darker", "p-6" ] ]
-      [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
+  [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
             [ img [ src "logo-statebox-white.svg"
                   , classes [ ClassName "css-logo-statebox" ]
                   ]
@@ -178,9 +168,11 @@ navBar =
           [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ]
           , href "#"
           ]
-          <> ((\r -> [ HE.onClick \_ -> Just (SelectRoute r) ]) `foldMap` routeMaybe)
+          <> ((\r -> [ onClick \_ -> Just (SelectRoute r) ]) `foldMap` routeMaybe)
         )
         [ text label ]
+
+--------------------------------------------------------------------------------
 
 stateMenu :: State -> MenuTree Route
 stateMenu { projects, hashSpace } =
@@ -201,6 +193,7 @@ projectMenu p =
     fromNets     p nets  = (\n -> mkItem n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
     fromDiagrams p diags = (\d -> mkItem d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
 
+-- It's not terribly efficient to construct a Cofree (sub)tree first only to subsequently flatten it, as we do with firings.
 transactionMenu :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Route) -> MenuTree Route
 transactionMenu t hash valueMaybe itemKids =
   maybe (mkUnloadedItem itemKids)
@@ -221,13 +214,23 @@ transactionMenu t hash valueMaybe itemKids =
                     (Just $ WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
                     :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
       )
-      (\f -> mkItem ("🔥 " <> shortHash hash)
+      (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash hash)
                     (Just $ FiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
-                    :< itemKids
-      ) tx
+                    :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
+      )
+      tx
       where
         fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
         fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
+
+        flattenTree :: MenuTree Route -> Array (MenuTree Route)
+        flattenTree = treeifyElems <<< flattenTree'
+          where
+            treeifyElems :: Array (Item Route) -> Array (MenuTree Route)
+            treeifyElems = map pure
+
+            flattenTree' :: MenuTree Route -> Array (Item Route)
+            flattenTree' = foldr cons []
 
     mkUnloadedItem :: Array (MenuTree Route) -> MenuTree Route
     mkUnloadedItem itemKids = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids

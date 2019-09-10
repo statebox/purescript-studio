@@ -1,7 +1,7 @@
 module Statebox.Core.Transaction where
 
 import Prelude
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isNothing)
 import Statebox.Core.Types (Initial, Firing, Wiring, HexStr)
 
 type HashStr = HexStr
@@ -92,3 +92,9 @@ isUberRootHash hash = hash == uberRootHash
 
 getPrevious :: TxSum -> Maybe TxId
 getPrevious = evalTxSum (const Nothing) (Just <<< _.previous) (Just <<< _.previous) (Just <<< _.previous)
+
+isExecution :: Firing -> Boolean
+isExecution f = isNothing f.execution
+
+isExecutionTx :: FiringTx -> Boolean
+isExecutionTx f = isExecution f.firing
