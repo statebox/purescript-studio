@@ -10,7 +10,7 @@
     "postinstall": "spago install",
     "build": "spago build -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "watch": "spago bundle-app --watch --main Main --to dist/app.js -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "bundle": "spago bundle-app --main Main --to dist/app.js -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport --censor-lib halogen-svg",
+    "bundle": "spago bundle-app --main Main --to dist/app.js -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport,ShadowedName",
     "test": "spago test",
     "docs": "spago docs",
     "repl": "spago repl"
