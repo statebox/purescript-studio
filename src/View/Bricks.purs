@@ -2,7 +2,7 @@ module View.Bricks where
 
 import Prelude hiding (div)
 
-import Data.Array (length, (!!), intercalate, sortWith)
+import Data.Array ((!!), intercalate, sortWith)
 import Data.Foldable (foldMap)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Either (Either(..))
@@ -31,7 +31,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import Debug.Trace
 
 import Model
-import Common (VoidF, (..<))
+import Common (VoidF)
 
 
 type State = 
@@ -45,7 +45,6 @@ type State =
   }
 
 _selection = prop (SProxy :: SProxy "selection")
-_topLeft = prop (SProxy :: SProxy "topLeft")
 _bottomRight = prop (SProxy :: SProxy "bottomRight")
 
 data Action
@@ -258,7 +257,7 @@ moveCursor (dx /\ dy) (x0 /\ y0) (x1 /\ y1) = move dx x0 x1 /\ move dy y0 y1
     move 1 a b = max a b
     move _ a _ = a
 
-rect :: ∀ m r i. Box -> String -> H.ComponentHTML Action () m
+rect :: ∀ m. Box -> String -> H.ComponentHTML Action () m
 rect { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } cls = S.rect $
   [ S.x (toNumber x0 + 0.005)
   , S.y (toNumber y0 + 0.005)

@@ -2,17 +2,16 @@ module View.App where
 
 import Prelude hiding (div)
 
-import Data.Array (groupBy, find, sortBy)
-import Data.Array.NonEmpty (NonEmptyArray, length, head)
+import Data.Array (groupBy, sortBy)
+import Data.Array.NonEmpty (NonEmptyArray, head)
 import Data.Either (either, hush)
-import Data.Foldable (foldMap, foldr)
+import Data.Foldable (foldMap, foldr, length)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Function (on)
 import Data.Int (toNumber)
 import Data.List (List(Nil))
 import Data.Map as Map
 import Data.Maybe
-import Data.Ord (comparing)
 import Data.Set as Set
 import Data.String.Pattern (Pattern(..))
 import Data.String.Common (trim, split)
@@ -24,12 +23,9 @@ import Halogen as H
 import Halogen.HTML hiding (map, head, i)
 import Halogen.HTML.Properties (classes, value, readOnly)
 import Halogen.HTML.Events (onValueInput)
-import Partial.Unsafe (unsafePartial)
 import Web.HTML (window)
 import Web.HTML.Location (setHash)
 import Web.HTML.Window (location)
-
-import Debug.Trace
 
 import Bricks
 import InferType

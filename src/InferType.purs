@@ -2,18 +2,16 @@ module InferType where
 
 import Prelude 
 
-import Data.Array (zip, length, uncons, filter, (..))
+import Data.Array (zip, length, uncons, filter)
 import Data.Array.NonEmpty (toArray)
 import Data.Either (Either(..))
 import Data.Foldable (foldMap, foldl)
 import Data.Functor.App (App(..))
-import Data.Functor.Compose (Compose(..))
 import Data.Int (floor)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (alaF)
-import Data.Profunctor.Strong (first)
 import Data.String.Pattern (Pattern(..))
 import Data.String.Regex (regex, match)
 import Data.String.Regex.Flags (noFlags)
@@ -23,8 +21,6 @@ import Global (readInt)
 
 import Model
 import Common
-
-import Debug.Trace
 
 
 type InferredType bv bid = 

@@ -2,10 +2,9 @@ module Bricks where
   
 import Prelude
 
-import Data.Array ((!!), length, slice, cons, snoc, filter, findIndex, zip, unzip, unsafeIndex, concat)
-import Data.Either (Either(..), note, either)
+import Data.Array ((!!), length, slice, cons, snoc, filter, findIndex, zip, unzip, concat)
 import Data.Foldable (and, foldMap)
-import Data.List (snoc, last) as L 
+import Data.List (snoc) as L 
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (alaF)
 import Data.Ord.Max (Max(..))
