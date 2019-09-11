@@ -134,7 +134,7 @@ fromMatchedVars (Bounds bounds) = foldMap fromMatchedVars' >>> foldr (Map.unionW
           let y = y0 + (y1 - y0) * (0.5 + toNumber i) / n in 
           let ol = getObject l in
           let or = getObject r in
-          let validity = if y1 > y0 && ol == or then b else Invalid in
+          let validity = if y1 > y0 && (ol == "" || or == "" || ol == or) then b else Invalid in
             [{ y, validity, object: if ol == or then "" else ol }] /\ [{ y, validity, object: or }]
     toMismatch :: Validity -> Side -> NonEmptyArray (Var String bid) -> InputOutput String
     toMismatch validity side nonEmpty = Map.singleton (b /\ side) objects
