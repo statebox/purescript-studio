@@ -26,6 +26,5 @@ _executionTx = prism' FiringTxInj $ case _ of FiringTxInj x | isExecutionTx x ->
 _firing :: Lens' FiringTx Firing
 _firing = lens (_.firing) (_ { firing = _ })
 
-
 _firingPath :: Lens' Firing GluedTransitionIdRaw
 _firingPath = lens (_.path >>> head) (\r x -> r { path = singleton x })

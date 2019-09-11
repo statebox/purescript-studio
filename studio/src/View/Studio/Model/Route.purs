@@ -2,7 +2,9 @@ module View.Studio.Model.Route where
 
 import Prelude
 import Affjax (URL)
+import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe)
+import Data.Tuple.Nested (type (/\))
 import View.Model (ProjectName)
 import Statebox.Core.Execution (PathElem)
 import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
@@ -51,7 +53,7 @@ data ResolvedRouteF p d n
   | ResolvedUberRoot  URL
   | ResolvedNamespace HashStr
   | ResolvedWiring    WiringFiringInfo WiringTx
-  | ResolvedFiring    WiringFiringInfo FiringTx
+  | ResolvedFiring    WiringFiringInfo FiringTx (String \/ ExecutionTrace)
 
 --------------------------------------------------------------------------------
 
@@ -72,3 +74,6 @@ type NamespaceInfo =
   { name :: String
   , hash :: HashStr
   }
+
+-- TODO we may want to change the name and the exact type a bit; this is a 1st version to get things going
+type ExecutionTrace = Array (HashStr /\ Maybe TxSum)
