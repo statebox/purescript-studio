@@ -1,13 +1,42 @@
 module Statebox.Core.Lenses where
 
-import Data.Lens (Prism', prism')
+import Prelude
+import Data.Lens (Prism', prism', Lens', lens)
 import Data.Maybe (Maybe(..))
-import Statebox.Core.Transaction (TxSum(..), WiringTx, FiringTx)
+import Data.NonEmpty (singleton, head)
+import Statebox.Core.Transaction (TxSum(..), WiringTx, FiringTx, isExecutionTx)
+import Statebox.Core.Types (Firing, GluedTransitionIdRaw)
 
+
+_wiringTx :: Prism' TxSum WiringTx
+_wiringTx = prism' WiringTxInj case _ of WiringTxInj x -> Just x
+                                         _             -> Nothing
+
+_firingTx :: Prism' TxSum FiringTx
+_firingTx = prism' FiringTxInj case _ of FiringTxInj x -> Just x
+                                         _             -> Nothing
+
+_executionTx :: Prism' TxSum FiringTx
+_executionTx = prism' FiringTxInj $ case _ of FiringTxInj x | isExecutionTx x -> Just x
+                                              _                               -> Nothing
+
+--------------------------------------------------------------------------------
+
+_firing :: Lens' FiringTx Firing
+_firing = lens (_.firing) (_ { firing = _ })
+
+
+_firingPath :: Lens' Firing GluedTransitionIdRaw
+_firingPath = lens (_.path >>> head) (\r x -> r { path = singleton x })
+
+--------------------------------------------------------------------------------
+
+-- | TODO legacy alias for _leWiring, eliminate
 _leWiring :: Prism' TxSum WiringTx
-_leWiring = prism' WiringTxInj case _ of WiringTxInj x -> Just x
-                                         _             -> Nothing
+_leWiring = _wiringTx
 
+-- | TODO legacy alias for _leFiring, eliminate
 _leFiring :: Prism' TxSum FiringTx
-_leFiring = prism' FiringTxInj case _ of FiringTxInj x -> Just x
-                                         _             -> Nothing
+_leFiring = _firingTx
+
+--------------------------------------------------------------------------------
