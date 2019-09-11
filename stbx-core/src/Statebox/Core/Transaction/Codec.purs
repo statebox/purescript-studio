@@ -11,6 +11,7 @@ import Data.Profunctor.Choice (left)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
 import Data.Maybe (maybe)
+import Data.NonEmpty (singleton)
 import Data.Traversable (traverse)
 import Foreign.Object (Object, lookup)
 
@@ -71,7 +72,7 @@ decodeFiring :: Object Json -> String \/ Firing
 decodeFiring x = do
   message   <- x .:? "message"
   execution <- x .:? "execution"
-  path      <- x .:  "path" >>= case _ of [x] -> Right [x]
+  path      <- x .:  "path" >>= case _ of [x] -> Right (singleton x)
                                           _   -> Left "The 'path' field in a firing must be a singleton array."
   pure { message, execution, path }
 
