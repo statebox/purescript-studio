@@ -66,7 +66,8 @@ decodeFiring :: Object Json -> String \/ Firing
 decodeFiring x = do
   message   <- x .:? "message"
   execution <- x .:? "execution"
-  path      <- x .:  "path"
+  path      <- x .:  "path" >>= case _ of [x] -> Right [x]
+                                          _   -> Left "The 'path' field in a firing must be a singleton array."
   pure { message, execution, path }
 
 --------------------------------------------------------------------------------
