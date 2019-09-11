@@ -52,7 +52,7 @@ type Net =
   { name       :: String
   , partition  :: Array Int
   , names      :: Array String          -- ^ transition names
---, placeNames :: Maybe (Array String)  -- ^ TODO issue #140
+  , placeNames :: Maybe (Array String)
   }
 
 type Diagram =

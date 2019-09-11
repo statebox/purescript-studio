@@ -6,14 +6,16 @@ import Data.Argonaut.Core (Json, jsonEmptyObject)
 import Data.Argonaut.Encode.Combinators ((:=), (~>))
 import Data.Argonaut.Encode.Class (encodeJson)
 import Data.Argonaut.Decode (decodeJson, (.:), (.:?))
+import Data.Argonaut.Decode.Class (decodeJArray)
 import Data.Profunctor.Choice (left)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
 import Data.Maybe (maybe)
+import Data.Traversable (traverse)
 import Foreign.Object (Object, lookup)
 
 import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), mapTx, evalTxSum)
-import Statebox.Core.Types (Firing)
+import Statebox.Core.Types (Net, Wiring, Firing)
 
 decodeTxTxSum :: Json -> String \/ Tx TxSum
 decodeTxTxSum json =
@@ -32,7 +34,10 @@ decodeTxInitialTx :: Json -> String \/ Tx InitialTx
 decodeTxInitialTx = decodeJson
 
 decodeTxWiringTx :: Json -> String \/ Tx WiringTx
-decodeTxWiringTx = decodeJson
+decodeTxWiringTx = decodeTxWith decodeWiringTx' <=< decodeJson
+  where
+    decodeWiringTx' :: Json -> String \/ WiringTx
+    decodeWiringTx' = decodeWiringTx <=< decodeJson
 
 decodeTxFiringTx :: Json -> String \/ Tx FiringTx
 decodeTxFiringTx = decodeTxWith decodeFiringTx' <=< decodeJson
@@ -69,6 +74,33 @@ decodeFiring x = do
   path      <- x .:  "path" >>= case _ of [x] -> Right [x]
                                           _   -> Left "The 'path' field in a firing must be a singleton array."
   pure { message, execution, path }
+
+--------------------------------------------------------------------------------
+
+decodeWiringTx :: Object Json -> String \/ WiringTx
+decodeWiringTx x = do
+  wiring   <- getFieldWith decoder x "wiring"
+  previous <- x .: "previous"
+  pure { wiring, previous }
+  where
+    decoder = decodeJson >=> decodeWiring
+
+decodeWiring :: Object Json -> String \/ Wiring
+decodeWiring x = do
+  nets     <- getFieldWith (netsDecoder) x "nets"
+  diagrams <- x .: "diagrams"
+  labels   <- x .: "labels"
+  pure { nets, diagrams, labels }
+  where
+    netsDecoder = decodeJson >=> decodeJArray >=> traverse (decodeJson >=> decodeNet)
+
+decodeNet :: Object Json -> String \/ Net
+decodeNet x = do
+  name       <- x .:  "name"
+  partition  <- x .:  "partition"
+  names      <- x .:  "names"
+  placeNames <- x .:? "placeNames"
+  pure { name, partition, names, placeNames }
 
 --------------------------------------------------------------------------------
 -- Helpers taken from [Data.Argonaut.Decode.Combinators](https://github.com/purescript-contrib/purescript-argonaut-codecs/blob/master/src/Data/Argonaut/Decode/Combinators.purs).
