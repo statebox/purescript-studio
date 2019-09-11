@@ -7,6 +7,7 @@ import Data.NonEmpty (singleton, head)
 import Statebox.Core.Transaction (TxSum(..), WiringTx, FiringTx, isExecutionTx)
 import Statebox.Core.Types (Firing, GluedTransitionIdRaw)
 
+--------------------------------------------------------------------------------
 
 _wiringTx :: Prism' TxSum WiringTx
 _wiringTx = prism' WiringTxInj case _ of WiringTxInj x -> Just x
@@ -28,15 +29,3 @@ _firing = lens (_.firing) (_ { firing = _ })
 
 _firingPath :: Lens' Firing GluedTransitionIdRaw
 _firingPath = lens (_.path >>> head) (\r x -> r { path = singleton x })
-
---------------------------------------------------------------------------------
-
--- | TODO legacy alias for _leWiring, eliminate
-_leWiring :: Prism' TxSum WiringTx
-_leWiring = _wiringTx
-
--- | TODO legacy alias for _leFiring, eliminate
-_leFiring :: Prism' TxSum FiringTx
-_leFiring = _firingTx
-
---------------------------------------------------------------------------------
