@@ -13,7 +13,6 @@ import Data.String.CodePoints (take)
 import Data.Symbol (SProxy(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
-import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
 import Halogen.HTML (a, br, div, img, input, li, nav, ol, slot, span, text)

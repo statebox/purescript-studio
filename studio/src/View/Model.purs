@@ -2,8 +2,7 @@ module View.Model where
 
 import Prelude
 
-import Data.Symbol (SProxy(..))
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested (type (/\))
 
 import Data.Auth (RoleInfo)
 import Data.Typedef (Typedef)

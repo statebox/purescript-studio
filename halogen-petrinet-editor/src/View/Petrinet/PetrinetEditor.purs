@@ -1,24 +1,24 @@
 module View.Petrinet.PetrinetEditor where
 
-import Prelude
+import Prelude hiding (div)
 import Control.MonadZero (empty)
 import Data.Array (catMaybes)
 import Data.Newtype (un, unwrap)
 import Data.Bag (BagF)
-import Data.Foldable (class Foldable, fold, foldMap, elem, intercalate)
+import Data.Foldable (fold, foldMap, elem, intercalate)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Monoid.Additive (Additive(..))
 import Data.Set as Set
-import Data.Tuple (Tuple(..), uncurry, snd)
+import Data.Tuple (uncurry)
 import Data.Traversable (traverse)
-import Data.Vec3 (Vec2D, Vec2(..), vec2, _x, _y, Box(..))
+import Data.Vec3 (Vec2D, vec2, _x, _y)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Halogen as H
-import Halogen (Component, ComponentHTML, HalogenM, mkEval, defaultEval)
+import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML as HH
-import Halogen.HTML (HTML, div, br)
+import Halogen.HTML (HTML, div)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Core (ClassName(..))
@@ -26,7 +26,7 @@ import Halogen.HTML.Core as Core
 import Halogen.HTML.Events as HE
 import Svg.Elements as SE
 import Svg.Attributes as SA
-import Svg.Attributes (Duration, DurationF(..), seconds, FillState(..), FontSize(..), CSSLength(..))
+import Svg.Attributes (CSSLength(..), FillState(..), FontSize(..), seconds)
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
@@ -36,8 +36,7 @@ import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
 
 import View.Common (HtmlId, emptyHtml, mapAction)
-import View.Petrinet.Arrow
-import View.Petrinet.Arrow as Arrow
+import View.Petrinet.Arrow (svgArrow, svgArrowheadMarker)
 import View.Petrinet.Config as Config
 import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration)
 import View.Petrinet.Model as NetInfo -- TODO move the NetInfo stuff out of Model into its own module
@@ -47,6 +46,7 @@ import View.Petrinet.TransitionEditor as TransitionEditor
 
 
 -- TODO temp styling niceness hack #88
+disableMarkingsAndLabelVisibilityButtons :: Boolean
 disableMarkingsAndLabelVisibilityButtons = true
 
 --------------------------------------------------------------------------------
@@ -225,7 +225,7 @@ ui htmlIdPrefixMaybe =
     netToSVG netInfo@{net, netApi} layout focusedPlace focusedTransition =
       svgDefs <> svgTextBoxes <> svgTransitions <> svgPlaces
       where
-        svgDefs        = [ SE.defs [] [ Arrow.svgArrowheadMarker ] ]
+        svgDefs        = [ SE.defs [] [ svgArrowheadMarker ] ]
         svgTransitions = catMaybes $ map (map svgTransitionAndArcs <<< uncurry mkTransitionAndArcsModel) $ Map.toUnfoldable $ net.transitionsDict
         svgPlaces      = catMaybes $ (map svgPlace <<< mkPlaceModel) <$> net.places
         svgTextBoxes   = svgTextBox <$> netInfo.textBoxes
