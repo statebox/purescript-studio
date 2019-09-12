@@ -39,7 +39,8 @@ import View.Diagram.Update as DiagramEditor
 data Action
   = SelectRoute Route
   | LoadPNPRO URL
-  | LoadTransaction URL HashStr
+  | SetApiUrl URL
+  | LoadTransaction HashStr
   | LoadTransactions URL HashStr
   | ShowDiagramNodeContent Route
   | HandlePetrinetEditorMsg PetrinetEditor.Msg
@@ -50,6 +51,7 @@ type State =
   , projects    :: Array Project
   , hashSpace   :: AdjacencySpace HashStr TxSum -- ^ Hashes and their (tree of) links.
   , msg         :: String
+  , apiUrl      :: URL
   }
 
 --------------------------------------------------------------------------------
