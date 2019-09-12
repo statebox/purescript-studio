@@ -45,6 +45,7 @@ suite = do
           """  "hex": "DEADBEEF",""" <>
           """  "decoded": {""" <>
           """      "firing": {""" <>
+          """        "execution": "a string",""" <>
           """        "message": "camels are awesome",""" <>
           """        "path": [4]""" <>
           """      },""" <>
@@ -61,6 +62,7 @@ suite = do
         (\w  -> fail "WiringInj")
         (\f  -> f `shouldEqual`
             { "firing": {
+                "execution": pure "a string",
                 "message": pure "camels are awesome",
                 "path": [4]
               },
