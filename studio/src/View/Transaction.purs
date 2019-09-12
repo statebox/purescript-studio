@@ -2,23 +2,30 @@ module View.Transaction where
 
 import Prelude hiding (div)
 import Affjax (URL) -- TODO eliminate
-import Data.Maybe (maybe)
+import Data.Array (mapMaybe)
+import Data.Lens (over, preview, _Just, second)
+import Data.Maybe (Maybe, maybe)
+import Data.Either.Nested (type (\/))
 import Effect.Aff.Class (class MonadAff)
 import Halogen (ComponentHTML)
 import Halogen.HTML (HTML, slot, div, table, tr, td, a, text, p, br, pre)
 import Halogen.HTML.Properties (href)
 
 import View.Studio.Model (Action(..))
-import View.Studio.Model.Route (WiringFiringInfo)
+import View.Studio.Model.Route (WiringFiringInfo, ExecutionTrace)
 import Statebox.Client (txUrl)
-import Statebox.Core.Transaction (HashStr, FiringTx, WiringTx, isExecution)
+import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx, isExecution)
+import Statebox.Core.Lenses (_firingTx, _firing, _firingPath)
 
 
-firingTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> ComponentHTML Action s m
-firingTxView wfi tx =
+firingTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> String \/ ExecutionTrace -> ComponentHTML Action s m
+firingTxView wfi tx executionTrace =
   div []
       [ p     [] [ text $ if isExecution tx.firing then "Execution" else "Firing" ]
-      , table [] $ txWrapperRows wfi tx <> firingTxBodyRows wfi tx
+      , table [] $ txWrapperRows wfi tx <>
+                   firingTxBodyRows wfi tx <>
+                   [ row "trace" $ text $ show $ map (mapMaybe (preview (second <<< _Just <<< _firingTx <<< _firing <<< _firingPath))) executionTrace ] <>
+                   [ row "trace raw" $ text (show executionTrace) ]
       ]
 
 wiringTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> WiringTx -> ComponentHTML Action s m

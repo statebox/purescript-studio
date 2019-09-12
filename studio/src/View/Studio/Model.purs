@@ -5,13 +5,16 @@ import Affjax (URL) -- TODO introduce URL alias in Client so we can abstract Aff
 import Data.Array (index)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
+import Data.Bifunctor (bimap)
 import Data.Either (hush)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (find)
 import Data.Lens (preview)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Tuple.Nested (type (/\), (/\))
 import Debug.Trace (spy)
 import Record as Record
+
 import Data.Diagram.FromNLL as FromNLL
 import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
@@ -20,12 +23,12 @@ import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Statebox.Core.Execution (PathElem)
 import Statebox.Core.Types (Diagram)
 import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx)
-import Statebox.Core.Lenses (_leWiring, _leFiring)
+import Statebox.Core.Lenses (_wiringTx, _firingTx)
 import View.Diagram.Model (DiagramInfo)
 import View.Model (Project, ProjectName, NetInfoWithTypesAndRoles)
 import View.Petrinet.Model (NetInfo)
 import View.Petrinet.Model.NLL as NLL
-import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
+import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..), ExecutionTrace)
 
 -- deps needed for Action, for now
 import View.Petrinet.Model as PetrinetEditor
@@ -68,7 +71,11 @@ resolveRoute route {projects, hashSpace} = case route of
   UberRootR  url                    -> pure $ ResolvedUberRoot url
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
   WiringR    x                      -> ResolvedWiring x <$> findWiringTx hashSpace x.hash
-  FiringR    x                      -> ResolvedFiring x <$> findFiringTx hashSpace x.hash
+  FiringR    x                      -> ResolvedFiring x <$> firingTxM <*> pure execTrace
+    where
+      firingTxM = findFiringTx hashSpace x.hash
+      execTrace = findExecutionTrace hashSpace x.hash execHash
+      execHash  = firingTxM >>= _.firing.execution # fromMaybe x.hash
   DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> findDiagramInfoInWirings hashSpace wiringHash ix
   NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> findNetInfoInWirings     hashSpace wiringHash ix
 
@@ -86,10 +93,10 @@ findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
 findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
 
 findWiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe WiringTx
-findWiringTx hashSpace wiringHash = preview _leWiring =<< AdjacencySpace.lookup wiringHash hashSpace
+findWiringTx hashSpace wiringHash = preview _wiringTx =<< AdjacencySpace.lookup wiringHash hashSpace
 
 findFiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe FiringTx
-findFiringTx hashSpace firingHash = preview _leFiring =<< AdjacencySpace.lookup firingHash hashSpace
+findFiringTx hashSpace firingHash = preview _firingTx =<< AdjacencySpace.lookup firingHash hashSpace
 
 findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe NetInfoWithTypesAndRoles
 findNetInfoInWirings hashSpace wiringHash ix = do
@@ -112,6 +119,14 @@ findDiagramInfoInWirings hashSpace wiringHash ix =
     diagramMaybe = (flip index ix <<< _.wiring.diagrams) =<< findWiringTx hashSpace wiringHash
 
     toNLL d = [d.width] <> d.pixels
+
+findExecutionTrace :: AdjacencySpace HashStr TxSum -> HashStr -> HashStr -> String \/ ExecutionTrace
+findExecutionTrace s firingHash executionHash =
+  hashChainE # bimap (const "Failed to resolve execution trace, probably because a parent hash was missing from the space.")
+                     (map (\hash -> hash /\ AdjacencySpace.lookup hash s))
+  where
+    hashChainE :: Array HashStr \/ Array HashStr
+    hashChainE = AdjacencySpace.unsafeAncestorsBetween s firingHash executionHash
 
 --------------------------------------------------------------------------------
 

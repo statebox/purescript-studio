@@ -15,7 +15,6 @@ import Data.Petrinet.Representation.Marking (MarkingF)
 import Data.Typedef (Typedef(..))
 import Data.Vec3 (Vec2D, Box(..), vec2)
 import View.Petrinet.Model (PID, NetRep, NetInfo, PlaceMarking, Tokens, mkNetRep, mkNetInfo)
-import View.Petrinet.Model as Model
 
 --------------------------------------------------------------------------------
 

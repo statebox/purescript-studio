@@ -13,7 +13,6 @@ import Data.String.CodePoints (take)
 import Data.Symbol (SProxy(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
-import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
 import Halogen.HTML (a, br, div, img, input, li, nav, ol, slot, span, text)
@@ -118,8 +117,8 @@ contentView route = case route of
   ResolvedWiring wfi wiringTx ->
     wiringTxView wfi wiringTx
 
-  ResolvedFiring wfi firingTx ->
-    firingTxView wfi firingTx
+  ResolvedFiring wfi firingTx executionTraceE ->
+    firingTxView wfi firingTx executionTraceE
 
 routeBreadcrumbs :: ∀ m. Route -> ComponentHTML Action ChildSlots m
 routeBreadcrumbs route =

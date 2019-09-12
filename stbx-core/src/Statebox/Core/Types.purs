@@ -3,6 +3,7 @@ module Statebox.Core.Types where
 import Prelude
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, unwrap)
+import Data.NonEmpty (NonEmpty(..))
 
 -- | Place id.
 type PID = Int
@@ -52,7 +53,7 @@ type Net =
   { name       :: String
   , partition  :: Array Int
   , names      :: Array String          -- ^ transition names
---, placeNames :: Maybe (Array String)  -- ^ TODO issue #140
+  , placeNames :: Maybe (Array String)
   }
 
 type Diagram =
@@ -76,6 +77,6 @@ type GluedTransitionIdRaw = Int
 type HexStr = String
 
 -- | This tags an Array that is expected (but not guaranteed) to have exactly one element. (TODO: newtype.)
-type Singleton = Array
+type Singleton = NonEmpty Array
 
 type TxId = String

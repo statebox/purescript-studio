@@ -6,21 +6,14 @@ import Prelude
 import Data.Auth (Roles)
 import Data.Array ((..), length, zip)
 import Data.ArrayMultiset (ArrayMultiset)
-import Data.FunctorWithIndex (mapWithIndex)
-import Data.Int (toNumber)
-import Data.Map as Map
-import Data.Map (Map)
 import Data.Maybe (Maybe(..))
-import Data.Monoid
-import Data.Profunctor.Strong
 import Data.Set as Set
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Tuple (fst, snd, uncurry)
 
 import Data.Petrinet.Representation.NLL as NLL
 import Data.Petrinet.Representation.NLL (NetF)
 import Data.Typedef (Typedef(..))
-import View.Petrinet.Model (PID, Transition, NetRep, NetInfo, TextBox, mkNetRep, mkNetApi, mkNetInfo)
+import View.Petrinet.Model (PID, Transition, NetRep, NetInfo, mkNetRep, mkNetInfo)
 
 toNetInfo :: NetF PID -> String -> Array String -> Array String -> Array Typedef -> Array Roles -> NetInfo
 toNetInfo net name placeNames transitionNames typedefs roles =
