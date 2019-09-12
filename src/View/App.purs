@@ -92,7 +92,7 @@ render { pixels, context, selectionBox } = div [ classes [ ClassName "app" ] ]
       ]
     ]
     , h2_ [ text "Term view" ]
-    , slot _term unit Term.termView { term: bricks.term, selectionPath } \_ -> Nothing
+    , slot _term unit Term.termView { term: bricks.term, selection: selectionPath } \_ -> Nothing
   ]
   where
     bricks = fromPixels (parsePixels pixels) $ (\s -> s == "0" || s == " " || s == "-" || s == "=")
@@ -101,7 +101,7 @@ render { pixels, context, selectionBox } = div [ classes [ ClassName "app" ] ]
     result /\ matches = eEnv # either (\envError -> envError /\ Map.empty) 
       \env -> let inferred = inferType bricks.term env in 
         showInferred inferred /\ fromMatchedVars inferred.bounds (inferred.matches <> typeToMatches inferred.type)
-    sub /\ selectionPath = subTerm selectionBox (bricks.term /\ Nil)
+    sub /\ selectionPath = subTerm selectionBox bricks.term Nil
     selectedBoxes = foldMap (\bid -> Set.singleton bid) sub
     selectionType = hush eEnv <#> inferType sub <#> showInferred
 

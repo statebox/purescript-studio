@@ -44,6 +44,7 @@ type Bricks bid =
 
 type Ann = Array Int
 
+type Selection = { path :: Path, count :: Int }
 type Path = List Int
 
 

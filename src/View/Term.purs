@@ -19,7 +19,7 @@ import Common (VoidF)
 
 type State = 
   { term :: Term Ann (Brick String)
-  , selectionPath :: Path /\ Int
+  , selection :: Selection
   }
 
 type Input = State
@@ -48,7 +48,7 @@ handleAction = case _ of
     H.put st
 
 render :: ∀ m. State -> H.ComponentHTML Action () m
-render { term, selectionPath: path /\ count } = div [ classes [ ClassName "term" ] ] (rec (Just path) term) where
+render { term, selection: { path, count } } = div [ classes [ ClassName "term" ] ] (rec (Just path) term) where
   rec :: Maybe Path -> Term Ann (Brick String) -> Array (H.ComponentHTML Action () m)
   rec p TUnit = [ div [ clsSel p "tunit" ] [ i_ [ text "I" ] ] ]
   rec p (TBox { bid }) = [ div [ clsSel p "tbox" ] [ format bid ] ]
