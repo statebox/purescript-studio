@@ -5,12 +5,16 @@ import Prelude
 import Control.Monad.Free (Free, liftF, runFreeM)
 import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.State.Class (class MonadState, get, modify_)
-import Data.Map (Map, insert, lookup)
+import Data.Argonaut.Core (Json, fromObject)
+import Data.FoldableWithIndex (foldrWithIndex)
+import Data.Map (Map, insert, lookup) as Map
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log)
+import Foreign.Object (Object, empty, insert)
 
-import Statebox.Core.Transaction (Tx, TxSum, TxId)
+import Statebox.Core.Transaction (TxSum, TxId)
+import Statebox.Core.Transaction.Codec (encodeTxSum)
 
 -- define possible actions
 
@@ -52,13 +56,19 @@ loggingActions = runFreeM $ \action -> case action of
 -- TODO #237 Discuss whether this should be `TxSum` or `Tx TxSum`, then eliminate this alias.
 type TransactionDictionaryValue = TxSum
 
-type TransactionDictionary = Map TxId TransactionDictionaryValue
+type TransactionDictionary = Map.Map TxId TransactionDictionaryValue
+
+encodeTransactionDictionary :: TransactionDictionary -> Json
+encodeTransactionDictionary = fromObject <<< (foldrWithIndex addIndex empty)
+  where
+    addIndex :: String -> TxSum -> Object Json -> Object Json
+    addIndex id transaction = insert id (encodeTxSum transaction)
 
 inMemoryActions :: forall a m. MonadRec m => MonadState TransactionDictionary m => Actions a -> m a
 inMemoryActions = runFreeM $ \action -> case action of
   GetTransaction txHash next -> do
     transactionsMap <- get
-    pure $ next $ lookup txHash transactionsMap
+    pure $ next $ Map.lookup txHash transactionsMap
   AddTransaction { hash, transaction } next -> do
-    modify_ $ insert hash transaction
+    modify_ $ Map.insert hash transaction
     pure next
