@@ -40,6 +40,21 @@ decodeTxFiringTx = decodeTxWith decodeFiringTx' <=< decodeJson
     decodeFiringTx' :: Json -> String \/ FiringTx
     decodeFiringTx' = decodeFiringTx <=< decodeJson
 
+decodeInitialTx :: Json -> String \/ InitialTx
+decodeInitialTx = decodeJson
+
+decodeWiringTx :: Json -> String \/ WiringTx
+decodeWiringTx = decodeJson
+
+decodeTxSum :: Json -> String \/ TxSum
+decodeTxSum json =
+  FiringTxInj  <$> decodeFiringTx' json <|>
+  WiringTxInj  <$> decodeWiringTx  json <|>
+  InitialTxInj <$> decodeInitialTx json
+    where
+      decodeFiringTx' :: Json -> String \/ FiringTx
+      decodeFiringTx' = decodeFiringTx <=< decodeJson
+
 --------------------------------------------------------------------------------
 
 -- | The 'body' of a `Tx` envelope is in the `decoded` field. This field (of type `a`) is
