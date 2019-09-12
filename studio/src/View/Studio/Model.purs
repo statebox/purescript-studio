@@ -5,12 +5,12 @@ import Affjax (URL) -- TODO introduce URL alias in Client so we can abstract Aff
 import Data.Array (index)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
+import Data.Bifunctor (bimap)
 import Data.Either (hush)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (find)
 import Data.Lens (preview)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Profunctor.Choice ((+++))
 import Data.Tuple.Nested (type (/\), (/\))
 import Debug.Trace (spy)
 import Record as Record
@@ -122,8 +122,8 @@ findDiagramInfoInWirings hashSpace wiringHash ix =
 
 findExecutionTrace :: AdjacencySpace HashStr TxSum -> HashStr -> HashStr -> String \/ ExecutionTrace
 findExecutionTrace s firingHash executionHash =
-  hashChainE # (const "Failed to resolve execution trace, probably because a parent hash was missing from the space.")
-           +++ (map (\hash -> hash /\ AdjacencySpace.lookup hash s))
+  hashChainE # bimap (const "Failed to resolve execution trace, probably because a parent hash was missing from the space.")
+                     (map (\hash -> hash /\ AdjacencySpace.lookup hash s))
   where
     hashChainE :: Array HashStr \/ Array HashStr
     hashChainE = AdjacencySpace.unsafeAncestorsBetween s firingHash executionHash
