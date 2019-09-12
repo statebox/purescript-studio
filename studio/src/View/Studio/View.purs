@@ -118,8 +118,8 @@ contentView route = case route of
   ResolvedWiring wfi wiringTx ->
     wiringTxView wfi wiringTx
 
-  ResolvedFiring wfi firingTx ->
-    firingTxView wfi firingTx
+  ResolvedFiring wfi firingTx executionTraceE ->
+    firingTxView wfi firingTx executionTraceE
 
 routeBreadcrumbs :: ∀ m. Route -> ComponentHTML Action ChildSlots m
 routeBreadcrumbs route =
