@@ -2,34 +2,35 @@ module Main where
 
 import Prelude
 
-import Control.Monad.Except (runExcept)
 import Control.Monad.State.Trans (runStateT)
+import Data.Argonaut.Core (stringify)
+import Data.Argonaut.Parser (jsonParser)
 import Data.Either (Either(..), either)
 import Data.Function.Uncurried (Fn3)
 import Data.Maybe (Maybe(..))
+import Data.Tuple (snd)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import Effect.Ref (Ref, new, read)
+import Effect.Ref (Ref, new, read, write)
 import Effect.Exception (Error, error, message)
-import Foreign (F)
 import Node.Express.App (App, listenHttp, get, post, use, useExternal, useOnError)
 import Node.Express.Handler (Handler, next, nextThrow)
-import Node.Express.Request (getBody, getRouteParam, getOriginalUrl)
+import Node.Express.Request (getBody', getRouteParam, getOriginalUrl)
 import Node.Express.Response (sendJson, setStatus, setResponseHeader)
 import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
+import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Core.Transaction (TxId, TxSum)
-import Statebox.Service.Model (TransactionDictionary, getTransaction, inMemoryActions)
-import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
+import Statebox.Service.Model (TransactionDictionary, getTransaction, inMemoryActions, putTransaction)
+import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 
 import ExampleData as Ex
 
 -- import body parser
-foreign import jsonBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
+foreign import stringBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
 stbxPort :: Int
 stbxPort = 8080
@@ -94,18 +95,28 @@ getTransactionHandler appState = do
 -- | responds to `POST /tx`
 postTransactionHandler :: AppState -> Handler
 postTransactionHandler appState = do
-  fBody :: F (Array String) <- getBody
-  case runExcept fBody of
-    Left errors -> sendJson { status: statusToString NotOk
-                            , errors: show errors
-                            }
-    Right hash  -> sendJson { status: statusToString Ok }
+  -- TODO: find a proper way to manage body decoding
+  body :: String <- unsafeCoerce <$> getBody'
+  case jsonParser body of
+    Left error -> sendJson { status : statusToString NotOk
+                           , error  : error
+                           }
+    Right json -> do
+      case decodeTxSum json of
+        Left error -> sendJson { status : statusToString NotOk
+                               , error  : error
+                               }
+        Right txSum -> do
+          transactionDictionary <- liftEffect $ read appState
+          updatedTransactionDictionary <- liftAff $ runStateT (inMemoryActions $ putTransaction "new-hash" txSum) transactionDictionary
+          liftEffect $ write (snd updatedTransactionDictionary) appState
+          sendJson { status: stringify json }
 
 -- application definition with routing
 
 app :: AppState -> App
 app state = do
-  useExternal         jsonBodyParser
+  useExternal         stringBodyParser
   use                 logger
   get  "/"            index
   get  "/healthcheck" healthcheck
