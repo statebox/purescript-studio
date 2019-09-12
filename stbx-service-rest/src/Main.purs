@@ -24,7 +24,7 @@ import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Service.Model (TransactionDictionary, getTransaction, inMemoryActions, putTransaction)
+import Statebox.Service.Model (TransactionDictionary, getTransaction, inMemoryActions, putTransaction, encodeTransactionDictionary)
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 
 import ExampleData as Ex
@@ -68,6 +68,13 @@ index = sendJson
 
 healthcheck :: Handler
 healthcheck = sendJson { health: "I'm fine" }
+
+getTransactionsHandler :: AppState -> Handler
+getTransactionsHandler appState = do
+  setResponseHeader "Access-Control-Allow-Origin" "*"
+  transactionDictionary <- liftEffect $ read appState
+  sendJson { status: "ok"
+           , transactions: encodeTransactionDictionary transactionDictionary }
 
 -- | `getTransaction` endpoint
 -- | responds to `GET /tx/<hash>`
@@ -120,6 +127,7 @@ app state = do
   use                 logger
   get  "/"            index
   get  "/healthcheck" healthcheck
+  get  "/tx"          (getTransactionsHandler state)
   get  "/tx/:hash"    (getTransactionHandler state)
   post "/tx"          (postTransactionHandler state)
   useOnError          errorHandler
