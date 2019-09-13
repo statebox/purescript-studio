@@ -61,7 +61,7 @@ type TransactionDictionary = Map.Map TxId TransactionDictionaryValue
 encodeTransactionDictionary :: TransactionDictionary -> Json
 encodeTransactionDictionary = fromObject <<< (foldrWithIndex addIndex empty)
   where
-    addIndex :: String -> TxSum -> Object Json -> Object Json
+    addIndex :: TxId -> TxSum -> Object Json -> Object Json
     addIndex id transaction = insert id (encodeTxSum transaction)
 
 inMemoryActions :: forall a m. MonadRec m => MonadState TransactionDictionary m => Actions a -> m a
