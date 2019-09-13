@@ -43,6 +43,7 @@ ui =
       { msg:         "Welcome to Statebox Studio!"
       , projects:    Ex.projects
       , hashSpace:   AdjacencySpace.empty
+      , apiUrl:      Ex.endpointUrl
       , route:       Home
       }
 
@@ -55,7 +56,11 @@ ui =
         -- H.liftEffect $ log $ "route = " <> show route
         H.modify_ \state -> state { route = route }
 
-      LoadTransaction endpointUrl hash -> do
+      SetApiUrl url -> do
+        H.modify_ \state -> state { apiUrl = url }
+
+      LoadTransaction hash -> do
+        endpointUrl <- H.get <#> _.apiUrl
         H.liftEffect $ log $ "LoadTransaction: requesting transaction " <> hash <> " from " <> endpointUrl
         res <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
         res # evalTransactionResponse

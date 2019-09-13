@@ -1,6 +1,7 @@
 module View.Studio.View where
 
 import Prelude hiding (div)
+import Affjax (URL) -- TODO introduce URL alias in Client so we can abstract Affjax away
 import Control.Comonad.Cofree ((:<))
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
@@ -31,11 +32,9 @@ import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Studio.Model (Action(..), State, resolveRoute)
-import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..), WiringFiringInfo)
+import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
 import View.Transaction (firingTxView, wiringTxView)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
-
-import ExampleData as Ex
 
 --------------------------------------------------------------------------------
 
@@ -62,22 +61,34 @@ render state =
                 [ slot _objectTree unit (TreeMenu.menuComponent (_ == state.route)) (stateMenu state) ((\(TreeMenu.Clicked menuNodeId route) -> ShowDiagramNodeContent route) >>> Just) ]
           , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
                 [ routeBreadcrumbs state.route
-                , maybe (text "Couldn't find project/net/diagram.") contentView (resolveRoute state.route state)
+                , resolveRoute state.route state # maybe (text "Couldn't find project/net/diagram.")
+                                                         (contentView state.apiUrl)
                 ]
           ]
     ]
 
-contentView :: ∀ m. MonadAff m => ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ComponentHTML Action ChildSlots m
-contentView route = case route of
+contentView :: ∀ m. MonadAff m => URL -> ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ComponentHTML Action ChildSlots m
+contentView apiUrl route = case route of
   ResolvedHome ->
     div []
         [ text "Please select an object from the menu, or enter a transaction hash below."
-        , br [], br []
+        , br []
+        , br []
         , input [ value ""
                 , placeholder "Enter Statebox Cloud transaction hash"
-                , onValueInput $ Just <<< LoadTransactions Ex.endpointUrl
+                , onValueInput $ Just <<< LoadTransactions apiUrl
                 , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
                 ]
+        , br []
+        , br []
+        , input [ value apiUrl
+                , placeholder "Statebox API URL"
+                , onValueInput $ Just <<< SetApiUrl
+                , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
+                ]
+        , br []
+        , br []
+        , text "Alternatively, you can load a PNPRO file."
         , br []
         , br []
         , input [ value ""
@@ -174,10 +185,10 @@ navBar =
 --------------------------------------------------------------------------------
 
 stateMenu :: State -> MenuTree Route
-stateMenu { projects, hashSpace } =
+stateMenu { projects, apiUrl, hashSpace } =
   mkItem "Studio" Nothing :< (txItems <> projectItems)
   where
-    txItems        = AdjacencySpace.unsafeToTree transactionMenu hashSpace <$> Set.toUnfoldable (AdjacencySpace.rootKeys hashSpace)
+    txItems        = AdjacencySpace.unsafeToTree (transactionMenu apiUrl) hashSpace <$> Set.toUnfoldable (AdjacencySpace.rootKeys hashSpace)
     projectItems   = projectMenu <$> projects
 
 projectMenu :: Project -> MenuTree Route
@@ -193,8 +204,8 @@ projectMenu p =
     fromDiagrams p diags = (\d -> mkItem d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
 
 -- It's not terribly efficient to construct a Cofree (sub)tree first only to subsequently flatten it, as we do with firings.
-transactionMenu :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Route) -> MenuTree Route
-transactionMenu t hash valueMaybe itemKids =
+transactionMenu :: URL -> AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Route) -> MenuTree Route
+transactionMenu apiUrl t hash valueMaybe itemKids =
   maybe (mkUnloadedItem itemKids)
         (\tx -> mkItem2 hash tx itemKids)
         valueMaybe
@@ -202,7 +213,7 @@ transactionMenu t hash valueMaybe itemKids =
     mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
     mkItem2 hash tx itemKids = evalTxSum
       (\x -> mkItem ("☁️ "  <> shortHash hash)
-                    (Just $ UberRootR Ex.endpointUrl)
+                    (Just $ UberRootR apiUrl)
                     :< itemKids
       )
       (\x -> mkItem ("🌐 "  <> shortHash hash)
@@ -210,11 +221,11 @@ transactionMenu t hash valueMaybe itemKids =
                     :< itemKids
       )
       (\w -> mkItem ("🥨 " <> shortHash hash)
-                    (Just $ WiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
+                    (Just $ WiringR { name: hash, endpointUrl: apiUrl, hash: hash })
                     :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
       )
       (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash hash)
-                    (Just $ FiringR { name: hash, endpointUrl: Ex.endpointUrl, hash: hash })
+                    (Just $ FiringR { name: hash, endpointUrl: apiUrl, hash: hash })
                     :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
       )
       tx
