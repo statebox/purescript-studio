@@ -70,33 +70,7 @@ render state =
 contentView :: ∀ m. MonadAff m => URL -> ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ComponentHTML Action ChildSlots m
 contentView apiUrl route = case route of
   ResolvedHome ->
-    div []
-        [ text "Please select an object from the menu, or enter a transaction hash below."
-        , br []
-        , br []
-        , input [ value ""
-                , placeholder "Enter Statebox Cloud transaction hash"
-                , onValueInput $ Just <<< LoadTransactions apiUrl
-                , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
-                ]
-        , br []
-        , br []
-        , input [ value apiUrl
-                , placeholder "Statebox API URL"
-                , onValueInput $ Just <<< SetApiUrl
-                , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
-                ]
-        , br []
-        , br []
-        , text "Alternatively, you can load a PNPRO file."
-        , br []
-        , br []
-        , input [ value ""
-                , placeholder "Enter http URL to PNPRO file"
-                , onValueInput $ Just <<< LoadPNPRO
-                , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
-                ]
-        ]
+    homeForm apiUrl
 
   ResolvedTypes project ->
     TypedefsEditor.typedefsTreeView project.types
@@ -248,6 +222,38 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
         -- TODO we need to return a Route currently, but we may want to return a (LoadTransaction ... ::Query) instead,
         -- so we could load unloaded hashes from the menu.
         unloadedRoute = Nothing
+
+--------------------------------------------------------------------------------
+
+homeForm :: ∀ m. URL -> ComponentHTML Action ChildSlots m
+homeForm apiUrl =
+  div []
+      [ text "Please select an object from the menu, or enter a transaction hash below."
+      , br []
+      , br []
+      , input [ value ""
+              , placeholder "Enter Statebox Cloud transaction hash"
+              , onValueInput $ Just <<< LoadTransactions apiUrl
+              , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
+              ]
+      , br []
+      , br []
+      , input [ value apiUrl
+              , placeholder "Statebox API URL"
+              , onValueInput $ Just <<< SetApiUrl
+              , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
+              ]
+      , br []
+      , br []
+      , text "Alternatively, you can load a PNPRO file."
+      , br []
+      , br []
+      , input [ value ""
+              , placeholder "Enter http URL to PNPRO file"
+              , onValueInput $ Just <<< LoadPNPRO
+              , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
+              ]
+      ]
 
 --------------------------------------------------------------------------------
 
