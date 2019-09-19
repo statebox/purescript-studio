@@ -8,10 +8,14 @@ import Data.String.Regex (regex, match)
 import Data.String.Regex.Flags (ignoreCase)
 import Data.Either (either)
 import Data.Maybe (Maybe(..))
+import Data.Traversable (traverse)
 import Effect (Effect)
+import Effect.Aff (Aff)
 import Global (decodeURI)
-import Halogen.Aff (awaitBody, runHalogenAff)
+import Halogen.Aff (awaitLoad, runHalogenAff)
+import Halogen.Aff.Util (selectElement)
 import Halogen.VDom.Driver (runUI)
+import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML (window)
 import Web.HTML.Location (hash)
 import Web.HTML.Window (location)
@@ -44,8 +48,15 @@ main = do
   h <- hash l
   let input = parseHash h
   runHalogenAff do
-    body <- awaitBody
-    runUI appView input body
+    awaitLoad
+    
+  --   run input "body"
+
+run :: { pixels :: String, context :: String } -> String -> Aff Unit
+run input selector = do 
+  elemMaybe <- selectElement (QuerySelector selector)
+  _ <- runUI appView input `traverse` elemMaybe
+  pure unit
 
 parseHash :: String -> { pixels :: String, context :: String }
 parseHash hash =
