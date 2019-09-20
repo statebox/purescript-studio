@@ -11,6 +11,7 @@
     , "profunctor-lenses"
     , "psci-support"
     , "strings"
+    , "variant"
     ]
 , packages =
     ./packages.dhall

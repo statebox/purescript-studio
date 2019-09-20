@@ -11,7 +11,7 @@ import Data.Function (on)
 import Data.Int (toNumber)
 import Data.List (List(Nil))
 import Data.Map as Map
-import Data.Maybe
+import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
 import Data.String.Pattern (Pattern(..))
 import Data.String.Common (trim, split)
@@ -52,6 +52,8 @@ data Action
   | UpdateContext String
   | BricksMessage Bricks.Output
 
+data Query a
+  = DoAction Action a
 
 type ChildSlots = 
   ( bricks :: Bricks.Slot Unit
@@ -62,12 +64,14 @@ _bricks = SProxy :: SProxy "bricks"
 _term = SProxy :: SProxy "term"
 
 
-appView :: ∀ q o m. MonadEffect m => H.Component HTML q Input o m
+appView :: ∀ o m. MonadEffect m => H.Component HTML Query Input o m
 appView =
   H.mkComponent
     { initialState
     , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
+    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction
+                                     , handleQuery = handleQuery
+                                     }
     }
 
 initialState :: Input -> State
@@ -158,6 +162,11 @@ handleAction = case _ of
     st <- H.modify \ st -> st { context = c }
     updateLocation st
   BricksMessage (Bricks.SelectionChanged sel) -> H.modify_ \st -> st { selectionBox = sel }
+
+handleQuery :: ∀ o m a. MonadEffect m => Query a -> H.HalogenM State Action ChildSlots o m (Maybe a)
+handleQuery (DoAction x next) = do
+  handleAction x
+  pure (Just next)
 
 updateLocation :: ∀ o m. MonadEffect m => State -> H.HalogenM State Action ChildSlots o m Unit
 updateLocation { pixels, context } =
