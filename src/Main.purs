@@ -49,8 +49,7 @@ main = do
   let input = parseHash h
   runHalogenAff do
     awaitLoad
-    
-  --   run input "body"
+    run input "body"
 
 run :: { pixels :: String, context :: String } -> String -> Aff Unit
 run input selector = do 

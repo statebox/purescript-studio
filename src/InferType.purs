@@ -2,10 +2,11 @@ module InferType where
 
 import Prelude 
 
-import Data.Array (zip, length, uncons, filter)
+import Data.Array (zip, length, uncons, filter, intercalate, head, last, concat)
 import Data.Array.NonEmpty (toArray)
 import Data.Either (Either(..))
 import Data.Foldable (foldMap, foldl)
+import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Functor.App (App(..))
 import Data.Int (floor)
 import Data.Map as Map
@@ -15,7 +16,7 @@ import Data.Newtype (alaF)
 import Data.String.Pattern (Pattern(..))
 import Data.String.Regex (regex, match)
 import Data.String.Regex.Flags (noFlags)
-import Data.String.Common (trim, split, joinWith)
+import Data.String.Common (trim, split, joinWith, toLower)
 import Data.Tuple.Nested (type (/\), (/\))
 import Global (readInt)
 
@@ -47,6 +48,45 @@ note s = maybe (empty { errors = [s] })
 
 showInferred :: ∀ bid bv. Ord bid => Show (Var bv bid) => InferredType bv bid -> String
 showInferred it@{ errors } = if length errors == 0 then show (getType it) else joinWith "\n" errors
+
+haskellEmpty :: { i :: Int, o :: Int, code :: String }
+haskellEmpty = { i: 0, o: 0, code: "(arr id)"}
+
+haskellCode :: ∀ ann bv. Context bv String -> Term ann (Brick String) -> { i :: Int, o :: Int, code :: String }
+haskellCode _ TUnit = haskellEmpty
+haskellCode ctx (TBox { bid }) = Map.lookup bid ctx # (maybe haskellEmpty $ case _ of
+    Left perm -> perm # foldMapWithIndex (\i p -> ["a" <> show i] /\ ["a" <> show (p - 1)]) # 
+      \(l /\ r) -> { i: length perm, o: length perm, code: "(arr (\\" <> tuple l <> " -> " <> tuple r <> "))" }
+    Right (Ty l r) -> { i: length l, o: length r, code: toLower bid }
+  )
+haskellCode ctx (TC ts _) = let iocs = map (haskellCode ctx) ts in case head iocs, last iocs of
+  Just { i }, Just { o } -> { i, o, code: "(" <> intercalate " >>> " (map _.code iocs) <> ")" }
+  _, _ -> haskellEmpty
+haskellCode ctx (TT ts _) = foldMapWithIndex (\i -> f i <<< haskellCode ctx) ts # g
+  where
+    f j { i, o, code } = 
+      [{ is: map (\n -> "i" <> show j <> "_" <> show n) (0 ..< i)
+      , os: map (\n -> "o" <> show j <> "_" <> show n) (0 ..< o)
+      , part: code
+      }]
+    g l = uncons l # maybe haskellEmpty \{ head, tail } ->
+      let is = concat (map _.is l) in let os = concat (map _.os l) in 
+        h is os $ foldl compose { i: tuple head.is, o: tuple head.os, code: head.part } tail
+    h is os { i, o, code } = 
+      { i: length is
+      , o: length os
+      , code: "(arr (\\" <> tuple is <> " -> " <> i <> ") >>> " <> code <> " >>> arr (\\" <> o <> " -> " <> tuple os <> "))"
+      }
+    compose { i, o, code } { is, os, part } = 
+      { i: "(" <> i <> ", " <> tuple is <> ")"
+      , o: "(" <> o <> ", " <> tuple os <> ")"
+      , code: "(" <> code <> " *** " <> part <> ")"
+      }
+
+tuple :: Array String -> String
+tuple [s] = s
+tuple ss = "(" <> intercalate ", " ss <> ")"
+
 
 inferType 
   :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv bid) 
