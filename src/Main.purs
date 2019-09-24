@@ -24,21 +24,21 @@ import View.App
 
 initialPixels :: String
 initialPixels = """
-22211
-22233
-45533
-65577
+gggff
+ggghh
+ijjhh
+kjjll
 """
 
 initialContext :: String
 initialContext = """
-1: a ->
-2: b b b -> a c d
-3: c d d -> e
-4: b -> c c
-5: c c c c c -> d e e e
-6: -> c c c
-7: e e e -> e
+f: a ->
+g: b b b -> a c d
+h: c d d -> e
+i: b -> e d
+j: [2 3 1 4]
+k: -> e e
+l: e e e -> e
 """
 
 main :: Effect Unit

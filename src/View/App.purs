@@ -101,7 +101,7 @@ render { pixels, context, selectionBox } = div [ classes [ ClassName "app" ] ]
     eEnv = (<>) <$> parseContext context <*> pure defaultEnv
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
     result /\ matches = eEnv # either (\envError -> envError /\ Map.empty) 
-      \env -> let inferred = trace (haskellCode env bricks.term).code $ \_ -> inferType bricks.term env in 
+      \env -> let inferred = trace (haskellCode env bricks.term) $ \_ -> inferType bricks.term env in 
         showInferred inferred /\ fromMatchedVars inferred.bounds (inferred.matches <> typeToMatches inferred.type)
     sub /\ selectionPath = subTerm selectionBox bricks.term Nil
     selectedBoxes = foldMap (\bid -> Set.singleton bid) sub

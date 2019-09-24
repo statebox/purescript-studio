@@ -2,9 +2,10 @@ module InferType where
 
 import Prelude 
 
-import Data.Array (zip, length, uncons, filter, intercalate, head, last, concat)
+import Control.Monad.Free (Free, liftF, wrap)
+import Data.Array (zip, length, uncons, filter, intercalate, singleton)
 import Data.Array.NonEmpty (toArray)
-import Data.Either (Either(..))
+import Data.Either (Either(..), isRight)
 import Data.Foldable (foldMap, foldl)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Functor.App (App(..))
@@ -13,10 +14,11 @@ import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (alaF)
+import Data.String (trim, split, joinWith, toLower, contains)
 import Data.String.Pattern (Pattern(..))
 import Data.String.Regex (regex, match)
 import Data.String.Regex.Flags (noFlags)
-import Data.String.Common (trim, split, joinWith, toLower)
+import Data.Traversable (mapAccumL)
 import Data.Tuple.Nested (type (/\), (/\))
 import Global (readInt)
 
@@ -49,50 +51,68 @@ note s = maybe (empty { errors = [s] })
 showInferred :: ∀ bid bv. Ord bid => Show (Var bv bid) => InferredType bv bid -> String
 showInferred it@{ errors } = if length errors == 0 then show (getType it) else joinWith "\n" errors
 
-haskellEmpty :: { i :: Array String, o :: Array String, code :: String }
-haskellEmpty = { i: [], o: [], code: "id"}
+type HaskellCode = { i :: Free Array String, o :: Free Array String, code :: String }
 
-haskellCode :: ∀ ann. Context String String -> Term ann (Brick String) -> { i :: Array String, o :: Array String, code :: String }
-haskellCode _ TUnit = haskellEmpty
-haskellCode ctx (TBox { bid }) = Map.lookup bid ctx # (maybe haskellEmpty $ case _ of
+haskellEmpty :: HaskellCode
+haskellEmpty = { i: liftF [], o: liftF [], code: "arr id"}
+
+haskellCode :: ∀ ann. Context String String -> Term ann (Brick String) -> String
+haskellCode ctx tm = case haskellCode' ctx tm of
+  { i, o, code } -> "\\" <> intercalate " " (Map.keys $ Map.filter isRight ctx) <> " -> " <> arr (liftF $ foldMap singleton i) i `comp` code `comp` arr o (liftF $ foldMap singleton o)
+
+haskellCode' :: ∀ ann. Context String String -> Term ann (Brick String) -> HaskellCode
+haskellCode' _ TUnit = haskellEmpty
+haskellCode' ctx (TBox { bid }) = Map.lookup bid ctx # (maybe haskellEmpty $ case _ of
     Left perm -> perm # foldMapWithIndex (\i p -> ["a" <> show i] /\ ["a" <> show (p - 1)]) # 
-      \(i /\ o) -> { i, o, code: "(" <> arr (tuple i) (tuple o) <> ")" }
+      \(i /\ o) -> { i: liftF i, o: liftF o, code: arr (liftF i) (liftF o) }
     Right (Ty i o) -> 
-      { i: foldMapWithIndex (\j n -> [toLower n <> show j]) i
-      , o: foldMapWithIndex (\j n -> [toLower n <> show j]) o
+      { i: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) i
+      , o: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) o
       , code: toLower bid }
   )
-haskellCode ctx (TC ts _) = let iocs = map (haskellCode ctx) ts in case head iocs, last iocs of
-  Just { i }, Just { o } -> { i, o, code: "(" <> intercalate " >>> " (map _.code iocs) <> ")" }
-  _, _ -> haskellEmpty
-haskellCode ctx (TT ts _) = foldMapWithIndex (\i -> f i <<< haskellCode ctx) ts # g
+haskellCode' ctx (TC ts _) = map (haskellCode' ctx) ts # uncons # maybe haskellEmpty foldCompose
+  where
+    foldCompose { head, tail } = foldl compose head tail 
+    compose l r = { i: l.i, o: r.o, code : braced $ l.code `comp` arr l.o i' `comp` r.code }
+      where
+        os = foldMap singleton l.o
+        i' = mapAccumL (\os' _ -> uncons os' # maybe { accum: [], value: "_" } \{ head, tail } -> { accum: tail, value: head }) os r.i # _.value
+haskellCode' ctx (TT ts _) = foldMapWithIndex (\i -> f i <<< haskellCode' ctx) ts # g
   where
     f j { i, o, code } = 
       [{ i: map (\n -> n <> "_" <> show j) i
       , o: map (\n -> n <> "_" <> show j) o
       , code
       }]
-    g l = uncons l # maybe haskellEmpty \{ head, tail } ->
-      let is = concat (map _.i l) in let os = concat (map _.o l) in 
-        h is os $ foldl tensor { i: tuple head.i, o: tuple head.o, code: head.code } tail
+    g l = uncons l # maybe haskellEmpty \{ head, tail } -> foldl tensor head tail
+    tensor :: HaskellCode -> HaskellCode -> HaskellCode
     tensor l r = 
-      { i: "(" <> l.i <> ", " <> tuple r.i <> ")"
-      , o: "(" <> l.o <> ", " <> tuple r.o <> ")"
+      { i: wrap [l.i, r.i]
+      , o: wrap [l.o, r.o]
       , code: "(" <> l.code <> " *** " <> r.code <> ")"
       }
-    h is os { i, o, code } = 
-      { i: is
-      , o: os
-      , code: "(" <> arr (tuple is) i <> " >>> " <> code <> " >>> " <> arr o (tuple os) <> ")"
-      }
+
+comp :: String -> String -> String
+comp "arr id" r = r
+comp l "arr id" = l
+comp l r = l <> " >>> " <> r
+
+braced :: String -> String
+braced s = if contains (Pattern " ") s then "(" <> s <> ")" else s
+
+arr :: Free Array String -> Free Array String -> String
+arr l r = if ls == rs then "arr id" else "arr (\\" <> ls <> " -> " <> rs <> ")"
+  where
+    ls = showNested l
+    rs = showNested r
 
 tuple :: Array String -> String
 tuple [s] = s
 tuple ss = "(" <> intercalate ", " ss <> ")"
 
-arr :: String -> String -> String
-arr l r | l == r    = "id"
-        | otherwise = "arr (\\" <> l <> " -> " <> r <> ")"
+showNested :: Free Array String -> String
+showNested = foldFree tuple identity
+
 
 inferType 
   :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv bid) 
