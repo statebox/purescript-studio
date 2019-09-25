@@ -70,13 +70,13 @@ haskellCode' ctx (TBox { bid }) = Map.lookup bid ctx # (maybe haskellEmpty $ cas
       , o: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) o
       , code: toLower bid }
   )
-haskellCode' ctx (TC ts _) = map (haskellCode' ctx) ts # uncons # maybe haskellEmpty foldCompose
+haskellCode' ctx (TC ts _) = map (haskellCode' ctx) ts # uncons # maybe haskellEmpty \{ head, tail } -> foldl compose head tail 
   where
-    foldCompose { head, tail } = foldl compose head tail 
     compose l r = { i: l.i, o: r.o, code : braced $ l.code `comp` arr l.o i' `comp` r.code }
       where
         os = foldMap singleton l.o
-        i' = mapAccumL (\os' _ -> uncons os' # maybe { accum: [], value: "_" } \{ head, tail } -> { accum: tail, value: head }) os r.i # _.value
+        i' = mapAccumL accum os r.i # _.value
+        accum os' _ = uncons os' # maybe { accum: [], value: "_" } \{ head, tail } -> { accum: tail, value: head }
 haskellCode' ctx (TT ts _) = foldMapWithIndex (\i -> f i <<< haskellCode' ctx) ts # g
   where
     f j { i, o, code } = 
