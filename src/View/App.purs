@@ -9,6 +9,8 @@ import Data.Foldable (foldMap, foldr, length, for_)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Function (on)
 import Data.Int (toNumber)
+import Data.Lens (set)
+import Data.Lens.Record (prop)
 import Data.List (List(Nil))
 import Data.Map as Map
 import Data.Maybe
@@ -40,10 +42,14 @@ import View.Term as Term
 
 
 type State = 
-  { pixels :: String
-  , context :: String
+  { input :: Input
   , selectionBox :: Box
   }
+
+_input = prop (SProxy :: SProxy "input")
+_pixels = prop (SProxy :: SProxy "pixels")
+_context = prop (SProxy :: SProxy "context")
+_selectionBox = prop (SProxy :: SProxy "selectionBox")
 
 type Input = 
   { pixels :: String
@@ -75,10 +81,10 @@ appView =
     }
 
 initialState :: Input -> State
-initialState { pixels, context } = { pixels, context, selectionBox: { topLeft: 0 /\ 0, bottomRight: 1 /\ 1 } }
+initialState input = { input, selectionBox: { topLeft: 0 /\ 0, bottomRight: 1 /\ 1 } }
 
 render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
-render { pixels, context, selectionBox } = div [ classes [ ClassName "app" ] ] 
+render { input: { pixels, context }, selectionBox } = div [ classes [ ClassName "app" ] ]
   [ div [ classes [ ClassName "main"] ] 
     [ slot _bricks unit Bricks.bricksView { 
         bricks, matches, selectedBoxes, 
@@ -156,15 +162,16 @@ fromMatchedVars (Bounds bounds) = foldMap fromMatchedVars' >>> foldr (Map.unionW
 handleAction :: ∀ o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit
 handleAction = case _ of
   UpdatePixels p -> do
-    st <- H.modify \st -> st { pixels = p }
-    updateLocation st
+    st <- H.modify $ set (_input <<< _pixels) p
+    updateWindowLocation st.input
   UpdateContext c -> do
-    st <- H.modify \ st -> st { context = c }
-    updateLocation st
-  BricksMessage (Bricks.SelectionChanged sel) -> H.modify_ \st -> st { selectionBox = sel }
+    st <- H.modify $ set (_input <<< _context) c
+    updateWindowLocation st.input
+  BricksMessage (Bricks.SelectionChanged sel) ->
+    H.modify_ $ set _selectionBox sel
 
-updateLocation :: ∀ o m. MonadEffect m => State -> H.HalogenM State Action ChildSlots o m Unit
-updateLocation { pixels, context } =
+updateWindowLocation :: ∀ o m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots o m Unit
+updateWindowLocation { pixels, context } =
   liftEffect do
     w <- window
     l <- location w
