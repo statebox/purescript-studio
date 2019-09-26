@@ -32,6 +32,7 @@ import Web.HTML.Window (location)
 
 import Debug.Trace
 
+import Bricks as Bricks
 import Bricks
 import InferType
 import HaskellCode (haskellCode)
@@ -105,7 +106,7 @@ render { input: { pixels, context }, selectionBox } = div [ classes [ ClassName 
     , slot _term unit Term.termView { term: bricks.term, selection: selectionPath } \_ -> Nothing
   ]
   where
-    bricks = fromPixels (parsePixels pixels) $ (\s -> s == " " || s == "-" || s == "=")
+    bricks = Bricks.fromPixels (parsePixels pixels) $ (\s -> s == " " || s == "-" || s == "=")
     eEnv = (<>) <$> parseContext context <*> pure defaultEnv
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
     result /\ matches = eEnv # either (\envError -> envError /\ Map.empty) 
