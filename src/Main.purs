@@ -61,7 +61,7 @@ main = do
     
   --   run input "body"
 
-run :: ∀ a. { pixels :: String, context :: String } -> String -> Aff (Maybe (HalogenIO App.Query a Aff))
+run :: ∀ a. App.Input -> String -> Aff (Maybe (HalogenIO App.Query a Aff))
 run input selector = do 
   elemMaybe <- selectElement (QuerySelector selector)
   runUI App.appView input `traverse` elemMaybe
@@ -69,7 +69,7 @@ run input selector = do
 type APIF a = { setPixelsAndContext :: String -> String -> a }
 
 -- | This returns an API to make invocation from JavaScript easier.
-runJs1 :: { pixels :: String, context :: String } -> String -> Aff (APIF (Effect Unit))
+runJs1 :: App.Input -> String -> Aff (APIF (Effect Unit))
 runJs1 input selector = do
   ioMaybe <- run input selector
   pure { setPixelsAndContext: \pixels ctx -> do
@@ -84,7 +84,7 @@ runJs1 input selector = do
 
 -- | Install the component at the specified selector and connect it to an on-message listener on the
 -- | window so we can send commands to the component using window.postMessage.
-runJs2 :: { pixels :: String, context :: String } -> String -> Aff Unit
+runJs2 :: App.Input -> String -> Aff Unit
 runJs2 input selector = do
   api <- runJs1 input selector
   liftEffect do
@@ -99,7 +99,7 @@ runJs2 input selector = do
 
 --------------------------------------------------------------------------------
 
-parseHash :: String -> { pixels :: String, context :: String }
+parseHash :: String -> App.Input
 parseHash hash =
   let defaultInput = { pixels: trim initialPixels, context: trim initialContext } in
   regex "pixels=([^&]*)&context=(.*)" ignoreCase # either (\_ -> defaultInput) \re -> 

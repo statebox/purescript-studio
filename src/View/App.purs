@@ -69,9 +69,7 @@ appView =
   H.mkComponent
     { initialState
     , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction
-                                     , handleQuery = handleQuery
-                                     }
+    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction, handleQuery = handleQuery }
     }
 
 initialState :: Input -> State
