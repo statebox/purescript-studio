@@ -14,7 +14,7 @@ import Data.Map as Map
 import Data.Maybe
 import Data.Set as Set
 import Data.String.Pattern (Pattern(..))
-import Data.String.Common (trim, split)
+import Data.String.Common (split)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
@@ -31,6 +31,7 @@ import Debug.Trace
 
 import Bricks
 import InferType
+import HaskellCode (haskellCode)
 import Model
 
 import View.Bricks as Bricks
@@ -97,7 +98,7 @@ render { pixels, context, selectionBox } = div [ classes [ ClassName "app" ] ]
     , slot _term unit Term.termView { term: bricks.term, selection: selectionPath } \_ -> Nothing
   ]
   where
-    bricks = fromPixels (parsePixels pixels) $ (\s -> s == "0" || s == " " || s == "-" || s == "=")
+    bricks = fromPixels (parsePixels pixels) $ (\s -> s == " " || s == "-" || s == "=")
     eEnv = (<>) <$> parseContext context <*> pure defaultEnv
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
     result /\ matches = eEnv # either (\envError -> envError /\ Map.empty) 
@@ -170,4 +171,4 @@ updateLocation { pixels, context } =
 
 
 parsePixels :: String -> Array (Array String)
-parsePixels = map (split (Pattern "")) <<< split (Pattern "\n") <<< trim
+parsePixels = map (split (Pattern "")) <<< split (Pattern "\n")

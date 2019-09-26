@@ -73,7 +73,22 @@ showTypes ls middle rs =
     replFv m bv = { accum: m, value: show bv }
 
 
-type Context bv bid = Map bid (Either (Array Int) (Ty bv))
+data Color = White | Black
+instance showColor :: Show Color where
+  show White = "white"
+  show Black = "black"
+
+data TypeDecl bv 
+  = Perm (Array Int)
+  | Spider Color Int Int
+  | Gen (Ty bv)
+
+isGen :: ∀ bv. TypeDecl bv -> Boolean
+isGen (Gen _) = true
+isGen _ = false
+
+type Context bv bid = Map bid (TypeDecl bv)
+
 
 data Var bv bid 
   = FreeVar (Int /\ Brick bid) -- Easy way to generate unique free variables from bricks
