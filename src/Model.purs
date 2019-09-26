@@ -17,8 +17,8 @@ import Data.Tuple.Nested (type (/\))
 data Term ann brick
   = TUnit
   | TBox brick
-  | TC (Array (Term ann brick)) ann --^ Composition
-  | TT (Array (Term ann brick)) ann --^ Tensor
+  | TC (Array (Term ann brick)) ann -- ^ Composition
+  | TT (Array (Term ann brick)) ann -- ^ Tensor
 
 instance foldableTerm :: Foldable (Term ann) where
   foldr f z = foldrDefault f z
