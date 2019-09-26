@@ -5,7 +5,7 @@ import Prelude hiding (div)
 import Data.Array (groupBy, sortBy)
 import Data.Array.NonEmpty (NonEmptyArray, head)
 import Data.Either (either, hush)
-import Data.Foldable (foldMap, foldr, length)
+import Data.Foldable (foldMap, foldr, length, for_)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Function (on)
 import Data.Int (toNumber)
@@ -19,6 +19,7 @@ import Data.Symbol (SProxy(..))
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Effect.Class (class MonadEffect, liftEffect)
+import Global (encodeURI)
 import Halogen as H
 import Halogen.HTML hiding (map, head, i)
 import Halogen.HTML.Properties (classes, value, readOnly)
@@ -167,7 +168,9 @@ updateLocation { pixels, context } =
   liftEffect do
     w <- window
     l <- location w
-    setHash ("pixels=" <> pixels <> "&context=" <> context) l
+    for_ (encodeURI pixels) \p -> 
+      for_ (encodeURI context) \c -> 
+        setHash ("pixels=" <> p <> "&context=" <> c) l
 
 
 parsePixels :: String -> Array (Array String)
