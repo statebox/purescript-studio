@@ -9,18 +9,18 @@ import View.App (Input) as App
 
 -- | These commands form a Variant, which makes them easy to send from JavaScript to the component.
 type Command = Variant
-  ( setPixels    :: App.Input
+  ( setInput     :: App.Input
   , setShowWires :: Boolean
   )
 
-setPixels :: String -> String -> Command
-setPixels pixels context = Variant.inj (SProxy :: SProxy "setPixels") { pixels, context }
+setInput :: String -> String -> Command
+setInput pixels context = Variant.inj (SProxy :: SProxy "setInput") { pixels, context }
 
 setShowWires :: Boolean -> Command
 setShowWires = Variant.inj (SProxy :: SProxy "setShowWires")
 
 showCommand :: Command -> String
 showCommand = Variant.match
-  { setPixels:    \{pixels, context} -> pixels <> "; " <> context
+  { setInput:     \{pixels, context} -> pixels <> "; " <> context
   , setShowWires: \showWires         -> show showWires
   }

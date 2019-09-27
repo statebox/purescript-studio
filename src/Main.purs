@@ -65,16 +65,16 @@ run input selector = do
   elemMaybe <- selectElement (QuerySelector selector)
   runUI App.appView input `traverse` elemMaybe
 
-type APIF a = { setPixelsAndContext :: String -> String -> a }
+type APIF a = { setInput :: String -> String -> a }
 
 -- | This returns an API to make invocation from JavaScript easier.
 runJs1 :: App.Input -> String -> Aff (APIF (Effect Unit))
 runJs1 input selector = do
   ioMaybe <- run input selector
-  pure { setPixelsAndContext: \pixels ctx -> do
-           log "setPixelsAndContext: here"
-           p <- maybe (log "setPixelsAndContext: pixels are Nothing") runHalogenAff $ UpdatePixels pixels `performAppAction` ioMaybe
-           c <- maybe (log "setPixelsAndContext: context is Nothing") runHalogenAff $ UpdateContext ctx `performAppAction` ioMaybe
+  pure { setInput: \pixels ctx -> do
+           log "setInput: here"
+           p <- maybe (log "setInput: pixels are Nothing") runHalogenAff $ UpdatePixels pixels `performAppAction` ioMaybe
+           c <- maybe (log "setInput: context is Nothing") runHalogenAff $ UpdateContext ctx `performAppAction` ioMaybe
            pure unit
        }
   where
@@ -90,7 +90,7 @@ runJs2 input selector = do
     log $ "runJs2: pixels, context: " <> input.pixels <> ", " <> input.context
     messageListener <- eventListener $ \e -> do
       log $ "runJs2: event data: " <> (fromMaybe "not a MessageEvent" <<< map MessageEvent.data_ <<< MessageEvent.fromEvent $ e)
-      api.setPixelsAndContext input.pixels input.context
+      api.setInput input.pixels input.context
       pure unit
     HTML.window >>= Window.toEventTarget
                 >>> addEventListener ET.message messageListener false
