@@ -33,15 +33,11 @@ import Model
 import Common (VoidF)
 
 
-type State = 
-  { bricks :: Bricks String
-  , matches :: InputOutput String
-  , context :: Context String String
-  , selectedBoxes :: Set (Brick String)
-  , selection :: Box
+type State = Record (InputRow
+  ( selection :: Box
   , mouseDownFrom :: Maybe Box
   , showWires :: Boolean
-  }
+  ))
 
 _selection = prop (SProxy :: SProxy "selection")
 _bottomRight = prop (SProxy :: SProxy "bottomRight")
@@ -56,12 +52,15 @@ data Action
   | OnMouseMove Box
   | OnMouseUp
 
-type Input = 
-  { bricks :: Bricks String
+type InputRow r =
+  ( bricks :: Bricks String
   , matches :: InputOutput String
   , context :: Context String String
   , selectedBoxes :: Set (Brick String)
-  }
+  | r
+  )
+
+type Input = Record (InputRow ())
 
 data Output = SelectionChanged Box
 
