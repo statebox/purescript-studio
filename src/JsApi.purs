@@ -5,11 +5,11 @@ import Data.Variant as Variant
 import Data.Variant (Variant)
 import Data.Symbol (SProxy(..))
 
--- | These commands can easily be sent from JavaScript.
+import View.App (Input) as App
+
+-- | These commands form a Variant, which makes them easy to send from JavaScript to the component.
 type Command = Variant
-  ( setPixels    :: { pixels  :: String
-                    , context :: String
-                    }
+  ( setPixels    :: App.Input
   , setShowWires :: Boolean
   )
 
