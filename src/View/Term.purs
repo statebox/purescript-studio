@@ -6,12 +6,9 @@ import Data.Foldable (intercalate)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List(..))
 import Data.Maybe
-import Data.Tuple.Nested (type (/\), (/\))
 import Halogen as H
 import Halogen.HTML hiding (map)
 import Halogen.HTML.Properties (classes)
-
-import Debug.Trace
 
 import Model
 import Common (VoidF)
@@ -39,12 +36,11 @@ termView =
     }
 
 initialState :: Input -> State
-initialState st@{ term } = trace (json term) \_ -> st
+initialState st@{ term } = st
 
 handleAction :: ∀ o m. Action -> H.HalogenM State Action () o m Unit
 handleAction = case _ of
   Update st@{ term } -> do
-    traceM (json term)
     H.put st
 
 render :: ∀ m. State -> H.ComponentHTML Action () m
@@ -67,9 +63,3 @@ format "0" = i_ [ text "I" ]
 format "-" = i_ [ text "id" ]
 format "=" = i_ [ text "id" ]
 format bid = span_ [ text bid ]
-
-json :: Term Ann (Brick String) -> String
-json TUnit = """{ "type": "unit" }"""
-json (TBox { bid }) = """{ "type": "morphism", "name": """ <> "\"" <> bid <> "\"" <> """" }"""
-json (TC terms _) = """{ "type": "compose", "terms": [""" <> intercalate ", " (map json terms) <> """] }"""
-json (TT terms _) = """{ "type": "tensor", "terms": [""" <> intercalate ", " (map json terms) <> """] }"""

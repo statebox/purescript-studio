@@ -35,8 +35,10 @@ import Debug.Trace
 import Bricks as Bricks
 import Bricks
 import InferType
-import HaskellCode (haskellCode)
 import Model
+
+import Output.Haskell (haskellCode)
+import Output.JSON (json)
 
 import View.Bricks as Bricks
 import View.Term as Term
@@ -110,7 +112,8 @@ render { input: { pixels, context }, selectionBox } = div [ classes [ ClassName 
     eEnv = (<>) <$> parseContext context <*> pure defaultEnv
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
     result /\ matches = eEnv # either (\envError -> envError /\ Map.empty) 
-      \env -> let inferred = trace (haskellCode env bricks.term) $ \_ -> inferType bricks.term env in 
+      \env -> trace (haskellCode env bricks.term) $ \_ -> trace (json bricks.term) $ \_ -> 
+        let inferred = inferType bricks.term env in 
         showInferred inferred /\ fromMatchedVars inferred.bounds (inferred.matches <> typeToMatches inferred.type)
     sub /\ selectionPath = subTerm selectionBox bricks.term Nil
     selectedBoxes = foldMap (\bid -> Set.singleton bid) sub

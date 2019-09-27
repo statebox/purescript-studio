@@ -1,4 +1,4 @@
-module HaskellCode where
+module Output.Haskell where
 
 import Prelude 
 
@@ -16,24 +16,25 @@ import Data.Tuple.Nested ((/\))
 import Common
 import Model
 
+haskellCode :: ∀ ann. Context String String -> Term ann (Brick String) -> String
+haskellCode ctx tm = case haskellCode' ctx tm of
+  { i, o, code } -> args <> arr (tuple $ foldMap singleton i) (showNested i) `comp` code `comp` arr (showNested o) (tuple $ foldMap singleton o)
+  where
+    gens = Map.keys $ Map.filter isGen ctx
+    args = if length gens > 0 then "\\" <> toLower (intercalate " " gens) <> " -> " else ""
+
+
 type HaskellCode = { i :: Free Array String, o :: Free Array String, code :: String }
 
 haskellEmpty :: HaskellCode
-haskellEmpty = { i: liftF [], o: liftF [], code: "arr id"}
-
-haskellCode :: ∀ ann. Context String String -> Term ann (Brick String) -> String
-haskellCode ctx tm = case haskellCode' ctx tm of
-  { i, o, code } -> args <> arr (liftF $ foldMap singleton i) i `comp` code `comp` arr o (liftF $ foldMap singleton o)
-  where
-    gens = Map.keys $ Map.filter isGen ctx
-    args = if length gens > 0 then "\\" <> intercalate " " gens <> " -> " else ""
+haskellEmpty = { i: liftF [], o: liftF [], code: "returnA" }
 
 haskellCode' :: ∀ ann. Context String String -> Term ann (Brick String) -> HaskellCode
 haskellCode' _ TUnit = haskellEmpty
 haskellCode' ctx (TBox { bid }) = Map.lookup bid ctx # (maybe haskellEmpty $ case _ of
     Perm perm -> perm # foldMapWithIndex (\i p -> ["a" <> show i] /\ ["a" <> show (p - 1)]) # 
-      \(i /\ o) -> { i: liftF i, o: liftF o, code: arr (liftF i) (liftF o) }
-    Spider _ l r -> { i: liftF i, o: liftF o, code: "(\\" <> tuple i <> " -> " <> out <> ")" }
+      \(i /\ o) -> { i: liftF i, o: liftF o, code: arr (tuple i) (tuple o) }
+    Spider _ l r -> { i: liftF i, o: liftF o, code: arr (tuple i) out }
       where
         i = 0 ..< l <#> \n -> "i" <> show n
         o = 0 ..< r <#> \n -> "o" <> show n
@@ -47,7 +48,7 @@ haskellCode' ctx (TBox { bid }) = Map.lookup bid ctx # (maybe haskellEmpty $ cas
   )
 haskellCode' ctx (TC ts _) = map (haskellCode' ctx) ts # uncons # maybe haskellEmpty \{ head, tail } -> foldl compose head tail 
   where
-    compose l r = { i: l.i, o: r.o, code : braced $ l.code `comp` arr l.o i' `comp` r.code }
+    compose l r = { i: l.i, o: r.o, code : braced $ l.code `comp` arr (showNested l.o) (showNested i') `comp` r.code }
       where
         os = foldMap singleton l.o
         i' = mapAccumL accum os r.i # _.value
@@ -68,18 +69,15 @@ haskellCode' ctx (TT ts _) = foldMapWithIndex (\i -> f i <<< haskellCode' ctx) t
       }
 
 comp :: String -> String -> String
-comp "arr id" r = r
-comp l "arr id" = l
+comp "returnA" r = r
+comp l "returnA" = l
 comp l r = l <> " >>> " <> r
 
 braced :: String -> String
 braced s = if contains (Pattern " ") s then "(" <> s <> ")" else s
 
-arr :: Free Array String -> Free Array String -> String
-arr l r = if ls == rs then "arr id" else "arr (\\" <> ls <> " -> " <> rs <> ")"
-  where
-    ls = showNested l
-    rs = showNested r
+arr :: String -> String -> String
+arr ls rs = if ls == rs then "returnA" else "arr (\\" <> ls <> " -> " <> rs <> ")"
 
 tuple :: Array String -> String
 tuple [s] = s
