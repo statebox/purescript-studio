@@ -23,9 +23,9 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURI)
 import Halogen as H
-import Halogen.HTML hiding (map, head, i)
+import Halogen.HTML hiding (map, head, i, prop)
 import Halogen.HTML.Properties (classes, value, readOnly)
-import Halogen.HTML.Events (onValueInput)
+import Halogen.HTML.Events (onValueInput, onClick)
 import Web.HTML (window)
 import Web.HTML.Location (setHash)
 import Web.HTML.Window (location)
@@ -42,7 +42,7 @@ import Output.JSON (json)
 
 import View.Bricks as Bricks
 import View.Term as Term
-
+import View.CopyToClipboard (copyToClipboard)
 
 type State = 
   { input :: Input
@@ -64,6 +64,7 @@ data Action
   = UpdatePixels String
   | UpdateContext String
   | BricksMessage Bricks.Output
+  | CopyToClipboard String
 
 
 type ChildSlots = 
@@ -102,6 +103,8 @@ render { input: { pixels, context }, selectionBox } = div [ classes [ ClassName 
       , textarea [ value pixels, onValueInput (Just <<< UpdatePixels) ]
       , h2_ [ text "Context"]
       , textarea [ value context, onValueInput (Just <<< UpdateContext) ]
+      , h2_ [ text "Copy serialized output to clipboard"]
+      , div_ buttons
       ]
     ]
     , h2_ [ text "Term view" ]
@@ -111,10 +114,15 @@ render { input: { pixels, context }, selectionBox } = div [ classes [ ClassName 
     bricks = Bricks.fromPixels (parsePixels pixels) $ (\s -> s == " " || s == "-" || s == "=")
     eEnv = (<>) <$> parseContext context <*> pure defaultEnv
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
-    result /\ matches = eEnv # either (\envError -> envError /\ Map.empty) 
-      \env -> trace (haskellCode env bricks.term) $ \_ -> trace (json bricks.term) $ \_ -> 
-        let inferred = inferType bricks.term env in 
-        showInferred inferred /\ fromMatchedVars inferred.bounds (inferred.matches <> typeToMatches inferred.type)
+    { result, matches, buttons } = eEnv # either (\envError -> { result: envError, matches: Map.empty, buttons: [] }) 
+      \env -> let inferred = inferType bricks.term env in 
+        { result: showInferred inferred
+        , matches: fromMatchedVars inferred.bounds (inferred.matches <> typeToMatches inferred.type)
+        , buttons: 
+          [ button [ onClick \_ -> Just (CopyToClipboard $ json bricks.term) ] [ text "JSON" ]
+          , button [ onClick \_ -> Just (CopyToClipboard $ haskellCode env bricks.term) ] [ text "Haskell" ]
+          ]
+        }
     sub /\ selectionPath = subTerm selectionBox bricks.term Nil
     selectedBoxes = foldMap (\bid -> Set.singleton bid) sub
     selectionType = hush eEnv <#> inferType sub <#> showInferred
@@ -173,6 +181,8 @@ handleAction = case _ of
     updateWindowLocation st.input
   BricksMessage (Bricks.SelectionChanged sel) ->
     H.modify_ $ set _selectionBox sel
+  CopyToClipboard s ->
+    liftEffect (copyToClipboard s)
 
 updateWindowLocation :: ∀ o m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots o m Unit
 updateWindowLocation { pixels, context } =
