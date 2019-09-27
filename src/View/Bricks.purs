@@ -5,7 +5,6 @@ import Prelude hiding (div)
 import Data.Array ((!!), intercalate, sortWith)
 import Data.Foldable (foldMap)
 import Data.FoldableWithIndex (foldMapWithIndex)
-import Data.Either (Either(..))
 import Data.Int (toNumber)
 import Data.Lens ((+~))
 import Data.Lens.Record (prop)
@@ -108,16 +107,23 @@ render { bricks: { width, height, boxes }, selection, matches, context, selected
     <> [rect (selectionBox selection) "selection"]
   ]
 
-renderBrick :: ∀ m. InputOutput String -> Maybe (Either (Array Int) (Ty String)) -> Brick String 
+renderBrick :: ∀ m. InputOutput String -> Maybe (TypeDecl String) -> Brick String 
   -> { className :: String, content :: Array (H.ComponentHTML Action () m) }
-renderBrick matches (Just (Right _)) b@{ box } = { 
-  className: "box", 
-  content: 
-    renderBox b
-    <> maybe [] (foldMap (renderLines Input b)) (lookup (box /\ Input) matches)
-    <> maybe [] (foldMap (renderLines Output b)) (lookup (box /\ Output) matches)
-}
-renderBrick matches (Just (Left perm)) b = { className: "wires", content: renderPerm matches b perm }
+renderBrick matches (Just (Gen _)) b@{ box } = 
+  { className: "box"
+  , content: 
+      renderBox b
+      <> maybe [] (foldMap (renderLines true Input b)) (lookup (box /\ Input) matches)
+      <> maybe [] (foldMap (renderLines true Output b)) (lookup (box /\ Output) matches)
+  }
+renderBrick matches (Just (Perm perm)) b = { className: "wires", content: renderPerm matches b perm }
+renderBrick matches (Just (Spider c _ _)) b@{ box } = 
+  { className: "wires"
+  , content: 
+      maybe [] (foldMap (renderLines false Input b)) (lookup (box /\ Input) matches) <>
+      maybe [] (foldMap (renderLines false Output b)) (lookup (box /\ Output) matches) <>
+      renderNode b c
+  }
 renderBrick _ Nothing _ = { className: "box", content: [] }
 
 renderBox :: ∀ m. Brick String -> Array (H.ComponentHTML Action () m)
@@ -133,24 +139,27 @@ renderBox { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} =
     mx = (toNumber xl + toNumber xr) / 2.0
     my = (toNumber yt + toNumber yb) / 2.0
 
-renderLines :: ∀ m. Side -> Brick String -> Match String -> Array (H.ComponentHTML Action () m)
-renderLines side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y, validity } = 
+renderNode :: ∀ m. Brick String -> Color -> Array (H.ComponentHTML Action () m)
+renderNode { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} color = 
+  [ S.circle [ S.cx mx, S.cy my, S.r 0.05, svgClasses [ ClassName "node", ClassName (show color) ] ]
+  ]
+  where
+    mx = (toNumber xl + toNumber xr) / 2.0
+    my = (toNumber yt + toNumber yb) / 2.0
+
+renderLines :: ∀ m. Boolean -> Side -> Brick String -> Match String -> Array (H.ComponentHTML Action () m)
+renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y, validity } = 
   [ S.g [ svgClasses [ ClassName "object", validityClassName validity ] ] $
-    case side of
-      Input ->
-        [ S.path [ svgClasses [ ClassName "line" ], S.d [ S.Abs (S.M x y), S.Abs (S.C (cpx - 0.07) y (cpx - 0.07) cpy (mx - 0.18) cpy) ] ]
-        ] <> renderObject Input x m
-      Output -> 
-        [ S.path [ svgClasses [ ClassName "line" ], S.d [ S.Abs (S.M x y), S.Abs (S.C (cpx + 0.07) y (cpx + 0.07) cpy (mx + 0.18) cpy) ] ]
-        ] <> renderObject Output x m
+    [ S.path [ svgClasses [ ClassName "line" ], S.d [ S.Abs (S.M x y), S.Abs (S.C cpx y cpx cpy mx cpy) ] ]
+    ] <> renderObject side x m
   ]
   where 
     x = toNumber $ if side == Input then xl else xr
-    mx = (toNumber xl + toNumber xr) / 2.0
+    mx = (toNumber xl + toNumber xr) / 2.0 + if toBox then if side == Input then -0.18 else 0.18 else 0.0
     my = (toNumber yt + toNumber yb) / 2.0
     height = toNumber yt - toNumber yb
     cpx = (mx + x) / 2.0
-    cpy = (my + (my - y) * 0.3 / height)
+    cpy = (my + (my - y) * (if toBox then 0.3 else 0.05) / height)
 
 renderObject :: ∀ m. Side -> Number -> Match String -> Array (H.ComponentHTML Action () m)
 renderObject Input x { y, validity, object } = 
@@ -188,7 +197,7 @@ renderPerm matches { box: b@{ topLeft: xl /\ yt, bottomRight: xr /\ yb } } perm 
     xln = toNumber xl
     xrn = toNumber xr
     cpx = (xln + xrn) / 2.0
-
+  
 sideClassName :: Side -> ClassName
 sideClassName side = ClassName $ if side == Input then "input" else "output"
 

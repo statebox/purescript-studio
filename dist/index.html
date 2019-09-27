@@ -138,8 +138,19 @@ h2 {
   font-style: italic;
   padding-top: 5px;
 }
+.wires {
+  fill: #444;
+}
 .wires rect:first-child {
   fill: none;
+}
+.wires .node {
+  stroke: #444;
+  stroke-width: 0.01;
+  z-index: 1;
+}
+.wires .node.white {
+  fill: #fff;
 }
 .bricks:focus .wires.selected rect:first-child {
   fill: rgba(0, 112, 204, 0.1);
@@ -209,4 +220,4 @@ textarea {
 }
 </style>
 <body></body>
-<script>PS["Halogen.Aff.Util"].runHalogenAff(PS["Main"].run({ pixels: "1", context: "1: a -> b" })("body"))()</script>
+<script>//PS["Halogen.Aff.Util"].runHalogenAff(PS["Main"].run({ pixels: "1", context: "1: a -> b" })("body"))()</script>

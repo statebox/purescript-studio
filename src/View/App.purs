@@ -5,20 +5,23 @@ import Prelude hiding (div)
 import Data.Array (groupBy, sortBy)
 import Data.Array.NonEmpty (NonEmptyArray, head)
 import Data.Either (either, hush)
-import Data.Foldable (foldMap, foldr, length)
+import Data.Foldable (foldMap, foldr, length, for_)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Function (on)
 import Data.Int (toNumber)
+import Data.Lens (set)
+import Data.Lens.Record (prop)
 import Data.List (List(Nil))
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
 import Data.String.Pattern (Pattern(..))
-import Data.String.Common (trim, split)
+import Data.String.Common (split)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Effect.Class (class MonadEffect, liftEffect)
+import Global (encodeURI)
 import Halogen as H
 import Halogen.HTML hiding (map, head, i)
 import Halogen.HTML.Properties (classes, value, readOnly)
@@ -27,19 +30,29 @@ import Web.HTML (window)
 import Web.HTML.Location (setHash)
 import Web.HTML.Window (location)
 
+import Debug.Trace
+
+import Bricks as Bricks
 import Bricks
 import InferType
 import Model
+
+import Output.Haskell (haskellCode)
+import Output.JSON (json)
 
 import View.Bricks as Bricks
 import View.Term as Term
 
 
 type State = 
-  { pixels :: String
-  , context :: String
+  { input :: Input
   , selectionBox :: Box
   }
+
+_input = prop (SProxy :: SProxy "input")
+_pixels = prop (SProxy :: SProxy "pixels")
+_context = prop (SProxy :: SProxy "context")
+_selectionBox = prop (SProxy :: SProxy "selectionBox")
 
 type Input = 
   { pixels :: String
@@ -73,10 +86,10 @@ appView =
     }
 
 initialState :: Input -> State
-initialState { pixels, context } = { pixels, context, selectionBox: { topLeft: 0 /\ 0, bottomRight: 1 /\ 1 } }
+initialState input = { input, selectionBox: { topLeft: 0 /\ 0, bottomRight: 1 /\ 1 } }
 
 render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
-render { pixels, context, selectionBox } = div [ classes [ ClassName "app" ] ] 
+render { input: { pixels, context }, selectionBox } = div [ classes [ ClassName "app" ] ]
   [ div [ classes [ ClassName "main"] ] 
     [ slot _bricks unit Bricks.bricksView { 
         bricks, matches, selectedBoxes, 
@@ -97,11 +110,12 @@ render { pixels, context, selectionBox } = div [ classes [ ClassName "app" ] ]
     , slot _term unit Term.termView { term: bricks.term, selection: selectionPath } \_ -> Nothing
   ]
   where
-    bricks = fromPixels (parsePixels pixels) $ (\s -> s == "0" || s == " " || s == "-" || s == "=")
+    bricks = Bricks.fromPixels (parsePixels pixels) $ (\s -> s == " " || s == "-" || s == "=")
     eEnv = (<>) <$> parseContext context <*> pure defaultEnv
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
     result /\ matches = eEnv # either (\envError -> envError /\ Map.empty) 
-      \env -> let inferred = inferType bricks.term env in 
+      \env -> trace (haskellCode env bricks.term) $ \_ -> trace (json bricks.term) $ \_ -> 
+        let inferred = inferType bricks.term env in 
         showInferred inferred /\ fromMatchedVars inferred.bounds (inferred.matches <> typeToMatches inferred.type)
     sub /\ selectionPath = subTerm selectionBox bricks.term Nil
     selectedBoxes = foldMap (\bid -> Set.singleton bid) sub
@@ -154,25 +168,28 @@ fromMatchedVars (Bounds bounds) = foldMap fromMatchedVars' >>> foldr (Map.unionW
 handleAction :: ∀ o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit
 handleAction = case _ of
   UpdatePixels p -> do
-    st <- H.modify \st -> st { pixels = p }
-    updateLocation st
+    st <- H.modify $ set (_input <<< _pixels) p
+    updateWindowLocation st.input
   UpdateContext c -> do
-    st <- H.modify \ st -> st { context = c }
-    updateLocation st
-  BricksMessage (Bricks.SelectionChanged sel) -> H.modify_ \st -> st { selectionBox = sel }
+    st <- H.modify $ set (_input <<< _context) c
+    updateWindowLocation st.input
+  BricksMessage (Bricks.SelectionChanged sel) ->
+    H.modify_ $ set _selectionBox sel
 
 handleQuery :: ∀ o m a. MonadEffect m => Query a -> H.HalogenM State Action ChildSlots o m (Maybe a)
 handleQuery (DoAction x next) = do
   handleAction x
   pure (Just next)
 
-updateLocation :: ∀ o m. MonadEffect m => State -> H.HalogenM State Action ChildSlots o m Unit
-updateLocation { pixels, context } =
+updateWindowLocation :: ∀ o m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots o m Unit
+updateWindowLocation { pixels, context } =
   liftEffect do
     w <- window
     l <- location w
-    setHash ("pixels=" <> pixels <> "&context=" <> context) l
+    for_ (encodeURI pixels) \p -> 
+      for_ (encodeURI context) \c -> 
+        setHash ("pixels=" <> p <> "&context=" <> c) l
 
 
 parsePixels :: String -> Array (Array String)
-parsePixels = map (split (Pattern "")) <<< split (Pattern "\n") <<< trim
+parsePixels = map (split (Pattern "")) <<< split (Pattern "\n")
