@@ -33,11 +33,12 @@ import Model
 import Common (VoidF)
 
 
-type State = Record (InputRow
-  ( selection :: Box
+type State =
+  { input :: Input
+  , selection :: Box
   , mouseDownFrom :: Maybe Box
   , showWires :: Boolean
-  ))
+  }
 
 _selection = prop (SProxy :: SProxy "selection")
 _bottomRight = prop (SProxy :: SProxy "bottomRight")
@@ -52,15 +53,12 @@ data Action
   | OnMouseMove Box
   | OnMouseUp
 
-type InputRow r =
-  ( bricks :: Bricks String
+type Input =
+  { bricks :: Bricks String
   , matches :: InputOutput String
   , context :: Context String String
   , selectedBoxes :: Set (Brick String)
-  | r
-  )
-
-type Input = Record (InputRow ())
+  }
 
 data Output = SelectionChanged Box
 
@@ -75,11 +73,8 @@ bricksView =
     }
 
 initialState :: Input -> State
-initialState { bricks, matches, context, selectedBoxes } = 
-  { bricks
-  , matches
-  , context
-  , selectedBoxes
+initialState input =
+  { input
   , selection: 
     { topLeft: 0 /\ 0
     , bottomRight: 0 /\ 0
@@ -89,7 +84,7 @@ initialState { bricks, matches, context, selectedBoxes } =
   }
 
 render :: ∀ m. State -> H.ComponentHTML Action () m
-render { bricks: { width, height, boxes }, selection, matches, context, selectedBoxes, showWires } = div 
+render { input: { bricks: { width, height, boxes }, matches, context, selectedBoxes }, selection, showWires } = div
   [ ref (RefLabel "bricks")
   , classes [ ClassName "bricks", ClassName $ if showWires then "show-wires" else "show-bricks" ] 
   , tabIndex 0
@@ -213,8 +208,8 @@ selectionBox selection = { topLeft, bottomRight }
 
 handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action () Output m Unit
 handleAction = case _ of
-  Update { bricks, matches, context, selectedBoxes } -> H.modify_ \st -> 
-    st { bricks = bricks, matches = matches, context = context, selectedBoxes = selectedBoxes }
+  Update input ->
+    H.modify_ $ \st -> st { input = input }
   GetFocus -> do
     mb <- H.getRef (RefLabel "bricks")
     maybe (pure unit) (liftEffect <<< focus <<< unsafeCoerce) mb
@@ -244,11 +239,12 @@ handleAction = case _ of
           topLeft: min (fst b0.topLeft) (fst b1.topLeft) /\ min (snd b0.topLeft) (snd b1.topLeft),
           bottomRight: (max (fst b0.bottomRight) (fst b1.bottomRight) - 1) /\ (max (snd b0.bottomRight) (snd b1.bottomRight) - 1)
         }
-  OnMouseUp -> H.modify_ \st -> st { mouseDownFrom = Nothing }
+  OnMouseUp ->
+    H.modify_ $ \st -> st { mouseDownFrom = Nothing }
 
 updateSelection :: ∀ m. (Box -> Box) -> H.HalogenM State Action () Output m Unit
 updateSelection f = do
-  { selection, bricks: { width, height }} <- H.get
+  { selection, input: { bricks: { width, height } } } <- H.get
   let { topLeft, bottomRight } = f selection
   let selection' = { topLeft: clamp2d width height topLeft, bottomRight: clamp2d width height bottomRight }
   H.modify_ \st -> st { selection = selection' } 
