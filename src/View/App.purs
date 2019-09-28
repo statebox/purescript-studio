@@ -5,6 +5,7 @@ import Prelude hiding (div)
 import Data.Array (groupBy, sortBy)
 import Data.Array.NonEmpty (NonEmptyArray, head)
 import Data.Either (either, hush)
+import Data.Either.Nested (type (\/))
 import Data.Foldable (foldMap, foldr, length, for_)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Function (on)
@@ -88,44 +89,57 @@ initialState :: Input -> State
 initialState input = { input, selectionBox: { topLeft: 0 /\ 0, bottomRight: 1 /\ 1 } }
 
 render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
-render { input: { pixels, context }, selectionBox } = div [ classes [ ClassName "app" ] ]
+render st = div [ classes [ ClassName "app" ] ]
   [ div [ classes [ ClassName "main"] ] 
-    [ slot _bricks unit Bricks.bricksView { 
-        bricks, matches, selectedBoxes, 
-        context: eEnv # either (\_ -> defaultEnv) identity 
-      } (Just <<< BricksMessage)
+    [ slot _bricks unit Bricks.bricksView bricksInput (Just <<< BricksMessage)
     , aside []
       [ h2_ [ text "Inferred type" ]
       , div [ classes [ ClassName "fieldset" ]] $
-        [ label_ [ text "Whole" ], input [ value result, readOnly true ] ]
+        [ label_ [ text "Whole" ], input [ value termTypeStr, readOnly true ] ]
         <> (selectionType # maybe [] \s -> [ label_ [ text "Selection" ], input [ value s, readOnly true ] ])
       , h2_ [ text "Pixels"]
-      , textarea [ value pixels, onValueInput (Just <<< UpdatePixels) ]
+      , textarea [ value st.input.pixels, onValueInput (Just <<< UpdatePixels) ]
       , h2_ [ text "Context"]
-      , textarea [ value context, onValueInput (Just <<< UpdateContext) ]
+      , textarea [ value st.input.context, onValueInput (Just <<< UpdateContext) ]
       , h2_ [ text "Copy serialized output to clipboard"]
-      , div_ buttons
+      , div_ $ envE # either (const []) (\env ->
+          [ button [ onClick \_ -> Just (CopyToClipboard $ json bricksInput.bricks.term) ]
+                   [ text "JSON" ]
+          , button [ onClick \_ -> Just (CopyToClipboard $ haskellCode env bricksInput.bricks.term) ]
+                   [ text "Haskell" ]
+          ])
       ]
     ]
     , h2_ [ text "Term view" ]
-    , slot _term unit Term.termView { term: bricks.term, selection: selectionPath } \_ -> Nothing
+    , slot _term unit Term.termView { term: bricksInput.bricks.term, selection: selectionPath } \_ -> Nothing
   ]
   where
-    bricks = Bricks.fromPixels (parsePixels pixels) $ (\s -> s == " " || s == "-" || s == "=")
-    eEnv = (<>) <$> parseContext context <*> pure defaultEnv
+    bricksInput :: Bricks.Input
+    bricksInput = toBricksInput st.input st.selectionBox
+
+    envE :: String \/ Context String String
+    envE = (<>) <$> parseContext st.input.context <*> pure defaultEnv
+
+    termTypeStr = envE # either identity (showInferred <<< inferType bricksInput.bricks.term)
+    sub /\ selectionPath = subTerm st.selectionBox bricksInput.bricks.term Nil
+    selectionType = hush envE <#> inferType sub <#> showInferred
+
+toBricksInput :: Input -> Box -> Bricks.Input
+toBricksInput input selectionBox =
+  { bricks, matches, context, selectedBoxes }
+  where
+    bricks = Bricks.fromPixels (parsePixels input.pixels) (\s -> s == " " || s == "-" || s == "=")
+
+    context = envE # either (const defaultEnv) identity
+    envE = (<>) <$> parseContext input.context <*> pure defaultEnv
+
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
-    { result, matches, buttons } = eEnv # either (\envError -> { result: envError, matches: Map.empty, buttons: [] }) 
-      \env -> let inferred = inferType bricks.term env in 
-        { result: showInferred inferred
-        , matches: fromMatchedVars inferred.bounds (inferred.matches <> typeToMatches inferred.type)
-        , buttons: 
-          [ button [ onClick \_ -> Just (CopyToClipboard $ json bricks.term) ] [ text "JSON" ]
-          , button [ onClick \_ -> Just (CopyToClipboard $ haskellCode env bricks.term) ] [ text "Haskell" ]
-          ]
-        }
+    matches = envE # either (\envError -> Map.empty)
+                            (\env -> let inferred = inferType bricks.term env
+                                     in fromMatchedVars inferred.bounds (inferred.matches <> typeToMatches inferred.type))
+
     sub /\ selectionPath = subTerm selectionBox bricks.term Nil
-    selectedBoxes = foldMap (\bid -> Set.singleton bid) sub
-    selectionType = hush eEnv <#> inferType sub <#> showInferred
+    selectedBoxes = foldMap Set.singleton sub
 
 fromMatchedVars :: ∀ bid. Ord bid => Bounds String bid -> Array (Matches (Var String bid)) -> InputOutput String
 fromMatchedVars (Bounds bounds) = foldMap fromMatchedVars' >>> foldr (Map.unionWith (<>)) Map.empty
