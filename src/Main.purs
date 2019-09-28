@@ -32,7 +32,7 @@ import View.App as App
 
 
 initialPixels :: String
-initialPixels = """
+initialPixels = trim """
 gggff
 ggghh
 ijjhh
@@ -40,7 +40,7 @@ kjjll
 """
 
 initialContext :: String
-initialContext = """
+initialContext = trim """
 f: a ->
 g: b b b -> a c d
 h: c d d -> e
@@ -51,14 +51,7 @@ l: e e e -> e
 """
 
 main :: Effect Unit
-main = do
-  w <- HTML.window
-  l <- Window.location w
-  h <- Location.hash l
-  let input = parseHash h
-  runHalogenAff do
-    awaitLoad
-    run input "body"
+main = log "main: kdmoncat bundle loaded."
 
 run :: ∀ a. App.Input -> String -> Aff (Maybe (HalogenIO App.Query a Aff))
 run input selector = do 
@@ -84,12 +77,13 @@ runJs1 input selector = do
 -- | Install the component at the specified selector and connect it to an on-message listener on the
 -- | window so we can send commands to the component using window.postMessage.
 runJs2 :: App.Input -> String -> Aff Unit
-runJs2 input selector = do
-  api <- runJs1 input selector
+runJs2 initialInput selector = do
+  api <- runJs1 initialInput selector
   liftEffect do
-    log $ "runJs2: pixels, context: " <> input.pixels <> ", " <> input.context
+    log $ "runJs2: initial pixels, context: " <> initialInput.pixels <> ", " <> initialInput.context
     messageListener <- eventListener $ \e -> do
       log $ "runJs2: event data: " <> (fromMaybe "not a MessageEvent" <<< map MessageEvent.data_ <<< MessageEvent.fromEvent $ e)
+      let input = initialInput -- TODO get from event
       api.setInput input.pixels input.context
       pure unit
     HTML.window >>= Window.toEventTarget
