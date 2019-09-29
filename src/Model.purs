@@ -55,10 +55,10 @@ instance semigroupTy :: Semigroup (Ty bv) where
   append (Ty bid b) (Ty c d) = Ty (bid <> c) (b <> d)
 instance monoidTy :: Monoid (Ty bv) where
   mempty = Ty [] []
-instance showTyVarString :: (Ord bid, Show (Var bv bid)) => Show (Ty (Var bv bid)) where
+instance showTyVarString :: (Show (Var bv)) => Show (Ty (Var bv)) where
   show (Ty ls rs) = showTypes ls " -> " rs
 
-showTypes :: ∀ bid bv. Ord bid => Show (Var bv bid) => Array (Var bv bid) -> String -> Array (Var bv bid) -> String
+showTypes :: ∀ bv. Show (Var bv) => Array (Var bv) -> String -> Array (Var bv) -> String
 showTypes ls middle rs = 
   joinWith " " l.value <> middle <> 
   joinWith " " r.value
@@ -90,18 +90,20 @@ isGen _ = false
 type Context bv bid = Map bid (TypeDecl bv)
 
 
-data Var bv bid 
-  = FreeVar (Int /\ Brick bid) -- Easy way to generate unique free variables from bricks
-  | BoundVar (Brick bid) bv
+data Var bv 
+  = FreeVar (Int /\ Box) -- Easy way to generate unique free variables from boxes
+  | BoundVar bv
 
-instance eqVar :: (Eq bv, Eq bid) => Eq (Var bv bid) where
+instance eqVar :: (Eq bv) => Eq (Var bv) where
   eq (FreeVar l) (FreeVar r) = eq l r
-  eq (BoundVar _ l) (BoundVar _ r) = eq l r
+  eq (BoundVar l) (BoundVar r) = eq l r
   eq _ _ = false
 
-instance showVarString :: Show (Var String bid) where
+instance showVarString :: Show (Var String) where
   show (FreeVar _) = "α"
-  show (BoundVar _ bv) = bv
+  show (BoundVar bv) = bv
+
+type VarWithBox bv = { box :: Box, var :: Var bv }
 
 data Side = Input | Output
 derive instance eqSide :: Eq Side

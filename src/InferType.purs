@@ -23,44 +23,43 @@ import Model
 import Common
 
 
-type InferredType bv bid = 
-  { type :: Ty (Var bv bid)
-  , bounds :: Bounds bv bid
-  , matches :: Array (Matches (Var bv bid))
+type InferredType bv = 
+  { type :: Ty (VarWithBox bv)
+  , matches :: Array (Matches (VarWithBox bv))
   , errors :: Array String
   }
 
-newtype Bounds bv bid = Bounds (Map (Int /\ Brick bid) (Var bv bid))
-instance boundsSemigroup :: (Ord bid) => Semigroup (Bounds bv bid) where
+newtype Bounds bv = Bounds (Map (Int /\ Box) (Var bv))
+instance boundsSemigroup :: Semigroup (Bounds bv) where
   append (Bounds l) (Bounds r) = let l' = l <#> replace (Bounds r) in Bounds (l' <> (r <#> replace (Bounds l')))
-instance boundsMonoid :: (Ord bid) => Monoid (Bounds bv bid) where
+instance boundsMonoid :: Monoid (Bounds bv) where
   mempty = Bounds (Map.empty)
 
-getType :: ∀ bid bv. Ord bid => InferredType bv bid -> Ty (Var bv bid)
-getType { type: Ty l r, bounds } = Ty (l <#> replace bounds) (r <#> replace bounds)
+getType :: ∀ bv. InferredType bv -> Ty (Var bv)
+getType { type: Ty l r } = Ty (l <#> _.var) (r <#> _.var)
 
-empty :: ∀ bid bv. (Ord bid) => InferredType bv bid
+empty :: ∀ bv. InferredType bv
 empty = mempty
 
-note :: ∀ bid bv x. (Ord bid) => String -> (x -> InferredType bv bid) -> Maybe x -> InferredType bv bid
+note :: ∀ bv x. String -> (x -> InferredType bv) -> Maybe x -> InferredType bv
 note s = maybe (empty { errors = [s] })
 
-showInferred :: ∀ bid bv. Ord bid => Show (Var bv bid) => InferredType bv bid -> String
+showInferred :: ∀ bv. Show (Var bv) => InferredType bv -> String
 showInferred it@{ errors } = if length errors == 0 then show (getType it) else joinWith "\n" errors
 
 
 inferType 
-  :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv bid) 
-  => Term ann (Brick bid) -> Context bv bid -> InferredType bv bid
+  :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv) 
+  => Term ann (Brick bid) -> Context bv bid -> InferredType bv
 inferType TUnit _ = empty
-inferType (TBox brick@{ bid }) ctx = 
-  Map.lookup bid ctx # note ("Undeclared name: " <> show bid) (inferBoxType brick)
+inferType (TBox { box, bid }) ctx = 
+  Map.lookup bid ctx # note ("Undeclared name: " <> show bid) (inferBoxType box)
 inferType (TT ts _) ctx = foldMap inferType ts ctx
 inferType (TC tts _) ctx = uncons tts #
   note "Composition of empty list not supported" \{ head, tail } ->
   foldl compose (inferType head ctx) tail
     where
-      compose :: Show (Var bv bid) => InferredType bv bid -> Term ann (Brick bid) -> InferredType bv bid
+      compose :: Show (Var bv) => InferredType bv -> Term ann (Brick bid) -> InferredType bv
       compose acc@{ type: Ty a b } term = res
         where
           step@{ type: Ty b' c } = inferType term ctx
@@ -68,28 +67,40 @@ inferType (TC tts _) ctx = uncons tts #
             then 
               (acc <> step <> empty { matches = [Unmatched Invalid Output b, Unmatched Invalid Input b'] }) { type = Ty a c }
             else let { bounds, matches } = foldMap bindVars (zip b b') in 
-              (acc <> step <> empty { matches = [Matched matches], bounds = bounds }) 
-                { type = Ty a c }
+              (acc <> step) 
+                { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) 
+                , matches = replaceMatches bounds <$> acc.matches <> [Matched matches]
+                }
 
-inferBoxType :: ∀ bid bv. (Ord bid) => Brick bid -> TypeDecl bv -> InferredType bv bid
-inferBoxType brick (Gen (Ty i o)) = empty { type = Ty (BoundVar brick <$> i) (BoundVar brick <$> o) }
-inferBoxType brick (Perm perm) =
-  empty { type = Ty (0 ..< length perm <#> (_ + 1) <#> (_ /\ brick) <#> FreeVar) (perm <#> (_ /\ brick) <#> FreeVar) }
-inferBoxType brick (Spider _ l r) =
-  empty { type = Ty (0 ..< l <#> const (FreeVar (0 /\ brick))) (0 ..< r <#> const (FreeVar (0 /\ brick))) }
+inferBoxType :: ∀ bv. Box -> TypeDecl bv -> InferredType bv
+inferBoxType box (Gen (Ty i o)) = empty { type = Ty (i <#> \bv -> { box, var: BoundVar bv }) (o <#> \bv -> { box, var: BoundVar bv }) }
+inferBoxType box (Perm perm) =
+  empty { type = Ty (0 ..< length perm <#> (_ + 1) <#> \i -> { box, var: FreeVar (i /\ box) }) (perm <#> \i -> { box, var: FreeVar (i /\ box) }) }
+inferBoxType box (Spider _ l r) =
+  empty { type = Ty (0 ..< l <#> const { box, var: FreeVar (0 /\ box) }) (0 ..< r <#> const { box, var: FreeVar (0 /\ box) }) }
   
 bindVars 
-  :: ∀ bv bid. Eq bv => Ord bid => Show (Var bv bid)
-  => Var bv bid /\ Var bv bid 
-  -> { bounds :: Bounds bv bid, matches :: Array (Validity /\ Var bv bid /\ Var bv bid) }
-bindVars m@(FreeVar l /\ FreeVar r) = { bounds: Bounds (Map.fromFoldable [ l /\ FreeVar r, r /\ FreeVar l]), matches: [Valid /\ m] }
-bindVars m@(l /\ FreeVar r)         = { bounds: Bounds (Map.singleton r l), matches: [Valid /\ m] }
-bindVars m@(FreeVar l /\ r)         = { bounds: Bounds (Map.singleton l r), matches: [Valid /\ m] }
-bindVars m@(l /\ r) | l == r        = { bounds: mempty, matches: [Valid /\ m] }
-                    | otherwise     = { bounds: mempty, matches: [Invalid /\ m] }
+  :: ∀ bv. Eq bv => Show (Var bv)
+  => VarWithBox bv /\ VarWithBox bv
+  -> { bounds :: Bounds bv, matches :: Array (Validity /\ VarWithBox bv /\ VarWithBox bv) }
+bindVars (ml@{ var: l } /\ { box, var: FreeVar r })   = { bounds: Bounds (Map.singleton r l), matches: [Valid /\ ml /\ { box, var: l }] }
+bindVars ({ box, var: FreeVar l } /\ mr@{ var: r })   = { bounds: Bounds (Map.singleton l r), matches: [Valid /\ { box, var: r } /\ mr] }
+bindVars m@({ var: l } /\ { var: r }) | l == r        = { bounds: mempty, matches: [Valid /\ m] }
+                                      | otherwise     = { bounds: mempty, matches: [Invalid /\ m] }
 
-replace :: ∀ bv bid. Ord bid => Bounds bv bid -> Var bv bid -> Var bv bid
-replace _ (BoundVar box bv) = BoundVar box bv
+replaceMatches :: ∀ bv. Bounds bv -> Matches (VarWithBox bv) -> Matches (VarWithBox bv)
+replaceMatches bounds (Matched ms) = Matched (ms <#> replaceMatched bounds)
+replaceMatches bounds (Unmatched v io vs) = Unmatched v io (vs <#> replaceBoxed bounds)
+
+replaceMatched :: ∀ bv. Bounds bv -> Validity /\ VarWithBox bv /\ VarWithBox bv -> Validity /\ VarWithBox bv /\ VarWithBox bv
+replaceMatched bounds (val /\ l /\ r) = val /\ replaceBoxed bounds l /\ replaceBoxed bounds r
+
+
+replaceBoxed :: ∀ bv. Bounds bv -> VarWithBox bv -> VarWithBox bv
+replaceBoxed bounds { box, var } = { box, var: replace bounds var }
+
+replace :: ∀ bv. Bounds bv -> Var bv -> Var bv
+replace _ (BoundVar bv) = BoundVar bv
 replace (Bounds bounds) (FreeVar fv) = Map.lookup fv bounds # fromMaybe (FreeVar fv)
 
 

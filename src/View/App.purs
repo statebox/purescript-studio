@@ -138,29 +138,29 @@ toBricksInput input selectionBox =
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
     matches = envE # either (\envError -> Map.empty)
                             (\env -> let inferred = inferType bricks.term env
-                                     in fromMatchedVars inferred.bounds (inferred.matches <> typeToMatches inferred.type))
+                                     in fromMatchedVars (inferred.matches <> typeToMatches inferred.type))
 
     sub /\ selectionPath = subTerm selectionBox bricks.term Nil
     selectedBoxes = foldMap Set.singleton sub
 
-fromMatchedVars :: ∀ bid. Ord bid => Bounds String bid -> Array (Matches (Var String bid)) -> InputOutput String
-fromMatchedVars (Bounds bounds) = foldMap fromMatchedVars' >>> foldr (Map.unionWith (<>)) Map.empty
+fromMatchedVars :: Array (Matches (VarWithBox String)) -> InputOutput String
+fromMatchedVars = foldMap fromMatchedVars' >>> foldr (Map.unionWith (<>)) Map.empty
   where
-    fromMatchedVars' :: Matches (Var String bid) -> Array (InputOutput String)
+    fromMatchedVars' :: Matches (VarWithBox String) -> Array (InputOutput String)
     fromMatchedVars' (Matched ms) = ms 
-      # sortBy (\(_ /\ a /\ b) (_ /\ c /\ d) -> comparing varToBox a c <> comparing varToBox b d)
-      # groupBy (\(_ /\ a /\ b) (_ /\ c /\ d) -> varToBox a == varToBox c && varToBox b == varToBox d)
+      # sortBy (\(_ /\ a /\ b) (_ /\ c /\ d) -> comparing _.box a c <> comparing _.box b d)
+      # groupBy (\(_ /\ a /\ b) (_ /\ c /\ d) -> a.box == c.box && b.box == d.box)
       # map toMatch
-    fromMatchedVars' (Unmatched val side ms) = ms # groupBy (eq `on` varToBox) # map (toMismatch val side)
-    toMatch :: NonEmptyArray (Validity /\ Var String bid /\ Var String bid) -> InputOutput String
+    fromMatchedVars' (Unmatched val side ms) = ms # groupBy (eq `on` _.box) # map (toMismatch val side)
+    toMatch :: NonEmptyArray (Validity /\ VarWithBox String /\ VarWithBox String) -> InputOutput String
     toMatch nonEmpty = Map.fromFoldable 
         [ (lBox /\ Output) /\ leftObjects
         , (rBox /\ Input) /\ rightObjects
         ]
       where
         _ /\ lvar /\ rvar = head nonEmpty
-        lBox = varToBox lvar
-        rBox = varToBox rvar
+        lBox = lvar.box
+        rBox = rvar.box
         y0 = toNumber $ max (snd lBox.topLeft) (snd rBox.topLeft)
         y1 = toNumber $ min (snd lBox.bottomRight) (snd rBox.bottomRight)
         n = toNumber (length nonEmpty)
@@ -170,22 +170,17 @@ fromMatchedVars (Bounds bounds) = foldMap fromMatchedVars' >>> foldr (Map.unionW
           let or = getObject r in
           let validity = if y1 > y0 && (ol == "" || or == "" || ol == or) then b else Invalid in
             [{ y, validity, object: if ol == or then "" else ol }] /\ [{ y, validity, object: or }]
-    toMismatch :: Validity -> Side -> NonEmptyArray (Var String bid) -> InputOutput String
+    toMismatch :: Validity -> Side -> NonEmptyArray (VarWithBox String) -> InputOutput String
     toMismatch validity side nonEmpty = Map.singleton (b /\ side) objects
       where
-        b = varToBox (head nonEmpty)
+        b = (head nonEmpty).box
         x = fst $ if side == Input then b.topLeft else b.bottomRight
         y0 = toNumber $ snd b.topLeft
         y1 = toNumber $ snd b.bottomRight
         n = toNumber (length nonEmpty)
         objects = nonEmpty # foldMapWithIndex \i v -> [{ validity, y: y0 + (y1 - y0) * (0.5 + toNumber i) / n, object: getObject v }]
-    getObject (BoundVar _ bv) = bv
-    getObject (FreeVar fv) = case Map.lookup fv bounds of 
-      Just (BoundVar _ bv) -> bv
-      _ -> ""
-    varToBox :: Var String bid -> Box
-    varToBox (BoundVar { box } _) = box
-    varToBox (FreeVar (_ /\ { box })) = box
+    getObject { var: BoundVar bv } = bv
+    getObject _ = ""
 
 handleAction :: ∀ o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit
 handleAction = case _ of

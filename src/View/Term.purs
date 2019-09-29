@@ -59,7 +59,6 @@ render { term, selection: { path, count } } = div [ classes [ ClassName "term" ]
 
 format :: ∀ m. String -> H.ComponentHTML Action () m
 format " " = i_ [ text "I" ]
-format "0" = i_ [ text "I" ]
 format "-" = i_ [ text "id" ]
 format "=" = i_ [ text "id" ]
 format bid = span_ [ text bid ]
