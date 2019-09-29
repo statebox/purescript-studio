@@ -14,7 +14,7 @@ import Data.Lens (set)
 import Data.Lens.Record (prop)
 import Data.List (List(Nil))
 import Data.Map as Map
-import Data.Maybe
+import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
 import Data.String.Pattern (Pattern(..))
 import Data.String.Common (split)
@@ -67,6 +67,8 @@ data Action
   | BricksMessage Bricks.Output
   | CopyToClipboard String
 
+data Query a
+  = DoAction Action a
 
 type ChildSlots = 
   ( bricks :: Bricks.Slot Unit
@@ -77,12 +79,12 @@ _bricks = SProxy :: SProxy "bricks"
 _term = SProxy :: SProxy "term"
 
 
-appView :: ∀ q o m. MonadEffect m => H.Component HTML q Input o m
+appView :: ∀ o m. MonadEffect m => H.Component HTML Query Input o m
 appView =
   H.mkComponent
     { initialState
     , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
+    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction, handleQuery = handleQuery }
     }
 
 initialState :: Input -> State
@@ -197,6 +199,11 @@ handleAction = case _ of
     H.modify_ $ set _selectionBox sel
   CopyToClipboard s ->
     liftEffect (copyToClipboard s)
+
+handleQuery :: ∀ o m a. MonadEffect m => Query a -> H.HalogenM State Action ChildSlots o m (Maybe a)
+handleQuery (DoAction x next) = do
+  handleAction x
+  pure (Just next)
 
 updateWindowLocation :: ∀ o m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots o m Unit
 updateWindowLocation { pixels, context } =

@@ -220,4 +220,8 @@ textarea {
 }
 </style>
 <body></body>
-<script>//PS["Halogen.Aff.Util"].runHalogenAff(PS["Main"].run({ pixels: "1", context: "1: a -> b" })("body"))()</script>
+<script>
+var Main = PS["Main"], runHalogenAff = PS["Halogen.Aff.Util"].runHalogenAff
+var initialModel = { pixels: Main.initialPixels, context: Main.initialContext }
+runHalogenAff(Main.runJs2(initialModel)("body"))()
+</script>
