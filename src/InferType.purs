@@ -66,7 +66,7 @@ inferType (TC tts _) ctx = uncons tts #
           res = if ((length b :: Int) /= length b') 
             then 
               (acc <> step <> empty { matches = [Unmatched Invalid Output b, Unmatched Invalid Input b'] }) { type = Ty a c }
-            else let { bounds, matches } = foldMap bindVars (zip b b') in 
+            else let { bounds, matches } = foldl bindVars mempty (zip b b') in 
               (acc <> step) 
                 { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) 
                 , matches = replaceMatches bounds <$> acc.matches <> [Matched matches]
@@ -81,12 +81,19 @@ inferBoxType box (Spider _ l r) =
   
 bindVars 
   :: ∀ bv. Eq bv => Show (Var bv)
+  => { bounds :: Bounds bv, matches :: Array (Validity /\ VarWithBox bv /\ VarWithBox bv) }
+  -> VarWithBox bv /\ VarWithBox bv
+  -> { bounds :: Bounds bv, matches :: Array (Validity /\ VarWithBox bv /\ VarWithBox bv) }
+bindVars bm@{ bounds, matches } (l /\ r) = bm <> bindVars' (replaceBoxed bounds l /\ replaceBoxed bounds r)
+
+bindVars'
+  :: ∀ bv. Eq bv => Show (Var bv)
   => VarWithBox bv /\ VarWithBox bv
   -> { bounds :: Bounds bv, matches :: Array (Validity /\ VarWithBox bv /\ VarWithBox bv) }
-bindVars (ml@{ var: l } /\ { box, var: FreeVar r })   = { bounds: Bounds (Map.singleton r l), matches: [Valid /\ ml /\ { box, var: l }] }
-bindVars ({ box, var: FreeVar l } /\ mr@{ var: r })   = { bounds: Bounds (Map.singleton l r), matches: [Valid /\ { box, var: r } /\ mr] }
-bindVars m@({ var: l } /\ { var: r }) | l == r        = { bounds: mempty, matches: [Valid /\ m] }
-                                      | otherwise     = { bounds: mempty, matches: [Invalid /\ m] }
+bindVars' (ml@{ var: l } /\ { box, var: FreeVar r })   = { bounds: Bounds (Map.singleton r l), matches: [Valid /\ ml /\ { box, var: l }] }
+bindVars' ({ box, var: FreeVar l } /\ mr@{ var: r })   = { bounds: Bounds (Map.singleton l r), matches: [Valid /\ { box, var: r } /\ mr] }
+bindVars' m@({ var: l } /\ { var: r }) | l == r        = { bounds: mempty, matches: [Valid /\ m] }
+                                       | otherwise     = { bounds: mempty, matches: [Invalid /\ m] }
 
 replaceMatches :: ∀ bv. Bounds bv -> Matches (VarWithBox bv) -> Matches (VarWithBox bv)
 replaceMatches bounds (Matched ms) = Matched (ms <#> replaceMatched bounds)
