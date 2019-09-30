@@ -13,15 +13,14 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
-import Global (decodeURI)
+import Global (decodeURIComponent)
 import Halogen as H
 import Halogen (HalogenIO)
-import Halogen.Aff (awaitLoad, runHalogenAff)
+import Halogen.Aff (runHalogenAff)
 import Halogen.Aff.Util (selectElement)
 import Halogen.VDom.Driver (runUI)
 import Web.DOM.ParentNode (QuerySelector(..))
 import Web.HTML (window) as HTML
-import Web.HTML.Location (hash) as Location
 import Web.HTML.Window as Window
 import Web.HTML.Event.EventTypes (message) as ET
 import Web.Event.EventTarget (addEventListener, eventListener)
@@ -94,10 +93,10 @@ runJs2 initialInput selector = do
 
 parseHash :: String -> App.Input
 parseHash hash =
-  let defaultInput = { pixels: trim initialPixels, context: trim initialContext } in
+  let defaultInput = { pixels: initialPixels, context: initialContext } in
   regex "pixels=([^&]*)&context=(.*)" ignoreCase # either (\_ -> defaultInput) \re -> 
     match re hash # map toArray # case _ of
-      Just [_, Just p, Just c] -> case decodeURI p, decodeURI c of
+      Just [_, Just p, Just c] -> case decodeURIComponent p, decodeURIComponent c of
         Just pixels, Just context -> { pixels, context }
         _, _ -> defaultInput
       _ -> defaultInput
