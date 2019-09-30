@@ -222,6 +222,9 @@ textarea {
 <body></body>
 <script>
 var Main = PS["Main"], runHalogenAff = PS["Halogen.Aff.Util"].runHalogenAff
-var initialModel = { pixels: Main.initialPixels, context: Main.initialContext }
+var regMatch = location.hash.match(/pixels=([^&]*)&context=(.*)/)
+var initialModel = regMatch 
+  ? { pixels: decodeURIComponent(regMatch[1]), context: decodeURIComponent(regMatch[2]) }
+  : { pixels: Main.initialPixels, context: Main.initialContext }
 runHalogenAff(Main.runJs2(initialModel)("body"))()
 </script>

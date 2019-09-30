@@ -15,7 +15,7 @@ import Data.String.Common (split)
 import Data.Symbol (SProxy(..))
 import Data.Tuple.Nested ((/\))
 import Effect.Class (class MonadEffect, liftEffect)
-import Global (encodeURI)
+import Global (encodeURIComponent)
 import Halogen as H
 import Halogen.HTML hiding (map, head, i, prop)
 import Halogen.HTML.Properties (classes, value, readOnly)
@@ -157,8 +157,8 @@ updateWindowLocation { pixels, context } =
   liftEffect do
     w <- window
     l <- location w
-    for_ (encodeURI pixels) \p -> 
-      for_ (encodeURI context) \c -> 
+    for_ (encodeURIComponent pixels) \p -> 
+      for_ (encodeURIComponent context) \c -> 
         setHash ("pixels=" <> p <> "&context=" <> c) l
 
 
