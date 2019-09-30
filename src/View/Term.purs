@@ -5,7 +5,7 @@ import Prelude hiding (div)
 import Data.Foldable (intercalate)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List(..))
-import Data.Maybe
+import Data.Maybe (Maybe(..))
 import Halogen as H
 import Halogen.HTML hiding (map)
 import Halogen.HTML.Properties (classes)
@@ -14,7 +14,7 @@ import Model
 import Common (VoidF)
 
 
-type State = 
+type State =
   { term :: Term Ann (Brick String)
   , selection :: Selection
   }
@@ -50,8 +50,8 @@ render { term, selection: { path, count } } = div [ classes [ ClassName "term" ]
   rec p (TBox { bid }) = [ div [ clsSel p "tbox" ] [ format bid ] ]
   rec p (TC terms _) = [ div [ clsSel p "tc" ] $ intercalate [ div_ [ text "⊙" ] ] $ withPath p terms ]
   rec p (TT terms _) = [ div [ clsSel p "tt" ] $ intercalate [ div_ [ text "⊗" ] ] $ withPath p terms ]
-  clsSel (Just Nil) n = classes [ ClassName n, ClassName "selected" ] 
-  clsSel _ n = classes [ ClassName n ] 
+  clsSel (Just Nil) n = classes [ ClassName n, ClassName "selected" ]
+  clsSel _ n = classes [ ClassName n ]
   withPath Nothing = map (rec Nothing)
   withPath (Just Nil) = map (rec Nothing)
   withPath (Just (Cons i Nil)) = mapWithIndex (\j -> rec (if i <= j && j < i + count then Just Nil else Nothing))
