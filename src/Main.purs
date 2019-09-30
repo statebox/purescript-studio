@@ -53,7 +53,7 @@ main :: Effect Unit
 main = log "main: kdmoncat bundle loaded."
 
 run :: ∀ a. App.Input -> String -> Aff (Maybe (HalogenIO App.Query a Aff))
-run input selector = do 
+run input selector = do
   elemMaybe <- selectElement (QuerySelector selector)
   runUI App.appView input `traverse` elemMaybe
 
@@ -94,7 +94,7 @@ runJs2 initialInput selector = do
 parseHash :: String -> App.Input
 parseHash hash =
   let defaultInput = { pixels: initialPixels, context: initialContext } in
-  regex "pixels=([^&]*)&context=(.*)" ignoreCase # either (\_ -> defaultInput) \re -> 
+  regex "pixels=([^&]*)&context=(.*)" ignoreCase # either (\_ -> defaultInput) \re ->
     match re hash # map toArray # case _ of
       Just [_, Just p, Just c] -> case decodeURIComponent p, decodeURIComponent c of
         Just pixels, Just context -> { pixels, context }

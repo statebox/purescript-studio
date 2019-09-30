@@ -5,7 +5,7 @@ import Data.Maybe (Maybe)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.Event.Event (Event)
 import Web.Internal.FFI (unsafeReadProtoTagged)
-import Web.UIEvent.UIEvent (UIEvent)
+-- import Web.UIEvent.UIEvent (UIEvent)
 
 -- TODO add targetOrigin and (Maybe transfer), see https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
 foreign import data MessageEvent :: Type

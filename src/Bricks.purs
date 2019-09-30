@@ -1,10 +1,10 @@
 module Bricks where
-  
+
 import Prelude
 
 import Data.Array ((!!), length, slice, cons, snoc, filter, findIndex, zip, unzip, concat)
 import Data.Foldable (and, foldMap)
-import Data.List (snoc) as L 
+import Data.List (snoc) as L
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (alaF)
 import Data.Ord.Max (Max(..))
@@ -12,7 +12,7 @@ import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 
 import Model
-import Common
+import Common ((..<))
 
 
 fromPixels :: ∀ bid. Ord bid => Array (Array bid) -> (bid -> Boolean) -> Bricks bid
@@ -38,7 +38,7 @@ fromPixels inp isHole = let term /\ boxes = findCuts false false 0 0 width heigh
     hCuts = 1 ..< height <#> \y -> 0 ..< width <#> \x -> at x (y - 1) `canCut` at x y
 
     toTerm :: Boolean -> Int -> Int -> Int -> Int -> Term Ann (Brick bid) /\ Array (Brick bid)
-    toTerm false x0 y0 x1 y1 = let box = { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } in at x0 y0 
+    toTerm false x0 y0 x1 y1 = let box = { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } in at x0 y0
       # maybe (TUnit /\ []) (\bid -> let brick = { bid, box } in TBox brick /\ [brick])
     toTerm true y0 x0 y1 x1 = toTerm false x0 y0 x1 y1
 
@@ -57,11 +57,11 @@ subTerm box (TT ts ann) p = subTerm' box ts ann p snd TT
 subTerm _ x path = x /\ { path, count: 1 }
 
 subTerm'
-  :: ∀ bid. Box -> Array (Term Ann (Brick bid)) -> Ann -> Path 
+  :: ∀ bid. Box -> Array (Term Ann (Brick bid)) -> Ann -> Path
   -> (Int /\ Int -> Int) -> (Array (Term Ann (Brick bid)) -> Ann -> Term Ann (Brick bid))
   -> Term Ann (Brick bid) /\ Selection
-subTerm' box ts ann p xOrY mkTerm = 
-  if lb + 1 == ub 
+subTerm' box ts ann p xOrY mkTerm =
+  if lb + 1 == ub
     then (ts !! lb) # maybe (mkTerm ts ann /\ selection) \t -> subTerm box t (L.snoc p lb)
     else mkTerm (slice lb ub ts) (slice lb (ub + 1) ann) /\ selection
   where

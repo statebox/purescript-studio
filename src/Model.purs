@@ -1,9 +1,8 @@
 module Model where
 
-import Prelude 
+import Prelude
 
 import Data.Char (fromCharCode, toCharCode)
-import Data.Either (Either)
 import Data.Foldable (class Foldable, foldMap, foldrDefault, foldlDefault)
 import Data.List (List)
 import Data.Maybe (fromMaybe, maybe)
@@ -30,12 +29,12 @@ instance foldableTerm :: Foldable (Term ann) where
       go (TC ts _) = foldMap go ts
       go (TT ts _) = foldMap go ts
 
-type Box = 
+type Box =
   { topLeft :: Int /\ Int
   , bottomRight :: Int /\ Int
   }
 type Brick bid = { bid :: bid, box :: Box }
-type Bricks bid = 
+type Bricks bid =
   { width :: Int
   , height :: Int
   , boxes :: Array (Brick bid)
@@ -59,8 +58,8 @@ instance showTyVarString :: (Show (Var bv)) => Show (Ty (Var bv)) where
   show (Ty ls rs) = showTypes ls " -> " rs
 
 showTypes :: ∀ bv. Show (Var bv) => Array (Var bv) -> String -> Array (Var bv) -> String
-showTypes ls middle rs = 
-  joinWith " " l.value <> middle <> 
+showTypes ls middle rs =
+  joinWith " " l.value <> middle <>
   joinWith " " r.value
   where
     l = mapAccumL replFv Map.empty ls
@@ -78,7 +77,7 @@ instance showColor :: Show Color where
   show White = "white"
   show Black = "black"
 
-data TypeDecl bv 
+data TypeDecl bv
   = Perm (Array Int)
   | Spider Color Int Int
   | Gen (Ty bv)
@@ -90,7 +89,7 @@ isGen _ = false
 type Context bv bid = Map bid (TypeDecl bv)
 
 
-data Var bv 
+data Var bv
   = FreeVar (Int /\ Box) -- Easy way to generate unique free variables from boxes
   | BoundVar bv
 

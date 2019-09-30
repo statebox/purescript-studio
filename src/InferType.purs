@@ -1,6 +1,6 @@
 module InferType where
 
-import Prelude 
+import Prelude
 
 import Data.Array (zip, uncons, filter)
 import Data.Array.NonEmpty (toArray)
@@ -20,10 +20,10 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Global (readInt)
 
 import Model
-import Common
+import Common ((..<))
 
 
-type InferredType bv = 
+type InferredType bv =
   { type :: Ty (VarWithBox bv)
   , matches :: Array (Matches (VarWithBox bv))
   , errors :: Array String
@@ -48,11 +48,11 @@ showInferred :: ∀ bv. Show (Var bv) => InferredType bv -> String
 showInferred it@{ errors } = if length errors == 0 then show (getType it) else joinWith "\n" errors
 
 
-inferType 
-  :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv) 
+inferType
+  :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv)
   => Term ann (Brick bid) -> Context bv bid -> InferredType bv
 inferType TUnit _ = empty
-inferType (TBox { box, bid }) ctx = 
+inferType (TBox { box, bid }) ctx =
   Map.lookup bid ctx # note ("Undeclared name: " <> show bid) (inferBoxType box)
 inferType (TT ts _) ctx = foldMap inferType ts ctx
 inferType (TC tts _) ctx = uncons tts #
@@ -63,12 +63,12 @@ inferType (TC tts _) ctx = uncons tts #
       compose acc@{ type: Ty a b } term = res
         where
           step@{ type: Ty b' c } = inferType term ctx
-          res = if ((length b :: Int) /= length b') 
-            then 
+          res = if ((length b :: Int) /= length b')
+            then
               (acc <> step <> empty { matches = [Unmatched Invalid Output b, Unmatched Invalid Input b'] }) { type = Ty a c }
-            else let { bounds, matches } = foldl bindVars mempty (zip b b') in 
-              (acc <> step) 
-                { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) 
+            else let { bounds, matches } = foldl bindVars mempty (zip b b') in
+              (acc <> step)
+                { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds)
                 , matches = replaceMatches bounds <$> acc.matches <> [Matched matches]
                 }
 
@@ -78,8 +78,8 @@ inferBoxType box (Perm perm) =
   empty { type = Ty (0 ..< length perm <#> (_ + 1) <#> \i -> { box, var: FreeVar (i /\ box) }) (perm <#> \i -> { box, var: FreeVar (i /\ box) }) }
 inferBoxType box (Spider _ l r) =
   empty { type = Ty (0 ..< l <#> const { box, var: FreeVar (0 /\ box) }) (0 ..< r <#> const { box, var: FreeVar (0 /\ box) }) }
-  
-bindVars 
+
+bindVars
   :: ∀ bv. Eq bv => Show (Var bv)
   => { bounds :: Bounds bv, matches :: Array (Validity /\ VarWithBox bv /\ VarWithBox bv) }
   -> VarWithBox bv /\ VarWithBox bv
@@ -127,19 +127,19 @@ parseContext = spl "\n" >>> alaF App foldMap toEntry
     spl :: String -> String -> Array String
     spl p = trim >>> split (Pattern p) >>> map trim
     toEntry :: String -> Either String (Context String String)
-    toEntry line = case spl ":" line of 
+    toEntry line = case spl ":" line of
       [name, typ] -> case typ # spl "->" <#> (spl " " >>> filter (_ /= "")) of
         [left, right] -> pure $ Map.singleton name (Gen $ Ty left right)
         _ -> do
           permRe <- regex "\\[(.*)\\]" noFlags
-          case match permRe typ # map toArray of 
-            Just [_, Just perm] -> 
+          case match permRe typ # map toArray of
+            Just [_, Just perm] ->
               pure $ Map.singleton name (Perm $ perm # (spl " " >>> filter (_ /= "") >>> map (readInt 10 >>> floor)))
             _ -> do
               spiderRe <- regex "(\\d+)(o|.)(\\d+)" noFlags
               case match spiderRe typ # map toArray of
-                Just [_, Just ls, Just cs, Just rs] -> pure $ Map.singleton name (Spider 
-                  (if cs == "." then Black else White) 
+                Just [_, Just ls, Just cs, Just rs] -> pure $ Map.singleton name (Spider
+                  (if cs == "." then Black else White)
                   (readInt 10 ls # floor)
                   (readInt 10 rs # floor)
                 )

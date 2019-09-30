@@ -1,10 +1,10 @@
 module Output.JSON where
-  
+
 import Prelude
 
 import Data.Foldable (intercalate)
 
-import Model
+import Model (Ann, Brick, Term(..))
 
 json :: Term Ann (Brick String) -> String
 json TUnit = """{ "type": "unit" }"""

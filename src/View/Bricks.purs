@@ -8,7 +8,7 @@ import Data.Foldable (foldMap, foldr, length)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Function (on)
 import Data.Int (toNumber)
-import Data.Lens ((+~))
+import Data.Lens (Lens, (+~))
 import Data.Lens.Record (prop)
 import Data.Map as Map
 import Data.Map (Map, lookup)
@@ -45,7 +45,10 @@ type State =
   , showWires :: Boolean
   }
 
+_selection :: ∀ a b r. Lens { selection :: a | r } { selection :: b | r } a b
 _selection = prop (SProxy :: SProxy "selection")
+
+_bottomRight :: ∀ a b r. Lens { bottomRight :: a | r } { bottomRight :: b | r } a b
 _bottomRight = prop (SProxy :: SProxy "bottomRight")
 
 data Action
@@ -80,7 +83,7 @@ bricksView =
 initialState :: Input -> State
 initialState input =
   { input
-  , selection: 
+  , selection:
     { topLeft: 0 /\ 0
     , bottomRight: 0 /\ 0
     }
@@ -91,34 +94,34 @@ initialState input =
 render :: ∀ m. State -> H.ComponentHTML Action () m
 render { input: { bricks: { width, height, boxes }, matches, context, selectedBoxes }, selection, showWires } = div
   [ ref (RefLabel "bricks")
-  , classes [ ClassName "bricks", ClassName $ if showWires then "show-wires" else "show-bricks" ] 
+  , classes [ ClassName "bricks", ClassName $ if showWires then "show-wires" else "show-bricks" ]
   , tabIndex 0
   , onKeyDown (Just <<< OnKeyDown)
   , onMouseUp (const $ Just $ OnMouseUp)
-  ] 
+  ]
   [ S.svg [ viewBox { topLeft: 0 /\ 0, bottomRight: width /\ height } ] $
     foldMap (\b@{ bid, box } -> let { className, content } = renderBrick (matchesToIO matches) (lookup bid context) b in [ S.g
       [ svgClasses [ ClassName className, ClassName $ if Set.member b selectedBoxes then "selected" else "" ]
-      , onMouseDown (const $ Just $ OnMouseDown box) 
+      , onMouseDown (const $ Just $ OnMouseDown box)
       , onMouseMove (const $ Just $ OnMouseMove box)
-      ] 
+      ]
       ([rect box ""] <> content)]) boxes
     <> [rect (selectionBox selection) "selection"]
   ]
 
-renderBrick :: ∀ m. InputOutput String -> Maybe (TypeDecl String) -> Brick String 
+renderBrick :: ∀ m. InputOutput String -> Maybe (TypeDecl String) -> Brick String
   -> { className :: String, content :: Array (H.ComponentHTML Action () m) }
-renderBrick io (Just (Gen _)) b@{ box } = 
+renderBrick io (Just (Gen _)) b@{ box } =
   { className: "box"
-  , content: 
+  , content:
       renderBox b
       <> maybe [] (foldMap (renderLines true Input b)) (lookup (box /\ Input) io)
       <> maybe [] (foldMap (renderLines true Output b)) (lookup (box /\ Output) io)
   }
 renderBrick io (Just (Perm perm)) b = { className: "wires", content: renderPerm io b perm }
-renderBrick io (Just (Spider c _ _)) b@{ box } = 
+renderBrick io (Just (Spider c _ _)) b@{ box } =
   { className: "wires"
-  , content: 
+  , content:
       maybe [] (foldMap (renderLines false Input b)) (lookup (box /\ Input) io) <>
       maybe [] (foldMap (renderLines false Output b)) (lookup (box /\ Output) io) <>
       renderNode b c
@@ -126,12 +129,12 @@ renderBrick io (Just (Spider c _ _)) b@{ box } =
 renderBrick _ Nothing _ = { className: "box", content: [] }
 
 renderBox :: ∀ m. Brick String -> Array (H.ComponentHTML Action () m)
-renderBox { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} = 
+renderBox { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} =
   [ S.rect [ S.x (mx - 0.18), S.y (my - 0.25), S.width 0.36, S.height 0.5, svgClasses [ ClassName "inner-box" ] ]
-  , S.text 
+  , S.text
     [ S.x mx, S.y (my + 0.12)
     , S.attr (AttrName "text-anchor") "middle"
-    , svgClasses [ ClassName "inner-box-text" ] 
+    , svgClasses [ ClassName "inner-box-text" ]
     ] [ text bid ]
   ]
   where
@@ -139,7 +142,7 @@ renderBox { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} =
     my = (toNumber yt + toNumber yb) / 2.0
 
 renderNode :: ∀ m. Brick String -> Color -> Array (H.ComponentHTML Action () m)
-renderNode { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} color = 
+renderNode { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} color =
   [ S.circle [ S.cx mx, S.cy my, S.r 0.05, svgClasses [ ClassName "node", ClassName (show color) ] ]
   ]
   where
@@ -147,12 +150,12 @@ renderNode { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} color =
     my = (toNumber yt + toNumber yb) / 2.0
 
 renderLines :: ∀ m. Boolean -> Side -> Brick String -> Match String -> Array (H.ComponentHTML Action () m)
-renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y, validity } = 
+renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y, validity } =
   [ S.g [ svgClasses [ ClassName "object", validityClassName validity ] ] $
     [ S.path [ svgClasses [ ClassName "line" ], S.d [ S.Abs (S.M x y), S.Abs (S.C cpx y cpx cpy mx cpy) ] ]
     ] <> renderObject side x m
   ]
-  where 
+  where
     x = toNumber $ if side == Input then xl else xr
     mx = (toNumber xl + toNumber xr) / 2.0 + if toBox then if side == Input then -0.18 else 0.18 else 0.0
     my = (toNumber yt + toNumber yb) / 2.0
@@ -161,7 +164,7 @@ renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ 
     cpy = (my + (my - y) * (if toBox then 0.3 else 0.05) / height)
 
 renderObject :: ∀ m. Side -> Number -> Match String -> Array (H.ComponentHTML Action () m)
-renderObject Input x { y, validity, object } = 
+renderObject Input x { y, validity, object } =
   [ S.text
     [ S.x (x + 0.05), S.y (y - 0.05)
     , S.attr (AttrName "text-anchor") "start"
@@ -169,7 +172,7 @@ renderObject Input x { y, validity, object } =
     ] [ text object ]
   , S.path [ S.d [ S.Abs (S.M (x - 0.001) (y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false false 0.0 0.08) ] ]
   ]
-renderObject Output x { y, validity, object } = 
+renderObject Output x { y, validity, object } =
   [ S.text
     [ S.x (x - 0.05), S.y (y - 0.05)
     , S.attr (AttrName "text-anchor") "end"
@@ -179,24 +182,24 @@ renderObject Output x { y, validity, object } =
   ]
 
 renderPerm :: ∀ m. InputOutput String -> Brick String -> Array Int -> Array (H.ComponentHTML Action () m)
-renderPerm io { box: b@{ topLeft: xl /\ yt, bottomRight: xr /\ yb } } perm = 
+renderPerm io { box: b@{ topLeft: xl /\ yt, bottomRight: xr /\ yb } } perm =
   case lookup (b /\ Input) io <#> sortWith (_.y), lookup (b /\ Output) io <#> sortWith (_.y) of
     Just yls, Just yrs ->
       perm # foldMapWithIndex \r l -> fromMaybe [S.path []] $ do
         ml@{ y: yl } <- yls !! (l - 1)
         mr@{ y: yr } <- yrs !! r
         pure $
-          [ S.path 
-              [ S.d [ S.Abs (S.M xln yl), S.Abs (S.C cpx yl cpx yr xrn yr) ] 
+          [ S.path
+              [ S.d [ S.Abs (S.M xln yl), S.Abs (S.C cpx yl cpx yr xrn yr) ]
               , svgClasses [ ClassName "line" ]
               ]
           ] <> renderObject Input xln ml <> renderObject Output xrn mr
     _, _ -> []
-  where 
+  where
     xln = toNumber xl
     xrn = toNumber xr
     cpx = (xln + xrn) / 2.0
-  
+
 sideClassName :: Side -> ClassName
 sideClassName side = ClassName $ if side == Input then "input" else "output"
 
@@ -220,7 +223,7 @@ handleAction = case _ of
     maybe (pure unit) (liftEffect <<< focus <<< unsafeCoerce) mb
   MoveCursorStart d -> updateSelection \sel ->
     { topLeft: moveCursor d sel.topLeft sel.bottomRight
-    , bottomRight: moveCursor d sel.bottomRight sel.topLeft 
+    , bottomRight: moveCursor d sel.bottomRight sel.topLeft
     }
   MoveCursorEnd d -> updateSelection (_bottomRight +~ d)
   OnKeyDown k -> let act dx dy = handleAction $ (if shiftKey k then MoveCursorEnd else MoveCursorStart) (dx /\ dy) in
@@ -252,7 +255,7 @@ updateSelection f = do
   { selection, input: { bricks: { width, height } } } <- H.get
   let { topLeft, bottomRight } = f selection
   let selection' = { topLeft: clamp2d width height topLeft, bottomRight: clamp2d width height bottomRight }
-  H.modify_ \st -> st { selection = selection' } 
+  H.modify_ \st -> st { selection = selection' }
   H.raise (SelectionChanged $ selectionBox selection')
 
 clamp2d :: Int -> Int -> Int /\ Int -> Int /\ Int
@@ -278,9 +281,9 @@ rect { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } cls = S.rect $
 
 gridPosition :: ∀ r i. Box -> IProp r i
 gridPosition { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } =
-  attr (AttrName "style") $ 
+  attr (AttrName "style") $
     "grid-column-start: " <> show (x0 + 1) <>
-    "; grid-row-start: " <> show (y0 + 1) <> 
+    "; grid-row-start: " <> show (y0 + 1) <>
     "; grid-column-end: " <> show (x1 + 1) <>
     "; grid-row-end: " <> show (y1 + 1)
 
@@ -296,13 +299,13 @@ matchesToIO :: Array (Matches (VarWithBox String)) -> InputOutput String
 matchesToIO = foldMap matchesToIO' >>> foldr (Map.unionWith (<>)) Map.empty
   where
     matchesToIO' :: Matches (VarWithBox String) -> Array (InputOutput String)
-    matchesToIO' (Matched ms) = ms 
+    matchesToIO' (Matched ms) = ms
       # sortBy (\(_ /\ a /\ b) (_ /\ c /\ d) -> comparing _.box a c <> comparing _.box b d)
       # groupBy (\(_ /\ a /\ b) (_ /\ c /\ d) -> a.box == c.box && b.box == d.box)
       # map toMatch
     matchesToIO' (Unmatched val side ms) = ms # groupBy (eq `on` _.box) # map (toMismatch val side)
     toMatch :: NonEmptyArray (Validity /\ VarWithBox String /\ VarWithBox String) -> InputOutput String
-    toMatch nonEmpty = Map.fromFoldable 
+    toMatch nonEmpty = Map.fromFoldable
         [ (lBox /\ Output) /\ leftObjects
         , (rBox /\ Input) /\ rightObjects
         ]
@@ -313,8 +316,8 @@ matchesToIO = foldMap matchesToIO' >>> foldr (Map.unionWith (<>)) Map.empty
         y0 = toNumber $ max (snd lBox.topLeft) (snd rBox.topLeft)
         y1 = toNumber $ min (snd lBox.bottomRight) (snd rBox.bottomRight)
         n = toNumber (length nonEmpty)
-        leftObjects /\ rightObjects = nonEmpty # foldMapWithIndex \i (b /\ l /\ r) -> 
-          let y = y0 + (y1 - y0) * (0.5 + toNumber i) / n in 
+        leftObjects /\ rightObjects = nonEmpty # foldMapWithIndex \i (b /\ l /\ r) ->
+          let y = y0 + (y1 - y0) * (0.5 + toNumber i) / n in
           let ol = getObject l in
           let or = getObject r in
           let validity = if y1 > y0 && (ol == "" || or == "" || ol == or) then b else Invalid in

@@ -5,7 +5,7 @@ import Prelude hiding (div)
 import Data.Either (either, hush)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (foldMap, for_)
-import Data.Lens (set)
+import Data.Lens (Lens, set)
 import Data.Lens.Record (prop)
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..), maybe)
@@ -25,7 +25,6 @@ import Web.HTML.Location (setHash)
 import Web.HTML.Window (location)
 
 import Bricks as Bricks
-import Bricks
 import InferType
 import Model
 
@@ -36,17 +35,24 @@ import View.Bricks as Bricks
 import View.Term as Term
 import View.CopyToClipboard (copyToClipboard)
 
-type State = 
+type State =
   { input :: Input
   , selectionBox :: Box
   }
 
+_input :: ∀ a b r. Lens { input :: a | r } { input :: b | r } a b
 _input = prop (SProxy :: SProxy "input")
+
+_pixels :: ∀ a b r. Lens { pixels :: a | r } { pixels :: b | r } a b
 _pixels = prop (SProxy :: SProxy "pixels")
+
+_context :: ∀ a b r. Lens { context :: a | r } { context :: b | r } a b
 _context = prop (SProxy :: SProxy "context")
+
+_selectionBox :: ∀ a b r. Lens { selectionBox :: a | r } { selectionBox :: b | r } a b
 _selectionBox = prop (SProxy :: SProxy "selectionBox")
 
-type Input = 
+type Input =
   { pixels :: String
   , context :: String
   }
@@ -61,7 +67,7 @@ data Action
 data Query a
   = DoAction Action a
 
-type ChildSlots = 
+type ChildSlots =
   ( bricks :: Bricks.Slot Unit
   , term :: Term.Slot Unit
   )
@@ -83,7 +89,7 @@ initialState input = { input, selectionBox: { topLeft: 0 /\ 0, bottomRight: 1 /\
 
 render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
 render st = div [ classes [ ClassName "app" ] ]
-  [ div [ classes [ ClassName "main"] ] 
+  [ div [ classes [ ClassName "main"] ]
     [ slot _bricks unit Bricks.bricksView bricksInput (Just <<< BricksMessage)
     , aside []
       [ h2_ [ text "Inferred type" ]
@@ -114,7 +120,7 @@ render st = div [ classes [ ClassName "app" ] ]
     envE = (<>) <$> parseContext st.input.context <*> pure defaultEnv
 
     termTypeStr = envE # either identity (showInferred <<< inferType bricksInput.bricks.term)
-    sub /\ selectionPath = subTerm st.selectionBox bricksInput.bricks.term Nil
+    sub /\ selectionPath = Bricks.subTerm st.selectionBox bricksInput.bricks.term Nil
     selectionType = hush envE <#> inferType sub <#> showInferred
 
 toBricksInput :: Input -> Box -> Bricks.Input
@@ -131,7 +137,7 @@ toBricksInput input selectionBox =
                             (\env -> let inferred = inferType bricks.term env
                                      in inferred.matches <> typeToMatches inferred.type)
 
-    sub /\ selectionPath = subTerm selectionBox bricks.term Nil
+    sub /\ selectionPath = Bricks.subTerm selectionBox bricks.term Nil
     selectedBoxes = foldMap Set.singleton sub
 
 handleAction :: ∀ o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit
@@ -157,8 +163,8 @@ updateWindowLocation { pixels, context } =
   liftEffect do
     w <- window
     l <- location w
-    for_ (encodeURIComponent pixels) \p -> 
-      for_ (encodeURIComponent context) \c -> 
+    for_ (encodeURIComponent pixels) \p ->
+      for_ (encodeURIComponent context) \c ->
         setHash ("pixels=" <> p <> "&context=" <> c) l
 
 
