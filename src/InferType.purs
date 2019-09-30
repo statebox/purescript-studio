@@ -95,7 +95,6 @@ replaceMatches bounds (Unmatched v io vs) = Unmatched v io (vs <#> replaceBoxed 
 replaceMatched :: ∀ bv. Bounds bv -> Validity /\ VarWithBox bv /\ VarWithBox bv -> Validity /\ VarWithBox bv /\ VarWithBox bv
 replaceMatched bounds (val /\ l /\ r) = val /\ replaceBoxed bounds l /\ replaceBoxed bounds r
 
-
 replaceBoxed :: ∀ bv. Bounds bv -> VarWithBox bv -> VarWithBox bv
 replaceBoxed bounds { box, var } = { box, var: replace bounds var }
 

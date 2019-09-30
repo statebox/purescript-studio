@@ -115,4 +115,3 @@ derive instance eqValidity :: Eq Validity
 data Matches a = Matched (Array (Validity /\ a /\ a)) | Unmatched Validity Side (Array a)
 
 type Match bv = { y :: Number, validity :: Validity, object :: bv }
-type InputOutput bv = Map (Box /\ Side) (Array (Match bv))

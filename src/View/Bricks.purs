@@ -2,13 +2,16 @@ module View.Bricks where
 
 import Prelude hiding (div)
 
-import Data.Array ((!!), intercalate, sortWith)
-import Data.Foldable (foldMap)
+import Data.Array ((!!), intercalate, sortWith, groupBy, sortBy)
+import Data.Array.NonEmpty (NonEmptyArray, head)
+import Data.Foldable (foldMap, foldr, length)
 import Data.FoldableWithIndex (foldMapWithIndex)
+import Data.Function (on)
 import Data.Int (toNumber)
 import Data.Lens ((+~))
 import Data.Lens.Record (prop)
-import Data.Map (lookup)
+import Data.Map as Map
+import Data.Map (Map, lookup)
 import Data.Maybe
 import Data.Set as Set
 import Data.Set (Set)
@@ -17,7 +20,7 @@ import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen as H
-import Halogen.HTML hiding (code, prop, map)
+import Halogen.HTML hiding (code, head, prop, map)
 import Halogen.HTML.Properties (classes, tabIndex, ref)
 import Halogen.HTML.Events (onKeyDown, onMouseDown, onMouseMove, onMouseUp)
 import Halogen.Query.Input (RefLabel(..))
@@ -32,6 +35,8 @@ import Debug.Trace
 import Model
 import Common (VoidF)
 
+
+type InputOutput bv = Map (Box /\ Side) (Array (Match bv))
 
 type State =
   { input :: Input
@@ -55,7 +60,7 @@ data Action
 
 type Input =
   { bricks :: Bricks String
-  , matches :: InputOutput String
+  , matches :: Array (Matches (VarWithBox String))
   , context :: Context String String
   , selectedBoxes :: Set (Brick String)
   }
@@ -92,7 +97,7 @@ render { input: { bricks: { width, height, boxes }, matches, context, selectedBo
   , onMouseUp (const $ Just $ OnMouseUp)
   ] 
   [ S.svg [ viewBox { topLeft: 0 /\ 0, bottomRight: width /\ height } ] $
-    foldMap (\b@{ bid, box } -> let { className, content } = renderBrick matches (lookup bid context) b in [ S.g
+    foldMap (\b@{ bid, box } -> let { className, content } = renderBrick (matchesToIO matches) (lookup bid context) b in [ S.g
       [ svgClasses [ ClassName className, ClassName $ if Set.member b selectedBoxes then "selected" else "" ]
       , onMouseDown (const $ Just $ OnMouseDown box) 
       , onMouseMove (const $ Just $ OnMouseMove box)
@@ -103,19 +108,19 @@ render { input: { bricks: { width, height, boxes }, matches, context, selectedBo
 
 renderBrick :: ∀ m. InputOutput String -> Maybe (TypeDecl String) -> Brick String 
   -> { className :: String, content :: Array (H.ComponentHTML Action () m) }
-renderBrick matches (Just (Gen _)) b@{ box } = 
+renderBrick io (Just (Gen _)) b@{ box } = 
   { className: "box"
   , content: 
       renderBox b
-      <> maybe [] (foldMap (renderLines true Input b)) (lookup (box /\ Input) matches)
-      <> maybe [] (foldMap (renderLines true Output b)) (lookup (box /\ Output) matches)
+      <> maybe [] (foldMap (renderLines true Input b)) (lookup (box /\ Input) io)
+      <> maybe [] (foldMap (renderLines true Output b)) (lookup (box /\ Output) io)
   }
-renderBrick matches (Just (Perm perm)) b = { className: "wires", content: renderPerm matches b perm }
-renderBrick matches (Just (Spider c _ _)) b@{ box } = 
+renderBrick io (Just (Perm perm)) b = { className: "wires", content: renderPerm io b perm }
+renderBrick io (Just (Spider c _ _)) b@{ box } = 
   { className: "wires"
   , content: 
-      maybe [] (foldMap (renderLines false Input b)) (lookup (box /\ Input) matches) <>
-      maybe [] (foldMap (renderLines false Output b)) (lookup (box /\ Output) matches) <>
+      maybe [] (foldMap (renderLines false Input b)) (lookup (box /\ Input) io) <>
+      maybe [] (foldMap (renderLines false Output b)) (lookup (box /\ Output) io) <>
       renderNode b c
   }
 renderBrick _ Nothing _ = { className: "box", content: [] }
@@ -174,8 +179,8 @@ renderObject Output x { y, validity, object } =
   ]
 
 renderPerm :: ∀ m. InputOutput String -> Brick String -> Array Int -> Array (H.ComponentHTML Action () m)
-renderPerm matches { box: b@{ topLeft: xl /\ yt, bottomRight: xr /\ yb } } perm = 
-  case lookup (b /\ Input) matches <#> sortWith (_.y), lookup (b /\ Output) matches <#> sortWith (_.y) of
+renderPerm io { box: b@{ topLeft: xl /\ yt, bottomRight: xr /\ yb } } perm = 
+  case lookup (b /\ Input) io <#> sortWith (_.y), lookup (b /\ Output) io <#> sortWith (_.y) of
     Just yls, Just yrs ->
       perm # foldMapWithIndex \r l -> fromMaybe [S.path []] $ do
         ml@{ y: yl } <- yls !! (l - 1)
@@ -285,3 +290,43 @@ viewBox { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } =
 
 svgClasses :: ∀ r i. Array (ClassName) -> IProp r i
 svgClasses arr = S.attr (AttrName "class") $ intercalate " " $ map (\(ClassName s) -> s) arr
+
+
+matchesToIO :: Array (Matches (VarWithBox String)) -> InputOutput String
+matchesToIO = foldMap matchesToIO' >>> foldr (Map.unionWith (<>)) Map.empty
+  where
+    matchesToIO' :: Matches (VarWithBox String) -> Array (InputOutput String)
+    matchesToIO' (Matched ms) = ms 
+      # sortBy (\(_ /\ a /\ b) (_ /\ c /\ d) -> comparing _.box a c <> comparing _.box b d)
+      # groupBy (\(_ /\ a /\ b) (_ /\ c /\ d) -> a.box == c.box && b.box == d.box)
+      # map toMatch
+    matchesToIO' (Unmatched val side ms) = ms # groupBy (eq `on` _.box) # map (toMismatch val side)
+    toMatch :: NonEmptyArray (Validity /\ VarWithBox String /\ VarWithBox String) -> InputOutput String
+    toMatch nonEmpty = Map.fromFoldable 
+        [ (lBox /\ Output) /\ leftObjects
+        , (rBox /\ Input) /\ rightObjects
+        ]
+      where
+        _ /\ lvar /\ rvar = head nonEmpty
+        lBox = lvar.box
+        rBox = rvar.box
+        y0 = toNumber $ max (snd lBox.topLeft) (snd rBox.topLeft)
+        y1 = toNumber $ min (snd lBox.bottomRight) (snd rBox.bottomRight)
+        n = toNumber (length nonEmpty)
+        leftObjects /\ rightObjects = nonEmpty # foldMapWithIndex \i (b /\ l /\ r) -> 
+          let y = y0 + (y1 - y0) * (0.5 + toNumber i) / n in 
+          let ol = getObject l in
+          let or = getObject r in
+          let validity = if y1 > y0 && (ol == "" || or == "" || ol == or) then b else Invalid in
+            [{ y, validity, object: if ol == or then "" else ol }] /\ [{ y, validity, object: or }]
+    toMismatch :: Validity -> Side -> NonEmptyArray (VarWithBox String) -> InputOutput String
+    toMismatch validity side nonEmpty = Map.singleton (b /\ side) objects
+      where
+        b = (head nonEmpty).box
+        x = fst $ if side == Input then b.topLeft else b.bottomRight
+        y0 = toNumber $ snd b.topLeft
+        y1 = toNumber $ snd b.bottomRight
+        n = toNumber (length nonEmpty)
+        objects = nonEmpty # foldMapWithIndex \i v -> [{ validity, y: y0 + (y1 - y0) * (0.5 + toNumber i) / n, object: getObject v }]
+    getObject { var: BoundVar bv } = bv
+    getObject _ = ""
