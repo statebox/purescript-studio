@@ -101,14 +101,11 @@ h2 {
 .object.invalid {
   fill: rgba(204, 0, 0, 1);
 }
-.show-wires path {
+.show-wires path, .show-wires .object circle {
   opacity: 0;
 }
 .object.equal.valid span.output {
   display: none;
-}
-.show-wires .object.valid::before {
-  opacity: 0;
 }
 .line {
   stroke: #444;
@@ -154,6 +151,16 @@ h2 {
 }
 .bricks:focus .wires.selected rect:first-child {
   fill: rgba(0, 112, 204, 0.1);
+}
+text.object[text-anchor=start] {
+  transform: translate(0.05px, -0.05px);
+}
+text.object[text-anchor=end] {
+  transform: translate(-0.05px, -0.05px);
+}
+text.object.centered {
+  text-anchor: middle !important;
+  transform: translate(0, -0.07px);
 }
 
 .fieldset {
@@ -207,7 +214,7 @@ textarea {
   font-family: 'Times New Roman', Times, serif;
   transition: background-color 0.3s;
 }
-.term .selected span, .term .selected i { 
+.term .selected span, .term .selected i {
   background: rgba(0, 112, 204, 0.7);
   color: white;
 }
@@ -221,7 +228,7 @@ textarea {
 </style>
 <body></body>
 <script>
-var Main = PS["Main"], runHalogenAff = PS["Halogen.Aff.Util"].runHalogenAff 
+var Main = PS["Main"], runHalogenAff = PS["Halogen.Aff.Util"].runHalogenAff
 var initialModel = Main.parseHash(location.hash)
 runHalogenAff(Main.runJs2(initialModel)("body"))()
 </script>

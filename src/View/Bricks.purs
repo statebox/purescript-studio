@@ -35,7 +35,7 @@ import Debug.Trace
 import Model
 import Common (VoidF)
 
-
+type Match bv = { y :: Number, validity :: Validity, center :: Boolean, object :: bv }
 type InputOutput bv = Map (Box /\ Side) (Array (Match bv))
 
 type State =
@@ -150,10 +150,10 @@ renderNode { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} color =
     my = (toNumber yt + toNumber yb) / 2.0
 
 renderLines :: ∀ m. Boolean -> Side -> Brick String -> Match String -> Array (H.ComponentHTML Action () m)
-renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y, validity } =
-  [ S.g [ svgClasses [ ClassName "object", validityClassName validity ] ] $
+renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y } =
+  [ S.g [ svgClasses (objectClassNames m) ] $
     [ S.path [ svgClasses [ ClassName "line" ], S.d [ S.Abs (S.M x y), S.Abs (S.C cpx y cpx cpy mx cpy) ] ]
-    ] <> renderObject side x m
+    ] <> if toBox then renderObject side x m else []
   ]
   where
     x = toNumber $ if side == Input then xl else xr
@@ -164,36 +164,36 @@ renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ 
     cpy = (my + (my - y) * (if toBox then 0.3 else 0.05) / height)
 
 renderObject :: ∀ m. Side -> Number -> Match String -> Array (H.ComponentHTML Action () m)
-renderObject Input x { y, validity, object } =
+renderObject Input x m =
   [ S.text
-    [ S.x (x + 0.05), S.y (y - 0.05)
+    [ S.x x, S.y m.y
     , S.attr (AttrName "text-anchor") "start"
-    , svgClasses [ ClassName "object", validityClassName validity ]
-    ] [ text object ]
-  , S.path [ S.d [ S.Abs (S.M (x - 0.001) (y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false false 0.0 0.08) ] ]
-  ]
-renderObject Output x { y, validity, object } =
+    , svgClasses (objectClassNames m)
+    ] [ text m.object ]
+  ] <> if m.center then [ S.circle [ S.cx x, S.cy m.y, S.r 0.04 ] ]
+  else [ S.path [ S.d [ S.Abs (S.M (x - 0.001) (m.y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false false 0.0 0.08) ] ] ]
+renderObject Output x m =
   [ S.text
-    [ S.x (x - 0.05), S.y (y - 0.05)
+    [ S.x x, S.y m.y
     , S.attr (AttrName "text-anchor") "end"
-    , svgClasses [ ClassName "object", validityClassName validity ]
-    ] [ text object ]
-  , S.path [ S.d [ S.Abs (S.M (x + 0.001) (y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false true 0.0 0.08) ] ]
-  ]
+    , svgClasses (objectClassNames m)
+    ] [ text m.object ]
+  ] <> if m.center then [ S.circle [ S.cx x, S.cy m.y, S.r 0.04 ] ]
+  else [ S.path [ S.d [ S.Abs (S.M (x + 0.001) (m.y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false true 0.0 0.08) ] ] ]
 
 renderPerm :: ∀ m. InputOutput String -> Brick String -> Array Int -> Array (H.ComponentHTML Action () m)
 renderPerm io { box: b@{ topLeft: xl /\ yt, bottomRight: xr /\ yb } } perm =
-  case lookup (b /\ Input) io <#> sortWith (_.y), lookup (b /\ Output) io <#> sortWith (_.y) of
+  case lookup (b /\ Input) io <#> sortWith _.y, lookup (b /\ Output) io <#> sortWith _.y of
     Just yls, Just yrs ->
       perm # foldMapWithIndex \r l -> fromMaybe [S.path []] $ do
-        ml@{ y: yl } <- yls !! (l - 1)
-        mr@{ y: yr } <- yrs !! r
+        ml <- yls !! (l - 1)
+        mr <- yrs !! r
         pure $
           [ S.path
-              [ S.d [ S.Abs (S.M xln yl), S.Abs (S.C cpx yl cpx yr xrn yr) ]
+              [ S.d [ S.Abs (S.M xln ml.y), S.Abs (S.C cpx ml.y cpx mr.y xrn mr.y) ]
               , svgClasses [ ClassName "line" ]
               ]
-          ] <> renderObject Input xln ml <> renderObject Output xrn mr
+          ] <> (if ml.center then [] else renderObject Input xln ml) <> (if mr.center then [] else renderObject Output xrn mr)
     _, _ -> []
   where
     xln = toNumber xl
@@ -203,8 +203,11 @@ renderPerm io { box: b@{ topLeft: xl /\ yt, bottomRight: xr /\ yb } } perm =
 sideClassName :: Side -> ClassName
 sideClassName side = ClassName $ if side == Input then "input" else "output"
 
-validityClassName :: Validity -> ClassName
-validityClassName validity = ClassName $ if validity == Valid then "valid" else "invalid"
+objectClassNames :: Match String -> Array ClassName
+objectClassNames { validity, center } =
+  [ ClassName "object"
+  , ClassName $ if validity == Valid then "valid" else "invalid"
+  ] <> if center then [ClassName "centered"] else []
 
 selectionBox :: Box -> Box
 selectionBox selection = { topLeft, bottomRight }
@@ -320,8 +323,9 @@ matchesToIO = foldMap matchesToIO' >>> foldr (Map.unionWith (<>)) Map.empty
           let y = y0 + (y1 - y0) * (0.5 + toNumber i) / n in
           let ol = getObject l in
           let or = getObject r in
+          let center = ol == or in
           let validity = if y1 > y0 && (ol == "" || or == "" || ol == or) then b else Invalid in
-            [{ y, validity, object: if ol == or then "" else ol }] /\ [{ y, validity, object: or }]
+            [{ y, validity, center, object: ol }] /\ [{ y, validity, center, object: or }]
     toMismatch :: Validity -> Side -> NonEmptyArray (VarWithBox String) -> InputOutput String
     toMismatch validity side nonEmpty = Map.singleton (b /\ side) objects
       where
@@ -330,6 +334,6 @@ matchesToIO = foldMap matchesToIO' >>> foldr (Map.unionWith (<>)) Map.empty
         y0 = toNumber $ snd b.topLeft
         y1 = toNumber $ snd b.bottomRight
         n = toNumber (length nonEmpty)
-        objects = nonEmpty # foldMapWithIndex \i v -> [{ validity, y: y0 + (y1 - y0) * (0.5 + toNumber i) / n, object: getObject v }]
+        objects = nonEmpty # foldMapWithIndex \i v -> [{ validity, y: y0 + (y1 - y0) * (0.5 + toNumber i) / n, object: getObject v, center: false }]
     getObject { var: BoundVar bv } = bv
     getObject _ = ""
