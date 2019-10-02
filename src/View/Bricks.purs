@@ -153,7 +153,7 @@ renderLines :: ∀ m. Boolean -> Side -> Brick String -> Match String -> Array (
 renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y } =
   [ S.g [ svgClasses (objectClassNames m) ] $
     [ S.path [ svgClasses [ ClassName "line" ], S.d [ S.Abs (S.M x y), S.Abs (S.C cpx y cpx cpy mx cpy) ] ]
-    ] <> if toBox then renderObject side x m else []
+    ] <> if not toBox && m.center then [] else renderObject side x m
   ]
   where
     x = toNumber $ if side == Input then xl else xr
