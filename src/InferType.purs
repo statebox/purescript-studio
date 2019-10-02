@@ -69,7 +69,7 @@ inferType (TC tts _) ctx = uncons tts #
             else let { bounds, matches } = foldl bindVars mempty (zip b b') in
               (acc <> step)
                 { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds)
-                , matches = replaceMatches bounds <$> acc.matches <> [Matched matches]
+                , matches = replaceMatches bounds <$> acc.matches <> step.matches <> [Matched matches]
                 }
 
 inferBoxType :: ∀ bv. Box -> TypeDecl bv -> InferredType bv
