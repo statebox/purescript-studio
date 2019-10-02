@@ -115,10 +115,15 @@ defaultEnv = Map.fromFoldable
   [ " " /\ Perm []
   , "-" /\ Perm [1]
   , "=" /\ Perm [1, 2]
+  , "σ" /\ Perm [2, 1]
   , "Δ" /\ Spider Black 1 2
+  , "δ" /\ Spider Black 1 2
   , "." /\ Spider Black 1 0
+  , "ε" /\ Spider Black 1 0
   , "+" /\ Spider White 2 1
+  , "μ" /\ Spider White 2 1
   , "0" /\ Spider White 0 1
+  , "η" /\ Spider White 0 1
   ]
 
 parseContext :: String -> Either String (Context String String)
