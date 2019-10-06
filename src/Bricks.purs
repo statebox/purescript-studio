@@ -12,7 +12,7 @@ import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 
 import Model
-import Common ((..<))
+import Common ((..<), Fix(..))
 
 
 fromPixels :: ∀ bid. Ord bid => Array (Array bid) -> (bid -> Boolean) -> Bricks bid
@@ -37,33 +37,32 @@ fromPixels inp isHole = let term /\ boxes = findCuts false false 0 0 width heigh
     hCuts :: Array (Array Boolean)
     hCuts = 1 ..< height <#> \y -> 0 ..< width <#> \x -> at x (y - 1) `canCut` at x y
 
-    toTerm :: Boolean -> Int -> Int -> Int -> Int -> Term Ann (Brick bid) /\ Array (Brick bid)
+    toTerm :: Boolean -> Int -> Int -> Int -> Int -> Term AnnPos (Brick bid) /\ Array (Brick bid)
     toTerm false x0 y0 x1 y1 = let box = { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } in at x0 y0
-      # maybe (TUnit /\ []) (\bid -> let brick = { bid, box } in TBox brick /\ [brick])
+      # maybe (tunit /\ []) (\bid -> let brick = { bid, box } in tbox brick /\ [brick])
     toTerm true y0 x0 y1 x1 = toTerm false x0 y0 x1 y1
 
-    findCuts :: Boolean -> Boolean -> Int -> Int -> Int -> Int -> Term Ann (Brick bid) /\ Array (Brick bid)
+    findCuts :: Boolean -> Boolean -> Int -> Int -> Int -> Int -> Term AnnPos (Brick bid) /\ Array (Brick bid)
     findCuts xySwapped didNotCut x0 y0 x1 y1 =
       case filter isCut ((y0 + 1) ..< y1) of
         [] -> if didNotCut then toTerm xySwapped x0 y0 x1 y1 else findCuts (not xySwapped) true y0 x0 y1 x1
         ys -> case unzip (zip (y0 `cons` ys) (ys `snoc` y1) <#> \(yl /\ yr) -> findCuts (not xySwapped) false yl x0 yr x1) of
-          tms /\ bricks -> (if xySwapped then TC else TT) tms (y0 `cons` ys `snoc` y1) /\ concat bricks
+          tms /\ bricks -> (if xySwapped then tc else tt) tms (y0 `cons` ys `snoc` y1) /\ concat bricks
       where
         isCut y = and $ slice x0 x1 $ fromMaybe [] $ (if xySwapped then vCuts else hCuts) !! (y - 1)
 
-subTerm :: ∀ bid. Box -> Term Ann (Brick bid) -> Path -> Term Ann (Brick bid) /\ Selection
-subTerm box (TC ts ann) p = subTerm' box ts ann p fst TC
-subTerm box (TT ts ann) p = subTerm' box ts ann p snd TT
-subTerm _ x path = x /\ { path, count: 1 }
+toSelection :: ∀ bid. Box -> Term AnnPos (Brick bid) -> Path -> Selection
+toSelection box (Fix (TC ts ann)) p = toSelection' box ts ann p fst
+toSelection box (Fix (TT ts ann)) p = toSelection' box ts ann p snd
+toSelection _ _ path = { path, count: 1 }
 
-subTerm'
-  :: ∀ bid. Box -> Array (Term Ann (Brick bid)) -> Ann -> Path
-  -> (Int /\ Int -> Int) -> (Array (Term Ann (Brick bid)) -> Ann -> Term Ann (Brick bid))
-  -> Term Ann (Brick bid) /\ Selection
-subTerm' box ts ann p xOrY mkTerm =
+toSelection'
+  :: ∀ bid. Box -> Array (Term AnnPos (Brick bid)) -> AnnPos -> Path
+  -> (Int /\ Int -> Int) -> Selection
+toSelection' box ts ann p xOrY =
   if lb + 1 == ub
-    then (ts !! lb) # maybe (mkTerm ts ann /\ selection) \t -> subTerm box t (L.snoc p lb)
-    else mkTerm (slice lb ub ts) (slice lb (ub + 1) ann) /\ selection
+    then (ts !! lb) # maybe selection \t -> toSelection box t (L.snoc p lb)
+    else selection
   where
     lb = maybe 0 (_ - 1) $ findIndex (_ > xOrY box.topLeft) ann
     ub = fromMaybe (length ann - 1) $ findIndex (_ >= xOrY box.bottomRight) ann

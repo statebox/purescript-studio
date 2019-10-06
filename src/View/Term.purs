@@ -11,11 +11,11 @@ import Halogen.HTML hiding (map)
 import Halogen.HTML.Properties (classes)
 
 import Model
-import Common (VoidF)
+import Common (VoidF, Fix(..))
 
 
 type State =
-  { term :: Term Ann (Brick String)
+  { term :: Term AnnPos (Brick String)
   , selection :: Selection
   }
 
@@ -45,11 +45,11 @@ handleAction = case _ of
 
 render :: ∀ m. State -> H.ComponentHTML Action () m
 render { term, selection: { path, count } } = div [ classes [ ClassName "term" ] ] (rec (Just path) term) where
-  rec :: Maybe Path -> Term Ann (Brick String) -> Array (H.ComponentHTML Action () m)
-  rec p TUnit = [ div [ clsSel p "tunit" ] [ i_ [ text "I" ] ] ]
-  rec p (TBox { bid }) = [ div [ clsSel p "tbox" ] [ format bid ] ]
-  rec p (TC terms _) = [ div [ clsSel p "tc" ] $ intercalate [ div_ [ text "⊙" ] ] $ withPath p terms ]
-  rec p (TT terms _) = [ div [ clsSel p "tt" ] $ intercalate [ div_ [ text "⊗" ] ] $ withPath p terms ]
+  rec :: Maybe Path -> Term AnnPos (Brick String) -> Array (H.ComponentHTML Action () m)
+  rec p (Fix TUnit) = [ div [ clsSel p "tunit" ] [ i_ [ text "I" ] ] ]
+  rec p (Fix (TBox { bid })) = [ div [ clsSel p "tbox" ] [ format bid ] ]
+  rec p (Fix (TC terms _)) = [ div [ clsSel p "tc" ] $ intercalate [ div_ [ text "⊙" ] ] $ withPath p terms ]
+  rec p (Fix (TT terms _)) = [ div [ clsSel p "tt" ] $ intercalate [ div_ [ text "⊗" ] ] $ withPath p terms ]
   clsSel (Just Nil) n = classes [ ClassName n, ClassName "selected" ]
   clsSel _ n = classes [ ClassName n ]
   withPath Nothing = map (rec Nothing)

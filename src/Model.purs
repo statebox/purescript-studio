@@ -3,7 +3,6 @@ module Model where
 import Prelude
 
 import Data.Char (fromCharCode, toCharCode)
-import Data.Foldable (class Foldable, foldMap, foldrDefault, foldlDefault)
 import Data.List (List)
 import Data.Maybe (fromMaybe, maybe)
 import Data.Map (Map)
@@ -13,21 +12,34 @@ import Data.String.Common (joinWith)
 import Data.Traversable (mapAccumL)
 import Data.Tuple.Nested (type (/\))
 
-data Term ann brick
+import Common
+
+data TermF ann brick r
   = TUnit
   | TBox brick
-  | TC (Array (Term ann brick)) ann -- ^ Composition
-  | TT (Array (Term ann brick)) ann -- ^ Tensor
+  | TC (Array r) ann -- ^ Composition
+  | TT (Array r) ann -- ^ Tensor
 
-instance foldableTerm :: Foldable (Term ann) where
-  foldr f z = foldrDefault f z
-  foldl f z = foldlDefault f z
-  foldMap f = go
-    where
-      go TUnit = mempty
-      go (TBox box) = f box
-      go (TC ts _) = foldMap go ts
-      go (TT ts _) = foldMap go ts
+type Term ann brick = Fix (TermF ann brick)
+
+tunit :: ∀ ann brick. Term ann brick
+tunit = Fix TUnit
+
+tbox :: ∀ ann brick. brick -> Term ann brick
+tbox brick = Fix (TBox brick)
+
+tc :: ∀ ann brick. Array (Term ann brick) -> ann -> Term ann brick
+tc ts ann = Fix (TC ts ann)
+
+tt :: ∀ ann brick. Array (Term ann brick) -> ann -> Term ann brick
+tt ts ann = Fix (TT ts ann)
+
+instance functorTermF :: Functor (TermF ann brick) where
+  map _ TUnit = TUnit
+  map _ (TBox box) = TBox box
+  map f (TC ts ann) = TC (map f ts) ann
+  map f (TT ts ann) = TT (map f ts) ann
+
 
 type Box =
   { topLeft :: Int /\ Int
@@ -38,10 +50,10 @@ type Bricks bid =
   { width :: Int
   , height :: Int
   , boxes :: Array (Brick bid)
-  , term :: Term Ann (Brick bid)
+  , term :: Term AnnPos (Brick bid)
   }
 
-type Ann = Array Int
+type AnnPos = Array Int
 
 type Selection = { path :: Path, count :: Int }
 type Path = List Int

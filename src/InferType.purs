@@ -2,12 +2,13 @@ module InferType where
 
 import Prelude
 
-import Data.Array (zip, uncons, filter)
+import Data.Array (zip, uncons, filter, slice, (!!), head, last)
 import Data.Array.NonEmpty (toArray)
 import Data.Either (Either(..))
-import Data.Foldable (foldMap, foldl, length)
+import Data.Foldable (foldMap, foldl, fold, length)
 import Data.Functor.App (App(..))
 import Data.Int (floor)
+import Data.List (List(..))
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
@@ -20,11 +21,12 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Global (readInt)
 
 import Model
-import Common ((..<))
+import Common ((..<), Fix(..), Ann(..), annotateFix, getAnn, mapAnn)
 
 
 type InferredType bv =
   { type :: Ty (VarWithBox bv)
+  , bounds :: Bounds bv
   , matches :: Array (Matches (VarWithBox bv))
   , errors :: Array String
   }
@@ -34,6 +36,9 @@ instance boundsSemigroup :: Semigroup (Bounds bv) where
   append (Bounds l) (Bounds r) = let l' = l <#> replace (Bounds r) in Bounds (l' <> (r <#> replace (Bounds l')))
 instance boundsMonoid :: Monoid (Bounds bv) where
   mempty = Bounds (Map.empty)
+
+type TypedTerm ann brick bv = Fix (Ann (InferredType bv) (TermF ann brick))
+
 
 getType :: ∀ bv. InferredType bv -> Ty (Var bv)
 getType { type: Ty l r } = Ty (l <#> _.var) (r <#> _.var)
@@ -50,27 +55,26 @@ showInferred it@{ errors } = if length errors == 0 then show (getType it) else j
 
 inferType
   :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv)
-  => Term ann (Brick bid) -> Context bv bid -> InferredType bv
-inferType TUnit _ = empty
-inferType (TBox { box, bid }) ctx =
-  Map.lookup bid ctx # note ("Undeclared name: " <> show bid) (inferBoxType box)
-inferType (TT ts _) ctx = foldMap inferType ts ctx
-inferType (TC tts _) ctx = uncons tts #
-  note "Composition of empty list not supported" \{ head, tail } ->
-  foldl compose (inferType head ctx) tail
-    where
-      compose :: Show (Var bv) => InferredType bv -> Term ann (Brick bid) -> InferredType bv
-      compose acc@{ type: Ty a b } term = res
-        where
-          step@{ type: Ty b' c } = inferType term ctx
-          res = if ((length b :: Int) /= length b')
-            then
-              (acc <> step <> empty { matches = [Unmatched Invalid Output b, Unmatched Invalid Input b'] }) { type = Ty a c }
-            else let { bounds, matches } = foldl bindVars mempty (zip b b') in
-              (acc <> step)
-                { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds)
-                , matches = replaceMatches bounds <$> acc.matches <> step.matches <> [Matched matches]
-                }
+  => Context bv bid -> Term ann (Brick bid) -> TypedTerm ann (Brick bid) bv
+inferType ctx tm = let res = annotateFix alg tm in mapAnn (replaceInferredType (getAnn res).bounds) res where
+  alg TUnit = empty
+  alg (TBox { box, bid }) =
+    Map.lookup bid ctx # note ("Undeclared name: " <> show bid) (inferBoxType box)
+  alg (TT ts _) = fold ts
+  alg (TC tts _) = uncons tts #
+    note "Composition of empty list not supported" \{ head, tail } ->
+    foldl compose head tail
+      where
+        compose :: Show (Var bv) => InferredType bv -> InferredType bv -> InferredType bv
+        compose acc@{ type: Ty a b } step@{ type: Ty b' c } = res
+          where
+            res = if ((length b :: Int) /= length b')
+              then
+                (acc <> step <> empty { matches = [Unmatched Invalid Output b, Unmatched Invalid Input b'] }) { type = Ty a c }
+              else let { bounds, matches } = foldl bindVars mempty (zip b b') in
+                replaceInferredType bounds $
+                  (acc <> step <> empty { bounds = bounds, matches = [Matched matches] })
+                    { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) }
 
 inferBoxType :: ∀ bv. Box -> TypeDecl bv -> InferredType bv
 inferBoxType box (Gen (Ty i o)) = empty { type = Ty (i <#> \bv -> { box, var: BoundVar bv }) (o <#> \bv -> { box, var: BoundVar bv }) }
@@ -95,6 +99,13 @@ bindVars' ({ box, var: FreeVar l } /\ mr@{ var: r })   = { bounds: Bounds (Map.s
 bindVars' m@({ var: l } /\ { var: r }) | l == r        = { bounds: mempty, matches: [Valid /\ m] }
                                        | otherwise     = { bounds: mempty, matches: [Invalid /\ m] }
 
+
+replaceInferredType :: ∀ bv. Bounds bv -> InferredType bv -> InferredType bv
+replaceInferredType bounds it@{ type: Ty l r, matches } = it
+  { type = Ty (l <#> replaceBoxed bounds) (r <#> replaceBoxed bounds)
+  , matches = replaceMatches bounds <$> matches
+  }
+
 replaceMatches :: ∀ bv. Bounds bv -> Matches (VarWithBox bv) -> Matches (VarWithBox bv)
 replaceMatches bounds (Matched ms) = Matched (ms <#> replaceMatched bounds)
 replaceMatches bounds (Unmatched v io vs) = Unmatched v io (vs <#> replaceBoxed bounds)
@@ -108,6 +119,21 @@ replaceBoxed bounds { box, var } = { box, var: replace bounds var }
 replace :: ∀ bv. Bounds bv -> Var bv -> Var bv
 replace _ (BoundVar bv) = BoundVar bv
 replace (Bounds bounds) (FreeVar fv) = Map.lookup fv bounds # fromMaybe (FreeVar fv)
+
+
+getSubTerm :: ∀ brick ann bv. Selection -> TypedTerm ann brick bv -> TypedTerm ann brick bv
+getSubTerm s (Fix (Ann _ (TT ts a))) = getSubTerm' s ts \ts' -> Fix (Ann (foldMap getAnn ts') (TT ts' a))
+getSubTerm s (Fix (Ann _ (TC ts a))) = getSubTerm' s ts \ts' -> case head ts', last ts' of
+  Just (Fix (Ann { type: Ty l _ } _)), Just (Fix (Ann { type: Ty _ r } _)) -> Fix (Ann (empty { type = Ty l r }) (TC ts' a))
+  _, _ -> Fix (Ann empty (TC [] a))
+getSubTerm _ t = t
+
+getSubTerm'
+  :: ∀ brick ann bv. Selection -> Array (TypedTerm ann brick bv)
+  -> (Array (TypedTerm ann brick bv) -> TypedTerm ann brick bv) -> TypedTerm ann brick bv
+getSubTerm' { path: Cons i Nil, count } ts mkTerm = mkTerm (slice i (i + count) ts)
+getSubTerm' { path: Cons i path, count } ts mkTerm = maybe (mkTerm []) (getSubTerm { path, count }) (ts !! i)
+getSubTerm' _ _ mkTerm = mkTerm []
 
 
 defaultEnv :: Context String String

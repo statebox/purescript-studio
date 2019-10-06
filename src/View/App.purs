@@ -4,7 +4,7 @@ import Prelude hiding (div)
 
 import Data.Either (either, hush)
 import Data.Either.Nested (type (\/))
-import Data.Foldable (foldMap, for_)
+import Data.Foldable (for_)
 import Data.Lens (Lens, set)
 import Data.Lens.Record (prop)
 import Data.List (List(Nil))
@@ -27,6 +27,7 @@ import Web.HTML.Window (location)
 import Bricks as Bricks
 import InferType
 import Model
+import Common (getAnn, foldFix, Ann(..))
 
 import Output.Haskell (haskellCode)
 import Output.JSON (json)
@@ -119,9 +120,10 @@ render st = div [ classes [ ClassName "app" ] ]
     envE :: String \/ Context String String
     envE = (<>) <$> parseContext st.input.context <*> pure defaultEnv
 
-    termTypeStr = envE # either identity (showInferred <<< inferType bricksInput.bricks.term)
-    sub /\ selectionPath = Bricks.subTerm st.selectionBox bricksInput.bricks.term Nil
-    selectionType = hush envE <#> inferType sub <#> showInferred
+    typedTerm = envE <#> \env -> inferType env bricksInput.bricks.term
+    termTypeStr = typedTerm # either identity (getAnn >>> showInferred)
+    selectionPath = Bricks.toSelection st.selectionBox bricksInput.bricks.term Nil
+    selectionType = hush typedTerm <#> getSubTerm selectionPath <#> getAnn <#> showInferred
 
 toBricksInput :: Input -> Box -> Bricks.Input
 toBricksInput input selectionBox =
@@ -133,12 +135,16 @@ toBricksInput input selectionBox =
     envE = (<>) <$> parseContext input.context <*> pure defaultEnv
 
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
-    matches = envE # either (\envError -> [])
-                            (\env -> let inferred = inferType bricks.term env
-                                     in inferred.matches <> typeToMatches inferred.type)
+    typedTerm = envE <#> \env -> inferType env bricks.term
+    matches = typedTerm <#> getAnn # either (\envError -> [])
+                                            (\inferred -> inferred.matches <> typeToMatches inferred.type)
 
-    sub /\ selectionPath = Bricks.subTerm selectionBox bricks.term Nil
-    selectedBoxes = foldMap Set.singleton sub
+    selectionPath = Bricks.toSelection selectionBox bricks.term Nil
+    selectedBoxes = either (const Set.empty) (getSubTerm selectionPath >>> foldFix alg) typedTerm where
+      alg (Ann _ (TBox box)) = Set.singleton box
+      alg (Ann _ (TT ss _)) = Set.unions ss
+      alg (Ann _ (TC ss _)) = Set.unions ss
+      alg _ = Set.empty
 
 handleAction :: ∀ o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit
 handleAction = case _ of
