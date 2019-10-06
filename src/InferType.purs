@@ -24,12 +24,12 @@ import Model
 import Common ((..<), Fix(..), Ann(..), annotateFix, getAnn, mapAnn)
 
 
-type InferredType bv =
-  { type :: Ty (VarWithBox bv)
-  , bounds :: Bounds bv
+type Meta bv =
+  ( bounds :: Bounds bv
   , matches :: Array (Matches (VarWithBox bv))
   , errors :: Array String
-  }
+  )
+type InferredType bv = { type :: Ty (VarWithBox bv) | Meta bv }
 
 newtype Bounds bv = Bounds (Map (Int /\ Box) (Var bv))
 instance boundsSemigroup :: Semigroup (Bounds bv) where
@@ -37,11 +37,9 @@ instance boundsSemigroup :: Semigroup (Bounds bv) where
 instance boundsMonoid :: Monoid (Bounds bv) where
   mempty = Bounds (Map.empty)
 
-type TypedTerm ann brick bv = Fix (Ann (InferredType bv) (TermF ann brick))
 
-
-getType :: ∀ bv. InferredType bv -> Ty (Var bv)
-getType { type: Ty l r } = Ty (l <#> _.var) (r <#> _.var)
+getType :: ∀ bv. Ty (VarWithBox bv) -> Ty (Var bv)
+getType (Ty l r) = Ty (l <#> _.var) (r <#> _.var)
 
 empty :: ∀ bv. InferredType bv
 empty = mempty
@@ -49,14 +47,15 @@ empty = mempty
 note :: ∀ bv x. String -> (x -> InferredType bv) -> Maybe x -> InferredType bv
 note s = maybe (empty { errors = [s] })
 
-showInferred :: ∀ bv. Show (Var bv) => InferredType bv -> String
-showInferred it@{ errors } = if length errors == 0 then show (getType it) else joinWith "\n" errors
+showInferred :: ∀ bv ann bid r. Show (Var bv) => { term :: TypedTerm ann (Brick bid) bv, errors :: Array String | r } -> String
+showInferred { term, errors } = if length errors == 0 then show (getType (getAnn term)) else joinWith "\n" errors
 
 
 inferType
   :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv)
-  => Context bv bid -> Term ann (Brick bid) -> TypedTerm ann (Brick bid) bv
-inferType ctx tm = let res = annotateFix alg tm in mapAnn (replaceInferredType (getAnn res).bounds) res where
+  => Context bv bid -> Term ann (Brick bid) -> { term :: TypedTerm ann (Brick bid) bv | Meta bv }
+inferType ctx tm = { term, bounds, matches, errors }
+  where
   alg TUnit = empty
   alg (TBox { box, bid }) =
     Map.lookup bid ctx # note ("Undeclared name: " <> show bid) (inferBoxType box)
@@ -75,6 +74,9 @@ inferType ctx tm = let res = annotateFix alg tm in mapAnn (replaceInferredType (
                 replaceInferredType bounds $
                   (acc <> step <> empty { bounds = bounds, matches = [Matched matches] })
                     { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) }
+  fatTerm = annotateFix alg tm
+  { bounds, matches, errors } = getAnn fatTerm
+  term = mapAnn (replaceInferredType bounds >>> _.type) fatTerm
 
 inferBoxType :: ∀ bv. Box -> TypeDecl bv -> InferredType bv
 inferBoxType box (Gen (Ty i o)) = empty { type = Ty (i <#> \bv -> { box, var: BoundVar bv }) (o <#> \bv -> { box, var: BoundVar bv }) }
@@ -124,8 +126,8 @@ replace (Bounds bounds) (FreeVar fv) = Map.lookup fv bounds # fromMaybe (FreeVar
 getSubTerm :: ∀ brick ann bv. Selection -> TypedTerm ann brick bv -> TypedTerm ann brick bv
 getSubTerm s (Fix (Ann _ (TT ts a))) = getSubTerm' s ts \ts' -> Fix (Ann (foldMap getAnn ts') (TT ts' a))
 getSubTerm s (Fix (Ann _ (TC ts a))) = getSubTerm' s ts \ts' -> case head ts', last ts' of
-  Just (Fix (Ann { type: Ty l _ } _)), Just (Fix (Ann { type: Ty _ r } _)) -> Fix (Ann (empty { type = Ty l r }) (TC ts' a))
-  _, _ -> Fix (Ann empty (TC [] a))
+  Just (Fix (Ann (Ty l _) _)), Just (Fix (Ann (Ty _ r) _)) -> Fix (Ann (Ty l r) (TC ts' a))
+  _, _ -> Fix (Ann mempty (TC [] a))
 getSubTerm _ t = t
 
 getSubTerm'

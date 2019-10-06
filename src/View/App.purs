@@ -111,7 +111,7 @@ render st = div [ classes [ ClassName "app" ] ]
       ]
     ]
     , h2_ [ text "Term view" ]
-    , slot _term unit Term.termView { term: bricksInput.bricks.term, selection: selectionPath } \_ -> Nothing
+    , div_ $ inferredType # either (const []) (\{ term } -> [slot _term unit Term.termView { term, selection: selectionPath } \_ -> Nothing])
   ]
   where
     bricksInput :: Bricks.Input
@@ -120,10 +120,10 @@ render st = div [ classes [ ClassName "app" ] ]
     envE :: String \/ Context String String
     envE = (<>) <$> parseContext st.input.context <*> pure defaultEnv
 
-    typedTerm = envE <#> \env -> inferType env bricksInput.bricks.term
-    termTypeStr = typedTerm # either identity (getAnn >>> showInferred)
+    inferredType = envE <#> \env -> inferType env bricksInput.bricks.term
+    termTypeStr = inferredType # either identity showInferred
     selectionPath = Bricks.toSelection st.selectionBox bricksInput.bricks.term Nil
-    selectionType = hush typedTerm <#> getSubTerm selectionPath <#> getAnn <#> showInferred
+    selectionType = hush inferredType <#> \{ errors, term } -> showInferred { errors, term: getSubTerm selectionPath term }
 
 toBricksInput :: Input -> Box -> Bricks.Input
 toBricksInput input selectionBox =
@@ -135,12 +135,12 @@ toBricksInput input selectionBox =
     envE = (<>) <$> parseContext input.context <*> pure defaultEnv
 
     typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
-    typedTerm = envE <#> \env -> inferType env bricks.term
-    matches = typedTerm <#> getAnn # either (\envError -> [])
-                                            (\inferred -> inferred.matches <> typeToMatches inferred.type)
+    inferredType = envE <#> \env -> inferType env bricks.term
+    matches = inferredType # either (\envError -> [])
+                                    (\{ matches: m, term } -> m <> typeToMatches (getAnn term))
 
     selectionPath = Bricks.toSelection selectionBox bricks.term Nil
-    selectedBoxes = either (const Set.empty) (getSubTerm selectionPath >>> foldFix alg) typedTerm where
+    selectedBoxes = either (const Set.empty) (getSubTerm selectionPath >>> foldFix alg) (inferredType <#> _.term) where
       alg (Ann _ (TBox box)) = Set.singleton box
       alg (Ann _ (TT ss _)) = Set.unions ss
       alg (Ann _ (TC ss _)) = Set.unions ss

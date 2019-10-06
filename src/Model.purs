@@ -124,3 +124,5 @@ data Validity = Valid | Invalid
 derive instance eqValidity :: Eq Validity
 
 data Matches a = Matched (Array (Validity /\ a /\ a)) | Unmatched Validity Side (Array a)
+
+type TypedTerm ann brick bv = Fix (Ann (Ty (VarWithBox bv)) (TermF ann brick))

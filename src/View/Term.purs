@@ -11,11 +11,12 @@ import Halogen.HTML hiding (map)
 import Halogen.HTML.Properties (classes)
 
 import Model
-import Common (VoidF, Fix(..))
+import Common (VoidF, Fix(..), Ann(..))
 
+type TTerm = TypedTerm AnnPos (Brick String) String
 
 type State =
-  { term :: Term AnnPos (Brick String)
+  { term :: TTerm
   , selection :: Selection
   }
 
@@ -45,11 +46,11 @@ handleAction = case _ of
 
 render :: ∀ m. State -> H.ComponentHTML Action () m
 render { term, selection: { path, count } } = div [ classes [ ClassName "term" ] ] (rec (Just path) term) where
-  rec :: Maybe Path -> Term AnnPos (Brick String) -> Array (H.ComponentHTML Action () m)
-  rec p (Fix TUnit) = [ div [ clsSel p "tunit" ] [ i_ [ text "I" ] ] ]
-  rec p (Fix (TBox { bid })) = [ div [ clsSel p "tbox" ] [ format bid ] ]
-  rec p (Fix (TC terms _)) = [ div [ clsSel p "tc" ] $ intercalate [ div_ [ text "⊙" ] ] $ withPath p terms ]
-  rec p (Fix (TT terms _)) = [ div [ clsSel p "tt" ] $ intercalate [ div_ [ text "⊗" ] ] $ withPath p terms ]
+  rec :: Maybe Path -> TTerm -> Array (H.ComponentHTML Action () m)
+  rec p (Fix (Ann _ TUnit)) = [ div [ clsSel p "tunit" ] [ i_ [ text "I" ] ] ]
+  rec p (Fix (Ann ty (TBox { bid }))) = [ div [ clsSel p "tbox" ] [ format ty bid ] ]
+  rec p (Fix (Ann _ (TC terms _))) = [ div [ clsSel p "tc" ] $ intercalate [ div_ [ text "⊙" ] ] $ withPath p terms ]
+  rec p (Fix (Ann _ (TT terms _))) = [ div [ clsSel p "tt" ] $ intercalate [ div_ [ text "⊗" ] ] $ withPath p terms ]
   clsSel (Just Nil) n = classes [ ClassName n, ClassName "selected" ]
   clsSel _ n = classes [ ClassName n ]
   withPath Nothing = map (rec Nothing)
@@ -57,8 +58,11 @@ render { term, selection: { path, count } } = div [ classes [ ClassName "term" ]
   withPath (Just (Cons i Nil)) = mapWithIndex (\j -> rec (if i <= j && j < i + count then Just Nil else Nothing))
   withPath (Just (Cons i p)) = mapWithIndex (\j -> rec (if i == j then Just p else Nothing))
 
-format :: ∀ m. String -> H.ComponentHTML Action () m
-format " " = i_ [ text "I" ]
-format "-" = i_ [ text "id" ]
-format "=" = i_ [ text "id" ]
-format bid = span_ [ text bid ]
+format :: ∀ m. Ty (VarWithBox String) -> String -> H.ComponentHTML Action () m
+format _ " " = i_ [ text "I" ]
+format ty "-" = i_ [ text "id", formatTy ty ]
+format ty "=" = i_ [ text "id", formatTy ty ]
+format _ bid = span_ [ text bid ]
+
+formatTy :: ∀ m. Ty (VarWithBox String) -> H.ComponentHTML Action () m
+formatTy (Ty vs _) = sub_ [ text (intercalate "⊗" (vs <#> _.var >>> show)) ]
