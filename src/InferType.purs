@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Array (zip, uncons, filter, slice, (!!), head, last)
 import Data.Array.NonEmpty (toArray)
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.Foldable (foldMap, foldl, fold, length)
 import Data.Functor.App (App(..))
 import Data.Int (floor)
@@ -17,6 +17,7 @@ import Data.String (trim, split, joinWith)
 import Data.String.Pattern (Pattern(..))
 import Data.String.Regex (regex, match)
 import Data.String.Regex.Flags (noFlags)
+import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
 import Global (readInt)
 
@@ -47,18 +48,17 @@ empty = mempty
 note :: ∀ bv x. String -> (x -> InferredType bv) -> Maybe x -> InferredType bv
 note s = maybe (empty { errors = [s] })
 
-showInferred :: ∀ bv ann bid r. Show (Var bv) => { term :: TypedTerm ann (Brick bid) bv, errors :: Array String | r } -> String
+showInferred :: ∀ bv ann b r. Show (Var bv) => { term :: TypedTerm ann bv b, errors :: Array String | r } -> String
 showInferred { term, errors } = if length errors == 0 then show (getType (getAnn term)) else joinWith "\n" errors
 
 
 inferType
   :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv)
-  => Context bv bid -> Term ann (Brick bid) -> { term :: TypedTerm ann (Brick bid) bv | Meta bv }
+  => Context bv bid -> Term ann (Brick bid) -> { term :: TypedTerm ann bv bid | Meta bv }
 inferType ctx tm = { term, bounds, matches, errors }
   where
   alg TUnit = empty
-  alg (TBox { box, bid }) =
-    Map.lookup bid ctx # note ("Undeclared name: " <> show bid) (inferBoxType box)
+  alg (TBox { box, decl }) = inferBoxType box decl
   alg (TT ts _) = fold ts
   alg (TC tts _) = uncons tts #
     note "Composition of empty list not supported" \{ head, tail } ->
@@ -74,9 +74,10 @@ inferType ctx tm = { term, bounds, matches, errors }
                 replaceInferredType bounds $
                   (acc <> step <> empty { bounds = bounds, matches = [Matched matches] })
                     { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) }
-  fatTerm = annotateFix alg tm
+  tmWithDecl = tm # traverse (\{ bid, box } -> Map.lookup bid ctx # maybe (Left $ "Undeclared name: " <> show bid) \decl -> Right { bid, box, decl })
+  fatTerm = tmWithDecl # either (const (Fix (Ann empty TUnit))) (annotateFix alg)
   { bounds, matches, errors } = getAnn fatTerm
-  term = mapAnn (replaceInferredType bounds >>> _.type) fatTerm
+  term = fatTerm # mapAnn (replaceInferredType bounds >>> _.type)
 
 inferBoxType :: ∀ bv. Box -> TypeDecl bv -> InferredType bv
 inferBoxType box (Gen (Ty i o)) = empty { type = Ty (i <#> \bv -> { box, var: BoundVar bv }) (o <#> \bv -> { box, var: BoundVar bv }) }
@@ -123,7 +124,7 @@ replace _ (BoundVar bv) = BoundVar bv
 replace (Bounds bounds) (FreeVar fv) = Map.lookup fv bounds # fromMaybe (FreeVar fv)
 
 
-getSubTerm :: ∀ brick ann bv. Selection -> TypedTerm ann brick bv -> TypedTerm ann brick bv
+getSubTerm :: ∀ brick ann bv. Selection -> TypedTerm ann bv brick -> TypedTerm ann bv brick
 getSubTerm s (Fix (Ann _ (TT ts a))) = getSubTerm' s ts \ts' -> Fix (Ann (foldMap getAnn ts') (TT ts' a))
 getSubTerm s (Fix (Ann _ (TC ts a))) = getSubTerm' s ts \ts' -> case head ts', last ts' of
   Just (Fix (Ann (Ty l _) _)), Just (Fix (Ann (Ty _ r) _)) -> Fix (Ann (Ty l r) (TC ts' a))
@@ -131,8 +132,8 @@ getSubTerm s (Fix (Ann _ (TC ts a))) = getSubTerm' s ts \ts' -> case head ts', l
 getSubTerm _ t = t
 
 getSubTerm'
-  :: ∀ brick ann bv. Selection -> Array (TypedTerm ann brick bv)
-  -> (Array (TypedTerm ann brick bv) -> TypedTerm ann brick bv) -> TypedTerm ann brick bv
+  :: ∀ brick ann bv. Selection -> Array (TypedTerm ann bv brick)
+  -> (Array (TypedTerm ann bv brick) -> TypedTerm ann bv brick) -> TypedTerm ann bv brick
 getSubTerm' { path: Cons i Nil, count } ts mkTerm = mkTerm (slice i (i + count) ts)
 getSubTerm' { path: Cons i path, count } ts mkTerm = maybe (mkTerm []) (getSubTerm { path, count }) (ts !! i)
 getSubTerm' _ _ mkTerm = mkTerm []
@@ -164,12 +165,12 @@ parseContext = spl "\n" >>> alaF App foldMap toEntry
       [name, typ] -> case typ # spl "->" <#> (spl " " >>> filter (_ /= "")) of
         [left, right] -> pure $ Map.singleton name (Gen $ Ty left right)
         _ -> do
-          permRe <- regex "\\[(.*)\\]" noFlags
+          permRe <- regex "^\\[(.*)\\]$" noFlags
           case match permRe typ # map toArray of
             Just [_, Just perm] ->
               pure $ Map.singleton name (Perm $ perm # (spl " " >>> filter (_ /= "") >>> map (readInt 10 >>> floor)))
             _ -> do
-              spiderRe <- regex "(\\d+)(o|.)(\\d+)" noFlags
+              spiderRe <- regex "^(\\d+)(o|\\.)(\\d+)$" noFlags
               case match spiderRe typ # map toArray of
                 Just [_, Just ls, Just cs, Just rs] -> pure $ Map.singleton name (Spider
                   (if cs == "." then Black else White)

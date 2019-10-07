@@ -43,6 +43,7 @@ h2 {
   grid-gap: 2px;
   flex: 1;
   user-select: none;
+  -webkit-user-select: none;
 }
 .bricks svg {
   position: absolute;
@@ -205,7 +206,8 @@ textarea {
   display: inline-block;
   background: rgba(0, 0, 0, .2);
   color: white;
-  width: 20px;
+  min-width: 20px;
+  padding: 0 3px;
   border-radius: 5px;
   text-align: center;
   font-family: 'Times New Roman', Times, serif;
