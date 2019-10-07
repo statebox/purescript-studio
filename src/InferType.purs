@@ -49,13 +49,13 @@ note :: ∀ bv x. String -> (x -> InferredType bv) -> Maybe x -> InferredType bv
 note s = maybe (empty { errors = [s] })
 
 showInferred :: ∀ bv b r. Show (Var bv) => { term :: TypedTerm bv b, errors :: Array String | r } -> String
-showInferred { term, errors } = if length errors == 0 then show (getType (getAnn term)) else joinWith "\n" errors
+showInferred { term, errors } = if length errors == 0 then show (getAnn term) else joinWith "\n" errors
 
 
 inferType
   :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv)
   => Context bv bid -> Term ann (Brick bid) -> { term :: TypedTerm bv bid | Meta bv }
-inferType ctx tm = { term, bounds, matches, errors }
+inferType ctx tm = { term, bounds, matches: matches <> typeToMatches, errors }
   where
   alg TUnit = empty
   alg (TBox { box, decl }) = inferBoxType box decl
@@ -76,8 +76,9 @@ inferType ctx tm = { term, bounds, matches, errors }
                     { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) }
   tmWithDecl = tm # traverse (\{ bid, box } -> Map.lookup bid ctx # maybe (Left $ "Undeclared name: " <> show bid) \decl -> Right { bid, box, decl })
   fatTerm = tmWithDecl # either (const (Fix (Ann empty TUnit))) (reannotateFix alg)
+  typeToMatches = case (getAnn fatTerm).type of Ty l r -> [Unmatched Valid Input l, Unmatched Valid Output r]
   { bounds, matches, errors } = getAnn fatTerm
-  term = fatTerm # mapAnn (replaceInferredType bounds >>> _.type)
+  term = fatTerm # mapAccumAnn (\s it -> it # replaceInferredType bounds # _.type # map _.var # varsToString s) mempty # _.value
 
 inferBoxType :: ∀ bv. Box -> TypeDecl bv -> InferredType bv
 inferBoxType box (Gen (Ty i o)) = empty { type = Ty (i <#> \bv -> { box, var: BoundVar bv }) (o <#> \bv -> { box, var: BoundVar bv }) }

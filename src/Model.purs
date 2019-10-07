@@ -5,14 +5,13 @@ import Prelude
 import Data.Bifunctor
 import Data.Bitraversable
 import Data.Char (fromCharCode, toCharCode)
-import Data.Foldable (foldMap)
 import Data.List (List)
 import Data.Maybe (fromMaybe, maybe)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.String.CodeUnits (singleton)
 import Data.String.Common (joinWith)
-import Data.Traversable (class Traversable, traverse, mapAccumL, Accum)
+import Data.Traversable
 import Data.Tuple.Nested (type (/\))
 
 import Common
@@ -38,11 +37,14 @@ tt :: ∀ ann brick. Array (Term ann brick) -> ann -> Term ann brick
 tt ts ann = Fix (Ann ann (TT ts))
 
 instance functorTermF :: Functor (TermF brick) where
-  map _ TUnit = TUnit
-  map _ (TBox box) = TBox box
-  map f (TC ts) = TC (map f ts)
-  map f (TT ts) = TT (map f ts)
-
+  map = bimap identity
+instance foldmapTermF :: Foldable (TermF brick) where
+  foldMap = bifoldMap (const mempty)
+  foldr f z = foldrDefault f z
+  foldl f z = foldlDefault f z
+instance traversableTermF :: Traversable (TermF brick) where
+  traverse = bitraverse pure
+  sequence = sequenceDefault
 instance bifunctorTermF :: Bifunctor TermF where
   bimap _ _ TUnit = TUnit
   bimap f _ (TBox box) = TBox (f box)
@@ -84,20 +86,34 @@ type Path = List Int
 data Ty bid = Ty (Array bid) (Array bid)
 
 derive instance eqTy :: (Eq bv) => Eq (Ty bv)
+derive instance functorTy :: Functor Ty
+instance foldableTy :: Foldable Ty where
+  foldMap f (Ty l r) = foldMap f l <> foldMap f r
+  foldr f z = foldrDefault f z
+  foldl f z = foldlDefault f z
+instance traversableTy :: Traversable Ty where
+  traverse f (Ty l r) = Ty <$> traverse f l <*> traverse f r
+  sequence = sequenceDefault
 instance semigroupTy :: Semigroup (Ty bv) where
   append (Ty bid b) (Ty c d) = Ty (bid <> c) (b <> d)
 instance monoidTy :: Monoid (Ty bv) where
   mempty = Ty [] []
 instance showTyVarString :: (Show (Var bv)) => Show (Ty (Var bv)) where
   show (Ty ls rs) = showTypes ls " -> " rs
+instance showTyString :: Show (Ty String) where
+  show (Ty ls rs) = joinWith " " ls <> " -> " <> joinWith " " rs
 
 showTypes :: ∀ bv. Show (Var bv) => Array (Var bv) -> String -> Array (Var bv) -> String
-showTypes ls middle rs =
-  joinWith " " l.value <> middle <>
-  joinWith " " r.value
+showTypes ls middle rs = joinWith " " l.value <> middle <> joinWith " " r.value
   where
-    l = mapAccumL replFv Map.empty ls
-    r = mapAccumL replFv l.accum rs
+    l = varsToString Map.empty ls
+    r = varsToString l.accum rs
+
+varsToString
+  :: ∀ bv t. Show (Var bv) => Traversable t
+  => Map (Int /\ Box) String -> t (Var bv) -> Accum (Map (Int /\ Box) String) (t String)
+varsToString = mapAccumL replFv
+  where
     replFv m (FreeVar fv) = Map.lookup fv m # maybe new old
       where
         old name = { accum: m, value: name }
@@ -147,4 +163,4 @@ derive instance eqValidity :: Eq Validity
 
 data Matches a = Matched (Array (Validity /\ a /\ a)) | Unmatched Validity Side (Array a)
 
-type TypedTerm bv bid = Fix (Ann (Ty (VarWithBox bv)) TermF) { bid :: bid, box :: Box, decl :: TypeDecl bv }
+type TypedTerm bv bid = Fix (Ann (Ty String) TermF) { bid :: bid, box :: Box, decl :: TypeDecl bv }

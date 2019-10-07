@@ -59,7 +59,7 @@ render { term, selection: { path, count } } = div [ classes [ ClassName "term" ]
   withPath (Just (Cons i Nil)) = mapWithIndex (\j -> rec (if i <= j && j < i + count then Just Nil else Nothing))
   withPath (Just (Cons i p)) = mapWithIndex (\j -> rec (if i == j then Just p else Nothing))
 
-format :: ∀ m. Ty (VarWithBox String) -> TypeDecl String -> String -> H.ComponentHTML Action () m
+format :: ∀ m. Ty String -> TypeDecl String -> String -> H.ComponentHTML Action () m
 format _ (Perm []) _ = i_ [ text "I" ]
 format (Ty vs _) (Perm [1]) _ = i_ [ text "id", formatTy vs "⊗" ]
 format (Ty vs _) (Perm [1, 2]) _ = i_ [ text "id", formatTy vs "⊗" ]
@@ -67,5 +67,5 @@ format (Ty vs _) (Perm _) bid = i_ [ text bid, formatTy vs "," ]
 format (Ty l r) (Spider _ _ _) bid = i_ [ text bid, formatTy (l <> r # head # fromFoldable) "" ]
 format _ _ bid = span_ [ text bid ]
 
-formatTy :: ∀ m. Array (VarWithBox String) -> String -> H.ComponentHTML Action () m
-formatTy vs sep = sub_ [ text (intercalate sep (vs <#> _.var >>> show)) ]
+formatTy :: ∀ m. Array String -> String -> H.ComponentHTML Action () m
+formatTy vs sep = sub_ [ text (intercalate sep vs) ]

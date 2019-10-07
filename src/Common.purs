@@ -6,7 +6,6 @@ import Control.Monad.Free (Free, resume')
 import Data.Array (range)
 import Data.Bifunctor
 import Data.Bitraversable
-import Data.Foldable
 import Data.Traversable
 
 
@@ -57,5 +56,9 @@ reannotateFix alg = foldFix \(Ann _ f) -> Fix (Ann (alg (getAnn <$> f)) f)
 getAnn :: ∀ f r a. Fix (Ann r f) a -> r
 getAnn (Fix (Ann r _)) = r
 
-mapAnn :: ∀ f a b c. Functor (f c) => (a -> b) -> Fix (Ann a f) c -> Fix (Ann b f) c
-mapAnn f = go where go (Fix (Ann a ff)) = Fix (Ann (f a) (go <$> ff))
+mapAccumAnn :: ∀ f a b c s. Traversable (f c) => (s -> a -> Accum s b) -> s -> Fix (Ann a f) c -> Accum s (Fix (Ann b f) c)
+mapAccumAnn f = go
+  where
+    go s (Fix (Ann a ff)) =
+      let { accum: s', value: b } = f s a in
+      let { accum, value: ff' } = mapAccumL go s' ff in { accum, value: Fix (Ann b ff') }

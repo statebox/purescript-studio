@@ -27,7 +27,7 @@ import Web.HTML.Window (location)
 import Bricks as Bricks
 import InferType
 import Model
-import Common (getAnn, foldFix, Ann(..))
+import Common (foldFix, Ann(..))
 
 import Output.Haskell (haskellCode)
 import Output.JSON (json)
@@ -134,10 +134,8 @@ toBricksInput input selectionBox =
     context = envE # either (const defaultEnv) identity
     envE = (<>) <$> parseContext input.context <*> pure defaultEnv
 
-    typeToMatches (Ty l r) = [Unmatched Valid Input l, Unmatched Valid Output r]
     inferredType = envE <#> \env -> inferType env bricks.term
-    matches = inferredType # either (\envError -> [])
-                                    (\{ matches: m, term } -> m <> typeToMatches (getAnn term))
+    matches = inferredType # either (\envError -> []) _.matches
 
     selectionPath = Bricks.toSelection selectionBox bricks.term Nil
     selectedBoxes = either (const Set.empty) (getSubTerm selectionPath >>> foldFix alg) (inferredType <#> _.term) where
