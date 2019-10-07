@@ -1,7 +1,8 @@
 { name =
     "statebox-kdmoncat"
 , dependencies =
-    [ "console"
+    [ "argonaut-core"
+    , "console"
     , "debug"
     , "effect"
     , "functors"

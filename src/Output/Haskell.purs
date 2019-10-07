@@ -6,7 +6,7 @@ import Control.Monad.Free (Free, liftF, wrap)
 import Data.Array (intercalate, singleton, replicate, uncons)
 import Data.Foldable (foldMap, foldl, length)
 import Data.FoldableWithIndex (foldMapWithIndex)
-import Data.Map as Map
+import Data.Set as Set
 import Data.Maybe (maybe)
 import Data.String (toLower, contains)
 import Data.String.Pattern (Pattern(..))
@@ -16,11 +16,11 @@ import Data.Tuple.Nested ((/\))
 import Common
 import Model
 
-haskellCode :: ∀ ann. Context String String -> Term ann (Brick String) -> String
-haskellCode ctx tm = case haskellCode' ctx tm of
+haskellCode :: TypedTerm String String -> String
+haskellCode tm = case haskellCode' tm of
   { i, o, code } -> args <> arr (tuple $ foldMap singleton i) (showNested i) `comp` code `comp` arr (showNested o) (tuple $ foldMap singleton o)
   where
-    gens = Map.keys $ Map.filter isGen ctx
+    gens = foldMap (\{ decl, bid } -> if isGen decl then Set.singleton bid else Set.empty) tm
     args = if length gens > 0 then "\\" <> toLower (intercalate " " gens) <> " -> " else ""
 
 
@@ -29,10 +29,10 @@ type HaskellCode = { i :: Free Array String, o :: Free Array String, code :: Str
 haskellEmpty :: HaskellCode
 haskellEmpty = { i: liftF [], o: liftF [], code: "returnA" }
 
-haskellCode' :: ∀ ann. Context String String -> Term ann (Brick String) -> HaskellCode
-haskellCode' ctx = foldFix \(Ann _ f) -> alg f where
+haskellCode' :: TypedTerm String String -> HaskellCode
+haskellCode' = foldFix \(Ann _ f) -> alg f where
   alg TUnit = haskellEmpty
-  alg (TBox { bid }) = Map.lookup bid ctx # (maybe haskellEmpty $ case _ of
+  alg (TBox { bid, decl }) = case decl of
     Perm perm -> perm # foldMapWithIndex (\i p -> ["a" <> show i] /\ ["a" <> show (p - 1)]) #
       \(i /\ o) -> { i: liftF i, o: liftF o, code: arr (tuple i) (tuple o) }
     Spider _ l r -> { i: liftF i, o: liftF o, code: arr (tuple i) out }
@@ -46,7 +46,6 @@ haskellCode' ctx = foldFix \(Ann _ f) -> alg f where
       { i: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) i
       , o: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) o
       , code: toLower bid }
-  )
   alg (TC ts) = ts # uncons # maybe haskellEmpty \{ head, tail } -> foldl compose head tail
     where
       compose l r = { i: l.i, o: r.o, code : braced $ l.code `comp` arr (showNested l.o) (showNested i') `comp` r.code }

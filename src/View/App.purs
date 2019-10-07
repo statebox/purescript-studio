@@ -4,7 +4,7 @@ import Prelude hiding (div)
 
 import Data.Either (either, hush)
 import Data.Either.Nested (type (\/))
-import Data.Foldable (for_)
+import Data.Foldable (foldMap, for_)
 import Data.Lens (Lens, set)
 import Data.Lens.Record (prop)
 import Data.List (List(Nil))
@@ -27,7 +27,6 @@ import Web.HTML.Window (location)
 import Bricks as Bricks
 import InferType
 import Model
-import Common (foldFix, Ann(..))
 
 import Output.Haskell (haskellCode)
 import Output.JSON (json)
@@ -102,10 +101,10 @@ render st = div [ classes [ ClassName "app" ] ]
       , h2_ [ text "Context"]
       , textarea [ value st.input.context, onValueInput (Just <<< UpdateContext) ]
       , h2_ [ text "Copy serialized output to clipboard"]
-      , div_ $ envE # either (const []) (\env ->
-          [ button [ onClick \_ -> Just (CopyToClipboard $ json bricksInput.bricks.term) ]
-                   [ text "JSON" ]
-          , button [ onClick \_ -> Just (CopyToClipboard $ haskellCode env bricksInput.bricks.term) ]
+      , div_ $ inferredType # either (const []) (\{ term } ->
+          [ button [ onClick \_ -> Just (CopyToClipboard $ json term) ]
+                    [ text "JSON" ]
+          , button [ onClick \_ -> Just (CopyToClipboard $ haskellCode term) ]
                    [ text "Haskell" ]
           ])
       ]
@@ -138,11 +137,8 @@ toBricksInput input selectionBox =
     matches = inferredType # either (\envError -> []) _.matches
 
     selectionPath = Bricks.toSelection selectionBox bricks.term Nil
-    selectedBoxes = either (const Set.empty) (getSubTerm selectionPath >>> foldFix alg) (inferredType <#> _.term) where
-      alg (Ann _ (TBox { box, bid })) = Set.singleton { box, bid }
-      alg (Ann _ (TT ss)) = Set.unions ss
-      alg (Ann _ (TC ss)) = Set.unions ss
-      alg _ = Set.empty
+    selectedBoxes = either (const Set.empty) (getSubTerm selectionPath >>> foldMap f) (inferredType <#> _.term) where
+      f { box, bid } = Set.singleton { box, bid }
 
 handleAction :: ∀ o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit
 handleAction = case _ of

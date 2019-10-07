@@ -2,7 +2,7 @@ module View.Term where
 
 import Prelude hiding (div)
 
-import Data.Array (fromFoldable, head)
+import Data.Array (fromFoldable, head, take, length)
 import Data.Foldable (intercalate)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List(..))
@@ -61,8 +61,7 @@ render { term, selection: { path, count } } = div [ classes [ ClassName "term" ]
 
 format :: ∀ m. Ty String -> TypeDecl String -> String -> H.ComponentHTML Action () m
 format _ (Perm []) _ = i_ [ text "I" ]
-format (Ty vs _) (Perm [1]) _ = i_ [ text "id", formatTy vs "⊗" ]
-format (Ty vs _) (Perm [1, 2]) _ = i_ [ text "id", formatTy vs "⊗" ]
+format (Ty vs _) (Perm p) _ | take (length p) [1,2,3,4,5,6,7,8,9] == p = i_ [ text "id", formatTy vs "⊗" ]
 format (Ty vs _) (Perm _) bid = i_ [ text bid, formatTy vs "," ]
 format (Ty l r) (Spider _ _ _) bid = i_ [ text bid, formatTy (l <> r # head # fromFoldable) "" ]
 format _ _ bid = span_ [ text bid ]
