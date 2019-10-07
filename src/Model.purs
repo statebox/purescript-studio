@@ -12,54 +12,54 @@ import Data.Map (Map)
 import Data.Map as Map
 import Data.String.CodeUnits (singleton)
 import Data.String.Common (joinWith)
-import Data.Traversable (mapAccumL, traverse)
+import Data.Traversable (class Traversable, traverse, mapAccumL, Accum)
 import Data.Tuple.Nested (type (/\))
 
 import Common
 
-data TermF ann brick r
+data TermF brick r
   = TUnit
   | TBox brick
-  | TC (Array r) ann -- ^ Composition
-  | TT (Array r) ann -- ^ Tensor
+  | TC (Array r) -- ^ Composition
+  | TT (Array r) -- ^ Tensor
 
-type Term ann brick = Fix (TermF ann) brick
+type Term ann brick = Fix (Ann ann TermF) brick
 
-tunit :: ∀ ann brick. Term ann brick
-tunit = Fix TUnit
+tunit :: ∀ ann brick. Monoid ann => Term ann brick
+tunit = Fix (Ann mempty TUnit)
 
-tbox :: ∀ ann brick. brick -> Term ann brick
-tbox brick = Fix (TBox brick)
+tbox :: ∀ ann brick. Monoid ann => brick -> Term ann brick
+tbox brick = Fix (Ann mempty (TBox brick))
 
 tc :: ∀ ann brick. Array (Term ann brick) -> ann -> Term ann brick
-tc ts ann = Fix (TC ts ann)
+tc ts ann = Fix (Ann ann (TC ts))
 
 tt :: ∀ ann brick. Array (Term ann brick) -> ann -> Term ann brick
-tt ts ann = Fix (TT ts ann)
+tt ts ann = Fix (Ann ann (TT ts))
 
-instance functorTermF :: Functor (TermF ann brick) where
+instance functorTermF :: Functor (TermF brick) where
   map _ TUnit = TUnit
   map _ (TBox box) = TBox box
-  map f (TC ts ann) = TC (map f ts) ann
-  map f (TT ts ann) = TT (map f ts) ann
+  map f (TC ts) = TC (map f ts)
+  map f (TT ts) = TT (map f ts)
 
-instance bifunctorTermF :: Bifunctor (TermF ann) where
+instance bifunctorTermF :: Bifunctor TermF where
   bimap _ _ TUnit = TUnit
   bimap f _ (TBox box) = TBox (f box)
-  bimap _ g (TC ts ann) = TC (map g ts) ann
-  bimap _ g (TT ts ann) = TT (map g ts) ann
-instance bifoldableTermF :: Bifoldable (TermF ann) where
+  bimap _ g (TC ts) = TC (map g ts)
+  bimap _ g (TT ts) = TT (map g ts)
+instance bifoldableTermF :: Bifoldable TermF where
   bifoldMap _ _ TUnit = mempty
   bifoldMap f _ (TBox box) = f box
-  bifoldMap _ g (TC ts ann) = foldMap g ts
-  bifoldMap _ g (TT ts ann) = foldMap g ts
+  bifoldMap _ g (TC ts) = foldMap g ts
+  bifoldMap _ g (TT ts) = foldMap g ts
   bifoldr f g = bifoldrDefault f g
   bifoldl f g = bifoldlDefault f g
-instance bitraversableTermF :: Bitraversable (TermF ann) where
+instance bitraversableTermF :: Bitraversable TermF where
   bitraverse _ _ TUnit = pure TUnit
   bitraverse f _ (TBox box) = TBox <$> f box
-  bitraverse _ g (TC ts ann) = TC <$> traverse g ts <*> pure ann
-  bitraverse _ g (TT ts ann) = TT <$> traverse g ts <*> pure ann
+  bitraverse _ g (TC ts) = TC <$> traverse g ts
+  bitraverse _ g (TT ts) = TT <$> traverse g ts
   bisequence = bisequenceDefault
 
 
@@ -147,4 +147,4 @@ derive instance eqValidity :: Eq Validity
 
 data Matches a = Matched (Array (Validity /\ a /\ a)) | Unmatched Validity Side (Array a)
 
-type TypedTerm ann bv bid = Fix (Ann (Ty (VarWithBox bv)) (TermF ann)) { bid :: bid, box :: Box, decl :: TypeDecl bv }
+type TypedTerm bv bid = Fix (Ann (Ty (VarWithBox bv)) TermF) { bid :: bid, box :: Box, decl :: TypeDecl bv }

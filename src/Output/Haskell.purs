@@ -13,7 +13,7 @@ import Data.String.Pattern (Pattern(..))
 import Data.Traversable (mapAccumL)
 import Data.Tuple.Nested ((/\))
 
-import Common (foldFix, foldFree, (..<))
+import Common
 import Model
 
 haskellCode :: ∀ ann. Context String String -> Term ann (Brick String) -> String
@@ -30,7 +30,7 @@ haskellEmpty :: HaskellCode
 haskellEmpty = { i: liftF [], o: liftF [], code: "returnA" }
 
 haskellCode' :: ∀ ann. Context String String -> Term ann (Brick String) -> HaskellCode
-haskellCode' ctx = foldFix alg where
+haskellCode' ctx = foldFix \(Ann _ f) -> alg f where
   alg TUnit = haskellEmpty
   alg (TBox { bid }) = Map.lookup bid ctx # (maybe haskellEmpty $ case _ of
     Perm perm -> perm # foldMapWithIndex (\i p -> ["a" <> show i] /\ ["a" <> show (p - 1)]) #
@@ -47,14 +47,14 @@ haskellCode' ctx = foldFix alg where
       , o: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) o
       , code: toLower bid }
   )
-  alg (TC ts _) = ts # uncons # maybe haskellEmpty \{ head, tail } -> foldl compose head tail
+  alg (TC ts) = ts # uncons # maybe haskellEmpty \{ head, tail } -> foldl compose head tail
     where
       compose l r = { i: l.i, o: r.o, code : braced $ l.code `comp` arr (showNested l.o) (showNested i') `comp` r.code }
         where
           os = foldMap singleton l.o
           i' = mapAccumL accum os r.i # _.value
           accum os' _ = uncons os' # maybe { accum: [], value: "_" } \{ head, tail } -> { accum: tail, value: head }
-  alg (TT ts _) = foldMapWithIndex f ts # g
+  alg (TT ts) = foldMapWithIndex f ts # g
     where
       f j { i, o, code } =
         [{ i: map (\n -> n <> "_" <> show j) i

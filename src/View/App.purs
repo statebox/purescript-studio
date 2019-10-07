@@ -142,8 +142,8 @@ toBricksInput input selectionBox =
     selectionPath = Bricks.toSelection selectionBox bricks.term Nil
     selectedBoxes = either (const Set.empty) (getSubTerm selectionPath >>> foldFix alg) (inferredType <#> _.term) where
       alg (Ann _ (TBox { box, bid })) = Set.singleton { box, bid }
-      alg (Ann _ (TT ss _)) = Set.unions ss
-      alg (Ann _ (TC ss _)) = Set.unions ss
+      alg (Ann _ (TT ss)) = Set.unions ss
+      alg (Ann _ (TC ss)) = Set.unions ss
       alg _ = Set.empty
 
 handleAction :: ∀ o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit

@@ -43,9 +43,16 @@ instance functorAnn :: Functor (f a) => Functor (Ann r f a) where
   map f (Ann r fab) = Ann r (map f fab)
 instance bifunctorAnn :: Bifunctor f => Bifunctor (Ann r f) where
   bimap f g (Ann r fab) = Ann r (bimap f g fab)
+instance bifolfableAnn :: Bifoldable f => Bifoldable (Ann r f) where
+  bifoldMap f g (Ann r fab) = bifoldMap f g fab
+  bifoldr = bifoldrDefault
+  bifoldl = bifoldlDefault
+instance bitraversableAnn :: Bitraversable f => Bitraversable (Ann r f) where
+  bitraverse f g (Ann r fab) = Ann r <$> bitraverse f g fab
+  bisequence = bisequenceDefault
 
-annotateFix :: ∀ f r a. Functor (f a) => (f a r -> r) -> Fix f a -> Fix (Ann r f) a
-annotateFix alg = foldFix \f -> Fix (Ann (alg (getAnn <$> f)) f)
+reannotateFix :: ∀ f s r a. Functor (f a) => (f a r -> r) -> Fix (Ann s f) a -> Fix (Ann r f) a
+reannotateFix alg = foldFix \(Ann _ f) -> Fix (Ann (alg (getAnn <$> f)) f)
 
 getAnn :: ∀ f r a. Fix (Ann r f) a -> r
 getAnn (Fix (Ann r _)) = r

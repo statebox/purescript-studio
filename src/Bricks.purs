@@ -12,7 +12,7 @@ import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 
 import Model
-import Common ((..<), Fix(..))
+import Common ((..<), Fix(..), Ann(..))
 
 
 fromPixels :: ∀ bid. Ord bid => Array (Array bid) -> (bid -> Boolean) -> Bricks bid
@@ -52,8 +52,8 @@ fromPixels inp isHole = let term /\ boxes = findCuts false false 0 0 width heigh
         isCut y = and $ slice x0 x1 $ fromMaybe [] $ (if xySwapped then vCuts else hCuts) !! (y - 1)
 
 toSelection :: ∀ bid. Box -> Term AnnPos (Brick bid) -> Path -> Selection
-toSelection box (Fix (TC ts ann)) p = toSelection' box ts ann p fst
-toSelection box (Fix (TT ts ann)) p = toSelection' box ts ann p snd
+toSelection box (Fix (Ann ann (TC ts))) p = toSelection' box ts ann p fst
+toSelection box (Fix (Ann ann (TT ts))) p = toSelection' box ts ann p snd
 toSelection _ _ path = { path, count: 1 }
 
 toSelection'

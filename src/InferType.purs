@@ -22,7 +22,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Global (readInt)
 
 import Model
-import Common ((..<), Fix(..), Ann(..), annotateFix, getAnn, mapAnn)
+import Common
 
 
 type Meta bv =
@@ -48,19 +48,19 @@ empty = mempty
 note :: ∀ bv x. String -> (x -> InferredType bv) -> Maybe x -> InferredType bv
 note s = maybe (empty { errors = [s] })
 
-showInferred :: ∀ bv ann b r. Show (Var bv) => { term :: TypedTerm ann bv b, errors :: Array String | r } -> String
+showInferred :: ∀ bv b r. Show (Var bv) => { term :: TypedTerm bv b, errors :: Array String | r } -> String
 showInferred { term, errors } = if length errors == 0 then show (getType (getAnn term)) else joinWith "\n" errors
 
 
 inferType
   :: ∀ bid ann bv. Ord bid => Show bid => Eq bv => Show (Var bv)
-  => Context bv bid -> Term ann (Brick bid) -> { term :: TypedTerm ann bv bid | Meta bv }
+  => Context bv bid -> Term ann (Brick bid) -> { term :: TypedTerm bv bid | Meta bv }
 inferType ctx tm = { term, bounds, matches, errors }
   where
   alg TUnit = empty
   alg (TBox { box, decl }) = inferBoxType box decl
-  alg (TT ts _) = fold ts
-  alg (TC tts _) = uncons tts #
+  alg (TT ts) = fold ts
+  alg (TC tts) = uncons tts #
     note "Composition of empty list not supported" \{ head, tail } ->
     foldl compose head tail
       where
@@ -75,7 +75,7 @@ inferType ctx tm = { term, bounds, matches, errors }
                   (acc <> step <> empty { bounds = bounds, matches = [Matched matches] })
                     { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) }
   tmWithDecl = tm # traverse (\{ bid, box } -> Map.lookup bid ctx # maybe (Left $ "Undeclared name: " <> show bid) \decl -> Right { bid, box, decl })
-  fatTerm = tmWithDecl # either (const (Fix (Ann empty TUnit))) (annotateFix alg)
+  fatTerm = tmWithDecl # either (const (Fix (Ann empty TUnit))) (reannotateFix alg)
   { bounds, matches, errors } = getAnn fatTerm
   term = fatTerm # mapAnn (replaceInferredType bounds >>> _.type)
 
@@ -124,16 +124,16 @@ replace _ (BoundVar bv) = BoundVar bv
 replace (Bounds bounds) (FreeVar fv) = Map.lookup fv bounds # fromMaybe (FreeVar fv)
 
 
-getSubTerm :: ∀ brick ann bv. Selection -> TypedTerm ann bv brick -> TypedTerm ann bv brick
-getSubTerm s (Fix (Ann _ (TT ts a))) = getSubTerm' s ts \ts' -> Fix (Ann (foldMap getAnn ts') (TT ts' a))
-getSubTerm s (Fix (Ann _ (TC ts a))) = getSubTerm' s ts \ts' -> case head ts', last ts' of
-  Just (Fix (Ann (Ty l _) _)), Just (Fix (Ann (Ty _ r) _)) -> Fix (Ann (Ty l r) (TC ts' a))
-  _, _ -> Fix (Ann mempty (TC [] a))
+getSubTerm :: ∀ brick bv. Selection -> TypedTerm bv brick -> TypedTerm bv brick
+getSubTerm s (Fix (Ann _ (TT ts))) = getSubTerm' s ts \ts' -> Fix (Ann (foldMap getAnn ts') (TT ts'))
+getSubTerm s (Fix (Ann _ (TC ts))) = getSubTerm' s ts \ts' -> case head ts', last ts' of
+  Just (Fix (Ann (Ty l _) _)), Just (Fix (Ann (Ty _ r) _)) -> Fix (Ann (Ty l r) (TC ts'))
+  _, _ -> Fix (Ann mempty (TC []))
 getSubTerm _ t = t
 
 getSubTerm'
-  :: ∀ brick ann bv. Selection -> Array (TypedTerm ann bv brick)
-  -> (Array (TypedTerm ann bv brick) -> TypedTerm ann bv brick) -> TypedTerm ann bv brick
+  :: ∀ brick bv. Selection -> Array (TypedTerm bv brick)
+  -> (Array (TypedTerm bv brick) -> TypedTerm bv brick) -> TypedTerm bv brick
 getSubTerm' { path: Cons i Nil, count } ts mkTerm = mkTerm (slice i (i + count) ts)
 getSubTerm' { path: Cons i path, count } ts mkTerm = maybe (mkTerm []) (getSubTerm { path, count }) (ts !! i)
 getSubTerm' _ _ mkTerm = mkTerm []

@@ -8,13 +8,13 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..))
 import Halogen as H
-import Halogen.HTML hiding (map)
+import Halogen.HTML hiding (map, head)
 import Halogen.HTML.Properties (classes)
 
 import Model
 import Common (VoidF, Fix(..), Ann(..))
 
-type TTerm = TypedTerm AnnPos String String
+type TTerm = TypedTerm String String
 
 type State =
   { term :: TTerm
@@ -50,8 +50,8 @@ render { term, selection: { path, count } } = div [ classes [ ClassName "term" ]
   rec :: Maybe Path -> TTerm -> Array (H.ComponentHTML Action () m)
   rec p (Fix (Ann _ TUnit)) = [ div [ clsSel p "tunit" ] [ i_ [ text "I" ] ] ]
   rec p (Fix (Ann ty (TBox { bid, decl }))) = [ div [ clsSel p "tbox" ] [ format ty decl bid ] ]
-  rec p (Fix (Ann _ (TC terms _))) = [ div [ clsSel p "tc" ] $ intercalate [ div_ [ text "⊙" ] ] $ withPath p terms ]
-  rec p (Fix (Ann _ (TT terms _))) = [ div [ clsSel p "tt" ] $ intercalate [ div_ [ text "⊗" ] ] $ withPath p terms ]
+  rec p (Fix (Ann _ (TC terms))) = [ div [ clsSel p "tc" ] $ intercalate [ div_ [ text "⊙" ] ] $ withPath p terms ]
+  rec p (Fix (Ann _ (TT terms))) = [ div [ clsSel p "tt" ] $ intercalate [ div_ [ text "⊗" ] ] $ withPath p terms ]
   clsSel (Just Nil) n = classes [ ClassName n, ClassName "selected" ]
   clsSel _ n = classes [ ClassName n ]
   withPath Nothing = map (rec Nothing)
