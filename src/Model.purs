@@ -114,11 +114,12 @@ varsToString
   => Map (Int /\ Box) String -> t (Var bv) -> Accum (Map (Int /\ Box) String) (t String)
 varsToString = mapAccumL replFv
   where
-    replFv m (FreeVar fv) = Map.lookup fv m # maybe new old
+    replFv m (FreeVar b fv) = Map.lookup fv m # maybe new old
       where
-        old name = { accum: m, value: name }
-        new = let next = singleton $ fromMaybe 'α' $ fromCharCode (toCharCode 'α' + Map.size m) in
+        old name = { accum: m, value: name <> dir }
+        new = let next = fromCharCode (toCharCode 'α' + Map.size m) # fromMaybe 'α' # singleton # (_ <> dir) in
           { accum: Map.insert fv next m, value: next }
+        dir = if b then "*" else ""
     replFv m bv = { accum: m, value: show bv }
 
 
@@ -131,6 +132,7 @@ data TypeDecl bv
   = Perm (Array Int)
   | Spider Color Int Int
   | Gen (Ty bv)
+  | Cup | Cap
 
 isGen :: ∀ bv. TypeDecl bv -> Boolean
 isGen (Gen _) = true
@@ -140,16 +142,13 @@ type Context bv bid = Map bid (TypeDecl bv)
 
 
 data Var bv
-  = FreeVar (Int /\ Box) -- Easy way to generate unique free variables from boxes
+  = FreeVar Boolean (Int /\ Box) -- Easy way to generate unique free variables from boxes
   | BoundVar bv
 
-instance eqVar :: (Eq bv) => Eq (Var bv) where
-  eq (FreeVar l) (FreeVar r) = eq l r
-  eq (BoundVar l) (BoundVar r) = eq l r
-  eq _ _ = false
+derive instance eqVar :: (Eq bv) => Eq (Var bv)
 
 instance showVarString :: Show (Var String) where
-  show (FreeVar _) = "α"
+  show (FreeVar b _) = if b then "α*" else "α"
   show (BoundVar bv) = bv
 
 type VarWithBox bv = { box :: Box, var :: Var bv }
@@ -167,3 +166,11 @@ type TypedTerm bv bid = Fix (Ann (Ty String) TermF) { bid :: bid, box :: Box, de
 
 isBackwards :: String -> Boolean
 isBackwards s = stripSuffix (Pattern "*") s /= Nothing
+
+class FlipDir bv where flipDir :: bv -> bv
+instance flipDirString :: FlipDir String where flipDir s = stripSuffix (Pattern "*") s # fromMaybe (s <> "*")
+
+flipDirection :: ∀ bv. FlipDir bv => Boolean -> Var bv -> Var bv
+flipDirection false v = v
+flipDirection true (BoundVar bv) = BoundVar (flipDir bv)
+flipDirection true (FreeVar b fv) = FreeVar (not b) fv

@@ -40,6 +40,14 @@ json = foldFix alg >>> stringify where
       , color: fromString (show c)
       , typeParam: l <> r # head # maybe jsonNull fromString
       }
+  alg (Ann (Ty l r) (TBox { bid, decl: Cup })) = -- TODO
+    o { type: fromString "cup"
+      , inputTypes: fromArray (map fromString l)
+      , outputTypes: fromArray (map fromString r) }
+  alg (Ann (Ty l r) (TBox { bid, decl: Cap })) =
+    o { type: fromString "cap"
+      , inputTypes: fromArray (map fromString l)
+      , outputTypes: fromArray (map fromString r) }
 
 o :: ∀ r. Homogeneous r Json => Record r -> Json
 o = fromHomogeneous >>> fromObject

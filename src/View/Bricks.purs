@@ -123,16 +123,28 @@ renderBrick io (Just (Gen _)) b@{ box } =
   { className: "box"
   , content:
       renderBox b
-      <> maybe [] (foldMap (renderLines true Input b)) (lookup (box /\ Input) io)
-      <> maybe [] (foldMap (renderLines true Output b)) (lookup (box /\ Output) io)
+      <> maybe [] (foldMap (renderLines genLineSettings Input b)) (lookup (box /\ Input) io)
+      <> maybe [] (foldMap (renderLines genLineSettings Output b)) (lookup (box /\ Output) io)
   }
 renderBrick io (Just (Perm perm)) b = { className: "wires", content: renderPerm io b perm }
 renderBrick io (Just (Spider c _ _)) b@{ box } =
   { className: "wires"
   , content:
-      maybe [] (foldMap (renderLines false Input b)) (lookup (box /\ Input) io) <>
-      maybe [] (foldMap (renderLines false Output b)) (lookup (box /\ Output) io) <>
+      maybe [] (foldMap (renderLines spiderLineSettings Input b)) (lookup (box /\ Input) io) <>
+      maybe [] (foldMap (renderLines spiderLineSettings Output b)) (lookup (box /\ Output) io) <>
       renderNode b c
+  }
+renderBrick io (Just Cup) b@{ box } =
+  { className: "wires"
+  , content:
+      maybe [] (foldMap (renderLines cupcapLineSettings Input b)) (lookup (box /\ Input) io) <>
+      maybe [] (foldMap (renderLines cupcapLineSettings Output b)) (lookup (box /\ Output) io)
+  }
+renderBrick io (Just Cap) b@{ box } =
+  { className: "wires"
+  , content:
+      maybe [] (foldMap (renderLines cupcapLineSettings Input b)) (lookup (box /\ Input) io) <>
+      maybe [] (foldMap (renderLines cupcapLineSettings Output b)) (lookup (box /\ Output) io)
   }
 renderBrick _ Nothing _ = { className: "box", content: [] }
 
@@ -157,15 +169,28 @@ renderNode { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} color =
     mx = (toNumber xl + toNumber xr) / 2.0
     my = (toNumber yt + toNumber yb) / 2.0
 
-renderLines :: ∀ m. Boolean -> Side -> Brick String -> Match String -> Array (H.ComponentHTML Action () m)
-renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y } =
+type LineSettings =
+  { toBox :: Boolean
+  , cpxf :: Number -> Number
+  , cpyf :: Number -> Number
+  }
+
+genLineSettings :: LineSettings
+genLineSettings = { toBox: true, cpxf: \dx -> dx / 2.0, cpyf: \dy -> dy * 0.3 }
+spiderLineSettings :: LineSettings
+spiderLineSettings = { toBox: false, cpxf: \dx -> dx / 2.0, cpyf: \dy -> dy * 0.05 }
+cupcapLineSettings :: LineSettings
+cupcapLineSettings = { toBox: false, cpxf: \dx -> 0.0, cpyf: \dy -> 0.0 }
+
+renderLines :: ∀ m. LineSettings -> Side -> Brick String -> Match String -> Array (H.ComponentHTML Action () m)
+renderLines { toBox, cpxf, cpyf } side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y } =
   [ S.g [ svgClasses (objectClassNames m) ] $
     (if not toBox && m.center then [] else renderObject side x m) <>
     [ S.path
       [ svgClasses [ ClassName "line" ]
       , S.d [ S.Abs (S.M mx cpy), S.Abs (S.C cpx cpy cpx y x y) ]
       , S.markerEnd (if m.center && m.validity == Valid then
-          if isBackwards m.object == (side == Input) then "url(#arrowhead)" else "url(#arrowheadrev"
+          if isBackwards m.object == (side == Input) then "url(#arrowhead)" else "url(#arrowheadrev)"
         else "")
       ]
     ]
@@ -174,9 +199,9 @@ renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ 
     x = toNumber $ if side == Input then xl else xr
     mx = (toNumber xl + toNumber xr) / 2.0 + if toBox then if side == Input then -0.18 else 0.18 else 0.0
     my = (toNumber yt + toNumber yb) / 2.0
-    height = toNumber yt - toNumber yb
-    cpx = (mx + x) / 2.0
-    cpy = (my + (my - y) * (if toBox then 0.3 else 0.05) / height)
+    height = toNumber yb - toNumber yt
+    cpx = mx + cpxf (x - mx)
+    cpy = my + cpyf ((y - my) / height)
 
 renderObject :: ∀ m. Side -> Number -> Match String -> Array (H.ComponentHTML Action () m)
 renderObject Input x m =

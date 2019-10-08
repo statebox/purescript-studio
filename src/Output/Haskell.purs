@@ -46,6 +46,8 @@ haskellCode' = foldFix \(Ann _ f) -> alg f where
       { i: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) i
       , o: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) o
       , code: toLower bid }
+    Cup -> haskellEmpty -- TODO
+    Cap -> haskellEmpty
   alg (TC ts) = ts # uncons # maybe haskellEmpty \{ head, tail } -> foldl compose head tail
     where
       compose l r = { i: l.i, o: r.o, code : braced $ l.code `comp` arr (showNested l.o) (showNested i') `comp` r.code }
