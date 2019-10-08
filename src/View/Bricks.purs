@@ -107,6 +107,14 @@ render { input: { bricks: { width, height, boxes }, matches, context, selectedBo
       ]
       ([rect box ""] <> content)]) boxes
     <> [rect (selectionBox selection) "selection"]
+    <> [ S.defs [] [
+      S.marker [ S.id "arrowhead", S.refX 3.0, S.refY 4.0, S.markerUnits S.StrokeWidth, S.markerWidth 6.0, S.markerHeight 8.0, S.orient S.AutoOrient ] [
+        S.path [ svgClasses [ ClassName "arrowhead" ], S.d [ S.Abs (S.M 0.0 0.0), S.Abs (S.L 6.0 4.0), S.Abs (S.L 0.0 8.0), S.Abs (S.L 2.0 4.0), S.Abs S.Z ] ]
+      ],
+      S.marker [ S.id "arrowheadrev", S.refX 3.0, S.refY 4.0, S.markerUnits S.StrokeWidth, S.markerWidth 6.0, S.markerHeight 8.0, S.orient S.AutoOrient ] [
+        S.path [ svgClasses [ ClassName "arrowhead" ], S.d [ S.Abs (S.M 6.0 0.0), S.Abs (S.L 0.0 4.0), S.Abs (S.L 6.0 8.0), S.Abs (S.L 4.0 4.0), S.Abs S.Z ] ]
+      ]
+    ] ]
   ]
 
 renderBrick :: ∀ m. InputOutput String -> Maybe (TypeDecl String) -> Brick String
@@ -152,8 +160,15 @@ renderNode { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} color =
 renderLines :: ∀ m. Boolean -> Side -> Brick String -> Match String -> Array (H.ComponentHTML Action () m)
 renderLines toBox side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y } =
   [ S.g [ svgClasses (objectClassNames m) ] $
-    [ S.path [ svgClasses [ ClassName "line" ], S.d [ S.Abs (S.M x y), S.Abs (S.C cpx y cpx cpy mx cpy) ] ]
-    ] <> if not toBox && m.center then [] else renderObject side x m
+    (if not toBox && m.center then [] else renderObject side x m) <>
+    [ S.path
+      [ svgClasses [ ClassName "line" ]
+      , S.d [ S.Abs (S.M mx cpy), S.Abs (S.C cpx cpy cpx y x y) ]
+      , S.markerEnd (if m.center && m.validity == Valid then
+          if isBackwards m.object == (side == Input) then "url(#arrowhead)" else "url(#arrowheadrev"
+        else "")
+      ]
+    ]
   ]
   where
     x = toNumber $ if side == Input then xl else xr
@@ -170,7 +185,7 @@ renderObject Input x m =
     , S.attr (AttrName "text-anchor") "start"
     , svgClasses (objectClassNames m)
     ] [ text m.object ]
-  ] <> if m.center then [ S.circle [ S.cx x, S.cy m.y, S.r 0.04 ] ]
+  ] <> if m.center then []
   else [ S.path [ S.d [ S.Abs (S.M (x - 0.001) (m.y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false false 0.0 0.08) ] ] ]
 renderObject Output x m =
   [ S.text
@@ -178,7 +193,7 @@ renderObject Output x m =
     , S.attr (AttrName "text-anchor") "end"
     , svgClasses (objectClassNames m)
     ] [ text m.object ]
-  ] <> if m.center then [ S.circle [ S.cx x, S.cy m.y, S.r 0.04 ] ]
+  ] <> if m.center then []
   else [ S.path [ S.d [ S.Abs (S.M (x + 0.001) (m.y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false true 0.0 0.08) ] ] ]
 
 renderPerm :: ∀ m. InputOutput String -> Brick String -> Array Int -> Array (H.ComponentHTML Action () m)

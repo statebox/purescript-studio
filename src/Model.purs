@@ -6,11 +6,11 @@ import Data.Bifunctor
 import Data.Bitraversable
 import Data.Char (fromCharCode, toCharCode)
 import Data.List (List)
-import Data.Maybe (fromMaybe, maybe)
+import Data.Maybe (fromMaybe, maybe, Maybe(Nothing))
 import Data.Map (Map)
 import Data.Map as Map
 import Data.String.CodeUnits (singleton)
-import Data.String.Common (joinWith)
+import Data.String (joinWith, stripSuffix, Pattern(..))
 import Data.Traversable
 import Data.Tuple.Nested (type (/\))
 
@@ -164,3 +164,6 @@ derive instance eqValidity :: Eq Validity
 data Matches a = Matched (Array (Validity /\ a /\ a)) | Unmatched Validity Side (Array a)
 
 type TypedTerm bv bid = Fix (Ann (Ty String) TermF) { bid :: bid, box :: Box, decl :: TypeDecl bv }
+
+isBackwards :: String -> Boolean
+isBackwards s = stripSuffix (Pattern "*") s /= Nothing

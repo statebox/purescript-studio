@@ -53,7 +53,7 @@ h2 {
   height: 100%;
 }
 .box rect:first-child {
-  fill: #ddd;
+  fill: rgba(0, 0, 0, .07);
   transition: fill 0.3s;
 }
 .bricks:focus .box.selected rect:first-child {
@@ -114,14 +114,17 @@ h2 {
   fill: none;
   transition: opacity 0.3s, stroke 0.3s, stroke-width 0.3s;
 }
-.object.invalid .line {
+.arrowhead {
+  fill: #444;
+}
+.object.invalid .line, .object.invalid .arrowhead {
   stroke: rgba(204, 0, 0, 1);
 }
-.show-wires .line {
+.show-wires .line, .show-wires .arrowhead {
   opacity: 1;
 }
 .show-bricks .box .line {
-  opacity: 0;
+  stroke: rgba(68, 68, 68, 0);
 }
 .bricks:focus::after {
   content: 'Press alt to toggle between bricks and wires.';
