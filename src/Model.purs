@@ -66,8 +66,8 @@ instance bitraversableTermF :: Bitraversable TermF where
 
 
 type Box =
-  { topLeft :: Int /\ Int
-  , bottomRight :: Int /\ Int
+  { topLeft :: Disc2
+  , bottomRight :: Disc2
   }
 type Brick bid = { bid :: bid, box :: Box }
 type Bricks bid =

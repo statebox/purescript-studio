@@ -12,7 +12,7 @@ import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 
 import Model
-import Common ((..<), Fix(..), Ann(..))
+import Common ((..<), Fix(..), Ann(..), Disc2)
 
 
 fromPixels :: ∀ bid. Ord bid => Array (Array bid) -> (bid -> Boolean) -> Bricks bid
@@ -38,7 +38,7 @@ fromPixels inp isHole = let term /\ boxes = findCuts false false 0 0 width heigh
     hCuts = 1 ..< height <#> \y -> 0 ..< width <#> \x -> at x (y - 1) `canCut` at x y
 
     toTerm :: Boolean -> Int -> Int -> Int -> Int -> Term AnnPos (Brick bid) /\ Array (Brick bid)
-    toTerm false x0 y0 x1 y1 = let box = { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } in at x0 y0
+    toTerm false x0 y0 x1 y1 = let box = { topLeft: { x: x0, y: y0 }, bottomRight: { x: x1, y: y1 } } in at x0 y0
       # maybe (tunit /\ []) (\bid -> let brick = { bid, box } in tbox brick /\ [brick])
     toTerm true y0 x0 y1 x1 = toTerm false x0 y0 x1 y1
 
@@ -52,13 +52,13 @@ fromPixels inp isHole = let term /\ boxes = findCuts false false 0 0 width heigh
         isCut y = and $ slice x0 x1 $ fromMaybe [] $ (if xySwapped then vCuts else hCuts) !! (y - 1)
 
 toSelection :: ∀ bid. Box -> Term AnnPos (Brick bid) -> Path -> Selection
-toSelection box (Fix (Ann ann (TC ts))) p = toSelection' box ts ann p fst
-toSelection box (Fix (Ann ann (TT ts))) p = toSelection' box ts ann p snd
+toSelection box (Fix (Ann ann (TC ts))) p = toSelection' box ts ann p _.x
+toSelection box (Fix (Ann ann (TT ts))) p = toSelection' box ts ann p _.y
 toSelection _ _ path = { path, count: 1 }
 
 toSelection'
   :: ∀ bid. Box -> Array (Term AnnPos (Brick bid)) -> AnnPos -> Path
-  -> (Int /\ Int -> Int) -> Selection
+  -> (Disc2 -> Int) -> Selection
 toSelection' box ts ann p xOrY =
   if lb + 1 == ub
     then (ts !! lb) # maybe selection \t -> toSelection box t (L.snoc p lb)

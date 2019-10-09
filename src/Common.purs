@@ -11,6 +11,9 @@ import Data.Traversable
 
 data VoidF a
 
+type Vec2 a = { x :: a, y :: a }
+type Disc2 = Vec2 Int
+type Cont2 = Vec2 Number
 
 rangeEx :: Int -> Int -> Array Int
 rangeEx x y = if y > x then range x (y - 1) else []

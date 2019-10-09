@@ -16,7 +16,6 @@ import Data.Maybe
 import Data.Set as Set
 import Data.Set (Set)
 import Data.Symbol (SProxy(..))
-import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen as H
@@ -33,7 +32,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import Debug.Trace
 
 import Model
-import Common (VoidF)
+import Common (VoidF, Disc2)
 
 type Match bv = { y :: Number, validity :: Validity, center :: Boolean, object :: bv }
 type InputOutput bv = Map (Box /\ Side) (Array (Match bv))
@@ -53,8 +52,8 @@ _bottomRight = prop (SProxy :: SProxy "bottomRight")
 
 data Action
   = GetFocus
-  | MoveCursorStart (Int /\ Int)
-  | MoveCursorEnd (Int /\ Int)
+  | MoveCursorStart Disc2
+  | MoveCursorEnd Disc2
   | Update Input
   | OnKeyDown KeyboardEvent
   | OnMouseDown Box
@@ -84,8 +83,8 @@ initialState :: Input -> State
 initialState input =
   { input
   , selection:
-    { topLeft: 0 /\ 0
-    , bottomRight: 0 /\ 0
+    { topLeft: { x: 0, y: 0 }
+    , bottomRight: { x: 0, y: 0 }
     }
   , mouseDownFrom: Nothing
   , showWires: false
@@ -99,7 +98,7 @@ render { input: { bricks: { width, height, boxes }, matches, context, selectedBo
   , onKeyDown (Just <<< OnKeyDown)
   , onMouseUp (const $ Just $ OnMouseUp)
   ]
-  [ S.svg [ viewBox { topLeft: 0 /\ 0, bottomRight: width /\ height } ] $
+  [ S.svg [ viewBox { topLeft: { x: 0, y: 0 }, bottomRight: { x: width, y: height } } ] $
     foldMap (\b@{ bid, box } -> let { className, content } = renderBrick (matchesToIO matches) (lookup bid context) b in [ S.g
       [ svgClasses [ ClassName className, ClassName $ if Set.member b selectedBoxes then "selected" else "" ]
       , onMouseDown (const $ Just $ OnMouseDown box)
@@ -149,7 +148,7 @@ renderBrick io (Just Cap) b@{ box } =
 renderBrick _ Nothing _ = { className: "box", content: [] }
 
 renderBox :: ∀ m. Brick String -> Array (H.ComponentHTML Action () m)
-renderBox { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} =
+renderBox { bid, box: { topLeft: { x: xl, y: yt }, bottomRight: { x: xr, y: yb } } } =
   [ S.rect [ S.x (mx - 0.18), S.y (my - 0.25), S.width 0.36, S.height 0.5, svgClasses [ ClassName "inner-box" ] ]
   , S.text
     [ S.x mx, S.y (my + 0.12)
@@ -162,7 +161,7 @@ renderBox { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} =
     my = (toNumber yt + toNumber yb) / 2.0
 
 renderNode :: ∀ m. Brick String -> Color -> Array (H.ComponentHTML Action () m)
-renderNode { bid, box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} color =
+renderNode { bid, box: { topLeft: { x: xl, y: yt }, bottomRight: { x: xr, y: yb } } } color =
   [ S.circle [ S.cx mx, S.cy my, S.r 0.05, svgClasses [ ClassName "node", ClassName (show color) ] ]
   ]
   where
@@ -183,7 +182,7 @@ cupcapLineSettings :: LineSettings
 cupcapLineSettings = { toBox: false, cpxf: \dx -> 0.0, cpyf: \dy -> 0.0 }
 
 renderLines :: ∀ m. LineSettings -> Side -> Brick String -> Match String -> Array (H.ComponentHTML Action () m)
-renderLines { toBox, cpxf, cpyf } side { box: { topLeft: xl /\ yt, bottomRight: xr /\ yb }} m@{ y } =
+renderLines { toBox, cpxf, cpyf } side { box: { topLeft: { x: xl, y: yt }, bottomRight: { x: xr, y: yb } } } m@{ y } =
   [ S.g [ svgClasses (objectClassNames m) ] $
     (if not toBox && m.center then [] else renderObject side x m) <>
     [ S.path
@@ -222,7 +221,7 @@ renderObject Output x m =
   else [ S.path [ S.d [ S.Abs (S.M (x + 0.001) (m.y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false true 0.0 0.08) ] ] ]
 
 renderPerm :: ∀ m. InputOutput String -> Brick String -> Array Int -> Array (H.ComponentHTML Action () m)
-renderPerm io { box: b@{ topLeft: xl /\ yt, bottomRight: xr /\ yb } } perm =
+renderPerm io { box: b } perm =
   case lookup (b /\ Input) io <#> sortWith _.y, lookup (b /\ Output) io <#> sortWith _.y of
     Just yls, Just yrs ->
       perm # foldMapWithIndex \r l -> fromMaybe [S.path []] $ do
@@ -236,8 +235,8 @@ renderPerm io { box: b@{ topLeft: xl /\ yt, bottomRight: xr /\ yb } } perm =
           ] <> (if ml.center then [] else renderObject Input xln ml) <> (if mr.center then [] else renderObject Output xrn mr)
     _, _ -> []
   where
-    xln = toNumber xl
-    xrn = toNumber xr
+    xln = toNumber b.topLeft.x
+    xrn = toNumber b.bottomRight.x
     cpx = (xln + xrn) / 2.0
 
 sideClassName :: Side -> ClassName
@@ -252,9 +251,9 @@ objectClassNames { validity, center } =
 selectionBox :: Box -> Box
 selectionBox selection = { topLeft, bottomRight }
   where
-    { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } = selection
-    topLeft = min x0 x1 /\ min y0 y1
-    bottomRight = (max x0 x1 + 1) /\ (max y0 y1 + 1)
+    { topLeft: { x: x0, y: y0 }, bottomRight: { x: x1, y: y1 } } = selection
+    topLeft = { x: min x0 x1, y: min y0 y1 }
+    bottomRight = { x: max x0 x1 + 1, y: max y0 y1 + 1 }
 
 
 handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action () Output m Unit
@@ -269,7 +268,7 @@ handleAction = case _ of
     , bottomRight: moveCursor d sel.bottomRight sel.topLeft
     }
   MoveCursorEnd d -> updateSelection (_bottomRight +~ d)
-  OnKeyDown k -> let act dx dy = handleAction $ (if shiftKey k then MoveCursorEnd else MoveCursorStart) (dx /\ dy) in
+  OnKeyDown k -> let act dx dy = handleAction $ (if shiftKey k then MoveCursorEnd else MoveCursorStart) { x: dx, y: dy } in
     case code k of
       "ArrowLeft" -> act (-1) 0
       "ArrowUp" -> act 0 (-1)
@@ -280,16 +279,16 @@ handleAction = case _ of
       x -> trace x pure
   OnMouseDown b@{ topLeft, bottomRight } -> do
     H.modify_ \st -> st { mouseDownFrom = Just b }
-    updateSelection \_ -> { topLeft, bottomRight: bottomRight - (1 /\ 1) }
+    updateSelection \_ -> { topLeft, bottomRight: bottomRight - { x: 1, y: 1 } }
   OnMouseMove b1 -> do
     mb0 <- H.gets _.mouseDownFrom
     case mb0 of
       Nothing -> pure unit
       Just b0 -> do
-        updateSelection \_ -> {
-          topLeft: min (fst b0.topLeft) (fst b1.topLeft) /\ min (snd b0.topLeft) (snd b1.topLeft),
-          bottomRight: (max (fst b0.bottomRight) (fst b1.bottomRight) - 1) /\ (max (snd b0.bottomRight) (snd b1.bottomRight) - 1)
-        }
+        updateSelection \_ ->
+          { topLeft: { x: min b0.topLeft.x b1.topLeft.x, y: min b0.topLeft.y b1.topLeft.y }
+          , bottomRight: { x: max b0.bottomRight.x b1.bottomRight.x - 1, y: max b0.bottomRight.y b1.bottomRight.y - 1 }
+          }
   OnMouseUp ->
     H.modify_ $ \st -> st { mouseDownFrom = Nothing }
 
@@ -301,11 +300,11 @@ updateSelection f = do
   H.modify_ \st -> st { selection = selection' }
   H.raise (SelectionChanged $ selectionBox selection')
 
-clamp2d :: Int -> Int -> Int /\ Int -> Int /\ Int
-clamp2d width height (x /\ y) = clamp 0 (width - 1) x /\ clamp 0 (height - 1) y
+clamp2d :: Int -> Int -> Disc2 -> Disc2
+clamp2d width height { x, y }= { x: clamp 0 (width - 1) x, y: clamp 0 (height - 1) y }
 
-moveCursor :: Int /\ Int -> Int /\ Int -> Int /\ Int -> Int /\ Int
-moveCursor (dx /\ dy) (x0 /\ y0) (x1 /\ y1) = move dx x0 x1 /\ move dy y0 y1
+moveCursor :: Disc2 -> Disc2 -> Disc2 -> Disc2
+moveCursor d2 p0 p1 = { x: move d2.x p0.x p1.x, y: move d2.y p0.y p1.y }
   where
     move d a b | a == b = a + d
     move -1 a b = min a b
@@ -313,7 +312,7 @@ moveCursor (dx /\ dy) (x0 /\ y0) (x1 /\ y1) = move dx x0 x1 /\ move dy y0 y1
     move _ a _ = a
 
 rect :: ∀ m. Box -> String -> H.ComponentHTML Action () m
-rect { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } cls = S.rect $
+rect { topLeft: { x: x0, y: y0 }, bottomRight: { x: x1, y: y1 } } cls = S.rect $
   [ S.x (toNumber x0 + 0.005)
   , S.y (toNumber y0 + 0.005)
   , S.width (toNumber (x1 - x0) - 0.01)
@@ -322,16 +321,8 @@ rect { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } cls = S.rect $
   , svgClasses [ ClassName cls ]
   ]
 
-gridPosition :: ∀ r i. Box -> IProp r i
-gridPosition { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } =
-  attr (AttrName "style") $
-    "grid-column-start: " <> show (x0 + 1) <>
-    "; grid-row-start: " <> show (y0 + 1) <>
-    "; grid-column-end: " <> show (x1 + 1) <>
-    "; grid-row-end: " <> show (y1 + 1)
-
 viewBox :: ∀ r i. Box -> IProp (viewBox :: String | r) i
-viewBox { topLeft: x0 /\ y0, bottomRight: x1 /\ y1 } =
+viewBox { topLeft: { x: x0, y: y0 }, bottomRight: { x: x1, y: y1 } } =
   S.viewBox (toNumber x0 - 0.01) (toNumber y0 - 0.01) (toNumber (x1 - x0) + 0.02) (toNumber (y1 - y0) + 0.02)
 
 svgClasses :: ∀ r i. Array (ClassName) -> IProp r i
@@ -356,8 +347,8 @@ matchesToIO = foldMap matchesToIO' >>> foldr (Map.unionWith (<>)) Map.empty
         _ /\ lvar /\ rvar = head nonEmpty
         lBox = lvar.box
         rBox = rvar.box
-        y0 = toNumber $ max (snd lBox.topLeft) (snd rBox.topLeft)
-        y1 = toNumber $ min (snd lBox.bottomRight) (snd rBox.bottomRight)
+        y0 = toNumber $ max lBox.topLeft.y rBox.topLeft.y
+        y1 = toNumber $ min lBox.bottomRight.y rBox.bottomRight.y
         n = toNumber (length nonEmpty)
         leftObjects /\ rightObjects = nonEmpty # foldMapWithIndex \i (b /\ l /\ r) ->
           let y = y0 + (y1 - y0) * (0.5 + toNumber i) / n in
@@ -370,9 +361,9 @@ matchesToIO = foldMap matchesToIO' >>> foldr (Map.unionWith (<>)) Map.empty
     toMismatch validity side nonEmpty = Map.singleton (b /\ side) objects
       where
         b = (head nonEmpty).box
-        x = fst $ if side == Input then b.topLeft else b.bottomRight
-        y0 = toNumber $ snd b.topLeft
-        y1 = toNumber $ snd b.bottomRight
+        x = if side == Input then b.topLeft.x else b.bottomRight.x
+        y0 = toNumber $ b.topLeft.y
+        y1 = toNumber $ b.bottomRight.y
         n = toNumber (length nonEmpty)
         objects = nonEmpty # foldMapWithIndex \i v -> [{ validity, y: y0 + (y1 - y0) * (0.5 + toNumber i) / n, object: getObject v, center: false }]
     getObject { var: BoundVar bv } = bv

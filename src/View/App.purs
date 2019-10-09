@@ -13,7 +13,6 @@ import Data.Set as Set
 import Data.String.Pattern (Pattern(..))
 import Data.String.Common (split)
 import Data.Symbol (SProxy(..))
-import Data.Tuple.Nested ((/\))
 import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURIComponent)
 import Halogen as H
@@ -85,7 +84,7 @@ appView =
     }
 
 initialState :: Input -> State
-initialState input = { input, selectionBox: { topLeft: 0 /\ 0, bottomRight: 1 /\ 1 } }
+initialState input = { input, selectionBox: { topLeft: { x: 0, y: 0 }, bottomRight: { x: 0, y: 0 } } }
 
 render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
 render st = div [ classes [ ClassName "app" ] ]
