@@ -9,11 +9,12 @@
   "scripts": {
     "postinstall": "spago install",
     "build": "spago build -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago bundle-app --watch --main Main --to dist/app.js -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "bundle": "spago bundle-app --main Main --to dist/app.js -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport,ShadowedName",
+    "watch": "spago build --watch -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "test": "spago test",
     "docs": "spago docs",
-    "repl": "spago repl"
+    "repl": "spago repl",
+    "start": "parcel index.html --public-url .",
+    "bundle": "npm run build && parcel build index.html --public-url ."
   },
   "keywords": [
     "statebox",
@@ -22,6 +23,7 @@
   ],
   "license": "Commercial",
   "devDependencies": {
+    "parcel-bundler": "^1.12.4",
     "purescript": "^0.13.3",
     "purescript-psa": "^0.7.3",
     "spago": "^0.9.0"

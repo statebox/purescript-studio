@@ -208,7 +208,7 @@ renderObject Input x m =
     [ S.x x, S.y m.y
     , S.attr (AttrName "text-anchor") "start"
     , svgClasses (objectClassNames m)
-    ] [ text m.object ]
+    ] [ text (typeName m) ]
   ] <> if m.center then []
   else [ S.path [ S.d [ S.Abs (S.M (x - 0.001) (m.y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false false 0.0 0.08) ] ] ]
 renderObject Output x m =
@@ -216,9 +216,13 @@ renderObject Output x m =
     [ S.x x, S.y m.y
     , S.attr (AttrName "text-anchor") "end"
     , svgClasses (objectClassNames m)
-    ] [ text m.object ]
+    ] [ text (typeName m) ]
   ] <> if m.center then []
   else [ S.path [ S.d [ S.Abs (S.M (x + 0.001) (m.y - 0.04)), S.Rel (S.A 0.04 0.04 180.0 false true 0.0 0.08) ] ] ]
+
+typeName :: Match String -> String
+typeName { object, validity: Invalid } = object
+typeName { object, validity: Valid } = makeForwards object
 
 renderPerm :: ∀ m. InputOutput String -> Brick String -> Array Int -> Array (H.ComponentHTML Action () m)
 renderPerm io { box: b } perm =

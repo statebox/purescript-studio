@@ -164,11 +164,15 @@ data Matches a = Matched (Array (Validity /\ a /\ a)) | Unmatched Validity Side 
 
 type TypedTerm bv bid = Fix (Ann (Ty String) TermF) { bid :: bid, box :: Box, decl :: TypeDecl bv }
 
-isBackwards :: String -> Boolean
-isBackwards s = stripSuffix (Pattern "*") s /= Nothing
 
-class FlipDir bv where flipDir :: bv -> bv
-instance flipDirString :: FlipDir String where flipDir s = stripSuffix (Pattern "*") s # fromMaybe (s <> "*")
+class FlipDir bv where
+  flipDir :: bv -> bv
+  isBackwards :: bv -> Boolean
+  makeForwards :: bv -> bv
+instance flipDirString :: FlipDir String where
+  flipDir s = stripSuffix (Pattern "*") s # fromMaybe (s <> "*")
+  isBackwards s = stripSuffix (Pattern "*") s /= Nothing
+  makeForwards s = stripSuffix (Pattern "*") s # fromMaybe s
 
 flipDirection :: ∀ bv. FlipDir bv => Boolean -> Var bv -> Var bv
 flipDirection false v = v

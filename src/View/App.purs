@@ -17,7 +17,7 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURIComponent)
 import Halogen as H
 import Halogen.HTML hiding (map, head, i, prop)
-import Halogen.HTML.Properties (classes, value, readOnly)
+import Halogen.HTML.Properties (classes, value, readOnly, href)
 import Halogen.HTML.Events (onValueInput, onClick)
 import Web.HTML (window)
 import Web.HTML.Location (setHash)
@@ -109,7 +109,8 @@ render st = div [ classes [ ClassName "app" ] ]
       ]
     ]
     , h2_ [ text "Term view" ]
-    , div_ $ inferredType # either (const []) (\{ term } -> [slot _term unit Term.termView { term, selection: selectionPath } \_ -> Nothing])
+    , footer_ $ inferredType # either (const []) (\{ term } -> [slot _term unit Term.termView { term, selection: selectionPath } \_ -> Nothing])
+    , a [ href "https://statebox.org" ] []
   ]
   where
     bricksInput :: Bricks.Input

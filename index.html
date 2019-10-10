@@ -1,4 +1,4 @@
-<script src="app.js"></script>
+<meta charset="UTF-8">
 <style>
 * { box-sizing: border-box; }
 *:focus {
@@ -19,6 +19,18 @@ html, body {
   height: 100vh;
   padding: 20px;
 }
+.app > a {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  right: 0;
+  bottom: 0;
+  background-image: url(stbx_logo.svg);
+  background-size: 100% 100%;
+  background-origin: content-box;
+  background-repeat: no-repeat;
+  padding: 20px;
+}
 .main {
   flex: 1;
   display: flex;
@@ -33,6 +45,10 @@ h2 {
   font-size: inherit;
   margin-top: 20px;
   margin-bottom: 10px;
+}
+footer {
+  overflow: auto;
+  margin-right: 80px;
 }
 
 
@@ -229,8 +245,4 @@ textarea {
 }
 </style>
 <body></body>
-<script>
-var Main = PS["Main"], runHalogenAff = PS["Halogen.Aff.Util"].runHalogenAff
-var initialModel = Main.parseHash(location.hash)
-runHalogenAff(Main.runJs2(initialModel)("body"))()
-</script>
+<script src="index.js"></script>

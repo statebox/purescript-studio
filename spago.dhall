@@ -2,6 +2,7 @@
     "statebox-kdmoncat"
 , dependencies =
     [ "argonaut-core"
+    , "argonaut-codecs"
     , "console"
     , "debug"
     , "effect"
