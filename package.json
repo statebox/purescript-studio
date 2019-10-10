@@ -13,8 +13,9 @@
     "test": "spago test",
     "docs": "spago docs",
     "repl": "spago repl",
-    "start": "parcel index.html --public-url .",
-    "bundle": "npm run build && parcel build index.html --public-url ."
+    "start": "parcel html/index.html",
+    "start1": "parcel html/index.html --public-url .",
+    "bundle": "npm run build && parcel build html/index.html --public-url ."
   },
   "keywords": [
     "statebox",
