@@ -7,8 +7,9 @@ import Data.String.Common (trim)
 import Data.String.Regex (regex, match)
 import Data.String.Regex.Flags (ignoreCase)
 import Data.Either (either)
+import Data.List (List(..))
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Traversable (traverse)
+import Data.Traversable (traverse, for)
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
@@ -26,8 +27,11 @@ import Web.HTML.Event.EventTypes (message) as ET
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.MessageEvent as MessageEvent
 
-import View.App (Action(UpdateContext, UpdatePixels))
+import Model (Box, Selection)
 import View.App as App
+import View.App (Action(UpdateContext, UpdatePixels))
+import View.Bricks as Bricks
+import View.Term as Term
 
 
 initialPixels :: String
@@ -88,6 +92,26 @@ runJs2 initialInput selector = do
     HTML.window >>= Window.toEventTarget
                 >>> addEventListener ET.message messageListener false
   pure unit
+
+--------------------------------------------------------------------------------
+
+runBricksComponent :: ∀ q. Bricks.Input -> String -> Aff (Maybe (HalogenIO q Bricks.Output Aff))
+runBricksComponent input selector = do
+  elemMaybe <- selectElement (QuerySelector selector)
+  for elemMaybe $ runUI Bricks.bricksView input
+
+toBricksInput :: App.Input -> Box -> Bricks.Input
+toBricksInput = App.toBricksInput
+
+--------------------------------------------------------------------------------
+
+runTermComponent :: ∀ q. Term.Input -> String -> Aff (Maybe (HalogenIO q Void Aff))
+runTermComponent input selector = do
+  elemMaybe <- selectElement (QuerySelector selector)
+  for elemMaybe $ runUI Term.termView input
+
+emptySelection :: Selection
+emptySelection = { path: Nil, count: 0 }
 
 --------------------------------------------------------------------------------
 

@@ -45,7 +45,7 @@ handleAction = case _ of
   Update st@{ term } -> do
     H.put st
 
-render :: ∀ m. State -> H.ComponentHTML Action () m
+render :: ∀ m. Input -> H.ComponentHTML Action () m
 render { term, selection: { path, count } } = div [ classes [ ClassName "term" ] ] (rec (Just path) term) where
   rec :: Maybe Path -> TTerm -> Array (H.ComponentHTML Action () m)
   rec p (Fix (Ann _ TUnit)) = [ div [ clsSel p "tunit" ] [ i_ [ text "I" ] ] ]
