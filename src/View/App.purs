@@ -102,7 +102,7 @@ render st = div [ classes [ ClassName "app" ] ]
       , div_ $ inferredType # either (const []) (\{ term } ->
           [ button [ onClick \_ -> Just (CopyToClipboard $ json term) ]
                     [ text "JSON" ]
-          , button [ onClick \_ -> Just (CopyToClipboard $ haskellCode term) ]
+          , button [ onClick \_ -> Just (CopyToClipboard $ haskellCode "diagram" term) ]
                    [ text "Haskell" ]
           ])
       ]

@@ -6,22 +6,29 @@ import Control.Monad.Free (Free, liftF, wrap)
 import Data.Array (intercalate, singleton, replicate, uncons)
 import Data.Foldable (foldMap, foldl, length)
 import Data.FoldableWithIndex (foldMapWithIndex)
-import Data.Set as Set
+import Data.Map as Map
 import Data.Maybe (maybe)
-import Data.String (toLower, contains)
-import Data.String.Pattern (Pattern(..))
+import Data.String (toLower, contains, replaceAll, Pattern(..), Replacement(..))
 import Data.Traversable (mapAccumL)
 import Data.Tuple.Nested ((/\))
 
 import Common
 import Model
 
-haskellCode :: TypedTerm String String -> String
-haskellCode tm = case haskellCode' tm of
-  { i, o, code } -> args <> arr (tuple $ foldMap singleton i) (showNested i) `comp` code `comp` arr (showNested o) (tuple $ foldMap singleton o)
+
+haskellCode :: String -> TypedTerm String String -> String
+haskellCode name tm = case haskellCode' tm of
+  { i, o, code } -> typeDecl <> args <> indent ("\n" <> arr (tuple $ foldMap singleton i) (showNested i) `comp` code `comp` arr (showNested o) (tuple $ foldMap singleton o))
   where
-    gens = foldMap (\{ decl, bid } -> if isGen decl then Set.singleton bid else Set.empty) tm
-    args = if length gens > 0 then "\\" <> toLower (intercalate " " gens) <> " -> " else ""
+    gens = tm # foldMap \{ decl, bid } -> case decl of
+      Gen ty -> Map.singleton bid ty
+      otherwise -> Map.empty
+    args = if length gens > 0 then name <> " " <> toLower (intercalate " " $ Map.keys gens) <> " = " else ""
+    typeDecl = name <>
+      "\n  :: Arrow arr" <>
+      "\n  => " <> intercalate "\n  -> " (showTy <$> Map.values gens) <>
+      "\n  -> " <> showTy (getAnn tm) <>
+      "\n"
 
 
 type HaskellCode = { i :: Free Array String, o :: Free Array String, code :: String }
@@ -41,42 +48,43 @@ haskellCode' = foldFix \(Ann _ f) -> alg f where
         o = 0 ..< r <#> \n -> "o" <> show n
         out = if l == 1
           then tuple (replicate r "i0")
-          else "let o = mconcat [" <> intercalate ", " i <> "] in " <> tuple (replicate r "o")
+          else "let o = merge [" <> intercalate ", " i <> "] in " <> tuple (replicate r "o")
     Gen (Ty i o) ->
       { i: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) i
       , o: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) o
       , code: toLower bid }
-    Cup -> haskellEmpty -- TODO
-    Cap -> haskellEmpty
-  alg (TC ts) = ts # uncons # maybe haskellEmpty \{ head, tail } -> foldl compose head tail
+    Cup -> { i: liftF [], o: liftF ["a0", "a1"], code: "cup" }
+    Cap -> { i: liftF ["a0", "a1"], o: liftF [], code: "cap" }
+  alg (TC ts) = ts # uncons # maybe haskellEmpty (\{ head, tail } -> foldl compose head tail) # mapCode braced
     where
-      compose l r = { i: l.i, o: r.o, code : braced $ l.code `comp` arr (showNested l.o) (showNested i') `comp` r.code }
+      compose l r = { i: l.i, o: r.o, code : l.code `comp` arr (showNested l.o) (showNested i') `comp` r.code }
         where
           os = foldMap singleton l.o
           i' = mapAccumL accum os r.i # _.value
           accum os' _ = uncons os' # maybe { accum: [], value: "_" } \{ head, tail } -> { accum: tail, value: head }
   alg (TT ts) = foldMapWithIndex f ts # g
     where
-      f j { i, o, code } =
-        [{ i: map (\n -> n <> "_" <> show j) i
-        , o: map (\n -> n <> "_" <> show j) o
-        , code
-        }]
-      g l = uncons l # maybe haskellEmpty \{ head, tail } -> foldl tensor head tail
-      tensor :: HaskellCode -> HaskellCode -> HaskellCode
+      f j { i, o, code } = [{ i: map (\n -> n <> "_" <> show j) i, o: map (\n -> n <> "_" <> show j) o, code }]
+      g l = uncons l # maybe haskellEmpty (\{ head, tail } -> foldl tensor head tail)
       tensor l r =
         { i: wrap [l.i, r.i]
         , o: wrap [l.o, r.o]
-        , code: "(" <> l.code <> " *** " <> r.code <> ")"
+        , code: braced (l.code <> " *** " <> r.code)
         }
+
+mapCode :: (String -> String) -> HaskellCode -> HaskellCode
+mapCode f { i, o, code } = { i, o, code: f code }
 
 comp :: String -> String -> String
 comp "returnA" r = r
 comp l "returnA" = l
-comp l r = l <> " >>> " <> r
+comp l r = l <> "\n>>> " <> r
+
+indent :: String -> String
+indent = replaceAll (Pattern "\n") (Replacement "\n  ")
 
 braced :: String -> String
-braced s = if contains (Pattern " ") s then "(" <> s <> ")" else s
+braced s = if contains (Pattern " ") s then "(" <> (if contains (Pattern "\n") s then indent s else s) <> ")" else s
 
 arr :: String -> String -> String
 arr ls rs = if ls == rs then "returnA" else "arr (\\" <> ls <> " -> " <> rs <> ")"
@@ -87,3 +95,6 @@ tuple ss = "(" <> intercalate ", " ss <> ")"
 
 showNested :: Free Array String -> String
 showNested = foldFree tuple identity
+
+showTy :: Ty String -> String
+showTy (Ty l r) = "arr " <> tuple l <> " " <> tuple r
