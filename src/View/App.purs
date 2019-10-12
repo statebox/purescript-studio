@@ -10,8 +10,7 @@ import Data.Lens.Record (prop)
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
-import Data.String.Pattern (Pattern(..))
-import Data.String.Common (split)
+import Data.String (replaceAll, split, Pattern(..), Replacement(..))
 import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURIComponent)
@@ -163,10 +162,14 @@ updateWindowLocation { pixels, context } =
   liftEffect do
     w <- window
     l <- location w
-    for_ (encodeURIComponent pixels) \p ->
-      for_ (encodeURIComponent context) \c ->
+    for_ (escape pixels) \p ->
+      for_ (escape context) \c ->
         setHash ("pixels=" <> p <> "&context=" <> c) l
 
+escape :: String -> Maybe String
+escape s = encodeURIComponent s
+  <#> replaceAll (Pattern "(") (Replacement "%28")
+  <#> replaceAll (Pattern ")") (Replacement "%29")
 
 parsePixels :: String -> Array (Array String)
 parsePixels = map (split (Pattern "")) <<< split (Pattern "\n")
