@@ -17,9 +17,9 @@ import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import Statebox.Client as Stbx
+import Statebox.Client (requestTransaction, requestTransactionsToRootM) as Stbx
 import Statebox.Client (evalTransactionResponse)
-import Statebox.Core.Transaction as Stbx
+import Statebox.Core.Transaction (getPrevious) as Stbx
 import Statebox.Core.Transaction (HashTx)
 import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Diagram.Update as DiagramEditor

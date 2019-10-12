@@ -3,20 +3,19 @@ module View.Transaction where
 import Prelude hiding (div)
 import Affjax (URL) -- TODO eliminate
 import Data.Array (mapMaybe)
-import Data.Lens (over, preview, _Just, second)
-import Data.Maybe (Maybe, maybe)
+import Data.Lens (preview, _Just, second)
+import Data.Maybe (maybe)
 import Data.Either.Nested (type (\/))
 import Effect.Aff.Class (class MonadAff)
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, slot, div, table, tr, td, a, text, p, br, pre)
+import Halogen.HTML (div, table, tr, td, a, text, p, pre)
 import Halogen.HTML.Properties (href)
 
-import View.Studio.Model (Action(..))
+import View.Studio.Model (Action)
 import View.Studio.Model.Route (WiringFiringInfo, ExecutionTrace)
 import Statebox.Client (txUrl)
-import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx, isExecution)
+import Statebox.Core.Transaction (HashStr, FiringTx, WiringTx, isExecution)
 import Statebox.Core.Lenses (_firingTx, _firing, _firingPath)
-
 
 firingTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> String \/ ExecutionTrace -> ComponentHTML Action s m
 firingTxView wfi tx executionTrace =
@@ -43,12 +42,12 @@ txWrapperRows wfi tx =
   [ row "service URL"     $ a [ href $ wfi.endpointUrl ]                [ text $ wfi.endpointUrl ]
   , row "transaction URL" $ a [ href $ txUrl wfi.endpointUrl wfi.hash ] [ text $ txUrl wfi.endpointUrl wfi.hash ]
   , row "hash"            $ text $ wfi.hash
-  , row "previous"        $ previousTxLink wfi.endpointUrl tx
+  , row "previous"        $ previousTxLink wfi.endpointUrl
   ]
   where
     -- TODO hack, eliminate; here because the 'previous' field is in the decoded tx body instead of the tx wrapper
-    previousTxLink :: ∀ r s m. MonadAff m => URL -> { previous :: HashStr | r } -> ComponentHTML Action s m
-    previousTxLink url tx =
+    previousTxLink :: URL -> ComponentHTML Action s m
+    previousTxLink url =
       a [ href $ txUrl wfi.endpointUrl tx.previous ] [ text $ txUrl wfi.endpointUrl tx.previous ]
 
 --------------------------------------------------------------------------------

@@ -25,12 +25,12 @@ import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree, Item)
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
 import View.Auth.RolesEditor as RolesEditor
-import View.Diagram.DiagramEditor as DiagramEditor
+import View.Diagram.DiagramEditor (ui) as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
-import View.Diagram.Update as DiagramEditor
+import View.Diagram.Update (Msg) as DiagramEditor
 import View.Model (Project, NetInfoWithTypesAndRoles)
-import View.Petrinet.PetrinetEditor as PetrinetEditor
-import View.Petrinet.Model as PetrinetEditor
+import View.Petrinet.PetrinetEditor (ui) as PetrinetEditor
+import View.Petrinet.Model (Msg) as PetrinetEditor
 import View.Studio.Model (Action(..), State, resolveRoute)
 import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
 import View.Transaction (firingTxView, wiringTxView)
@@ -166,12 +166,12 @@ stateMenu { projects, apiUrl, hashSpace } =
     projectItems   = projectMenu <$> projects
 
 projectMenu :: Project -> MenuTree Route
-projectMenu p =
-  mkItem p.name Nothing :<
-    [ mkItem "Types"          (Just $ Types p.name) :< []
-    , mkItem "Authorisations" (Just $ Auths p.name) :< []
-    , mkItem "Nets"           (Nothing)             :< fromNets     p p.nets
-    , mkItem "Diagrams"       (Nothing)             :< fromDiagrams p p.diagrams
+projectMenu proj =
+  mkItem proj.name Nothing :<
+    [ mkItem "Types"          (Just $ Types proj.name) :< []
+    , mkItem "Authorisations" (Just $ Auths proj.name) :< []
+    , mkItem "Nets"           (Nothing)                :< fromNets     proj proj.nets
+    , mkItem "Diagrams"       (Nothing)                :< fromDiagrams proj proj.diagrams
     ]
   where
     fromNets     p nets  = (\n -> mkItem n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
@@ -185,22 +185,22 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
         valueMaybe
   where
     mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
-    mkItem2 hash tx itemKids = evalTxSum
-      (\x -> mkItem ("☁️ "  <> shortHash hash)
+    mkItem2 h tx ik = evalTxSum
+      (\x -> mkItem ("☁️ "  <> shortHash h)
                     (Just $ UberRootR apiUrl)
-                    :< itemKids
+                    :< ik
       )
-      (\x -> mkItem ("🌐 "  <> shortHash hash)
+      (\x -> mkItem ("🌐 "  <> shortHash h)
                     (Just $ NamespaceR x.root.message)
-                    :< itemKids
+                    :< ik
       )
-      (\w -> mkItem ("🥨 " <> shortHash hash)
-                    (Just $ WiringR { name: hash, endpointUrl: apiUrl, hash: hash })
-                    :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
+      (\w -> mkItem ("🥨 " <> shortHash h)
+                    (Just $ WiringR { name: h, endpointUrl: apiUrl, hash: h })
+                    :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> ik)
       )
-      (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash hash)
-                    (Just $ FiringR { name: hash, endpointUrl: apiUrl, hash: hash })
-                    :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
+      (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash h)
+                    (Just $ FiringR { name: h, endpointUrl: apiUrl, hash: h })
+                    :< (flattenTree =<< ik) -- for nested firings, just drop the 'flattenTree' part
       )
       tx
       where
@@ -217,7 +217,7 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
             flattenTree' = foldr cons []
 
     mkUnloadedItem :: Array (MenuTree Route) -> MenuTree Route
-    mkUnloadedItem itemKids = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
+    mkUnloadedItem ik = mkItem ("👻 " <> shortHash hash) unloadedRoute :< ik
       where
         -- TODO we need to return a Route currently, but we may want to return a (LoadTransaction ... ::Query) instead,
         -- so we could load unloaded hashes from the menu.

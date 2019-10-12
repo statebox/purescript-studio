@@ -11,15 +11,15 @@ import Data.Either.Nested (type (\/))
 import Data.Foldable (find)
 import Data.Lens (preview)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Debug.Trace (spy)
 import Record as Record
 
 import Data.Diagram.FromNLL as FromNLL
 import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
-import Data.Petrinet.Representation.PNPRO as PNPRO
-import Data.Petrinet.Representation.PNPROtoDict as PNPRO
+import Data.Petrinet.Representation.PNPRO (Project) as PNPRO
+import Data.Petrinet.Representation.PNPROtoDict (toNetInfo) as PNPRO
 import Statebox.Core.Execution (PathElem)
 import Statebox.Core.Types (Diagram)
 import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx)
