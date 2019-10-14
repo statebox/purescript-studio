@@ -56,8 +56,7 @@ ui =
         -- H.liftEffect $ log $ "route = " <> show route
         H.modify_ \state -> state { route = route }
 
-      SetApiUrl url -> do
-        H.modify_ \state -> state { apiUrl = url }
+      SetApiUrl url -> H.modify_ \state -> state { apiUrl = url }
 
       LoadTransaction hash -> do
         endpointUrl <- H.get <#> _.apiUrl
@@ -112,5 +111,6 @@ ui =
             _                     -> Nothing
         maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
-      HandlePetrinetEditorMsg NetUpdated -> do
-        pure unit
+      HandleDiagramEditorMsg (DiagramEditor.CursorMoved) -> pure unit
+
+      HandlePetrinetEditorMsg NetUpdated -> pure unit

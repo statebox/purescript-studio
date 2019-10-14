@@ -61,6 +61,7 @@ type Model =
     -- this String id is somewhat problematic; it's an id into a "Array/Set" of operators; rather have a Lens here
   , mouseOver     :: Maybe (Operator /\ OperatorHandle)
   , mousePos      :: Vec3 Int
+  , cursorPos     :: (Int /\ Int)
   , mousePressed  :: Boolean
   , dragStart     :: DragStart
   , config        :: Config

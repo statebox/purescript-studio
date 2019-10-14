@@ -1,12 +1,14 @@
 module View.Diagram.View where
 
 import Prelude
+import Data.Array (snoc)
 import Data.Foldable (elem)
-import Data.Int (toNumber)
-import Data.Maybe
+import Data.Int (toNumber, fromStringAs, hexadecimal)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
+import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ord (abs)
-import Data.Vec3 (Vec3(..), _x, _y, _z, vec2, vec3)
+import Data.Vec3 (Vec3, _x, _y, _z, vec3)
 import Halogen as H
 import Halogen.HTML (HTML)
 import Halogen.HTML as HH
@@ -17,12 +19,11 @@ import Svg.Attributes as SA
 import Svg.Elements (rect)
 import Svg.Elements as SE
 import Svg.Util (domToSvgCoordinates)
-import View.Diagram.Common
+import View.Diagram.Common (snap)
 import View.Diagram.Model
-import View.Diagram.Update
+import View.Diagram.Update (MouseMsg(..))
 import Web.HTML (HTMLElement)
 import Web.UIEvent.MouseEvent (clientX, clientY)
-
 
 -- TODO: if there is no HTMLElement it does not make sense to draw anything
 diagramEditorSVG :: ∀ a. Maybe HTMLElement -> Model -> HTML a MouseMsg
@@ -33,10 +34,11 @@ diagramEditorSVG maybeElement model =
          , HE.onMouseDown $ \e -> Just $ MouseDown (svg e maybeElement)
          , HE.onMouseUp   $ \e -> Just $ MouseUp   (svg e maybeElement)
          ]
-         (ghosts <> operators)
+         (ghosts <> operators `snoc` cursor)
   where
     operators = operator (_ `elem` model.selectedOpId) s <$> model.ops
     ghosts    = operatorGhosts s model
+    cursor    = renderCursor s model.cursorPos
     w         = toNumber model.config.width
     h         = toNumber model.config.height
     s         = model.config.scale
@@ -51,6 +53,19 @@ componentRefLabel :: H.RefLabel
 componentRefLabel = H.RefLabel "diagram-editor-ref-label"
 
 --------------------------------------------------------------------------------
+
+renderCursor :: ∀ a. Int -> (Int/\Int) -> HTML a MouseMsg
+renderCursor s (cx/\cy) =
+    let p x u = toNumber $ (s / 2) * x + s * u
+        pts = [ SA.Abs $ SA.M (p 0 cx) (p 0 cy)
+              , SA.Abs $ SA.L (p 1 cx) (p 1 cy)
+              , SA.Abs $ SA.L (p 0 cx) (p 2 cy)
+              , SA.Abs SA.Z
+              ]
+    in SE.path [ SA.stroke $ Just color, SA.fill $ Just colorA, SA.d pts ]
+  where
+    color  = SA.RGB  90 99 120
+    colorA = SA.RGBA 90 99 120 128.0
 
 operator :: ∀ a. (OperatorId -> Boolean) -> Int -> Operator -> HTML a MouseMsg
 operator isSelected s o =

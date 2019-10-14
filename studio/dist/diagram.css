@@ -1,4 +1,5 @@
 .css-diagram-editor {
+  outline: none !important;
 }
 .css-diagram-editor svg {
   /* background: #eee; */
