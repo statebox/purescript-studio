@@ -31,7 +31,7 @@ import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
 import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
-import Data.Petrinet.Representation.Layout as Layout
+import Data.Petrinet.Representation.Layout.Bipartite as Layout.Bipartite
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
 
@@ -118,7 +118,7 @@ ui htmlIdPrefixMaybe =
   where
     initialState :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> StateF pid tid ty2
     initialState netInfo =
-      { netInfo:                 netInfo
+      { netInfo:                 scaledNetInfo
       , msg:                     ""
       , focusedPlace:            empty
       , focusedTransition:       empty
@@ -126,6 +126,9 @@ ui htmlIdPrefixMaybe =
       , transitionLabelsVisible: true
       , arcLabelsVisible:        false
       }
+      where
+-- TODO hmm, dit lijkt NIET de anim init bug te fixen, maar WEL de layout init bug
+        scaledNetInfo = NetInfo.translateAndScale Config.netScale netInfo { netApi = mkNetApiF netInfo.net }
 
     render :: StateF pid tid ty2 -> ComponentHTML (Action pid tid ty2) () m
     render state =
@@ -159,6 +162,9 @@ ui htmlIdPrefixMaybe =
                 ]
           ]
       where
+-- TODO - we don't take the 'scale' into account b/c the viewport doesn't scale along, so any other tweaking is useless
+-- TODO - komt die animatie-bug door een init error in de berekening van de scene size op basis van bijv de verkeerde bounds/layout/net/whatevs? want het gebeurt dus nu ook weer als we elk net layouten
+-- TODO - gaat dat mis in de afhandeling van LoadNet?
         sceneSize                       = bounds.max - bounds.min + padding
         sceneTopLeft                    = bounds.min - (padding / pure 2.0)
         bounds                          = NetInfo.boundingBox state.netInfo
@@ -169,17 +175,12 @@ ui htmlIdPrefixMaybe =
         transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
 
         layout :: NetLayoutF pid tid
-        layout = fromMaybe zeroLayout state.netInfo.net.layout
-          where
-            -- TODO This shouldn't exist; we always need the correct number of places and transitions laid out
-            --      so we need to use a layouting function here to compute one. (issue #141)
-            zeroLayout :: NetLayoutF pid tid
-            zeroLayout = { placePointsDict: mempty, transitionPointsDict: mempty }
+        layout = Layout.Bipartite.bipartite Config.bipartiteLayoutScale state.netInfo.net
 
     handleAction :: ∀ tid. Ord tid => Show tid => Action pid tid ty2 -> HalogenM (StateF pid tid ty2) (Action pid tid ty2) () Msg m Unit
     handleAction = case _ of
       LoadNet newNetInfo -> do
-        let scaledNetInfo = (NetInfo.translateAndScale Config.netScale newNetInfo) { netApi = mkNetApiF newNetInfo.net }
+        let scaledNetInfo = NetInfo.translateAndScale Config.netScale newNetInfo { netApi = mkNetApiF newNetInfo.net }
         H.modify_ (\state -> state { netInfo = scaledNetInfo })
       FocusPlace pid -> do
         state <- H.get
