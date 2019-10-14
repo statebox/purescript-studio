@@ -3,8 +3,8 @@ module Output.Haskell where
 import Prelude
 
 import Control.Monad.Free (Free, liftF, wrap)
-import Data.Array (intercalate, singleton, replicate, uncons)
-import Data.Foldable (foldMap, foldl, length)
+import Data.Array (intercalate, singleton, replicate, uncons, unsnoc)
+import Data.Foldable (foldMap, foldr, length)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Map as Map
 import Data.Maybe (maybe)
@@ -55,7 +55,7 @@ haskellCode' = foldFix \(Ann _ f) -> alg f where
       , code: toLower bid }
     Cup -> { i: liftF [], o: liftF ["a0", "a1"], code: "cup" }
     Cap -> { i: liftF ["a0", "a1"], o: liftF [], code: "cap" }
-  alg (TC ts) = ts # uncons # maybe haskellEmpty (\{ head, tail } -> foldl compose head tail) # mapCode braced
+  alg (TC ts) = ts # unsnoc # maybe haskellEmpty (\{ init, last } -> foldr compose last init) # mapCode braced
     where
       compose l r = { i: l.i, o: r.o, code : l.code `comp` arr (showNested l.o) (showNested i') `comp` r.code }
         where
@@ -65,11 +65,11 @@ haskellCode' = foldFix \(Ann _ f) -> alg f where
   alg (TT ts) = foldMapWithIndex f ts # g
     where
       f j { i, o, code } = [{ i: map (\n -> n <> "_" <> show j) i, o: map (\n -> n <> "_" <> show j) o, code }]
-      g l = uncons l # maybe haskellEmpty (\{ head, tail } -> foldl tensor head tail)
+      g l = unsnoc l # maybe haskellEmpty (\{ init, last } -> foldr tensor last init)
       tensor l r =
         { i: wrap [l.i, r.i]
         , o: wrap [l.o, r.o]
-        , code: braced (l.code <> " *** " <> r.code)
+        , code: l.code <> " *** " <> r.code
         }
 
 mapCode :: (String -> String) -> HaskellCode -> HaskellCode
