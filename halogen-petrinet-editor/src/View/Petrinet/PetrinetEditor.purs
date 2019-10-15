@@ -175,7 +175,9 @@ ui htmlIdPrefixMaybe =
         transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
 
         layout :: NetLayoutF pid tid
-        layout = Layout.Bipartite.bipartite Config.bipartiteLayoutScale state.netInfo.net
+        layout = fromMaybe autoLayout state.netInfo.net.layout
+          where
+            autoLayout = Layout.Bipartite.bipartite Config.bipartiteLayoutScale state.netInfo.net
 
     handleAction :: ∀ tid. Ord tid => Show tid => Action pid tid ty2 -> HalogenM (StateF pid tid ty2) (Action pid tid ty2) () Msg m Unit
     handleAction = case _ of
