@@ -5,8 +5,6 @@ import Data.Array (length)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Int (toNumber)
 import Data.Map as Map
-import Data.Map (Map)
-import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Data.Vec3 (vec2)
 
