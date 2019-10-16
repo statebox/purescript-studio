@@ -28,8 +28,9 @@
 .css-transition-rect.focused {
     fill: lightblue;
 }
-.css-place-name-label, .css-transition-name-label {
+.css-place-name-label, .css-transition-name-label, .css-arc-name-label {
     fill: rgb(100,100,100);
+    text-anchor: middle;
 }
 .css-place-label{
     fill: rgb(100,100,100);

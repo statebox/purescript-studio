@@ -21,7 +21,7 @@ import Halogen.HTML as HH
 import Halogen.HTML (HTML, div)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
-import Halogen.HTML.Core (ClassName(..))
+import Halogen.HTML.Core (ClassName(..), ElemName(..), AttrName(..))
 import Halogen.HTML.Core as Core
 import Halogen.HTML.Events as HE
 import Svg.Elements as SE
@@ -124,7 +124,7 @@ ui htmlIdPrefixMaybe =
       , focusedTransition:       empty
       , placeLabelsVisible:      true
       , transitionLabelsVisible: true
-      , arcLabelsVisible:        false
+      , arcLabelsVisible:        true
       }
       where
 -- TODO hmm, dit lijkt NIET de anim init bug te fixen, maar WEL de layout init bug
@@ -259,10 +259,14 @@ ui htmlIdPrefixMaybe =
                }
           where
             mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: arcLabel tp.tokens, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
 
             mkPreArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: arcLabel tp.tokens, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+
+            arcLabel :: Tokens -> String
+            arcLabel 1 = ""
+            arcLabel ts = show ts
 
     --------------------------------------------------------------------------------
 
@@ -290,7 +294,7 @@ ui htmlIdPrefixMaybe =
     svgTransitionLabel :: ∀ tid m. Show tid => TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
-              , SA.x         (_x t.point - 0.5 * transitionWidth)
+              , SA.x         (_x t.point)
               , SA.y         (_y t.point - 0.65 * transitionHeight + 0.25 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
@@ -306,13 +310,15 @@ ui htmlIdPrefixMaybe =
                ]
            , svgArrow arc.src arc.dest arc.isPost
            , SE.text
-               [ SA.class_    "css-arc-name-label"
-               , SA.x         (_x arc.src)
-               , SA.y         (_x arc.src)
-               , SA.font_size (FontSizeLength $ Em fontSize)
-                 -- TODO add SVG.textPath prop, refer to the svg path using xlink:href="#<arc id here>"
-               ]
-               [ HH.text arc.htmlId ]
+              [ SA.class_ "css-arc-name-label"
+              , SA.attr (AttrName "dy") "-0.3em"
+              , SA.font_size (FontSizeLength $ Em fontSize)
+              ]
+              [ SE.element (ElemName "textPath") 
+                [ SA.attr (AttrName "href") ("#" <> arc.htmlId)
+                , SA.attr (AttrName "startOffset") "50%"
+                ] [ HH.text arc.label ] 
+              ]
            , svgTokenAnimated arc
            ]
 
@@ -385,7 +391,7 @@ ui htmlIdPrefixMaybe =
                ]
            , svgTokens tokens point
            , SE.text [ SA.class_    "css-place-name-label"
-                     , SA.x         (_x point - 1.0 * placeRadius)
+                     , SA.x         (_x point)
                      , SA.y         (_y point + 2.0 * placeRadius + 0.25 * fontSize)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]

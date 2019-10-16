@@ -63,7 +63,7 @@ placeLinePoint p t = p + p'
 transitionLinePoint :: Vec2D -> Vec2D -> Vec2D
 transitionLinePoint p t = t - t'
   where
-    t' = d / pure (u * placeRadius)
+    t' = d * pure (placeRadius / u)
     d = t - p
     u  = abs (_x d) `max` abs (_y d)
 

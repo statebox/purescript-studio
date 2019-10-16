@@ -11,7 +11,7 @@ bipartiteLayoutScale :: Number
 bipartiteLayoutScale = 10.0
 
 fontSize :: Number
-fontSize = 0.1
+fontSize = 0.13
 
 tokenPadding :: Number
 tokenPadding = placeRadius * 0.2
