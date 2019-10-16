@@ -2,10 +2,11 @@ module View.Petrinet.PetrinetEditor where
 
 import Prelude hiding (div)
 import Control.MonadZero (empty)
-import Data.Array (catMaybes)
+import Data.Array (catMaybes, (..))
 import Data.Newtype (un, unwrap)
 import Data.Bag (BagF)
 import Data.Foldable (fold, foldMap, elem, intercalate)
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
@@ -24,6 +25,7 @@ import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Core (ClassName(..), ElemName(..), AttrName(..))
 import Halogen.HTML.Core as Core
 import Halogen.HTML.Events as HE
+import Math (sin, cos, pi)
 import Svg.Elements as SE
 import Svg.Attributes as SA
 import Svg.Attributes (CSSLength(..), FillState(..), FontSize(..), seconds)
@@ -401,17 +403,30 @@ ui htmlIdPrefixMaybe =
                      , SA.y         (_y point - tokenPadding)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
-                     [ HH.text $ if tokens == 0 || tokens == 1 then "" else show tokens ]
+                     [ HH.text $ if tokens < 6 then "" else show tokens ]
            ]
       where
         svgTokens :: Tokens -> Vec2D -> ComponentHTML (Action pid tid ty2) () m
-        svgTokens tokens point = if Additive tokens == mempty then HH.text "" else
-          SE.circle
-            [ SA.r      tokenRadius
-            , SA.cx     (_x point)
-            , SA.cy     (_y point)
-            , SA.class_ "css-token-in-place"
-            ]
+        svgTokens tokens point = if tokens == 0 then HH.text "" else
+          if (tokens == 1 || tokens > 5) then
+            SE.circle
+              [ SA.r      tokenRadius
+              , SA.cx     (_x point)
+              , SA.cy     (_y point)
+              , SA.class_ "css-token-in-place"
+              ]
+          else
+            SE.g [] $ (1..tokens) <#> \i -> 
+              SE.circle
+              [ SA.r      tokenRadius
+              , SA.cx     (_x point + cos (toNumber i / toNumber tokens * 2.0 * pi) * placeRadius * r tokens)
+              , SA.cy     (_y point + sin (toNumber i / toNumber tokens * 2.0 * pi) * placeRadius * r tokens)
+              , SA.class_ "css-token-in-place"
+              ]
+              where
+                r 2 = 0.33
+                r 3 = 0.4
+                r _ = 0.5
 
     --------------------------------------------------------------------------------
 
