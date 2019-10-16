@@ -33,7 +33,7 @@ import Svg.Attributes (CSSLength(..), FillState(..), FontSize(..), seconds)
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
-import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, firing, mkNetApiF)
+import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, preMarking, mkNetApiF)
 import Data.Petrinet.Representation.Layout.Bipartite as Layout.Bipartite
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
@@ -62,6 +62,7 @@ type StateF pid tid ty2 =
   , arcLabelsVisible        :: Boolean
   , placeLabelsVisible      :: Boolean
   , transitionLabelsVisible :: Boolean
+  , overrideMarking         :: Maybe (Marking.MarkingF pid Tokens)
   }
 
 type PlaceModelF pid tok label pt =
@@ -128,6 +129,7 @@ ui htmlIdPrefixMaybe =
       , placeLabelsVisible:      true
       , transitionLabelsVisible: true
       , arcLabelsVisible:        true
+      , overrideMarking:         Nothing
       }
       where
 -- TODO hmm, dit lijkt NIET de anim init bug te fixen, maar WEL de layout init bug
@@ -141,13 +143,13 @@ ui htmlIdPrefixMaybe =
                       , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
                       ]
                       [ SE.svg [ SA.viewBox (_x sceneTopLeft) (_y sceneTopLeft) (_x sceneSize) (_y sceneSize) ]
-                               (netToSVG state.netInfo layout state.focusedPlace state.focusedTransition)
                       , HH.br []
                       , HH.text state.msg
+                               (netToSVG netInfo layout state.focusedPlace state.focusedTransition)
                       ]
                 , div [ classes [ ClassName "w-1/6" ] ] $
                       if disableMarkingsAndLabelVisibilityButtons then [] else
-                        [ htmlMarking state.netInfo.net.marking
+                        [ htmlMarking marking
                         , labelVisibilityButtons
                         ]
                 ]
@@ -172,6 +174,9 @@ ui htmlIdPrefixMaybe =
         sceneTopLeft                    = bounds.min - (padding / pure 2.0)
         bounds                          = NetInfo.boundingBox state.netInfo
         padding                         = vec2 (4.0 * transitionWidth) (4.0 * transitionHeight)
+
+        marking = state.overrideMarking # fromMaybe state.netInfo.net.marking
+        netInfo = state.netInfo { net { marking = marking }}
 
         arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible)        "css-hide-arc-labels"
         placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible)      "css-hide-place-labels"
@@ -214,17 +219,20 @@ ui htmlIdPrefixMaybe =
       FireTransition tid -> do
         state <- H.get
         state.netInfo.netApi.transition tid # maybe (pure unit) \t -> do
-          net'' <- firing state.netInfo.net t \net' -> do
-            H.put $ state { netInfo = state.netInfo { net = net' }
-                          , msg = "Firing transition " <> show tid
-                          }
-            preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
-            H.liftAff $ guard (preCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
-            postCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid true)
-            H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
-          H.put $ state { netInfo = state.netInfo { net = net'' }
-                        , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net''.transitionLabelsDict) <> ")."
+          let marking' = preMarking t <> state.netInfo.net.marking
+          let net' = fire state.netInfo.net t
+          H.put $ state { netInfo = state.netInfo { net = net' }
+                        , overrideMarking = Just marking'
+                        , msg = "Firing transition " <> show tid
                         }
+          preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
+          H.liftAff $ guard (preCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+          postCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid true)
+          H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+          state' <- H.get
+          H.put $ state' { overrideMarking = Nothing
+                         , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
+                         }
       ToggleLabelVisibility obj -> do
         state <- H.get
         H.put $ case obj of
