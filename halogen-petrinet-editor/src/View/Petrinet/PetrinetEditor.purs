@@ -15,6 +15,7 @@ import Data.Set as Set
 import Data.Tuple (uncurry)
 import Data.Traversable (traverse)
 import Data.Vec3 (Vec2D, vec2, _x, _y)
+import Effect.Aff (delay, Milliseconds(..))
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
@@ -40,7 +41,7 @@ import Data.Typedef (Typedef(..))
 import View.Common (HtmlId, emptyHtml, mapAction)
 import View.Petrinet.Arrow (svgArrow, svgArrowheadMarker)
 import View.Petrinet.Config as Config
-import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration)
+import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration, arcAnimationDurationSec)
 import View.Petrinet.Model as NetInfo -- TODO move the NetInfo stuff out of Model into its own module
 import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceAction(..), Action(..), Tokens, TransitionAction(..), TextBox)
 import View.Petrinet.PlaceEditor as PlaceEditor
@@ -211,7 +212,10 @@ ui htmlIdPrefixMaybe =
                       , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <> " transition " <> show tid <> " (" <> (fold $ Map.lookup tid state.netInfo.net.transitionLabelsDict) <> ")."
                       }
       FireTransition tid -> do
-        numElems <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid)
+        preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
+        H.liftAff $ guard (preCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+        postCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid true)
+        H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
         state <- H.get
         let
           netMaybe' = fire state.netInfo.net <$> state.netInfo.netApi.transition tid
@@ -336,7 +340,7 @@ ui htmlIdPrefixMaybe =
         ]
         [ SE.animateMotion
             [ SA.id          animationId
-            , SA.class_      (arcAnimationClass arc.tid) -- used to trigger the animation with beginElement
+            , SA.class_      (arcAnimationClass arc.tid arc.isPost) -- used to trigger the animation with beginElement
             , SA.begin       "indefinite"
             , SA.dur         arcAnimationDuration
             , SA.fillAnim    Freeze
@@ -351,7 +355,7 @@ ui htmlIdPrefixMaybe =
             , SA.begin         "indefinite" -- begin="animationId.begin" doesn't seem to work in Chrome when DOM is created dynamically
             , SA.dur           tokenFadeDuration
             , SA.fillAnim      Freeze
-            , SA.class_        (arcAnimationClass arc.tid) -- used to trigger the animation with beginElement
+            , SA.class_        (arcAnimationClass arc.tid arc.isPost) -- used to trigger the animation with beginElement
             ]
         , SE.animate
             [ SA.attributeName "r"
@@ -360,7 +364,7 @@ ui htmlIdPrefixMaybe =
             , SA.begin         "indefinite"
             , SA.dur           tokenFadeDuration
             , SA.fillAnim      Freeze
-            , SA.class_        (arcAnimationClass arc.tid) -- used to trigger the animation with beginElement
+            , SA.class_        (arcAnimationClass arc.tid arc.isPost) -- used to trigger the animation with beginElement
             ]
         ]
       where
@@ -467,11 +471,11 @@ ui htmlIdPrefixMaybe =
     preArcId :: ∀ pid tid. Show pid => Show tid => tid -> pid -> HtmlId
     preArcId tid place = netPrefix <> "arc_" <> prefixPlace place <> "_" <> prefixTransition tid
 
-    arcAnimationClass :: ∀ tid. Show tid => tid -> HtmlId
-    arcAnimationClass = append netPrefix <<< tokenAnimatedClass <<< mkArcClass
+    arcAnimationClass :: ∀ tid. Show tid => tid -> Boolean -> HtmlId
+    arcAnimationClass tid isPost = prefix isPost <> prefixTransition tid # append netPrefix # tokenAnimatedClass
       where
-        mkArcClass :: ∀ tid. Show tid => tid -> HtmlId
-        mkArcClass tid = "arc_" <> prefixTransition tid
+        prefix true = "arc_post_"
+        prefix false = "arc_pre_"
 
     tokenAnimatedClass x = x <> "_token_animated"
 
