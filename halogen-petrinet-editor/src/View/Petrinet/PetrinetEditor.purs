@@ -339,38 +339,28 @@ ui htmlIdPrefixMaybe =
             , SA.class_      (arcAnimationClass arc.tid) -- used to trigger the animation with beginElement
             , SA.begin       "indefinite"
             , SA.dur         arcAnimationDuration
-            , SA.repeatCount 1
-            -- TODO we reproduce the path here as a workaround because the mpath with the xlink:href doesn't work yet
-            , SA.path        (svgPath arc.src arc.dest)
+            , SA.fillAnim    Freeze
             ]
-            [ -- TODO doesn't work, possibly due to xlink attribute namespace issue
-              -- SE.mpath [ SA.xlinkHref $ "#" <> arc.htmlId ] -- token will move along this referenced path
+            [
+              SE.mpath [ SA.attr (AttrName "href") $ "#" <> arc.htmlId ] -- token will move along this referenced path
             ]
         , SE.animate
             [ SA.attributeName "opacity"
             , SA.from          "0"
             , SA.to            "1"
-            , SA.begin         (animationId <> ".begin")
+            , SA.begin         "indefinite" -- begin="animationId.begin" doesn't seem to work in Chrome when DOM is created dynamically
             , SA.dur           tokenFadeDuration
             , SA.fillAnim      Freeze
-            , SA.repeatCount   0
+            , SA.class_        (arcAnimationClass arc.tid) -- used to trigger the animation with beginElement
             ]
         , SE.animate
             [ SA.attributeName "r"
             , SA.from          (show 0.0)
             , SA.to            (show $ 1.5 * tokenRadius)
-            , SA.begin         (animationId <> ".begin")
+            , SA.begin         "indefinite"
             , SA.dur           tokenFadeDuration
             , SA.fillAnim      Freeze
-            , SA.repeatCount   0
-            ]
-        , SE.animate -- hide the token after the animation completes
-            [ SA.attributeName "r"
-            , SA.to            (show 0.0)
-            , SA.begin         (animationId <> ".end")
-            , SA.dur           (seconds 0.0001) -- we want this immediately after the animation ends
-            , SA.fillAnim      Freeze
-            , SA.repeatCount   0
+            , SA.class_        (arcAnimationClass arc.tid) -- used to trigger the animation with beginElement
             ]
         ]
       where
