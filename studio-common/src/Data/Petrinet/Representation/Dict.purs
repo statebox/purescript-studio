@@ -11,6 +11,7 @@ module Data.Petrinet.Representation.Dict
   , PlaceMarkingF
 
   , fire
+  , firing
   , fireAtMarking
   , isTransitionEnabled
 
@@ -134,6 +135,22 @@ fire
   -> TransitionF p tok
   -> NetRepF p t tok typ r
 fire net t = net { marking = fireAtMarking net.marking t }
+
+-- | The function is called with the net with only the pre markings removed. 
+--   The net with the post markings included is returned.
+firing
+  :: ∀ p t tok typ r m x
+   . Ord p
+  => Semiring tok
+  => Group (MarkingF p tok)
+  => Functor m
+  => NetRepF p t tok typ r
+  -> TransitionF p tok
+  -> (NetRepF p t tok typ r -> m x)
+  -> m (NetRepF p t tok typ r)
+firing net t f = 
+  f (net { marking = preMarking t <> net.marking }) 
+  $> net { marking = fireAtMarking net.marking t }
 
 fireAtMarking
   :: ∀ p tok

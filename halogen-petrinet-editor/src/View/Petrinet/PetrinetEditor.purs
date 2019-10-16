@@ -33,7 +33,7 @@ import Svg.Attributes (CSSLength(..), FillState(..), FontSize(..), seconds)
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
-import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
+import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, firing, mkNetApiF)
 import Data.Petrinet.Representation.Layout.Bipartite as Layout.Bipartite
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
@@ -212,17 +212,19 @@ ui htmlIdPrefixMaybe =
                       , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <> " transition " <> show tid <> " (" <> (fold $ Map.lookup tid state.netInfo.net.transitionLabelsDict) <> ")."
                       }
       FireTransition tid -> do
-        preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
-        H.liftAff $ guard (preCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
-        postCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid true)
-        H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
         state <- H.get
-        let
-          netMaybe' = fire state.netInfo.net <$> state.netInfo.netApi.transition tid
-          net'      = fromMaybe state.netInfo.net netMaybe'
-        H.put $ state { netInfo = state.netInfo { net = net'}
-                      , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
-                      }
+        state.netInfo.netApi.transition tid # maybe (pure unit) \t -> do
+          net'' <- firing state.netInfo.net t \net' -> do
+            H.put $ state { netInfo = state.netInfo { net = net' }
+                          , msg = "Firing transition " <> show tid
+                          }
+            preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
+            H.liftAff $ guard (preCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+            postCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid true)
+            H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+          H.put $ state { netInfo = state.netInfo { net = net'' }
+                        , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net''.transitionLabelsDict) <> ")."
+                        }
       ToggleLabelVisibility obj -> do
         state <- H.get
         H.put $ case obj of
