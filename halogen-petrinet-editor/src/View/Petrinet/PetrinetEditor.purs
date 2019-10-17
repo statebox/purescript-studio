@@ -143,9 +143,9 @@ ui htmlIdPrefixMaybe =
                       , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
                       ]
                       [ SE.svg [ SA.viewBox (_x sceneTopLeft) (_y sceneTopLeft) (_x sceneSize) (_y sceneSize) ]
-                      , HH.br []
-                      , HH.text state.msg
                                (netToSVG netInfo layout state.focusedPlace state.focusedTransition)
+                      -- , HH.br []
+                      -- , HH.text state.msg
                       ]
                 , div [ classes [ ClassName "w-1/6" ] ] $
                       if disableMarkingsAndLabelVisibilityButtons then [] else
@@ -290,8 +290,8 @@ ui htmlIdPrefixMaybe =
     svgTransitionAndArcs t =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
-           , HE.onClick (\_ -> Just $ FocusTransition t.id)
-           , HE.onDoubleClick (\_ -> Just $ if t.isEnabled then FireTransition t.id else FocusTransition t.id)
+          --  , HE.onClick (\_ -> Just $ FocusTransition t.id)
+           , HE.onClick (\_ -> if t.isEnabled then Just $ FireTransition t.id else Nothing)
            ]
            ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t] <> [svgTransitionLabel t])
            where
@@ -386,7 +386,7 @@ ui htmlIdPrefixMaybe =
     svgPlace :: ∀ pid tid m. Show pid => PlaceModelF pid Tokens String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
       SE.g [ SA.id (mkPlaceIdStr id)
-           , HE.onClick (\_ -> Just $ FocusPlace id)
+          --  , HE.onClick (\_ -> Just $ FocusPlace id)
            ]
            [ SE.title [] [ Core.text label ]
            , SE.circle
