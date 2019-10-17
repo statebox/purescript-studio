@@ -11,7 +11,7 @@ bipartiteLayoutScale :: Number
 bipartiteLayoutScale = 10.0
 
 fontSize :: Number
-fontSize = 0.13
+fontSize = 0.16
 
 tokenPadding :: Number
 tokenPadding = placeRadius * 0.2
@@ -29,7 +29,7 @@ transitionWidth :: Number
 transitionWidth  = 2.0 * placeRadius
 
 arcAnimationDurationSec :: Number
-arcAnimationDurationSec = 0.7
+arcAnimationDurationSec = 0.3
 
 arcAnimationDuration :: Duration
 arcAnimationDuration = seconds arcAnimationDurationSec

@@ -370,7 +370,7 @@ ui htmlIdPrefixMaybe =
         , SE.animate
             [ SA.attributeName "r"
             , SA.from          (show 0.0)
-            , SA.to            (show $ 1.5 * tokenRadius)
+            , SA.to            (show $ 2.0 * tokenRadius)
             , SA.begin         "indefinite"
             , SA.dur           tokenFadeDuration
             , SA.fillAnim      Freeze
