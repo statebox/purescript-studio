@@ -310,7 +310,7 @@ ui htmlIdPrefixMaybe =
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
               , SA.x         (_x t.point)
-              , SA.y         (_y t.point - 0.5 * transitionHeight - 5.0 * fontSize)
+              , SA.y         (_y t.point - 0.5 * transitionHeight - 7.0 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
               [ HH.text t.label ]
