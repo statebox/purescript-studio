@@ -310,7 +310,7 @@ ui htmlIdPrefixMaybe =
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
               , SA.x         (_x t.point)
-              , SA.y         (_y t.point - 0.65 * transitionHeight + 0.25 * fontSize)
+              , SA.y         (_y t.point - 0.5 * transitionHeight - 5.0 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
               [ HH.text t.label ]
@@ -397,7 +397,7 @@ ui htmlIdPrefixMaybe =
            , svgTokens
            , SE.text [ SA.class_    "css-place-name-label"
                      , SA.x         (_x point)
-                     , SA.y         (_y point + 2.0 * placeRadius + 0.25 * fontSize)
+                     , SA.y         (_y point + placeRadius + 16.0 * fontSize)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
                      [ HH.text label ]
