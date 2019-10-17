@@ -143,9 +143,9 @@ ui htmlIdPrefixMaybe =
                       , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
                       ]
                       [ SE.svg [ SA.viewBox (_x sceneTopLeft) (_y sceneTopLeft) (_x sceneSize) (_y sceneSize) ]
+                               (netToSVG netInfo layout state.focusedPlace state.focusedTransition)
                       , HH.br []
                       , HH.text state.msg
-                               (netToSVG netInfo layout state.focusedPlace state.focusedTransition)
                       ]
                 , div [ classes [ ClassName "w-1/6" ] ] $
                       if disableMarkingsAndLabelVisibilityButtons then [] else
