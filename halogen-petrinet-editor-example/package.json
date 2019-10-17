@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build",
-    "bundle": "spago bundle-app --main Main --to dist/app.js",
-    "watch": "spago bundle-app --watch --main Main --to dist/app.js",
+    "build": "spago build -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "bundle": "spago bundle-app --main Main --to dist/app.js -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago bundle-app --watch --main Main --to dist/app.js -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "test": "spago test"
   },
   "keywords": [
@@ -21,6 +21,7 @@
   "license": "ISC",
   "devDependencies": {
     "purescript": "^0.13.3",
+    "purescript-psa": "^0.7.3",
     "spago": "^0.9.0"
   }
 }

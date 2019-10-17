@@ -2,43 +2,45 @@ module View.Petrinet.PetrinetEditor where
 
 import Prelude hiding (div)
 import Control.MonadZero (empty)
-import Data.Array (catMaybes)
+import Data.Array (catMaybes, (..))
 import Data.Newtype (un, unwrap)
 import Data.Bag (BagF)
 import Data.Foldable (fold, foldMap, elem, intercalate)
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
-import Data.Monoid.Additive (Additive(..))
 import Data.Set as Set
 import Data.Tuple (uncurry)
 import Data.Traversable (traverse)
 import Data.Vec3 (Vec2D, vec2, _x, _y)
-import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Aff (delay, Milliseconds(..))
+import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML as HH
 import Halogen.HTML (HTML, div)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
-import Halogen.HTML.Core (ClassName(..))
+import Halogen.HTML.Core (ClassName(..), ElemName(..), AttrName(..))
 import Halogen.HTML.Core as Core
 import Halogen.HTML.Events as HE
+import Math (sin, cos, pi)
 import Svg.Elements as SE
 import Svg.Attributes as SA
-import Svg.Attributes (CSSLength(..), FillState(..), FontSize(..), seconds)
+import Svg.Attributes (CSSLength(..), FillState(..), FontSize(..))
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
-import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, mkNetApiF)
-import Data.Petrinet.Representation.Layout as Layout
+import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, preMarking, mkNetApiF)
+import Data.Petrinet.Representation.Layout.Bipartite as Layout.Bipartite
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
 
 import View.Common (HtmlId, emptyHtml, mapAction)
 import View.Petrinet.Arrow (svgArrow, svgArrowheadMarker)
 import View.Petrinet.Config as Config
-import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration)
+import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration, arcAnimationDurationSec)
 import View.Petrinet.Model as NetInfo -- TODO move the NetInfo stuff out of Model into its own module
 import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceAction(..), Action(..), Tokens, TransitionAction(..), TextBox)
 import View.Petrinet.PlaceEditor as PlaceEditor
@@ -59,6 +61,7 @@ type StateF pid tid ty2 =
   , arcLabelsVisible        :: Boolean
   , placeLabelsVisible      :: Boolean
   , transitionLabelsVisible :: Boolean
+  , overrideMarking         :: Maybe (Marking.MarkingF pid Tokens)
   }
 
 type PlaceModelF pid tok label pt =
@@ -118,14 +121,18 @@ ui htmlIdPrefixMaybe =
   where
     initialState :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> StateF pid tid ty2
     initialState netInfo =
-      { netInfo:                 netInfo
+      { netInfo:                 scaledNetInfo
       , msg:                     ""
       , focusedPlace:            empty
       , focusedTransition:       empty
       , placeLabelsVisible:      true
       , transitionLabelsVisible: true
-      , arcLabelsVisible:        false
+      , arcLabelsVisible:        true
+      , overrideMarking:         Nothing
       }
+      where
+-- TODO hmm, dit lijkt NIET de anim init bug te fixen, maar WEL de layout init bug
+        scaledNetInfo = NetInfo.translateAndScale Config.netScale netInfo { netApi = mkNetApiF netInfo.net }
 
     render :: StateF pid tid ty2 -> ComponentHTML (Action pid tid ty2) () m
     render state =
@@ -135,13 +142,13 @@ ui htmlIdPrefixMaybe =
                       , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
                       ]
                       [ SE.svg [ SA.viewBox (_x sceneTopLeft) (_y sceneTopLeft) (_x sceneSize) (_y sceneSize) ]
-                               (netToSVG state.netInfo layout state.focusedPlace state.focusedTransition)
+                               (netToSVG netInfo layout state.focusedPlace state.focusedTransition)
                       , HH.br []
                       , HH.text state.msg
                       ]
                 , div [ classes [ ClassName "w-1/6" ] ] $
                       if disableMarkingsAndLabelVisibilityButtons then [] else
-                        [ htmlMarking state.netInfo.net.marking
+                        [ htmlMarking marking
                         , labelVisibilityButtons
                         ]
                 ]
@@ -159,27 +166,30 @@ ui htmlIdPrefixMaybe =
                 ]
           ]
       where
+-- TODO - we don't take the 'scale' into account b/c the viewport doesn't scale along, so any other tweaking is useless
+-- TODO - komt die animatie-bug door een init error in de berekening van de scene size op basis van bijv de verkeerde bounds/layout/net/whatevs? want het gebeurt dus nu ook weer als we elk net layouten
+-- TODO - gaat dat mis in de afhandeling van LoadNet?
         sceneSize                       = bounds.max - bounds.min + padding
         sceneTopLeft                    = bounds.min - (padding / pure 2.0)
         bounds                          = NetInfo.boundingBox state.netInfo
         padding                         = vec2 (4.0 * transitionWidth) (4.0 * transitionHeight)
+
+        marking = state.overrideMarking # fromMaybe state.netInfo.net.marking
+        netInfo = state.netInfo { net { marking = marking }}
 
         arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible)        "css-hide-arc-labels"
         placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible)      "css-hide-place-labels"
         transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
 
         layout :: NetLayoutF pid tid
-        layout = fromMaybe zeroLayout state.netInfo.net.layout
+        layout = fromMaybe autoLayout state.netInfo.net.layout
           where
-            -- TODO This shouldn't exist; we always need the correct number of places and transitions laid out
-            --      so we need to use a layouting function here to compute one. (issue #141)
-            zeroLayout :: NetLayoutF pid tid
-            zeroLayout = { placePointsDict: mempty, transitionPointsDict: mempty }
+            autoLayout = Layout.Bipartite.bipartite Config.bipartiteLayoutScale state.netInfo.net
 
-    handleAction :: ∀ tid. Ord tid => Show tid => Action pid tid ty2 -> HalogenM (StateF pid tid ty2) (Action pid tid ty2) () Msg m Unit
+    handleAction :: Action pid tid ty2 -> HalogenM (StateF pid tid ty2) (Action pid tid ty2) () Msg m Unit
     handleAction = case _ of
       LoadNet newNetInfo -> do
-        let scaledNetInfo = (NetInfo.translateAndScale Config.netScale newNetInfo) { netApi = mkNetApiF newNetInfo.net }
+        let scaledNetInfo = NetInfo.translateAndScale Config.netScale newNetInfo { netApi = mkNetApiF newNetInfo.net }
         H.modify_ (\state -> state { netInfo = scaledNetInfo })
       FocusPlace pid -> do
         state <- H.get
@@ -206,14 +216,22 @@ ui htmlIdPrefixMaybe =
                       , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <> " transition " <> show tid <> " (" <> (fold $ Map.lookup tid state.netInfo.net.transitionLabelsDict) <> ")."
                       }
       FireTransition tid -> do
-        numElems <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid)
         state <- H.get
-        let
-          netMaybe' = fire state.netInfo.net <$> state.netInfo.netApi.transition tid
-          net'      = fromMaybe state.netInfo.net netMaybe'
-        H.put $ state { netInfo = state.netInfo { net = net'}
-                      , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
-                      }
+        state.netInfo.netApi.transition tid # maybe (pure unit) \t -> do
+          let marking' = preMarking t <> state.netInfo.net.marking
+          let net' = fire state.netInfo.net t
+          H.put $ state { netInfo = state.netInfo { net = net' }
+                        , overrideMarking = Just marking'
+                        , msg = "Firing transition " <> show tid
+                        }
+          preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
+          H.liftAff $ guard (preCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+          postCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid true)
+          H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+          state' <- H.get
+          H.put $ state' { overrideMarking = Nothing
+                         , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
+                         }
       ToggleLabelVisibility obj -> do
         state <- H.get
         H.put $ case obj of
@@ -221,7 +239,7 @@ ui htmlIdPrefixMaybe =
           Place ->      state { placeLabelsVisible      = not state.placeLabelsVisible }
           Transition -> state { transitionLabelsVisible = not state.transitionLabelsVisible }
 
-    netToSVG :: ∀ tid a. Ord pid => Show pid => Ord tid => Show tid => NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> NetLayoutF pid tid -> Maybe pid -> Maybe tid -> Array (ComponentHTML (Action pid tid ty2) () m)
+    netToSVG :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> NetLayoutF pid tid -> Maybe pid -> Maybe tid -> Array (ComponentHTML (Action pid tid ty2) () m)
     netToSVG netInfo@{net, netApi} layout focusedPlace focusedTransition =
       svgDefs <> svgTextBoxes <> svgTransitions <> svgPlaces
       where
@@ -241,8 +259,8 @@ ui htmlIdPrefixMaybe =
         mkTransitionAndArcsModel :: tid -> TransitionF pid Tokens -> Maybe (TransitionModelF tid String Vec2D)
         mkTransitionAndArcsModel tid tr = do
           trPoint  <- Map.lookup tid layout.transitionPointsDict
-          preArcs  <- mkPreArc  tid trPoint `traverse` tr.pre
-          postArcs <- mkPostArc tid trPoint `traverse` tr.post
+          preArcs  <- mkPreArc  trPoint `traverse` tr.pre
+          postArcs <- mkPostArc trPoint `traverse` tr.post
           let auths = fromMaybe (Roles mempty) (Map.lookup tid net.transitionAuthsDict)
           pure { id        : tid
                , label     : fold (Map.lookup tid net.transitionLabelsDict)
@@ -255,15 +273,19 @@ ui htmlIdPrefixMaybe =
                , isFocused : focusedTransition == Just tid
                }
           where
-            mkPostArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPostArc tid src tp = { isPost: true, tid: tid, src: src, dest: _, label: postArcId tid tp.place, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+            mkPostArc :: Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
+            mkPostArc src tp = { isPost: true, tid: tid, src: src, dest: _, label: arcLabel tp.tokens, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
 
-            mkPreArc :: ∀ tid a. Show tid => tid -> Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPreArc tid dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: preArcId tid tp.place, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+            mkPreArc :: Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
+            mkPreArc dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: arcLabel tp.tokens, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+
+            arcLabel :: Tokens -> String
+            arcLabel 1 = ""
+            arcLabel ts = show ts
 
     --------------------------------------------------------------------------------
 
-    svgTransitionAndArcs :: ∀ tid m. Show tid => TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
+    svgTransitionAndArcs :: TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgTransitionAndArcs t =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
@@ -275,7 +297,7 @@ ui htmlIdPrefixMaybe =
              roleClasses :: Array String
              roleClasses = map (\r -> "css-role-" <> show r) <<< Set.toUnfoldable <<< un Roles $ t.auths
 
-    svgTransitionRect :: ∀ tid m. Show tid => TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
+    svgTransitionRect :: TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgTransitionRect t =
       SE.rect [ SA.class_  ("css-transition-rect" <> guard t.isFocused " focused")
               , SA.width   transitionWidth
@@ -284,16 +306,16 @@ ui htmlIdPrefixMaybe =
               , SA.y       (_y t.point - transitionHeight / 2.0)
               ]
 
-    svgTransitionLabel :: ∀ tid m. Show tid => TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
+    svgTransitionLabel :: TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
-              , SA.x         (_x t.point - 0.5 * transitionWidth)
-              , SA.y         (_y t.point - 0.65 * transitionHeight + 0.25 * fontSize)
+              , SA.x         (_x t.point)
+              , SA.y         (_y t.point - 0.5 * transitionHeight - 5.0 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
               [ HH.text t.label ]
 
-    svgArc :: ∀ pid tid m. Show tid => ArcModel tid -> ComponentHTML (Action pid tid ty2) () m
+    svgArc :: ArcModel tid -> ComponentHTML (Action pid tid ty2) () m
     svgArc arc =
       SE.g [ SA.class_ "css-arc-container" ]
            [ SE.path
@@ -303,19 +325,21 @@ ui htmlIdPrefixMaybe =
                ]
            , svgArrow arc.src arc.dest arc.isPost
            , SE.text
-               [ SA.class_    "css-arc-name-label"
-               , SA.x         (_x arc.src)
-               , SA.y         (_x arc.src)
-               , SA.font_size (FontSizeLength $ Em fontSize)
-                 -- TODO add SVG.textPath prop, refer to the svg path using xlink:href="#<arc id here>"
-               ]
-               [ HH.text arc.htmlId ]
+              [ SA.class_ "css-arc-name-label"
+              , SA.attr (AttrName "dy") "-0.3em"
+              , SA.font_size (FontSizeLength $ Em fontSize)
+              ]
+              [ SE.element (ElemName "textPath") 
+                [ SA.attr (AttrName "href") ("#" <> arc.htmlId)
+                , SA.attr (AttrName "startOffset") "50%"
+                ] [ HH.text arc.label ] 
+              ]
            , svgTokenAnimated arc
            ]
 
     -- | A token that moves along the path of the enclosing arc. This should happen
     -- | when the transition to which this arc is connected fires.
-    svgTokenAnimated :: ∀ pid tid m. Show tid => ArcModel tid -> ComponentHTML (Action pid tid ty2) () m
+    svgTokenAnimated :: ArcModel tid -> ComponentHTML (Action pid tid ty2) () m
     svgTokenAnimated arc =
       SE.circleNode
         [ SA.class_ "css-token-animated"
@@ -325,41 +349,31 @@ ui htmlIdPrefixMaybe =
         ]
         [ SE.animateMotion
             [ SA.id          animationId
-            , SA.class_      (arcAnimationClass arc.tid) -- used to trigger the animation with beginElement
+            , SA.class_      (arcAnimationClass arc.tid arc.isPost) -- used to trigger the animation with beginElement
             , SA.begin       "indefinite"
             , SA.dur         arcAnimationDuration
-            , SA.repeatCount 1
-            -- TODO we reproduce the path here as a workaround because the mpath with the xlink:href doesn't work yet
-            , SA.path        (svgPath arc.src arc.dest)
+            , SA.fillAnim    Freeze
             ]
-            [ -- TODO doesn't work, possibly due to xlink attribute namespace issue
-              -- SE.mpath [ SA.xlinkHref $ "#" <> arc.htmlId ] -- token will move along this referenced path
+            [
+              SE.mpath [ SA.attr (AttrName "href") $ "#" <> arc.htmlId ] -- token will move along this referenced path
             ]
         , SE.animate
             [ SA.attributeName "opacity"
             , SA.from          "0"
             , SA.to            "1"
-            , SA.begin         (animationId <> ".begin")
+            , SA.begin         "indefinite" -- begin="animationId.begin" doesn't seem to work in Chrome when DOM is created dynamically
             , SA.dur           tokenFadeDuration
             , SA.fillAnim      Freeze
-            , SA.repeatCount   0
+            , SA.class_        (arcAnimationClass arc.tid arc.isPost) -- used to trigger the animation with beginElement
             ]
         , SE.animate
             [ SA.attributeName "r"
             , SA.from          (show 0.0)
-            , SA.to            (show $ 1.5 * tokenRadius)
-            , SA.begin         (animationId <> ".begin")
+            , SA.to            (show $ 2.0 * tokenRadius)
+            , SA.begin         "indefinite"
             , SA.dur           tokenFadeDuration
             , SA.fillAnim      Freeze
-            , SA.repeatCount   0
-            ]
-        , SE.animate -- hide the token after the animation completes
-            [ SA.attributeName "r"
-            , SA.to            (show 0.0)
-            , SA.begin         (animationId <> ".end")
-            , SA.dur           (seconds 0.0001) -- we want this immediately after the animation ends
-            , SA.fillAnim      Freeze
-            , SA.repeatCount   0
+            , SA.class_        (arcAnimationClass arc.tid arc.isPost) -- used to trigger the animation with beginElement
             ]
         ]
       where
@@ -368,7 +382,7 @@ ui htmlIdPrefixMaybe =
 
     --------------------------------------------------------------------------------
 
-    svgPlace :: ∀ pid tid m. Show pid => PlaceModelF pid Tokens String Vec2D -> ComponentHTML (Action pid tid ty2) () m
+    svgPlace :: PlaceModelF pid Tokens String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
       SE.g [ SA.id (mkPlaceIdStr id)
            , HE.onClick (\_ -> Just $ FocusPlace id)
@@ -380,10 +394,10 @@ ui htmlIdPrefixMaybe =
                , SA.cx     (_x point)
                , SA.cy     (_y point)
                ]
-           , svgTokens tokens point
+           , svgTokens
            , SE.text [ SA.class_    "css-place-name-label"
-                     , SA.x         (_x point - 1.0 * placeRadius)
-                     , SA.y         (_y point + 2.0 * placeRadius + 0.25 * fontSize)
+                     , SA.x         (_x point)
+                     , SA.y         (_y point + placeRadius + 16.0 * fontSize)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
                      [ HH.text label ]
@@ -392,21 +406,34 @@ ui htmlIdPrefixMaybe =
                      , SA.y         (_y point - tokenPadding)
                      , SA.font_size (SA.FontSizeLength $ Em fontSize)
                      ]
-                     [ HH.text $ if tokens == 0 || tokens == 1 then "" else show tokens ]
+                     [ HH.text $ if tokens < 6 then "" else show tokens ]
            ]
       where
-        svgTokens :: Tokens -> Vec2D -> ComponentHTML (Action pid tid ty2) () m
-        svgTokens tokens point = if Additive tokens == mempty then HH.text "" else
-          SE.circle
-            [ SA.r      tokenRadius
-            , SA.cx     (_x point)
-            , SA.cy     (_y point)
-            , SA.class_ "css-token-in-place"
-            ]
+        svgTokens :: ComponentHTML (Action pid tid ty2) () m
+        svgTokens = if tokens == 0 then HH.text "" else
+          if (tokens == 1 || tokens > 5) then
+            SE.circle
+              [ SA.r      tokenRadius
+              , SA.cx     (_x point)
+              , SA.cy     (_y point)
+              , SA.class_ "css-token-in-place"
+              ]
+          else
+            SE.g [] $ (1..tokens) <#> \i -> 
+              SE.circle
+              [ SA.r      tokenRadius
+              , SA.cx     (_x point + cos (toNumber i / toNumber tokens * 2.0 * pi) * placeRadius * r tokens)
+              , SA.cy     (_y point + sin (toNumber i / toNumber tokens * 2.0 * pi) * placeRadius * r tokens)
+              , SA.class_ "css-token-in-place"
+              ]
+              where
+                r 2 = 0.33
+                r 3 = 0.4
+                r _ = 0.5
 
     --------------------------------------------------------------------------------
 
-    svgTextBox :: ∀ tid m. TextBox -> ComponentHTML (Action pid tid ty2) () m
+    svgTextBox :: TextBox -> ComponentHTML (Action pid tid ty2) () m
     svgTextBox tb =
       SE.g [ SA.class_ "css-textbox" ]
            [ SE.rect [ SA.x       x
@@ -441,30 +468,30 @@ ui htmlIdPrefixMaybe =
     netPrefix :: String
     netPrefix = foldMap (_ <> "_") htmlIdPrefixMaybe
 
-    prefixTransition :: ∀ tid. Show tid => tid -> HtmlId
+    prefixTransition :: tid -> HtmlId
     prefixTransition tid = "t" <> show tid
 
-    prefixPlace :: ∀ pid. Show pid => pid -> HtmlId
+    prefixPlace :: pid -> HtmlId
     prefixPlace pid = "p" <> show pid
 
-    postArcId :: ∀ pid tid. Show pid => Show tid => tid -> pid -> HtmlId
+    postArcId :: tid -> pid -> HtmlId
     postArcId tid place = netPrefix <> "arc_" <> prefixTransition tid <> "_" <> prefixPlace place
 
-    preArcId :: ∀ pid tid. Show pid => Show tid => tid -> pid -> HtmlId
+    preArcId :: tid -> pid -> HtmlId
     preArcId tid place = netPrefix <> "arc_" <> prefixPlace place <> "_" <> prefixTransition tid
 
-    arcAnimationClass :: ∀ tid. Show tid => tid -> HtmlId
-    arcAnimationClass = append netPrefix <<< tokenAnimatedClass <<< mkArcClass
+    arcAnimationClass :: tid -> Boolean -> HtmlId
+    arcAnimationClass tid isPost = prefix isPost <> prefixTransition tid # append netPrefix # tokenAnimatedClass
       where
-        mkArcClass :: ∀ tid. Show tid => tid -> HtmlId
-        mkArcClass tid = "arc_" <> prefixTransition tid
+        prefix true = "arc_post_"
+        prefix false = "arc_pre_"
 
     tokenAnimatedClass x = x <> "_token_animated"
 
-    mkTransitionIdStr :: ∀ tid. Show tid => tid -> HtmlId
+    mkTransitionIdStr :: tid -> HtmlId
     mkTransitionIdStr = append netPrefix <<< prefixTransition
 
-    mkPlaceIdStr :: ∀ pid. Show pid => pid -> HtmlId
+    mkPlaceIdStr :: pid -> HtmlId
     mkPlaceIdStr = append netPrefix <<< prefixPlace
 
 --------------------------------------------------------------------------------

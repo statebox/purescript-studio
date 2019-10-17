@@ -114,6 +114,7 @@ bounds :: ∀ f a. Bounded a => Ord a => Foldable f => f (Vec3 a) -> { min :: Ve
 bounds vecs =
   foldl minMaxVecs minMaxZero vecs
 
+minMaxZero :: ∀ a. Bounded a => { min :: Vec3 a, max :: Vec3 a }
 minMaxZero = { min: pure top, max: pure bottom }
 
 minMaxVecs :: ∀ a. Bounded a => Ord a => { min :: Vec3 a, max :: Vec3 a } -> Vec3 a -> { min :: Vec3 a, max :: Vec3 a }

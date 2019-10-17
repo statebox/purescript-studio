@@ -5,14 +5,13 @@ import Data.Array (length)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Int (toNumber)
 import Data.Map as Map
-import Data.Map (Map)
-import Data.Set as Set
 import Data.Tuple.Nested ((/\))
 import Data.Vec3 (vec2)
 
 import Data.Petrinet.Representation.Dict (NetRepF, computeTransitionIds)
 import Data.Petrinet.Representation.Layout (NetLayoutF)
 
+-- TODO give this a sensible name, such that the FQN makes sense (currently Layout.Bipartite.bipartite)
 bipartite :: ∀ pid tid tok ty r. Ord pid => Ord tid => Number -> NetRepF pid tid tok ty r -> NetLayoutF pid tid
 bipartite scaleFactor net =
   { placePointsDict:      Map.fromFoldable placePoints
