@@ -8,7 +8,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ord (abs)
-import Data.Vec3 (Vec3, _x, _y, _z, vec3)
+import Data.Vec3 (Vec3, Vec2, _x, _y, _z, vec3)
 import Halogen as H
 import Halogen.HTML (HTML)
 import Halogen.HTML as HH
@@ -54,9 +54,11 @@ componentRefLabel = H.RefLabel "diagram-editor-ref-label"
 
 --------------------------------------------------------------------------------
 
-renderCursor :: ∀ a. Int -> (Int/\Int) -> HTML a MouseMsg
-renderCursor s (cx/\cy) =
-    let p x u = toNumber $ (s / 2) * x + s * u
+renderCursor :: ∀ a. Int -> Vec2 Int -> HTML a MouseMsg
+renderCursor s cxy =
+    let cx = _x cxy
+        cy = _y cxy
+        p x u = toNumber $ (s / 2) * x + s * u
         pts = [ SA.Abs $ SA.M (p 0 cx) (p 0 cy)
               , SA.Abs $ SA.L (p 1 cx) (p 1 cy)
               , SA.Abs $ SA.L (p 0 cx) (p 2 cy)

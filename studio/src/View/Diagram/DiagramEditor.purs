@@ -5,7 +5,7 @@ import Debug.Trace (trace)
 
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec3 (vec2)
+import Data.Vec3 (vec2, _x, _y)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
@@ -31,7 +31,7 @@ initialState ops =
     , selectedOpId:  Nothing
     , mouseOver:     Nothing
     , mousePos:      vec2 0 0
-    , cursorPos:     0 /\ 0
+    , cursorPos:     vec2 0 0
     , mousePressed:  false
     , dragStart:     DragNotStarted
     }
@@ -74,9 +74,8 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         st <- H.get
         let m = st.model
         let {scale,width,height} = m.config
-        let (x/\y) = m.cursorPos
-        let cpos' = clamp2d (width/scale) (height/scale) ((x+dx)/\(y+dy))
-        H.modify_ \st -> st { model = m { cursorPos = cpos'} }
+        let (x'/\y') = clamp2d (width/scale+1) (height/scale+1) ((_x m.cursorPos + dx) /\ (_y m.cursorPos + dy))
+        H.modify_ \st -> st { model = m { cursorPos = vec2 x' y'} }
         H.raise CursorMoved
 
       KeyboardAction k ->
