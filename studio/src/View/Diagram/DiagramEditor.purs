@@ -1,11 +1,11 @@
 module View.Diagram.DiagramEditor where
 
 import Prelude hiding (div)
-import Debug.Trace (trace)
 
+import Data.Array (snoc, length)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec3 (vec2, _x, _y)
+import Data.Vec3 (vec2, vec3, _x, _y)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
@@ -70,22 +70,31 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
     handleAction :: Action -> HalogenM State Action () Msg m Unit
     handleAction = case _ of
 
+      AddOp -> do
+        m <- H.get <#> _.model
+        let ops = m.ops
+        let x = _x m.cursorPos
+        let y = _y m.cursorPos
+        let id = length ops
+        H.modify_ \st -> st { model = m { cursorPos = vec2 x (y+1) } }
+        let newOp = { identifier: "new" <> show id, pos: vec3 (x+1) y 7, label: "New" <> show id }
+        handleAction $ UpdateDiagram (ops `snoc` newOp)
+
       MoveCursor (dx/\dy) -> do
-        st <- H.get
-        let m = st.model
+        m <- H.get <#> _.model
         let {scale,width,height} = m.config
         let (x'/\y') = clamp2d (width/scale+1) (height/scale+1) ((_x m.cursorPos + dx) /\ (_y m.cursorPos + dy))
         H.modify_ \st -> st { model = m { cursorPos = vec2 x' y'} }
         H.raise CursorMoved
 
       KeyboardAction k ->
-        let act dx dy = handleAction $ MoveCursor (dx /\ dy) in
+        let actArr dx dy = handleAction $ MoveCursor (dx /\ dy) in
         case code k of
-          "ArrowLeft"  -> act (-1)  0
-          "ArrowUp"    -> act   0 (-1)
-          "ArrowRight" -> act   1   0
-          "ArrowDown"  -> act   0   1
-          -- TODO space
+          "ArrowLeft"  -> actArr (-1)  0
+          "ArrowUp"    -> actArr   0 (-1)
+          "ArrowRight" -> actArr   1   0
+          "ArrowDown"  -> actArr   0   1
+          "Space"      -> handleAction AddOp
           _            -> pure unit
 
       MouseAction msg -> do

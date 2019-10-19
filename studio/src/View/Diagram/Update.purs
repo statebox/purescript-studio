@@ -23,6 +23,7 @@ data Action
   | KeyboardAction KeyboardEvent
   | UpdateDiagram Operators
   | MoveCursor (Int /\ Int)
+  | AddOp
 
 data MouseMsg
   = MouseIsOver Operator OperatorHandle
