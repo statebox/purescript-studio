@@ -11,7 +11,4 @@ classesWithNames names = HP.classes (HC.ClassName <$> names)
 
 -- snap s x = x - (x % s)
 snap :: Int -> Int -> Int
-snap s x = round' (toNumber x) (toNumber s) -- s * (x // s)
-  where
-    round' :: Number -> Number -> Int
-    round' x s = round (x / s) * (floor s)
+snap s x = s * round (toNumber x / toNumber s) -- s * (x // s)
