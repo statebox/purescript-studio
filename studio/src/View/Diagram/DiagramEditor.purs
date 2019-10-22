@@ -65,33 +65,34 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
     handleAction :: Action -> HalogenM State Action () Msg m Unit
     handleAction = case _ of
 
-      AddOp -> do
+      CreateOp -> do
         m <- H.get <#> _.model
         let ops = m.ops
         let x = _x m.cursorPos
         let y = _y m.cursorPos
         let id = length ops
         H.modify_ \st -> st { model = m { cursorPos = vec2 x (y+1) } }
-        let newOp = { identifier: "new" <> show id, pos: vec3 (x+1) y 7, label: "New" <> show id }
+        let newOp = { identifier: "new" <> show id, pos: vec3 (x+1) y 7, label: "new" <> show id }
         handleAction $ UpdateDiagram (ops `snoc` newOp)
 
-      MoveCursor (dx/\dy) -> do
+      MoveCursor (dx /\ dy) -> do
         m <- H.get <#> _.model
-        let {scale,width,height} = m.config
-        let (x'/\y') = clamp2d (width/scale+1) (height/scale+1) ((_x m.cursorPos + dx) /\ (_y m.cursorPos + dy))
+        let { scale, width, height } = m.config
+        let (x' /\ y') = clamp2d (width/scale+1) (height/scale+1) ((_x m.cursorPos + dx) /\ (_y m.cursorPos + dy))
         H.modify_ \st -> st { model = m { cursorPos = vec2 x' y'} }
         H.raise CursorMoved
 
-      KeyboardAction k ->
-        let actArr dx dy = handleAction $ MoveCursor (dx /\ dy) in
-        do H.liftEffect $ preventDefault $ toEvent k
-           case code k of
-             "ArrowLeft"  -> actArr (-1)  0
-             "ArrowUp"    -> actArr   0 (-1)
-             "ArrowRight" -> actArr   1   0
-             "ArrowDown"  -> actArr   0   1
-             "Space"      -> handleAction AddOp
-             _            -> pure unit
+      KeyboardAction k -> do
+        H.liftEffect $ preventDefault $ toEvent k
+        case code k of
+          "ArrowLeft"  -> move (-1)  0
+          "ArrowUp"    -> move   0 (-1)
+          "ArrowRight" -> move   1   0
+          "ArrowDown"  -> move   0   1
+          "Space"      -> handleAction CreateOp
+          _            -> pure unit
+        where
+          move dx dy = handleAction $ MoveCursor (dx /\ dy)
 
       MouseAction msg -> do
         state <- H.get
