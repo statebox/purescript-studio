@@ -286,7 +286,7 @@ ui htmlIdPrefixMaybe =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
            , HE.onClick (\_ -> Just $ FocusTransition t.id)
-           , HE.onDoubleClick (\_ -> Just $ if t.isEnabled then FireTransition t.id else FocusTransition t.id
+           , HE.onDoubleClick (\_ -> Just $ if t.isEnabled then FireTransition t.id else FocusTransition t.id)
            ]
            ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t] <> [svgTransitionLabel t])
            where
