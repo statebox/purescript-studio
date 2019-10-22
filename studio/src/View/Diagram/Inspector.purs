@@ -24,6 +24,7 @@ view state@{model} =
          , prop "dx,dy,dw"    $ show dxdydw
          , prop "sdx,sdy,sdw" $ show sdxdydw
          , prop "mdx,mdy,mdw" $ show mdxdydw
+         , prop "cx,cy"       $ show model.cursorPos
          , prop "valid"       $ show $ isValidDrag model
          , prop "selectedOpId"$ show model.selectedOpId
          , code "-----------------------\n"

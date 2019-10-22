@@ -112,5 +112,8 @@ ui =
             _                     -> Nothing
         maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
+      HandleDiagramEditorMsg (DiagramEditor.CursorMoved) -> do
+        pure unit
+
       HandlePetrinetEditorMsg NetUpdated -> do
         pure unit

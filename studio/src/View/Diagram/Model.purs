@@ -4,7 +4,7 @@ import Data.Maybe
 import Prelude
 
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec3 (Vec3, vec3, _x, _y)
+import Data.Vec3 (Vec3, Vec2, vec3, _x, _y)
 
 import View.Diagram.Common (snap)
 
@@ -61,6 +61,7 @@ type Model =
     -- this String id is somewhat problematic; it's an id into a "Array/Set" of operators; rather have a Lens here
   , mouseOver     :: Maybe (Operator /\ OperatorHandle)
   , mousePos      :: Vec3 Int
+  , cursorPos     :: Vec2 Int
   , mousePressed  :: Boolean
   , dragStart     :: DragStart
   , config        :: Config
