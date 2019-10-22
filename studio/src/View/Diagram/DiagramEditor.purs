@@ -15,8 +15,9 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, tabIndex)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Element)
+import Web.Event.Event (preventDefault)
 import Web.HTML.HTMLElement (HTMLElement)
-import Web.UIEvent.KeyboardEvent (code)
+import Web.UIEvent.KeyboardEvent (code, toEvent)
 
 import View.Diagram.Model (DragStart(..), Operators)
 import View.Diagram.Update (Action(..), MouseMsg(..), Msg(..), State, evalModel)
@@ -89,13 +90,14 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
       KeyboardAction k ->
         let actArr dx dy = handleAction $ MoveCursor (dx /\ dy) in
-        case code k of
-          "ArrowLeft"  -> actArr (-1)  0
-          "ArrowUp"    -> actArr   0 (-1)
-          "ArrowRight" -> actArr   1   0
-          "ArrowDown"  -> actArr   0   1
-          "Space"      -> handleAction AddOp
-          _            -> pure unit
+        do H.liftEffect $ preventDefault $ toEvent k
+           case code k of
+             "ArrowLeft"  -> actArr (-1)  0
+             "ArrowUp"    -> actArr   0 (-1)
+             "ArrowRight" -> actArr   1   0
+             "ArrowDown"  -> actArr   0   1
+             "Space"      -> handleAction AddOp
+             _            -> pure unit
 
       MouseAction msg -> do
         state <- H.get
