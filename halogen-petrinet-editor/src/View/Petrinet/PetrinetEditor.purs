@@ -122,7 +122,7 @@ ui htmlIdPrefixMaybe =
   where
     initialState :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> StateF pid tid ty2
     initialState netInfo =
-      { netInfo:                 scaledNetInfo
+      { netInfo:                 netInfo { netApi = mkNetApiF netInfo.net }
       , msg:                     ""
       , focusedPlace:            empty
       , focusedTransition:       empty
@@ -131,9 +131,6 @@ ui htmlIdPrefixMaybe =
       , arcLabelsVisible:        true
       , overrideMarking:         Nothing
       }
-      where
--- TODO hmm, dit lijkt NIET de anim init bug te fixen, maar WEL de layout init bug
-        scaledNetInfo = netInfo { netApi = mkNetApiF netInfo.net }
 
     render :: StateF pid tid ty2 -> ComponentHTML (Action pid tid ty2) () m
     render state =
@@ -289,7 +286,7 @@ ui htmlIdPrefixMaybe =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
            , HE.onClick (\_ -> Just $ FocusTransition t.id)
-           , HE.onDoubleClick (\_ -> if t.isEnabled then Just $ FireTransition t.id else Nothing)
+           , HE.onDoubleClick (\_ -> Just $ if t.isEnabled then FireTransition t.id else FocusTransition t.id
            ]
            ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t] <> [svgTransitionLabel t])
            where
