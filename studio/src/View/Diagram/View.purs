@@ -56,16 +56,16 @@ componentRefLabel = H.RefLabel "diagram-editor-ref-label"
 
 renderCursor :: ∀ a. Int -> Vec2 Int -> HTML a MouseMsg
 renderCursor s cxy =
-    let cx = _x cxy
-        cy = _y cxy
-        p x u = toNumber $ (s / 2) * x + s * u
-        pts = [ SA.Abs $ SA.M (p 0 cx) (p 0 cy)
-              , SA.Abs $ SA.L (p 1 cx) (p 1 cy)
-              , SA.Abs $ SA.L (p 0 cx) (p 2 cy)
-              , SA.Abs SA.Z
-              ]
-    in SE.path [ SA.stroke $ Just color, SA.fill $ Just colorA, SA.d pts ]
+  SE.path [ SA.stroke $ Just color, SA.fill $ Just colorA, SA.d pts ]
   where
+    cx = _x cxy
+    cy = _y cxy
+    p x u = toNumber $ (s / 2) * x + s * u
+    pts = [ SA.Abs $ SA.M (p 0 cx) (p 0 cy)
+          , SA.Abs $ SA.L (p 1 cx) (p 1 cy)
+          , SA.Abs $ SA.L (p 0 cx) (p 2 cy)
+          , SA.Abs SA.Z
+          ]
     color  = SA.RGB  90 99 120
     colorA = SA.RGBA 90 99 120 128.0
 

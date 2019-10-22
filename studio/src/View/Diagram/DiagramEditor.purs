@@ -19,6 +19,7 @@ import Web.Event.Event (preventDefault)
 import Web.HTML.HTMLElement (HTMLElement)
 import Web.UIEvent.KeyboardEvent (code, toEvent)
 
+import View.Diagram.Common (classesWithNames)
 import View.Diagram.Model (DragStart(..), Operators)
 import View.Diagram.Update (Action(..), MouseMsg(..), Msg(..), State, evalModel)
 import View.Diagram.View as View
@@ -56,14 +57,7 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
           ]
           [ div [ classes [] ]
                 [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
-                , div [ classes [ ClassName "mt-4"
-                                , ClassName "rb-2"
-                                , ClassName "p-4"
-                                , ClassName "bg-grey-lightest"
-                                , ClassName "text-grey-dark"
-                                , ClassName "rounded"
-                                , ClassName "text-sm"
-                                ] ]
+                , div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
                       [ Inspector.view state ]
                 ]
           ]
