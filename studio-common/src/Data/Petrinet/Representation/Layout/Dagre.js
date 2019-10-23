@@ -1,6 +1,4 @@
-"use strict";
-
-var dagre = require('dagre');
+// Warning: expects `dagre` in the global scope
 
 exports.dagreLayout = function (input) {
   const g = new dagre.graphlib.Graph({ directed: true });
