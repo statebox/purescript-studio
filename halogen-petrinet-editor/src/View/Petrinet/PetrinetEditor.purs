@@ -33,7 +33,8 @@ import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
 import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, preMarking, mkNetApiF)
-import Data.Petrinet.Representation.Layout.Bipartite as Layout.Bipartite
+import Data.Petrinet.Representation.Layout.Bipartite as Bipartite
+import Data.Petrinet.Representation.Layout.Dagre as Dagre
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
 
@@ -121,7 +122,7 @@ ui htmlIdPrefixMaybe =
   where
     initialState :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> StateF pid tid ty2
     initialState netInfo =
-      { netInfo:                 scaledNetInfo
+      { netInfo:                 netInfo { netApi = mkNetApiF netInfo.net }
       , msg:                     ""
       , focusedPlace:            empty
       , focusedTransition:       empty
@@ -130,9 +131,6 @@ ui htmlIdPrefixMaybe =
       , arcLabelsVisible:        true
       , overrideMarking:         Nothing
       }
-      where
--- TODO hmm, dit lijkt NIET de anim init bug te fixen, maar WEL de layout init bug
-        scaledNetInfo = NetInfo.translateAndScale Config.netScale netInfo { netApi = mkNetApiF netInfo.net }
 
     render :: StateF pid tid ty2 -> ComponentHTML (Action pid tid ty2) () m
     render state =
@@ -166,31 +164,29 @@ ui htmlIdPrefixMaybe =
                 ]
           ]
       where
--- TODO - we don't take the 'scale' into account b/c the viewport doesn't scale along, so any other tweaking is useless
--- TODO - komt die animatie-bug door een init error in de berekening van de scene size op basis van bijv de verkeerde bounds/layout/net/whatevs? want het gebeurt dus nu ook weer als we elk net layouten
--- TODO - gaat dat mis in de afhandeling van LoadNet?
+        marking = state.overrideMarking # fromMaybe state.netInfo.net.marking
+        { layout, textBoxes } = NetInfo.translateAndScale Config.netScale { layout, textBoxes: state.netInfo.textBoxes }
+          where
+            layout = fromMaybe autoLayout state.netInfo.net.layout
+              where
+                -- autoLayout = Bipartite.layout Config.bipartiteLayoutScale state.netInfo.net
+                autoLayout = Dagre.layout state.netInfo.net
+
+        netInfo = state.netInfo { textBoxes = textBoxes, net { layout = Just layout }}
         sceneSize                       = bounds.max - bounds.min + padding
         sceneTopLeft                    = bounds.min - (padding / pure 2.0)
-        bounds                          = NetInfo.boundingBox state.netInfo
+        bounds                          = NetInfo.boundingBox { layout, textBoxes }
         padding                         = vec2 (4.0 * transitionWidth) (4.0 * transitionHeight)
-
-        marking = state.overrideMarking # fromMaybe state.netInfo.net.marking
-        netInfo = state.netInfo { net { marking = marking }}
 
         arcLabelsVisibilityClass        = guard (not state.arcLabelsVisible)        "css-hide-arc-labels"
         placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible)      "css-hide-place-labels"
         transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
 
-        layout :: NetLayoutF pid tid
-        layout = fromMaybe autoLayout state.netInfo.net.layout
-          where
-            autoLayout = Layout.Bipartite.bipartite Config.bipartiteLayoutScale state.netInfo.net
-
     handleAction :: Action pid tid ty2 -> HalogenM (StateF pid tid ty2) (Action pid tid ty2) () Msg m Unit
     handleAction = case _ of
       LoadNet newNetInfo -> do
-        let scaledNetInfo = NetInfo.translateAndScale Config.netScale newNetInfo { netApi = mkNetApiF newNetInfo.net }
-        H.modify_ (\state -> state { netInfo = scaledNetInfo })
+        let netInfo = newNetInfo { netApi = mkNetApiF newNetInfo.net }
+        H.modify_ (\state -> state { netInfo = netInfo })
       FocusPlace pid -> do
         state <- H.get
         let focusedPlace' = toggleMaybe pid state.focusedPlace
@@ -310,7 +306,7 @@ ui htmlIdPrefixMaybe =
     svgTransitionLabel t =
       SE.text [ SA.class_    "css-transition-name-label"
               , SA.x         (_x t.point)
-              , SA.y         (_y t.point - 0.5 * transitionHeight - 5.0 * fontSize)
+              , SA.y         (_y t.point - 0.5 * transitionHeight - 7.0 * fontSize)
               , SA.font_size (SA.FontSizeLength $ Em fontSize)
               ]
               [ HH.text t.label ]
