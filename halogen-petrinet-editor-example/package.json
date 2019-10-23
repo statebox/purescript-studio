@@ -6,9 +6,9 @@
   "scripts": {
     "postinstall": "spago install",
     "build": "spago build -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "bundle": "spago bundle-app --main Main --to dist/app.js -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago bundle-app --watch --main Main --to dist/app.js -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago build --watch -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "start": "parcel html/index.html",
+    "bundle": "npm run build && parcel build html/index.html --public-url .",
     "test": "spago test"
   },
   "keywords": [
