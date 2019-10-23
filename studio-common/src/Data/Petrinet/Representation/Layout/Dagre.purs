@@ -25,7 +25,7 @@ foreign import dagreLayout :: DagreInput -> DagreOutput
 
 layout
   :: ∀ pid tid tok ty r
-  .  Ord pid
+   . Ord pid
   => Show pid
   => Ord tid
   => Show tid
