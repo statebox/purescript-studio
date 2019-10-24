@@ -2,25 +2,28 @@ module View.Diagram.Update where
 
 import Prelude
 
-import Data.Maybe
-import Data.Tuple.Nested ((/\))
+import Data.Maybe (Maybe(..))
+import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec3, _x, _y, _z, vec3)
 import Web.HTML (HTMLElement)
-import Web.HTML.HTMLElement (DOMRect)
+import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
 import View.Diagram.Model
 import View.Diagram.Common (snap)
 
 type State =
-  { model                   :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified
-  , msg                     :: String
-  , componentElemMaybe      :: Maybe HTMLElement
+  { model              :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified
+  , msg                :: String
+  , componentElemMaybe :: Maybe HTMLElement
   }
 
 data Action
   = Initialize
   | MouseAction MouseMsg
+  | KeyboardAction KeyboardEvent
   | UpdateDiagram Operators
+  | MoveCursor (Int /\ Int)
+  | CreateOp
 
 data MouseMsg
   = MouseIsOver Operator OperatorHandle
@@ -29,8 +32,9 @@ data MouseMsg
   | MouseUp     (Vec3 Int)
   | MouseDown   (Vec3 Int)
 
-data Msg =
-  OperatorClicked OperatorId
+data Msg
+  = OperatorClicked OperatorId
+  | CursorMoved
 
 --------------------------------------------------------------------------------
 

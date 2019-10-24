@@ -178,13 +178,18 @@ mkNetInfo net name textBoxes =
 
 --------------------------------------------------------------------------------
 
-mapPoints :: ∀ pid tid ty r. (Vec2D -> Vec2D) -> NetInfoF pid tid ty r -> NetInfoF pid tid ty r
-mapPoints f n =
-  n { net       = n.net { layout = Layout.mapVec2D f <$> n.net.layout }
-    , textBoxes = mapTextBoxF f <$> n.textBoxes
-    }
+type Visuals pid tid = 
+  { layout    :: NetLayoutF pid tid
+  , textBoxes :: Array TextBox
+  }
 
-translateAndScale :: ∀ pid tid ty r. Number -> NetInfoF pid tid ty r -> NetInfoF pid tid ty r
+mapPoints :: ∀ pid tid. (Vec2D -> Vec2D) -> Visuals pid tid -> Visuals pid tid
+mapPoints f { layout, textBoxes } =
+  { layout:    Layout.mapVec2D f layout
+  , textBoxes: mapTextBoxF f <$> textBoxes
+  }
+
+translateAndScale :: ∀ pid tid. Number -> Visuals pid tid -> Visuals pid tid
 translateAndScale factor n =
   mapPoints (\v -> (v + vTranslate) * vScale) n
   where
@@ -204,12 +209,12 @@ translateAndScale factor n =
     bounds :: { min :: Vec2D, max :: Vec2D }
     bounds = boundingBox n
 
-boundingBox :: ∀ pid tid ty r. NetInfoF pid tid ty r -> { min :: Vec2D, max :: Vec2D }
-boundingBox netInfo =
+boundingBox :: ∀ pid tid. Visuals pid tid -> { min :: Vec2D, max :: Vec2D }
+boundingBox { layout, textBoxes } =
   layoutBounds `minMax` textBoxesBounds
   where
-    layoutBounds = maybe Vec2D.minMaxZero Layout.bounds netInfo.net.layout
-    textBoxesBounds = Vec2D.bounds ((Box.toArray <<< _.box) =<< netInfo.textBoxes)
+    layoutBounds = Layout.bounds layout
+    textBoxesBounds = Vec2D.bounds ((Box.toArray <<< _.box) =<< textBoxes)
 
 --------------------------------------------------------------------------------
 

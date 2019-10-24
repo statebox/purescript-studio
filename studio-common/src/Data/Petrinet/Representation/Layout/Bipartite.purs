@@ -11,9 +11,8 @@ import Data.Vec3 (vec2)
 import Data.Petrinet.Representation.Dict (NetRepF, computeTransitionIds)
 import Data.Petrinet.Representation.Layout (NetLayoutF)
 
--- TODO give this a sensible name, such that the FQN makes sense (currently Layout.Bipartite.bipartite)
-bipartite :: ∀ pid tid tok ty r. Ord pid => Ord tid => Number -> NetRepF pid tid tok ty r -> NetLayoutF pid tid
-bipartite scaleFactor net =
+layout :: ∀ pid tid tok ty r. Ord pid => Ord tid => Number -> NetRepF pid tid tok ty r -> NetLayoutF pid tid
+layout scaleFactor net =
   { placePointsDict:      Map.fromFoldable placePoints
   , transitionPointsDict: Map.fromFoldable transitionPoints
   }

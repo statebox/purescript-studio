@@ -2,6 +2,7 @@
 /node_modules/
 /output/
 /dist/app.js
+/dist/dagre.min.js
 /dist/stbx.min.js
 /generated-docs/
 /.psc-package/
