@@ -5,7 +5,7 @@ import Prelude hiding (div)
 import Data.Array (snoc, length)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec3 (vec2, vec3, _x, _y)
+import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
@@ -32,17 +32,14 @@ initialState ops =
     , ops:           ops
     , selectedOpId:  Nothing
     , mouseOver:     Nothing
-    , mousePos:      vec2 0 0
-    , cursorPos:     vec2 0 0
+    , mousePos:      vec3 0 0 0
+    , cursorPos:     vec3 0 0 0
     , mousePressed:  false
     , dragStart:     DragNotStarted
     }
   , msg:                ""
   , componentElemMaybe: Nothing
   }
-
-clamp2d :: Int -> Int -> Int /\ Int -> Int /\ Int
-clamp2d width height (x /\ y) = clamp 0 (width - 1) x /\ clamp 0 (height - 1) y
 
 ui :: ∀ m q. MonadAff m => H.Component HTML q Operators Msg m
 ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
@@ -68,18 +65,16 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
       CreateOp -> do
         m <- H.get <#> _.model
         let ops = m.ops
-        let x = _x m.cursorPos
-        let y = _y m.cursorPos
         let id = length ops
-        H.modify_ \st -> st { model = m { cursorPos = vec2 x (y+1) } }
-        let newOp = { identifier: "new" <> show id, pos: vec3 (x+1) y 7, label: "new" <> show id }
+        let newOp = { identifier: "new" <> show id, pos: m.cursorPos + vec3 1 0 7, label: "new" <> show id }
+        H.modify_ \st -> st { model = m { cursorPos = m.cursorPos + vec3 0 1 0 } }
         handleAction $ UpdateDiagram (ops `snoc` newOp)
 
-      MoveCursor (dx /\ dy) -> do
+      MoveCursor delta -> do
         m <- H.get <#> _.model
-        let { scale, width, height } = m.config
-        let (x' /\ y') = clamp2d (width/scale+1) (height/scale+1) ((_x m.cursorPos + dx) /\ (_y m.cursorPos + dy))
-        H.modify_ \st -> st { model = m { cursorPos = vec2 x' y'} }
+        let { cursorPos, config: { scale, width, height } } = m
+        let cursorPos' = clamp2d (width/scale+1) (height/scale+1) (cursorPos + delta)
+        H.modify_ \st -> st { model = m { cursorPos = cursorPos' } }
         H.raise CursorMoved
 
       KeyboardAction k -> do
@@ -92,7 +87,7 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
           "Space"      -> handleAction CreateOp
           _            -> pure unit
         where
-          move dx dy = handleAction $ MoveCursor (dx /\ dy)
+          move dx dy = handleAction $ MoveCursor (vec3 dx dy zero)
 
       MouseAction msg -> do
         state <- H.get
@@ -119,6 +114,11 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
       Initialize -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         H.modify_ \state -> state { componentElemMaybe = componentElemMaybe }
+
+--------------------------------------------------------------------------------
+
+clamp2d :: Int -> Int -> Vec3 Int -> Vec3 Int
+clamp2d width height xy = vec3 (clamp 0 (width - 1) (_x xy)) (clamp 0 (height - 1) (_y xy)) (_z xy)
 
 -- TODO this is generally useful; move elsewhere
 -- This was made because the original implementation from Halogen.Query doesn't seem to work, at least in this case:

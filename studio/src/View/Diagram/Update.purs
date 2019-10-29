@@ -22,7 +22,7 @@ data Action
   | MouseAction MouseMsg
   | KeyboardAction KeyboardEvent
   | UpdateDiagram Operators
-  | MoveCursor (Int /\ Int)
+  | MoveCursor (Vec3 Int)
   | CreateOp
 
 data MouseMsg
