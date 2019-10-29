@@ -41,9 +41,6 @@ initialState ops =
   , componentElemMaybe: Nothing
   }
 
-clamp2d :: Int -> Int -> Vec3 Int -> Vec3 Int
-clamp2d width height xy = vec3 (clamp 0 (width - 1) (_x xy)) (clamp 0 (height - 1) (_y xy)) (_z xy)
-
 ui :: ∀ m q. MonadAff m => H.Component HTML q Operators Msg m
 ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
     handleAction = handleAction, receive = Just <<< UpdateDiagram, initialize = Just Initialize
@@ -69,15 +66,15 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         m <- H.get <#> _.model
         let ops = m.ops
         let id = length ops
-        let newOp = { identifier: "new" <> show id, pos: m.cursorPos + vec3 1 0 7, label: "New" <> show id }
+        let newOp = { identifier: "new" <> show id, pos: m.cursorPos + vec3 1 0 7, label: "new" <> show id }
         H.modify_ \st -> st { model = m { cursorPos = m.cursorPos + vec3 0 1 0 } }
         handleAction $ UpdateDiagram (ops `snoc` newOp)
 
-      MoveCursor dxdy -> do
+      MoveCursor delta -> do
         m <- H.get <#> _.model
-        let { scale, width, height } = m.config
-        let xy' = clamp2d (width/scale+1) (height/scale+1) (m.cursorPos + dxdy)
-        H.modify_ \st -> st { model = m { cursorPos = xy'} }
+        let { cursorPos, config: { scale, width, height } } = m
+        let cursorPos' = clamp2d (width/scale+1) (height/scale+1) (cursorPos + delta)
+        H.modify_ \st -> st { model = m { cursorPos = cursorPos' } }
         H.raise CursorMoved
 
       KeyboardAction k -> do
@@ -117,6 +114,11 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
       Initialize -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         H.modify_ \state -> state { componentElemMaybe = componentElemMaybe }
+
+--------------------------------------------------------------------------------
+
+clamp2d :: Int -> Int -> Vec3 Int -> Vec3 Int
+clamp2d width height xy = vec3 (clamp 0 (width - 1) (_x xy)) (clamp 0 (height - 1) (_y xy)) (_z xy)
 
 -- TODO this is generally useful; move elsewhere
 -- This was made because the original implementation from Halogen.Query doesn't seem to work, at least in this case:
