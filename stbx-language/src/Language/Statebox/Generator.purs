@@ -75,7 +75,9 @@ mkSymbolTable ast =
                          ast
 
     updateSyms :: ∀ f. Foldable f => Applicative f => Semigroup (f (Node)) => Semigroup (f LabelWithSpan) => Semigroup (f Label)
-               => SymbolTable' f -> GElemF f LabelWithSpanWithType -> SymbolTable' f
+               => SymbolTable' f
+               -> GElemF f LabelWithSpanWithType (Maybe LabelWithSpanWithType)
+               -> SymbolTable' f
     updateSyms { placeLabelsWithSpans, transitionLabelsWithSpans } gelem = case gelem of
       GNode n ->
         { placeLabelsWithSpans:      pure (nodeLabelWithSpan n) <> placeLabelsWithSpans
