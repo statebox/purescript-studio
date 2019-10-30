@@ -14,18 +14,18 @@ import Text.Parsing.Parser.Combinators
 import Text.Parsing.Parser.Pos (Position(..))
 import Text.Parsing.Parser.String
 
-import Language.Statebox.AST (Node(..), NodeF(..), MultiEdge(..), MultiEdgeF(..), Label, Type, LabelAndType, GElem1(..), GElem1F(..))
+import Language.Statebox.AST (Node(..), NodeF(..), HyperEdge(..), HyperEdgeF(..), LabelWithSpan, Type, LabelWithSpanWithType, GElem(..), GElemF(..))
 import Language.Statebox.Parser.Util (getPosition, hspaces, inside, isAlphaNum, someOf)
 
-graph1 :: Parser String (List GElem1)
-graph1 = (gElem1 `inside` hspaces) `sepEndBy` (semicolon <|> newlines)
+graph1 :: Parser String (List GElem)
+graph1 = (gElem `inside` hspaces) `sepEndBy` (semicolon <|> newlines)
   where
     newlines = skipMany1 (char '\n')
     semicolon = const unit <$> char ';'
 
-gElem1 :: Parser String GElem1
-gElem1 = GMultiEdge1 <$> try multiEdge
-     <|> GNode1      <$>     node
+gElem :: Parser String GElem
+gElem = GHyperEdge <$> try hyperEdge
+    <|> GNode      <$>     node
 
 node :: Parser String Node
 node = Node <$> labelWithoutType
@@ -33,8 +33,8 @@ node = Node <$> labelWithoutType
 nodes :: Parser String (List Node)
 nodes = (node `inside` hspaces) `sepEndBy1` char ','
 
-multiEdge :: Parser String MultiEdge
-multiEdge = do
+hyperEdge :: Parser String HyperEdge
+hyperEdge = do
   lbl  <- pure <$> labelWithoutType
   _    <- hspaces
   _    <- string ":"
@@ -43,13 +43,13 @@ multiEdge = do
   _    <- hspaces
   _    <- string "->"
   _    <- hspaces
-  dest <- nodes
-  pure $ MultiEdge lbl src dest
+  targ <- nodes
+  pure $ HyperEdge lbl src targ
 
-labelWithoutType :: Parser String LabelAndType
+labelWithoutType :: Parser String LabelWithSpanWithType
 labelWithoutType = Tuple <$> label <*> pure Nothing
 
-label :: Parser String Label
+label :: Parser String LabelWithSpan
 label = do
   start  <- getPosition
   ident' <- ident

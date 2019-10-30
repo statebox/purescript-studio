@@ -20,7 +20,7 @@ import Data.Traversable (for)
 import Text.Parsing.Parser.Pos (initialPos) -- TODO don't depend directly on the parsing lib
 
 import Data.Petrinet.Representation.NLL (TransitionF') as NLL
-import Language.Statebox.AST (ProtoLabel, Label, LabelAndType, Node(..), MultiEdgeF(..), MultiEdge(..), GElem1F(..), GElem1(..), Span, getProtoLabel, nodeLabel, nodeProtoLabel)
+import Language.Statebox.AST (Label, LabelWithSpan, LabelWithSpanWithType, Node(..), HyperEdgeF(..), HyperEdge(..), GElemF(..), GElem(..), Span, getLabel, nodeLabel, nodeLabelWithSpan)
 import Statebox.Core.Types (PID, TID, Net)
 
 --------------------------------------------------------------------------------
@@ -48,12 +48,12 @@ type SymbolTable f =
 type SymbolTable' f = {| SymbolTableRow' f }
 
 type SymbolTableRow' f =
-  ( placeLabelsWithSpans      :: f Label
-  , transitionLabelsWithSpans :: f Label
+  ( placeLabelsWithSpans      :: f LabelWithSpan
+  , transitionLabelsWithSpans :: f LabelWithSpan
   )
 
-mkSymbolTable :: List GElem1 -> SymbolTable Array
-mkSymbolTable g =
+mkSymbolTable :: List GElem -> SymbolTable Array
+mkSymbolTable ast =
   { name:                      Nothing -- TODO
   , description:               Nothing -- TODO
   , placeLabels:               Array.fromFoldable $ List.nub symsUnduped.placeLabels
@@ -62,8 +62,8 @@ mkSymbolTable g =
   , transitionLabelsWithSpans: Array.fromFoldable $ List.nub symsUnduped.transitionLabelsWithSpans
   }
   where
-    symsUnduped = { placeLabels:               symsUnduped'.placeLabelsWithSpans      <#> getProtoLabel
-                  , transitionLabels:          symsUnduped'.transitionLabelsWithSpans <#> getProtoLabel
+    symsUnduped = { placeLabels:               symsUnduped'.placeLabelsWithSpans      <#> getLabel
+                  , transitionLabels:          symsUnduped'.transitionLabelsWithSpans <#> getLabel
                   , placeLabelsWithSpans:      symsUnduped'.placeLabelsWithSpans
                   , transitionLabelsWithSpans: symsUnduped'.transitionLabelsWithSpans
                   }
@@ -72,25 +72,25 @@ mkSymbolTable g =
                          { placeLabelsWithSpans: mempty
                          , transitionLabelsWithSpans: mempty
                          }
-                         g
+                         ast
 
-    updateSyms :: ∀ f. Foldable f => Applicative f => Semigroup (f (Node)) => Semigroup (f Label) => Semigroup (f ProtoLabel)
-               => SymbolTable' f -> GElem1F f LabelAndType -> SymbolTable' f
+    updateSyms :: ∀ f. Foldable f => Applicative f => Semigroup (f (Node)) => Semigroup (f LabelWithSpan) => Semigroup (f Label)
+               => SymbolTable' f -> GElemF f LabelWithSpanWithType -> SymbolTable' f
     updateSyms { placeLabelsWithSpans, transitionLabelsWithSpans } gelem = case gelem of
-      GNode1 n ->
-        { placeLabelsWithSpans:      pure (nodeLabel n) <> placeLabelsWithSpans
+      GNode n ->
+        { placeLabelsWithSpans:      pure (nodeLabelWithSpan n) <> placeLabelsWithSpans
         , transitionLabelsWithSpans
         }
 
-      GMultiEdge1 (MultiEdge lMaybe srcNodes targetNodes) ->
-        { placeLabelsWithSpans:      (nodeLabel <$> srcNodes <> targetNodes) <> placeLabelsWithSpans
+      GHyperEdge (HyperEdge lMaybe srcNodes targetNodes) ->
+        { placeLabelsWithSpans:      (nodeLabelWithSpan <$> srcNodes <> targetNodes) <> placeLabelsWithSpans
         , transitionLabelsWithSpans: transitionLabelsWithSpans <> pure transitionNameAndSpan
         }
         where
           -- TODO in the case of petri (completely specified) petrinets, node labels are mandatory,
           --      so the Maybe should disappear from the edge label in the AST types.
           transitionNameAndSpan = maybe ("TODO unnamed and unnumbered transition" /\ defaultSpan) (\((l /\ span) /\ ty) -> l /\ span) lMaybe
-          transitionName        = getProtoLabel transitionNameAndSpan
+          transitionName        = getLabel transitionNameAndSpan
           defaultSpan = { start: initialPos, end: initialPos } -- TODO nonsensical, remove
 
 
@@ -103,12 +103,12 @@ type ParseResult =
   , numPlaces            :: Int
   , firstPlaceIndex      :: PID
   , firstTransitionIndex :: TID
-  , placeIdsDict         :: Map ProtoLabel PID
-  , indexedPlaceLabels   :: Array (PID /\ ProtoLabel)
+  , placeIdsDict         :: Map Label PID
+  , indexedPlaceLabels   :: Array (PID /\ Label)
   }
 
-mkParseResult :: List GElem1 -> ParseResult
-mkParseResult g =
+mkParseResult :: List GElem -> ParseResult
+mkParseResult ast =
   { syms
   , firstPlaceIndex
   , numPlaces
@@ -117,25 +117,25 @@ mkParseResult g =
   , placeIdsDict
   }
   where
-    syms = mkSymbolTable g
+    syms = mkSymbolTable ast
 
     firstPlaceIndex      = 1
     numPlaces            = Array.length syms.placeLabels
     firstTransitionIndex = firstPlaceIndex + numPlaces
 
-    indexedPlaceLabels :: Array (PID /\ ProtoLabel)
+    indexedPlaceLabels :: Array (PID /\ Label)
     indexedPlaceLabels = indexifyFrom firstPlaceIndex syms.placeLabels
 
-    placeIdsDict :: Map ProtoLabel PID
+    placeIdsDict :: Map Label PID
     placeIdsDict = Map.fromFoldable $ map swap $ indexedPlaceLabels
 
     indexifyFrom i0 = mapWithIndex \i x -> (i+i0) /\ x
 
 -- | Return a transition, or `Nothing` in case the `pid` lookup fails.
-multiEdgeToTransition :: ∀ pid. Map ProtoLabel pid -> MultiEdge -> Maybe (NLL.TransitionF' pid)
-multiEdgeToTransition pidsDict (MultiEdge lMaybe srcNodes targetNodes) =
+hyperEdgeToTransition :: ∀ pid. Map Label pid -> HyperEdge -> Maybe (NLL.TransitionF' pid)
+hyperEdgeToTransition pidsDict (HyperEdge lMaybe srcNodes targetNodes) =
   Tuple <$> for (Array.fromFoldable srcNodes)    getPid
         <*> for (Array.fromFoldable targetNodes) getPid
   where
     getPid :: Node -> Maybe pid
-    getPid node = Map.lookup (nodeProtoLabel node) pidsDict
+    getPid node = Map.lookup (nodeLabel node) pidsDict

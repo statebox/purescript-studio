@@ -17,7 +17,7 @@ import Data.Ord (Ordering, compare)
 import Data.Tuple (Tuple(..), fst, swap)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Traversable (for)
-import Language.Statebox.AST (ProtoLabel, Label, LabelAndType, Node(..), MultiEdgeF(..), MultiEdge(..), GElem1F(..), GElem1(..), Span, getProtoLabel, nodeLabel, nodeProtoLabel)
+import Language.Statebox.AST (Label, LabelWithSpan, LabelWithSpanWithType, Node(..), HyperEdgeF(..), HyperEdge(..), GElemF(..), GElem(..), Span, getLabel)
 import Language.Statebox.Generator
 
 import Data.ArrayMultiset (ArrayMultiset)
@@ -26,15 +26,15 @@ import Data.Petrinet.Representation.NLL (TransitionF') -- TODO factor away
 import Statebox.Core.Types (PID, Net)
 
 -- TODO JS API
-toNetWithDefaultName :: String -> List GElem1 -> String \/ Net
-toNetWithDefaultName defaultName g =
-  g # mkParseResult
-  >>> toNet g
-  >>> rmap (\(mkNet /\ maybeName) -> mkNet (fromMaybe defaultName maybeName))
-  >>> lmap prettyCompileError
+toNetWithDefaultName :: String -> List GElem -> String \/ Net
+toNetWithDefaultName defaultName ast =
+  ast # mkParseResult
+    >>> toNet ast
+    >>> rmap (\(mkNet /\ maybeName) -> mkNet (fromMaybe defaultName maybeName))
+    >>> lmap prettyCompileError
 
-toNet :: List GElem1 -> ParseResult -> CompileError \/ ((String -> Net) /\ Maybe String)
-toNet g pr =
+toNet :: List GElem -> ParseResult -> CompileError \/ ((String -> Net) /\ Maybe String)
+toNet ast pr =
   partitionEither <#> \partition -> mkNet partition /\ nameMaybe
   where
     mkNet partition name = { name:       name
@@ -48,12 +48,12 @@ toNet g pr =
     partitionEither      = toNLLEither 0 =<< netFEither
 
     netFEither :: CompileError \/ NetF PID
-    netFEither = note PIDLookupFailed $ map Array.fromFoldable $ for g (mkTransition pr.placeIdsDict)
+    netFEither = note PIDLookupFailed $ map Array.fromFoldable $ for ast (mkTransition pr.placeIdsDict)
 
-    mkTransition :: Map ProtoLabel PID -> GElem1 -> Maybe (NLL.TransitionF' PID)
+    mkTransition :: Map Label PID -> GElem -> Maybe (NLL.TransitionF' PID)
     mkTransition placeIdsDict = case _ of
-      GNode1 n      -> empty
-      GMultiEdge1 e -> multiEdgeToTransition placeIdsDict e
+      GNode n      -> empty
+      GHyperEdge e -> hyperEdgeToTransition placeIdsDict e
 
 --------------------------------------------------------------------------------
 
