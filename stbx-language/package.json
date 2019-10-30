@@ -1,11 +1,12 @@
 {
-  "name": "purescript-petrinet-parser",
+  "name": "purescript-stbx-language",
   "version": "1.0.0",
-  "description": "Petri net DSL parser",
+  "description": "Statebox language and compiler",
   "keywords": [
-    "purescript",
+    "statebox",
     "petrinet",
-    "parser"
+    "parser",
+    "purescript"
   ],
   "author": "Erik Post",
   "main": "index.js",
