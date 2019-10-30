@@ -1,0 +1,28 @@
+{
+  "name": "purescript-petrinet-parser",
+  "version": "1.0.0",
+  "description": "Petri net DSL parser",
+  "keywords": [
+    "purescript",
+    "petrinet",
+    "parser"
+  ],
+  "author": "Erik Post",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "spago install",
+    "start": "spago run",
+    "build": "spago build",
+    "test": "spago test"
+  },
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "purescript": "^0.13.3",
+    "purescript-psa": "^0.7.3",
+    "spago": "^0.9.0"
+  },
+  "directories": {
+    "test": "test"
+  }
+}
