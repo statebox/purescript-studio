@@ -76,7 +76,7 @@ mkSymbolTable ast =
 
     updateSyms :: ∀ f. Foldable f => Applicative f => Semigroup (f (Node)) => Semigroup (f LabelWithSpan) => Semigroup (f Label)
                => SymbolTable' f
-               -> GElemF f LabelWithSpanWithType (Maybe LabelWithSpanWithType)
+               -> GElemF f LabelWithSpanWithType LabelWithSpanWithType
                -> SymbolTable' f
     updateSyms { placeLabelsWithSpans, transitionLabelsWithSpans } gelem = case gelem of
       GNode n ->
@@ -84,16 +84,10 @@ mkSymbolTable ast =
         , transitionLabelsWithSpans
         }
 
-      GHyperEdge (HyperEdge lMaybe srcNodes targetNodes) ->
+      GHyperEdge (HyperEdge e srcNodes targetNodes) ->
         { placeLabelsWithSpans:      (nodeLabelWithSpan <$> srcNodes <> targetNodes) <> placeLabelsWithSpans
-        , transitionLabelsWithSpans: transitionLabelsWithSpans <> pure transitionNameAndSpan
+        , transitionLabelsWithSpans: transitionLabelsWithSpans <> pure (fst e)
         }
-        where
-          -- TODO in the case of petri (completely specified) petrinets, node labels are mandatory,
-          --      so the Maybe should disappear from the edge label in the AST types.
-          transitionNameAndSpan = maybe ("TODO unnamed and unnumbered transition" /\ defaultSpan) (\((l /\ span) /\ ty) -> l /\ span) lMaybe
-          transitionName        = getLabel transitionNameAndSpan
-          defaultSpan = { start: initialPos, end: initialPos } -- TODO nonsensical, remove
 
 
 --------------------------------------------------------------------------------

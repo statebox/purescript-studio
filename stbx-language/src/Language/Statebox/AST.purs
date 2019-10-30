@@ -19,11 +19,11 @@ type LabelWithSpan = Label /\ Span
 type Type = String
 type LabelWithSpanWithType = LabelWithSpan /\ Maybe Type
 type Node = NodeF LabelWithSpanWithType
-type GElem = GElemF List LabelWithSpanWithType (Maybe LabelWithSpanWithType)
-type HyperEdge = HyperEdgeF List LabelWithSpanWithType (Maybe LabelWithSpanWithType)
+type GElem = GElemF List LabelWithSpanWithType LabelWithSpanWithType
+type HyperEdge = HyperEdgeF List LabelWithSpanWithType LabelWithSpanWithType
 
 getLabel :: LabelWithSpan -> Label
-getLabel (p /\ _) = p
+getLabel (lws /\ _) = lws
 
 nodeLabelWithSpan :: Node -> LabelWithSpan
 nodeLabelWithSpan (Node (l /\ _)) = l

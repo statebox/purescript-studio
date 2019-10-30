@@ -35,7 +35,7 @@ nodes = (node `inside` hspaces) `sepEndBy1` char ','
 
 hyperEdge :: Parser String HyperEdge
 hyperEdge = do
-  lbl  <- pure <$> labelWithoutType
+  lbl  <- labelWithoutType
   _    <- hspaces
   _    <- string ":"
   _    <- hspaces
