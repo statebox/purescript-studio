@@ -1,4 +1,4 @@
-module Language.Statebox.AST where
+module Language.Statebox.Hypergraph where
 
 import Prelude
 import Data.Bifunctor (class Bifunctor, bimap)

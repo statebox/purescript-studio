@@ -14,7 +14,7 @@ import Text.Parsing.Parser.Combinators
 import Text.Parsing.Parser.Pos (Position(..))
 import Text.Parsing.Parser.String
 
-import Language.Statebox.AST (NodeF(..), HyperEdgeF(..), GElemF(..))
+import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
 import Language.Statebox.Net.AST (Node(..), HyperEdge(..), LabelWithSpan, LabelWithSpanWithType, GElem(..))
 import Language.Statebox.Parser.Util (getPosition, hspaces, inside, isAlphaNum, someOf)
 

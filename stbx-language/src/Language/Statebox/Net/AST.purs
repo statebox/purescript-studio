@@ -8,7 +8,7 @@ import Data.Maybe
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Foldable (foldMap)
 
-import Language.Statebox.AST
+import Language.Statebox.Hypergraph
 import Language.Statebox.Parser.Util (getPosition, hspaces, inside, isAlphaNum, someOf)
 import Text.Parsing.Parser.Pos (Position(..))
 

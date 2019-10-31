@@ -17,7 +17,7 @@ import Data.Ord (Ordering, compare)
 import Data.Tuple (Tuple(..), fst, swap)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Traversable (for)
-import Language.Statebox.AST (NodeF(..), HyperEdgeF(..), GElemF(..))
+import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
 import Language.Statebox.Net.AST (Node(..), HyperEdge(..), LabelWithSpan, GElem(..), Label)
 import Language.Statebox.Net.Generator
 

@@ -20,7 +20,7 @@ import Data.Traversable (for)
 import Text.Parsing.Parser.Pos (initialPos) -- TODO don't depend directly on the parsing lib
 
 import Data.Petrinet.Representation.NLL (TransitionF') as NLL
-import Language.Statebox.AST (NodeF(..), HyperEdgeF(..), GElemF(..))
+import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
 import Language.Statebox.Net.AST (Node(..), GElem(..), HyperEdge(..), Label, Span, LabelWithSpan, LabelWithSpanWithType, getLabel, nodeLabel, nodeLabelWithSpan)
 import Statebox.Core.Types (PID, TID)
 
