@@ -31,24 +31,24 @@ gElem = GHyperEdge <$> try hyperEdge
 node :: Parser String Node
 node = Node <$> labelWithoutType
 
-nodes :: Parser String (List Node)
-nodes = (node `inside` hspaces) `sepEndBy1` char ','
-
 hyperEdge :: Parser String HyperEdge
 hyperEdge = do
   lbl  <- labelWithoutType
   _    <- hspaces
   _    <- string ":"
   _    <- hspaces
-  src  <- nodes
+  src  <- labelsWithoutType
   _    <- hspaces
   _    <- string "->"
   _    <- hspaces
-  targ <- nodes
+  targ <- labelsWithoutType
   pure $ HyperEdge lbl src targ
 
 labelWithoutType :: Parser String LabelWithSpanWithType
 labelWithoutType = Tuple <$> label <*> pure Nothing
+
+labelsWithoutType :: Parser String (List LabelWithSpanWithType)
+labelsWithoutType = (labelWithoutType `inside` hspaces) `sepEndBy1` char ','
 
 label :: Parser String LabelWithSpan
 label = do

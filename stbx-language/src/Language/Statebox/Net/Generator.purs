@@ -20,8 +20,8 @@ import Data.Traversable (for)
 import Text.Parsing.Parser.Pos (initialPos) -- TODO don't depend directly on the parsing lib
 
 import Data.Petrinet.Representation.NLL (TransitionF') as NLL
-import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
-import Language.Statebox.Net.AST (Node(..), GElem(..), HyperEdge(..), Label, Span, LabelWithSpan, LabelWithSpanWithType, getLabel, nodeLabel, nodeLabelWithSpan)
+import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..), unNode)
+import Language.Statebox.Net.AST (Node(..), GElem(..), HyperEdge(..), Label, Span, LabelWithSpan, LabelWithSpanWithType, stripSpan, stripType)
 import Statebox.Core.Types (PID, TID)
 
 --------------------------------------------------------------------------------
@@ -63,8 +63,8 @@ mkSymbolTable ast =
   , transitionLabelsWithSpans: Array.fromFoldable $ List.nub symsUnduped.transitionLabelsWithSpans
   }
   where
-    symsUnduped = { placeLabels:               symsUnduped'.placeLabelsWithSpans      <#> getLabel
-                  , transitionLabels:          symsUnduped'.transitionLabelsWithSpans <#> getLabel
+    symsUnduped = { placeLabels:               symsUnduped'.placeLabelsWithSpans      <#> stripSpan
+                  , transitionLabels:          symsUnduped'.transitionLabelsWithSpans <#> stripSpan
                   , placeLabelsWithSpans:      symsUnduped'.placeLabelsWithSpans
                   , transitionLabelsWithSpans: symsUnduped'.transitionLabelsWithSpans
                   }
@@ -75,18 +75,19 @@ mkSymbolTable ast =
                          }
                          ast
 
-    updateSyms :: ∀ f. Foldable f => Applicative f => Semigroup (f (Node)) => Semigroup (f LabelWithSpan) => Semigroup (f Label)
-               => SymbolTable' f
-               -> GElemF f LabelWithSpanWithType LabelWithSpanWithType
-               -> SymbolTable' f
+    updateSyms ::
+       ∀ f. Foldable f => Applicative f => Semigroup (f LabelWithSpan) => Semigroup (f LabelWithSpanWithType)
+      => SymbolTable' f
+      -> GElemF f LabelWithSpanWithType LabelWithSpanWithType
+      -> SymbolTable' f
     updateSyms { placeLabelsWithSpans, transitionLabelsWithSpans } gelem = case gelem of
       GNode n ->
-        { placeLabelsWithSpans:      pure (nodeLabelWithSpan n) <> placeLabelsWithSpans
+        { placeLabelsWithSpans:      pure (stripType $ unNode n) <> placeLabelsWithSpans
         , transitionLabelsWithSpans
         }
 
-      GHyperEdge (HyperEdge e srcNodes targetNodes) ->
-        { placeLabelsWithSpans:      (nodeLabelWithSpan <$> srcNodes <> targetNodes) <> placeLabelsWithSpans
+      GHyperEdge (HyperEdge e srcs targs) ->
+        { placeLabelsWithSpans:      (stripType <$> srcs <> targs) <> placeLabelsWithSpans
         , transitionLabelsWithSpans: transitionLabelsWithSpans <> pure (fst e)
         }
 
@@ -130,9 +131,9 @@ mkParseResult ast =
 
 -- | Return a transition, or `Nothing` in case the `pid` lookup fails.
 hyperEdgeToTransition :: ∀ pid. Map Label pid -> HyperEdge -> Maybe (NLL.TransitionF' pid)
-hyperEdgeToTransition pidsDict (HyperEdge lMaybe srcNodes targetNodes) =
-  Tuple <$> for (Array.fromFoldable srcNodes)    getPid
-        <*> for (Array.fromFoldable targetNodes) getPid
+hyperEdgeToTransition pidsDict (HyperEdge lMaybe srcs targs) =
+  Tuple <$> for (Array.fromFoldable srcs)  getPid
+        <*> for (Array.fromFoldable targs) getPid
   where
-    getPid :: Node -> Maybe pid
-    getPid node = Map.lookup (nodeLabel node) pidsDict
+    getPid :: LabelWithSpanWithType -> Maybe pid
+    getPid node = Map.lookup (stripSpan <<< stripType $ node) pidsDict

@@ -26,15 +26,15 @@ derive instance functorNodeF :: Functor NodeF
 --------------------------------------------------------------------------------
 
 -- | A hyper edge labeled with type e, going from v's to v's.
-data HyperEdgeF f v e = HyperEdge e (f (NodeF v)) (f (NodeF v))
+data HyperEdgeF f v e = HyperEdge e (f v) (f v)
 
-instance showHyperEdgeF :: (Show v, Show e, Show (f (NodeF v))) => Show (HyperEdgeF f v e) where
+instance showHyperEdgeF :: (Show v, Show e, Show (f v)) => Show (HyperEdgeF f v e) where
   show (HyperEdge l s t) = "(HyperEdge " <> show l <> " " <> show s <> " " <> show t <> ")"
 
 derive instance eqHyperEdgeF :: (Eq1 f, Eq v, Eq e) => Eq (HyperEdgeF f v e)
 
 instance bifunctorHyperEdgeF :: Functor f => Bifunctor (HyperEdgeF f) where
-  bimap f g (HyperEdge e srcs targs) = HyperEdge (g e) (map (map f) srcs) (map (map f) targs)
+  bimap f g (HyperEdge e srcs targs) = HyperEdge (g e) (map f srcs) (map f targs)
 
 --------------------------------------------------------------------------------
 

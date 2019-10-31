@@ -23,11 +23,11 @@ type Node = NodeF LabelWithSpanWithType
 type GElem = GElemF List LabelWithSpanWithType LabelWithSpanWithType
 type HyperEdge = HyperEdgeF List LabelWithSpanWithType LabelWithSpanWithType
 
-getLabel :: LabelWithSpan -> Label
-getLabel (lws /\ _) = lws
+stripType :: LabelWithSpanWithType -> LabelWithSpan
+stripType (l /\ _) = l
 
-nodeLabelWithSpan :: Node -> LabelWithSpan
-nodeLabelWithSpan (Node (l /\ _)) = l
+stripSpan :: LabelWithSpan -> Label
+stripSpan (lws /\ _) = lws
 
-nodeLabel :: Node -> Label
-nodeLabel = getLabel <<< nodeLabelWithSpan
+stripTypeAndSpan :: LabelWithSpanWithType -> Label
+stripTypeAndSpan = stripType >>> stripSpan
