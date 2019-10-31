@@ -1,4 +1,4 @@
-module Language.Statebox.Generator.Net where
+module Language.Statebox.Net.Generator.Net where
 
 import Prelude
 import Control.MonadZero (empty, guard)
@@ -17,8 +17,9 @@ import Data.Ord (Ordering, compare)
 import Data.Tuple (Tuple(..), fst, swap)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Traversable (for)
-import Language.Statebox.AST (Label, LabelWithSpan, LabelWithSpanWithType, Node(..), HyperEdgeF(..), HyperEdge(..), GElemF(..), GElem(..), Span, getLabel)
-import Language.Statebox.Generator
+import Language.Statebox.AST (NodeF(..), HyperEdgeF(..), GElemF(..))
+import Language.Statebox.Net.AST (Node(..), HyperEdge(..), LabelWithSpan, GElem(..), Label)
+import Language.Statebox.Net.Generator
 
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Petrinet.Representation.NLL as NLL

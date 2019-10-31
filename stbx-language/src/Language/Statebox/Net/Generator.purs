@@ -1,4 +1,4 @@
-module Language.Statebox.Generator where
+module Language.Statebox.Net.Generator where
 
 import Prelude
 import Control.MonadZero (empty)
@@ -20,8 +20,9 @@ import Data.Traversable (for)
 import Text.Parsing.Parser.Pos (initialPos) -- TODO don't depend directly on the parsing lib
 
 import Data.Petrinet.Representation.NLL (TransitionF') as NLL
-import Language.Statebox.AST (Label, LabelWithSpan, LabelWithSpanWithType, Node(..), HyperEdgeF(..), HyperEdge(..), GElemF(..), GElem(..), Span, getLabel, nodeLabel, nodeLabelWithSpan)
-import Statebox.Core.Types (PID, TID, Net)
+import Language.Statebox.AST (NodeF(..), HyperEdgeF(..), GElemF(..))
+import Language.Statebox.Net.AST (Node(..), GElem(..), HyperEdge(..), Label, Span, LabelWithSpan, LabelWithSpanWithType, getLabel, nodeLabel, nodeLabelWithSpan)
+import Statebox.Core.Types (PID, TID)
 
 --------------------------------------------------------------------------------
 

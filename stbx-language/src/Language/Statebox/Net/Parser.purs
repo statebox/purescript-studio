@@ -1,4 +1,4 @@
-module Language.Statebox.Parser where
+module Language.Statebox.Net.Parser where
 
 import Prelude hiding (between)
 import Control.Alt ((<|>))
@@ -14,7 +14,8 @@ import Text.Parsing.Parser.Combinators
 import Text.Parsing.Parser.Pos (Position(..))
 import Text.Parsing.Parser.String
 
-import Language.Statebox.AST (Node(..), NodeF(..), HyperEdge(..), HyperEdgeF(..), LabelWithSpan, Type, LabelWithSpanWithType, GElem(..), GElemF(..))
+import Language.Statebox.AST (NodeF(..), HyperEdgeF(..), GElemF(..))
+import Language.Statebox.Net.AST (Node(..), HyperEdge(..), LabelWithSpan, LabelWithSpanWithType, GElem(..))
 import Language.Statebox.Parser.Util (getPosition, hspaces, inside, isAlphaNum, someOf)
 
 graph1 :: Parser String (List GElem)
