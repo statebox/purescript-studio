@@ -11,21 +11,21 @@ import Data.Foldable (foldMap)
 import Language.Statebox.Parser.Util (getPosition, hspaces, inside, isAlphaNum, someOf)
 import Text.Parsing.Parser.Pos (Position(..))
 
-newtype NodeF a = Node a
+newtype NodeF v = Node v
 
-unNode :: forall a. NodeF a -> a
+unNode :: ∀ v. NodeF v -> v
 unNode (Node x) = x
 
-derive instance eqNodeF :: Eq a => Eq (NodeF a)
+derive instance eqNodeF :: Eq v => Eq (NodeF v)
 
-instance showNodeF :: Show a => Show (NodeF a) where
+instance showNodeF :: Show v => Show (NodeF v) where
   show (Node x) = "(NodeF " <> show x <> ")"
 
 derive instance functorNodeF :: Functor NodeF
 
 --------------------------------------------------------------------------------
 
--- | A hyper edge labeled with type a, going from a's to a's.
+-- | A hyper edge labeled with type e, going from v's to v's.
 data HyperEdgeF f v e = HyperEdge e (f (NodeF v)) (f (NodeF v))
 
 instance showHyperEdgeF :: (Show v, Show e, Show (f (NodeF v))) => Show (HyperEdgeF f v e) where
@@ -38,9 +38,10 @@ instance bifunctorHyperEdgeF :: Functor f => Bifunctor (HyperEdgeF f) where
 
 --------------------------------------------------------------------------------
 
--- | Generic graph element type.
-data GElemF f v e = GNode      (NodeF v)
-                  | GHyperEdge (HyperEdgeF f v e)
+-- | Graph element type.
+data GElemF f v e
+  = GNode      (NodeF v)
+  | GHyperEdge (HyperEdgeF f v e)
 
 derive instance eqGElemF :: (Eq v, Eq (HyperEdgeF f v e)) => Eq (GElemF f v e)
 
