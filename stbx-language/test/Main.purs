@@ -5,7 +5,6 @@ import Data.Bifunctor (bimap)
 import Data.List as List
 import Data.List (List(..))
 import Data.String (trim)
-import Data.Tuple (fst)
 import Effect.Aff (Aff, launchAff)
 import Effect (Effect)
 import Effect.Class.Console (log)
@@ -39,8 +38,8 @@ net1expected = mkAst
 
 main :: Effect _
 main = launchAff $ runSpec [consoleReporter] do
-  describe "petri net parser" do
-    it "should do stuff" do
+  describe "Statebox Petri net parser" do
+    it "should parse a net correctly" do
       let ast = Statebox.parseNet net1src
       let astDump = spy "ast" $ show $ ast
       let pr1 = spy "pr1" $ Generator.mkParseResult <$> ast

@@ -1,27 +1,25 @@
 module Language.Statebox.Net.AST where
 
 import Prelude
-import Data.Bifunctor (class Bifunctor, bimap)
-import Data.Eq (class Eq1)
 import Data.List (List(..))
-import Data.Maybe
+import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Foldable (foldMap)
 
 import Language.Statebox.Hypergraph
-import Language.Statebox.Parser.Util (getPosition, hspaces, inside, isAlphaNum, someOf)
 import Text.Parsing.Parser.Pos (Position(..))
 
 --------------------------------------------------------------------------------
 
 type Label = String
+
 type Span = { start :: Position, end :: Position }
+
 type LabelWithSpan = Label /\ Span
+
 type Type = String
+
 type LabelWithSpanWithType = LabelWithSpan /\ Maybe Type
-type Node = NodeF LabelWithSpanWithType
-type GElem = GElemF List LabelWithSpanWithType LabelWithSpanWithType
-type HyperEdge = HyperEdgeF List LabelWithSpanWithType LabelWithSpanWithType
 
 stripType :: LabelWithSpanWithType -> LabelWithSpan
 stripType (l /\ _) = l
@@ -31,3 +29,12 @@ stripSpan (lws /\ _) = lws
 
 stripTypeAndSpan :: LabelWithSpanWithType -> Label
 stripTypeAndSpan = stripType >>> stripSpan
+
+--------------------------------------------------------------------------------
+
+type Node = NodeF LabelWithSpanWithType
+
+type HyperEdge = HyperEdgeF List LabelWithSpanWithType LabelWithSpanWithType
+
+type GElem = GElemF List LabelWithSpanWithType LabelWithSpanWithType
+
