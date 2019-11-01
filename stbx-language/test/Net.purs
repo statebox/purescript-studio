@@ -51,4 +51,4 @@ net1expected = mkAst
 
 mkAst gelems = List.fromFoldable gelems
 
-mkEdge el sls tls = GHyperEdge (HyperEdge el (List.fromFoldable sls) (List.fromFoldable tls))
+mkEdge e ss ts = GHyperEdge (HyperEdge e (List.fromFoldable ss) (List.fromFoldable ts))

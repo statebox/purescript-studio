@@ -1,4 +1,4 @@
-module Test.Language.Statebox.Diagram where
+module Test.Language.Statebox.Wiring where
 
 import Prelude
 import Data.List as List
@@ -8,7 +8,7 @@ import Effect (Effect)
 import Effect.Class.Console (log)
 import Language.Statebox as Statebox
 import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
-import Language.Statebox.Diagram.AST (Node(..), GElem(..), HyperEdge(..), Label)
+import Language.Statebox.Wiring.AST (Node(..), GElem(..), HyperEdge(..), Label)
 import Test.Spec                  (Spec, describe, pending, it)
 import Test.Spec.Console          (write)
 import Test.Spec.Runner           (runSpec)
@@ -43,4 +43,4 @@ diagram1expected = mkAst
 
 mkAst gelems = List.fromFoldable gelems
 
-mkEdge sls tls = GHyperEdge (HyperEdge unit (List.fromFoldable sls) (List.fromFoldable tls))
+mkEdge ss ts = GHyperEdge (HyperEdge unit (List.fromFoldable ss) (List.fromFoldable ts))

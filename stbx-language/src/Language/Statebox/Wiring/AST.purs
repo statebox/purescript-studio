@@ -1,4 +1,4 @@
-module Language.Statebox.Diagram.AST where
+module Language.Statebox.Wiring.AST where
 
 import Prelude
 import Data.List (List(..))
