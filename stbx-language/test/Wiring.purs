@@ -17,19 +17,19 @@ import Test.Spec.Reporter.Console (consoleReporter)
 
 spec :: Spec _
 spec = do
-  describe "Statebox diagram compiler" do
-    pending "Implement diagram tests."
+  describe "Statebox wiring compiler" do
+    pending "Implement wiring tests."
 
-diagram1src :: String
-diagram1src = trim """
+wiring1src :: String
+wiring1src = trim """
 a1 -> b1, b2
 b1 -> d1
 b2 -> c1
 c1 -> d1
 """
 
-diagram1expected :: List (GElemF List Label Unit)
-diagram1expected = mkAst
+wiring1expected :: List (GElemF List Label Unit)
+wiring1expected = mkAst
   [ mkEdge ["a1"] ["b1", "b2"]
   , mkEdge ["b1"] ["d1"]
   , mkEdge ["b2"] ["c1"]

@@ -79,10 +79,7 @@ type NetF p = Array (TransitionF' p)
 
 -- - TODO move to Data.Petrinet.Representation.NLL (module currently resides in 'Studio')
 --
--- - TODO this could conceivably produce illegal results if the a's clash with
---        the a that is the separator, so we should return Either/Maybe.
---
--- - TODO this does not cover the case of clashes under conversion to String, which is what NLL is for
+-- - TODO under conversion to String, which is what NLL is for, this can lead to clashes between elements and separator
 toNLLEither :: ∀ a. Eq a => a -> NetF a -> CompileError \/ Array a
 toNLLEither separator net =
   note PIDLookupFailed $ for net encodeTransition <#> intercalate [separator]
