@@ -29,7 +29,6 @@ import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 
 import ExampleData as Ex
 
--- import body parser
 foreign import stringBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
 stbxPort :: Int
@@ -74,10 +73,11 @@ getTransactionsHandler appState = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
   transactionDictionary <- liftEffect $ read appState
   sendJson { status: "ok"
-           , transactions: encodeTransactionDictionary transactionDictionary }
+           , transactions: encodeTransactionDictionary transactionDictionary
+           }
 
--- | `getTransaction` endpoint
--- | responds to `GET /tx/<hash>`
+-- | Endpoint for the `getTransaction` action on the transaction storage.
+-- | Responds to `GET /tx/<hash>`.
 getTransactionHandler :: AppState -> Handler
 getTransactionHandler appState = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
@@ -94,25 +94,28 @@ getTransactionHandler appState = do
           , hex: "TODO" -- TODO #237
           , decoded: transaction
           }
-        Nothing /\ _ -> sendJson { status: statusToString TxNotFound
-                                 , hash: hash
-                                 }
+        Nothing /\ _ -> sendJson
+          { status: statusToString TxNotFound
+          , hash: hash
+          }
 
--- | `postTransaction` endpoint
--- | responds to `POST /tx`
+-- | Endpoint for the `postTransaction` action on the transaction storage.
+-- | Responds to `POST /tx`.
 postTransactionHandler :: AppState -> Handler
 postTransactionHandler appState = do
   -- TODO: find a proper way to manage body decoding
   body :: String <- unsafeCoerce <$> getBody'
   case jsonParser body of
-    Left error -> sendJson { status : statusToString NotOk
-                           , error  : error
-                           }
+    Left error -> sendJson
+      { status : statusToString NotOk
+      , error  : error
+      }
     Right json -> do
       case decodeTxSum json of
-        Left error -> sendJson { status : statusToString NotOk
-                               , error  : error
-                               }
+        Left error -> sendJson
+          { status : statusToString NotOk
+          , error  : error
+          }
         Right txSum -> do
           transactionDictionary <- liftEffect $ read appState
           updatedTransactionDictionary <- liftAff $ runStateT (inMemoryActions $ putTransaction "new-hash" txSum) transactionDictionary

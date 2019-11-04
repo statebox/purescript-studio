@@ -17,13 +17,13 @@ import Statebox.Core.Types (Firing)
 
 decodeTxTxSum :: Json -> String \/ Tx TxSum
 decodeTxTxSum json =
-  decodeFiring' json <|> decodeWiring json <|> decodeInitial json
+  decodeFiring' json <|> decodeWiring' json <|> decodeInitial' json
   where
-    decodeInitial :: Json -> String \/ Tx TxSum
-    decodeInitial = map (mapTx InitialTxInj) <<< decodeTxInitialTx
+    decodeInitial' :: Json -> String \/ Tx TxSum
+    decodeInitial' = map (mapTx InitialTxInj) <<< decodeTxInitialTx
 
-    decodeWiring :: Json -> String \/ Tx TxSum
-    decodeWiring = map (mapTx WiringTxInj) <<< decodeTxWiringTx
+    decodeWiring' :: Json -> String \/ Tx TxSum
+    decodeWiring' = map (mapTx WiringTxInj) <<< decodeTxWiringTx
 
     decodeFiring' :: Json -> String \/ Tx TxSum
     decodeFiring' = map (mapTx FiringTxInj) <<< decodeTxFiringTx
@@ -37,15 +37,23 @@ decodeTxWiringTx = decodeJson
 decodeTxFiringTx :: Json -> String \/ Tx FiringTx
 decodeTxFiringTx = decodeTxWith decodeFiringTx <=< decodeJson
 
+--------------------------------------------------------------------------------
+
 decodeInitialTx :: Json -> String \/ InitialTx
 decodeInitialTx = decodeJson
 
 decodeWiringTx :: Json -> String \/ WiringTx
 decodeWiringTx = decodeJson
 
+decodeFiringTx :: Json -> String \/ FiringTx
+decodeFiringTx = decodeJson >=> \x -> do
+  firing   <- getFieldWith decodeFiring x "firing"
+  previous <- x .: "previous"
+  pure { firing, previous }
+
 decodeTxSum :: Json -> String \/ TxSum
 decodeTxSum json =
-  FiringTxInj  <$> decodeFiringTx json <|>
+  FiringTxInj  <$> decodeFiringTx  json <|>
   WiringTxInj  <$> decodeWiringTx  json <|>
   InitialTxInj <$> decodeInitialTx json
 
@@ -62,12 +70,6 @@ decodeTxWith aDecoder x = do
   pure { status, hash, hex, decoded }
 
 --------------------------------------------------------------------------------
-
-decodeFiringTx :: Json -> String \/ FiringTx
-decodeFiringTx = decodeJson >=> \x -> do
-  firing   <- getFieldWith decodeFiring x "firing"
-  previous <- x .: "previous"
-  pure { firing, previous }
 
 decodeFiring :: Json -> String \/ Firing
 decodeFiring = decodeJson >=> \x -> do

@@ -7,56 +7,60 @@ import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.State.Class (class MonadState, get, modify_)
 import Data.Argonaut.Core (Json, fromObject)
 import Data.FoldableWithIndex (foldrWithIndex)
-import Data.Map (Map, insert, lookup) as Map
+import Data.Map (insert, lookup) as Map
+import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect)
 import Effect.Class.Console (log)
 import Foreign.Object (Object, empty, insert)
 
-import Statebox.Core.Transaction (TxSum, TxId)
+import Statebox.Core.Transaction (HashTx, TxSum, TxId)
 import Statebox.Core.Transaction.Codec (encodeTxSum)
 
--- define possible actions
-
-type AddTransactionData =
-  { hash        :: String
-  , transaction :: TransactionDictionaryValue
-  }
-
-data ActionsF a
+-- | A DSL of operations on the transaction data store. We can make these
+-- | abstract operations concrete by implementing them for a specific store, such
+-- | as Postgres, Firestor, or in-memory. Alternatively, we could process them in
+-- | some other way, such as logging them.
+data ActionF a
   = GetTransaction String (Maybe TransactionDictionaryValue -> a)
-  | AddTransaction AddTransactionData a
+  | PutTransaction HashTx a
 
-derive instance functorActions :: Functor (ActionsF)
+derive instance functorActionF :: Functor (ActionF)
 
-type Actions = Free ActionsF
+type Actions = Free ActionF
 
--- define basic interactions
+--------------------------------------------------------------------------------
+-- Convenience injections.
+--------------------------------------------------------------------------------
 
 getTransaction :: String -> Actions (Maybe TransactionDictionaryValue)
 getTransaction txHash = liftF $ GetTransaction txHash identity
 
-putTransaction :: String -> TransactionDictionaryValue -> Actions Unit
-putTransaction hash transaction = liftF $ AddTransaction {hash: hash, transaction: transaction} unit
+putTransaction :: TxId -> TransactionDictionaryValue -> Actions Unit
+putTransaction id tx = liftF $ PutTransaction {id, tx} unit
 
--- logging instance
+
+--------------------------------------------------------------------------------
+-- Interpreter for logging the transaction storage actions.
+--------------------------------------------------------------------------------
 
 loggingActions :: forall a m. MonadEffect m => MonadRec m => Actions a -> m a
 loggingActions = runFreeM $ \action -> case action of
   GetTransaction txHash next      -> do
     log $ "get transaction " <> txHash
     pure $ next Nothing
-  AddTransaction transaction next -> do
+  PutTransaction transaction next -> do
     log $ "put transaction" <> show transaction
     pure next
 
--- in-memory instance
-
+--------------------------------------------------------------------------------
+-- Interpreter for in-memory transaction storage.
+--------------------------------------------------------------------------------
 
 -- TODO #237 Discuss whether this should be `TxSum` or `Tx TxSum`, then eliminate this alias.
 type TransactionDictionaryValue = TxSum
 
-type TransactionDictionary = Map.Map TxId TransactionDictionaryValue
+type TransactionDictionary = Map TxId TransactionDictionaryValue
 
 encodeTransactionDictionary :: TransactionDictionary -> Json
 encodeTransactionDictionary = fromObject <<< (foldrWithIndex addIndex empty)
@@ -64,11 +68,12 @@ encodeTransactionDictionary = fromObject <<< (foldrWithIndex addIndex empty)
     addIndex :: TxId -> TxSum -> Object Json -> Object Json
     addIndex id transaction = insert id (encodeTxSum transaction)
 
+-- | Interpret the given actions as state updates to a transaction dictionary.
 inMemoryActions :: forall a m. MonadRec m => MonadState TransactionDictionary m => Actions a -> m a
-inMemoryActions = runFreeM $ \action -> case action of
+inMemoryActions = runFreeM \action -> case action of
   GetTransaction txHash next -> do
     transactionsMap <- get
     pure $ next $ Map.lookup txHash transactionsMap
-  AddTransaction { hash, transaction } next -> do
-    modify_ $ Map.insert hash transaction
+  PutTransaction { id, tx } next -> do
+    modify_ $ Map.insert id tx
     pure next
