@@ -1,5 +1,5 @@
 {
-  "name": "purescript-stbx-language",
+  "name": "purescript-stbx-lang",
   "version": "1.0.0",
   "description": "Statebox language and compiler",
   "keywords": [

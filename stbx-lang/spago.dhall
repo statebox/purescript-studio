@@ -1,5 +1,5 @@
 { name =
-    "grasp"
+    "stbx-lang"
 , dependencies =
     [ "console"
     , "debug"
