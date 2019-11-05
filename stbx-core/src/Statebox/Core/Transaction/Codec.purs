@@ -35,10 +35,7 @@ decodeTxInitialTx :: Json -> String \/ Tx InitialTx
 decodeTxInitialTx = decodeJson
 
 decodeTxWiringTx :: Json -> String \/ Tx WiringTx
-decodeTxWiringTx = decodeTxWith decodeWiringTx' <=< decodeJson
-  where
-    decodeWiringTx' :: Json -> String \/ WiringTx
-    decodeWiringTx' = decodeWiringTx <=< decodeJson
+decodeTxWiringTx = decodeTxWith decodeWiringTx <=< decodeJson
 
 decodeTxFiringTx :: Json -> String \/ Tx FiringTx
 decodeTxFiringTx = decodeTxWith decodeFiringTx <=< decodeJson
@@ -49,7 +46,12 @@ decodeInitialTx :: Json -> String \/ InitialTx
 decodeInitialTx = decodeJson
 
 decodeWiringTx :: Json -> String \/ WiringTx
-decodeWiringTx = decodeJson
+decodeWiringTx = decodeJson >=> \x -> do
+  wiring   <- getFieldWith decoder x "wiring"
+  previous <- x .: "previous"
+  pure { wiring, previous }
+  where
+    decoder = decodeJson >=> decodeWiring
 
 decodeFiringTx :: Json -> String \/ FiringTx
 decodeFiringTx = decodeJson >=> \x -> do
@@ -86,14 +88,6 @@ decodeFiring = decodeJson >=> \x -> do
   pure { message, execution, path }
 
 --------------------------------------------------------------------------------
-
-decodeWiringTx :: Object Json -> String \/ WiringTx
-decodeWiringTx x = do
-  wiring   <- getFieldWith decoder x "wiring"
-  previous <- x .: "previous"
-  pure { wiring, previous }
-  where
-    decoder = decodeJson >=> decodeWiring
 
 decodeWiring :: Object Json -> String \/ Wiring
 decodeWiring x = do
