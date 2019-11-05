@@ -19,8 +19,8 @@ import Statebox.Core.Transaction.Codec (encodeTxSum)
 
 -- | A DSL of operations on the transaction data store. We can make these
 -- | abstract operations concrete by implementing them for a specific store, such
--- | as Postgres, Firestor, or in-memory. Alternatively, we could process them in
--- | some other way, such as logging them.
+-- | as Postgres, Firestore, or in-memory. Alternatively, we could process them
+-- | in some other way, such as logging them.
 data ActionF a
   = GetTransaction String (Maybe TransactionDictionaryValue -> a)
   | PutTransaction HashTx a
@@ -28,6 +28,7 @@ data ActionF a
 derive instance functorActionF :: Functor (ActionF)
 
 type Actions = Free ActionF
+
 
 --------------------------------------------------------------------------------
 -- Convenience injections.
