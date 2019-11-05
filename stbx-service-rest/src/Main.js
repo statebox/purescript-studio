@@ -1,3 +1,3 @@
 "use strict";
 
-exports.jsonBodyParser = require('body-parser').json()
+exports.stringBodyParser = require('body-parser').text({type: "application/json"})

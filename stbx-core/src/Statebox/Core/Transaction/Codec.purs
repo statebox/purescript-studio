@@ -20,16 +20,16 @@ import Statebox.Core.Types (Net, Wiring, Firing)
 
 decodeTxTxSum :: Json -> String \/ Tx TxSum
 decodeTxTxSum json =
-  decodeFiring json <|> decodeWiring json <|> decodeInitial json
+  decodeFiring' json <|> decodeWiring' json <|> decodeInitial' json
   where
-    decodeInitial :: Json -> String \/ Tx TxSum
-    decodeInitial = map (mapTx InitialTxInj) <<< decodeTxInitialTx
+    decodeInitial' :: Json -> String \/ Tx TxSum
+    decodeInitial' = map (mapTx InitialTxInj) <<< decodeTxInitialTx
 
-    decodeWiring :: Json -> String \/ Tx TxSum
-    decodeWiring = map (mapTx WiringTxInj) <<< decodeTxWiringTx
+    decodeWiring' :: Json -> String \/ Tx TxSum
+    decodeWiring' = map (mapTx WiringTxInj) <<< decodeTxWiringTx
 
-    decodeFiring :: Json -> String \/ Tx TxSum
-    decodeFiring = map (mapTx FiringTxInj) <<< decodeTxFiringTx
+    decodeFiring' :: Json -> String \/ Tx TxSum
+    decodeFiring' = map (mapTx FiringTxInj) <<< decodeTxFiringTx
 
 decodeTxInitialTx :: Json -> String \/ Tx InitialTx
 decodeTxInitialTx = decodeJson
@@ -41,10 +41,27 @@ decodeTxWiringTx = decodeTxWith decodeWiringTx' <=< decodeJson
     decodeWiringTx' = decodeWiringTx <=< decodeJson
 
 decodeTxFiringTx :: Json -> String \/ Tx FiringTx
-decodeTxFiringTx = decodeTxWith decodeFiringTx' <=< decodeJson
-  where
-    decodeFiringTx' :: Json -> String \/ FiringTx
-    decodeFiringTx' = decodeFiringTx <=< decodeJson
+decodeTxFiringTx = decodeTxWith decodeFiringTx <=< decodeJson
+
+--------------------------------------------------------------------------------
+
+decodeInitialTx :: Json -> String \/ InitialTx
+decodeInitialTx = decodeJson
+
+decodeWiringTx :: Json -> String \/ WiringTx
+decodeWiringTx = decodeJson
+
+decodeFiringTx :: Json -> String \/ FiringTx
+decodeFiringTx = decodeJson >=> \x -> do
+  firing   <- getFieldWith decodeFiring x "firing"
+  previous <- x .: "previous"
+  pure { firing, previous }
+
+decodeTxSum :: Json -> String \/ TxSum
+decodeTxSum json =
+  FiringTxInj  <$> decodeFiringTx  json <|>
+  WiringTxInj  <$> decodeWiringTx  json <|>
+  InitialTxInj <$> decodeInitialTx json
 
 --------------------------------------------------------------------------------
 
@@ -60,16 +77,8 @@ decodeTxWith aDecoder x = do
 
 --------------------------------------------------------------------------------
 
-decodeFiringTx :: Object Json -> String \/ FiringTx
-decodeFiringTx x = do
-  firing   <- getFieldWith decoder x "firing"
-  previous <- x .: "previous"
-  pure { firing, previous }
-  where
-    decoder = decodeJson >=> decodeFiring
-
-decodeFiring :: Object Json -> String \/ Firing
-decodeFiring x = do
+decodeFiring :: Json -> String \/ Firing
+decodeFiring = decodeJson >=> \x -> do
   message   <- x .:? "message"
   execution <- x .:? "execution"
   path      <- x .:  "path" >>= case _ of [x] -> Right (singleton x)

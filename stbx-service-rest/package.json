@@ -7,7 +7,7 @@
     "postinstall": "spago install",
     "init": "spago init",
     "build": "spago build",
-    "test": "spago test",
+    "test": "sh scripts/test.sh",
     "repl": "spago repl",
     "docs": "spago docs",
     "watch": "spago build --watch",
