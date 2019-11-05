@@ -24,8 +24,9 @@ import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Service.Model (TransactionDictionary, getTransaction, inMemoryActions, putTransaction, encodeTransactionDictionary)
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
+import Statebox.TransactionStore.Types (getTransaction, putTransaction)
+import Statebox.TransactionStore.Memory (TransactionDictionary, inMemoryActions, encodeTransactionDictionary)
 
 import ExampleData as Ex
 
