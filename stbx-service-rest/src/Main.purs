@@ -25,8 +25,9 @@ import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
-import Statebox.TransactionStore.Types (getTransaction, putTransaction)
-import Statebox.TransactionStore.Memory (TransactionDictionary, inMemoryActions, encodeTransactionDictionary)
+import Statebox.TransactionStore (get, put) as TransactionStore
+import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
+import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
 
 import ExampleData as Ex
 
@@ -77,7 +78,7 @@ getTransactionsHandler appState = do
            , transactions: encodeTransactionDictionary transactionDictionary
            }
 
--- | Endpoint for the `getTransaction` action on the transaction storage.
+-- | Endpoint for getting transactions from the transaction store.
 -- | Responds to `GET /tx/<hash>`.
 getTransactionHandler :: AppState -> Handler
 getTransactionHandler appState = do
@@ -87,7 +88,7 @@ getTransactionHandler appState = do
     Nothing   -> nextThrow $ error "Hash is required"
     Just hash -> do
       transactionDictionary <- liftEffect $ read appState
-      maybeTransaction <- liftAff $ runStateT (inMemoryActions $ getTransaction hash) transactionDictionary
+      maybeTransaction <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.get hash) transactionDictionary
       case maybeTransaction of
         Just transaction /\ _ -> sendJson $ encodeTxWith encodeTxSum
           { status: statusToString Ok
@@ -100,7 +101,7 @@ getTransactionHandler appState = do
           , hash: hash
           }
 
--- | Endpoint for the `postTransaction` action on the transaction storage.
+-- | Endpoint for saving transactions to the transaction store.
 -- | Responds to `POST /tx`.
 postTransactionHandler :: AppState -> Handler
 postTransactionHandler appState = do
@@ -119,7 +120,7 @@ postTransactionHandler appState = do
           }
         Right txSum -> do
           transactionDictionary <- liftEffect $ read appState
-          updatedTransactionDictionary <- liftAff $ runStateT (inMemoryActions $ putTransaction "new-hash" txSum) transactionDictionary
+          updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put "new-hash" txSum) transactionDictionary
           liftEffect $ write (snd updatedTransactionDictionary) appState
           sendJson { status: stringify json }
 

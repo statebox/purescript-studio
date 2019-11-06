@@ -14,14 +14,14 @@ import Foreign.Object (Object, empty, insert)
 
 import Statebox.Core.Transaction (TxSum, TxId)
 import Statebox.Core.Transaction.Codec (encodeTxSum)
-import Statebox.TransactionStore.Types (ActionF(..), Actions, TransactionDictionaryValue)
+import Statebox.TransactionStore.Types (ActionF(Get, Put), Actions, TransactionDictionaryValue)
 
 
 type TransactionDictionary = Map TxId TransactionDictionaryValue
 
 -- | Interpret the given actions as state updates to a transaction dictionary.
-inMemoryActions :: forall a m. MonadRec m => MonadState TransactionDictionary m => Actions a -> m a
-inMemoryActions = runFreeM \action -> case action of
+eval :: forall a m. MonadRec m => MonadState TransactionDictionary m => Actions a -> m a
+eval = runFreeM \action -> case action of
   Get txHash next -> do
     transactionsMap <- get
     pure $ next $ Map.lookup txHash transactionsMap
