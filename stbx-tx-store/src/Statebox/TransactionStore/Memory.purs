@@ -22,10 +22,10 @@ type TransactionDictionary = Map TxId TransactionDictionaryValue
 -- | Interpret the given actions as state updates to a transaction dictionary.
 inMemoryActions :: forall a m. MonadRec m => MonadState TransactionDictionary m => Actions a -> m a
 inMemoryActions = runFreeM \action -> case action of
-  GetTransaction txHash next -> do
+  Get txHash next -> do
     transactionsMap <- get
     pure $ next $ Map.lookup txHash transactionsMap
-  PutTransaction { id, tx } next -> do
+  Put id tx next -> do
     modify_ $ Map.insert id tx
     pure next
 
