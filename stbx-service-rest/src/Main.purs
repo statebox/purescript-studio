@@ -38,10 +38,14 @@ stbxPort = 8080
 
 -- application state
 
-type AppState = Ref TransactionDictionary
+type AppState =
+  { transactionDictionaryRef :: Ref TransactionDictionary }
 
 initialState :: Effect AppState
-initialState = new $ either mempty identity Ex.transactionsDictionary
+initialState = map { transactionDictionaryRef: _ } <$> new $ initialTransactionDictionary
+  where
+    initialTransactionDictionary = either mempty identity Ex.transactionsDictionary
+
 
 -- middleware
 
@@ -71,23 +75,23 @@ healthcheck :: Handler
 healthcheck = sendJson { health: "I'm fine" }
 
 getTransactionsHandler :: AppState -> Handler
-getTransactionsHandler appState = do
+getTransactionsHandler state = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
-  transactionDictionary <- liftEffect $ read appState
-  sendJson { status: "ok"
+  transactionDictionary <- liftEffect $ read state.transactionDictionaryRef
+  sendJson { status: statusToString Ok
            , transactions: encodeTransactionDictionary transactionDictionary
            }
 
 -- | Endpoint for getting transactions from the transaction store.
 -- | Responds to `GET /tx/<hash>`.
 getTransactionHandler :: AppState -> Handler
-getTransactionHandler appState = do
+getTransactionHandler state = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
   maybeHash <- getRouteParam "hash"
   case maybeHash of
     Nothing   -> nextThrow $ error "Hash is required"
     Just hash -> do
-      transactionDictionary <- liftEffect $ read appState
+      transactionDictionary <- liftEffect $ read state.transactionDictionaryRef
       maybeTransaction <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.get hash) transactionDictionary
       case maybeTransaction of
         Just transaction /\ _ -> sendJson $ encodeTxWith encodeTxSum
@@ -104,7 +108,7 @@ getTransactionHandler appState = do
 -- | Endpoint for saving transactions to the transaction store.
 -- | Responds to `POST /tx`.
 postTransactionHandler :: AppState -> Handler
-postTransactionHandler appState = do
+postTransactionHandler state = do
   -- TODO: find a proper way to manage body decoding
   body :: String <- unsafeCoerce <$> getBody'
   case jsonParser body of
@@ -119,9 +123,9 @@ postTransactionHandler appState = do
           , error  : error
           }
         Right txSum -> do
-          transactionDictionary <- liftEffect $ read appState
+          transactionDictionary <- liftEffect $ read state.transactionDictionaryRef
           updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put "new-hash" txSum) transactionDictionary
-          liftEffect $ write (snd updatedTransactionDictionary) appState
+          liftEffect $ write (snd updatedTransactionDictionary) state.transactionDictionaryRef
           sendJson { status: stringify json }
 
 -- application definition with routing
