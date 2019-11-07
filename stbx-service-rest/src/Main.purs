@@ -14,7 +14,8 @@ import Effect (Effect)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import Effect.Ref (Ref, new, read, write)
+import Effect.Ref (new, read, write) as Ref
+import Effect.Ref (Ref)
 import Effect.Exception (Error, error, message)
 import Node.Express.App (App, listenHttp, get, post, use, useExternal, useOnError)
 import Node.Express.Handler (Handler, next, nextThrow)
@@ -42,7 +43,7 @@ type AppState =
   { transactionDictionaryRef :: Ref TransactionDictionary }
 
 initialState :: Effect AppState
-initialState = map { transactionDictionaryRef: _ } <$> new $ initialTransactionDictionary
+initialState = map { transactionDictionaryRef: _ } <$> Ref.new $ initialTransactionDictionary
   where
     initialTransactionDictionary = either mempty identity Ex.transactionsDictionary
 
@@ -77,7 +78,7 @@ healthcheck = sendJson { health: "I'm fine" }
 getTransactionsHandler :: AppState -> Handler
 getTransactionsHandler state = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
-  transactionDictionary <- liftEffect $ read state.transactionDictionaryRef
+  transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
   sendJson { status: statusToString Ok
            , transactions: encodeTransactionDictionary transactionDictionary
            }
@@ -91,7 +92,7 @@ getTransactionHandler state = do
   case maybeHash of
     Nothing   -> nextThrow $ error "Hash is required"
     Just hash -> do
-      transactionDictionary <- liftEffect $ read state.transactionDictionaryRef
+      transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
       maybeTransaction <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.get hash) transactionDictionary
       case maybeTransaction of
         Just transaction /\ _ -> sendJson $ encodeTxWith encodeTxSum
@@ -123,9 +124,9 @@ postTransactionHandler state = do
           , error  : error
           }
         Right txSum -> do
-          transactionDictionary <- liftEffect $ read state.transactionDictionaryRef
+          transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
           updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put "new-hash" txSum) transactionDictionary
-          liftEffect $ write (snd updatedTransactionDictionary) state.transactionDictionaryRef
+          liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
           sendJson { status: stringify json }
 
 -- application definition with routing
