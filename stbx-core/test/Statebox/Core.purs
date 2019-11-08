@@ -21,3 +21,7 @@ suite = do
       decodedStbxObj <- liftEffect $ Stbx.decode "0a04deadbeef1a2c0a150a01611000100110001001100010001a01781a0179120f0a017a10011801180222017322017418001800"
       let decodedJsonString = Stbx.stbxObjToJsonString decodedStbxObj
       decodedJsonString `shouldEqual` """{"wiring":{"nets":[{"name":"a","partition":[0,1,0,1,0,0],"names":["x","y"]}],"diagrams":[{"name":"z","width":1,"pixels":[1,2],"names":["s","t"]}],"labels":[0,0]},"previous":"z6h8cQN"}"""
+
+    it "should compute a hash from a hex string correctly" do
+      let hash = Stbx.hash "0a04deadbeef1a2c0a150a01611000100110001001100010001a01781a0179120f0a017a10011801180222017322017418001800"
+      hash `shouldEqual` "zFsGM26m8BF1jPQssCAq1dtXvksHGd5BgNp8GE7QXdwXF"

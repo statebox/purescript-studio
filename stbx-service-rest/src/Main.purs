@@ -25,7 +25,7 @@ import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Core (decodeToJsonString) as Stbx
+import Statebox.Core (decodeToJsonString, hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum(..))
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 import Statebox.Core.Types (HexStr)
@@ -137,12 +137,12 @@ postTransactionHandler state = do
               , error  : error
               }
             Right txSum -> do
-              let hash_TODO_HACK = "TODO_HASH(" <> txHex <> ")"
+              let hash = Stbx.hash txHex
               transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
-              updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash_TODO_HACK txSum) transactionDictionary
+              updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash txSum) transactionDictionary
               liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
               sendTxTxSum { status: statusToString Ok
-                          , hash: hash_TODO_HACK
+                          , hash: hash
                           , hex: txHex
                           , decoded: txSum
                           }
