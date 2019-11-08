@@ -3,9 +3,9 @@ module Main where
 import Prelude
 
 import Control.Monad.State.Trans (runStateT)
-import Data.Argonaut.Core (stringify)
+import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
-import Data.Either (Either(..), either)
+import Data.Either (Either(..))
 import Data.Function.Uncurried (Fn3)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (snd)
@@ -25,12 +25,13 @@ import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
+import Statebox.Core (decodeToJsonString) as Stbx
+import Statebox.Core.Transaction (Tx, TxSum(..))
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
+import Statebox.Core.Types (HexStr)
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
 import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
-
-import ExampleData as Ex
 
 foreign import stringBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
@@ -45,7 +46,7 @@ type AppState =
 initialState :: Effect AppState
 initialState = map { transactionDictionaryRef: _ } <$> Ref.new $ initialTransactionDictionary
   where
-    initialTransactionDictionary = either mempty identity Ex.transactionsDictionary
+    initialTransactionDictionary = mempty
 
 
 -- middleware
@@ -95,7 +96,7 @@ getTransactionHandler state = do
       transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
       maybeTransaction <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.get hash) transactionDictionary
       case maybeTransaction of
-        Just transaction /\ _ -> sendJson $ encodeTxWith encodeTxSum
+        Just transaction /\ _ -> sendTxTxSum
           { status: statusToString Ok
           , hash: hash
           , hex: "TODO" -- TODO #237
@@ -111,23 +112,45 @@ getTransactionHandler state = do
 postTransactionHandler :: AppState -> Handler
 postTransactionHandler state = do
   -- TODO: find a proper way to manage body decoding
-  body :: String <- unsafeCoerce <$> getBody'
-  case jsonParser body of
+  bodyStr :: String <- unsafeCoerce <$> getBody'
+  case jsonParser bodyStr of
     Left error -> sendJson
       { status : statusToString NotOk
       , error  : error
       }
-    Right json -> do
-      case decodeTxSum json of
-        Left error -> sendJson
-          { status : statusToString NotOk
-          , error  : error
-          }
-        Right txSum -> do
-          transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
-          updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put "new-hash" txSum) transactionDictionary
-          liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
-          sendJson { status: stringify json }
+    Right json -> case decodeJson json of
+      Left error -> sendJson
+        { status : statusToString NotOk
+        , error  : error
+        }
+      Right (body :: TxPostBody) -> do
+        let txHex = body.tx
+        decodedJsonString <- liftEffect $ Stbx.decodeToJsonString txHex
+        case jsonParser decodedJsonString of
+          Left error -> sendJson
+            { status : statusToString NotOk
+            , error  : error
+            }
+          Right json -> case decodeTxSum json of
+            Left error -> sendJson
+              { status : statusToString NotOk
+              , error  : error
+              }
+            Right txSum -> do
+              let hash_TODO_HACK = "TODO_HASH(" <> txHex <> ")"
+              transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
+              updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash_TODO_HACK txSum) transactionDictionary
+              liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
+              sendTxTxSum { status: statusToString Ok
+                          , hash: hash_TODO_HACK
+                          , hex: txHex
+                          , decoded: txSum
+                          }
+
+type TxPostBody = { tx :: HexStr }
+
+sendTxTxSum :: Tx TxSum -> Handler
+sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum
 
 -- application definition with routing
 
