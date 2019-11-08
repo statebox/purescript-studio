@@ -3,15 +3,13 @@ module Test.Main where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Map as Map
-import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, launchAff)
 import Test.Spec (pending, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
-import Test.Spec.Runner (run)
+import Test.Spec.Runner (runSpec)
 
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
@@ -19,9 +17,8 @@ import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 import Test.Statebox.Core.Execution as Execution
 import Test.Statebox.Core.Transaction.Codec as Transaction.Codec
 
-main :: Aff Unit
-main = run [consoleReporter] do
-
+main :: Effect _
+main = launchAff $ runSpec [consoleReporter] do
   describe "NLL Petri net encoding" do
     it "should accept even length encodings" do
       Net.fromNLL 0 [1,2,0,3,0,3,0,4,5,5,0] `shouldEqual` Right [Tuple [1,2] [3], Tuple [3] [4,5,5]]
