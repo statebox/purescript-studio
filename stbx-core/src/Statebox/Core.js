@@ -5,9 +5,13 @@
 function decode (hexStr) {
   return function () {
     var x = Stbx.decode(hexStr);
-    console.log('Statebox.Core.js:', JSON.stringify(x));
     return x;
   }
 }
 
+function stbxObjToJsonString (stbxObj) {
+  return JSON.stringify(stbxObj)
+}
+
 exports.decode = decode;
+exports.stbxObjToJsonString = stbxObjToJsonString;

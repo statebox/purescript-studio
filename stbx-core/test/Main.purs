@@ -14,6 +14,7 @@ import Test.Spec.Runner (runSpec)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
 
+import Test.Statebox.Core as Core
 import Test.Statebox.Core.Execution as Execution
 import Test.Statebox.Core.Transaction.Codec as Transaction.Codec
 
@@ -26,5 +27,6 @@ main = launchAff $ runSpec [consoleReporter] do
       Net.fromNLL 0 [1,2,0,3,0,3,0] `shouldEqual` Left ErrOddLength
     pending "should infer a single trailing zero?"
 
+  Core.suite
   Execution.suite
   Transaction.Codec.suite
