@@ -82,7 +82,7 @@ type NetF p = Array (TransitionF' p)
 -- - TODO under conversion to String, which is what NLL is for, this can lead to clashes between elements and separator
 toNLLEither :: ∀ a. Eq a => a -> NetF a -> CompileError \/ Array a
 toNLLEither separator net =
-  note PIDLookupFailed $ for net encodeTransition <#> intercalate [separator]
+  note SeparatorClash $ for net encodeTransition <#> intercalate [separator]
   where
     encodeTransition :: ArrayMultiset a /\ ArrayMultiset a -> Maybe (Array a)
     encodeTransition (pre /\ post) = do
