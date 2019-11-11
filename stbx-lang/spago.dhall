@@ -8,6 +8,7 @@
     , "parsing"
     , "psci-support"
     , "spec"
+    , "stbx-core"
     , "studio-common"
     ]
 , packages =
