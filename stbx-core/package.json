@@ -8,7 +8,8 @@
     "build": "spago build",
     "test": "spago test",
     "docs": "spago docs",
-    "repl": "spago repl"
+    "repl": "spago repl",
+    "watch": "spago build --watch"
   },
   "repository": {
     "type": "git",

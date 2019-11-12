@@ -1,0 +1,29 @@
+{
+  "name": "purescript-stbx-lang",
+  "version": "1.0.0",
+  "description": "Statebox language and compiler",
+  "keywords": [
+    "statebox",
+    "petrinet",
+    "parser",
+    "purescript"
+  ],
+  "author": "Erik Post",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "spago install",
+    "start": "spago run",
+    "build": "spago build",
+    "test": "spago test"
+  },
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "purescript": "^0.13.3",
+    "purescript-psa": "^0.7.3",
+    "spago": "^0.9.0"
+  },
+  "directories": {
+    "test": "test"
+  }
+}

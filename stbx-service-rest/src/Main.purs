@@ -2,34 +2,35 @@ module Main where
 
 import Prelude
 
-import Control.Monad.Except (runExcept)
 import Control.Monad.State.Trans (runStateT)
+import Data.Argonaut.Core (stringify)
+import Data.Argonaut.Parser (jsonParser)
 import Data.Either (Either(..), either)
 import Data.Function.Uncurried (Fn3)
 import Data.Maybe (Maybe(..))
+import Data.Tuple (snd)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import Effect.Ref (Ref, new, read)
+import Effect.Ref (Ref, new, read, write)
 import Effect.Exception (Error, error, message)
-import Foreign (F)
 import Node.Express.App (App, listenHttp, get, post, use, useExternal, useOnError)
 import Node.Express.Handler (Handler, next, nextThrow)
-import Node.Express.Request (getBody, getRouteParam, getOriginalUrl)
+import Node.Express.Request (getBody', getRouteParam, getOriginalUrl)
 import Node.Express.Response (sendJson, setStatus, setResponseHeader)
 import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
+import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Core.Transaction (TxId, TxSum)
-import Statebox.Service.Model (TransactionDictionary, getTransaction, inMemoryActions)
-import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
+import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
+import Statebox.TransactionStore.Types (getTransaction, putTransaction)
+import Statebox.TransactionStore.Memory (TransactionDictionary, inMemoryActions, encodeTransactionDictionary)
 
 import ExampleData as Ex
 
--- import body parser
-foreign import jsonBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
+foreign import stringBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
 stbxPort :: Int
 stbxPort = 8080
@@ -68,8 +69,16 @@ index = sendJson
 healthcheck :: Handler
 healthcheck = sendJson { health: "I'm fine" }
 
--- | `getTransaction` endpoint
--- | responds to `GET /tx/<hash>`
+getTransactionsHandler :: AppState -> Handler
+getTransactionsHandler appState = do
+  setResponseHeader "Access-Control-Allow-Origin" "*"
+  transactionDictionary <- liftEffect $ read appState
+  sendJson { status: "ok"
+           , transactions: encodeTransactionDictionary transactionDictionary
+           }
+
+-- | Endpoint for the `getTransaction` action on the transaction storage.
+-- | Responds to `GET /tx/<hash>`.
 getTransactionHandler :: AppState -> Handler
 getTransactionHandler appState = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
@@ -86,29 +95,43 @@ getTransactionHandler appState = do
           , hex: "TODO" -- TODO #237
           , decoded: transaction
           }
-        Nothing /\ _ -> sendJson { status: statusToString TxNotFound
-                                 , hash: hash
-                                 }
+        Nothing /\ _ -> sendJson
+          { status: statusToString TxNotFound
+          , hash: hash
+          }
 
--- | `postTransaction` endpoint
--- | responds to `POST /tx`
+-- | Endpoint for the `postTransaction` action on the transaction storage.
+-- | Responds to `POST /tx`.
 postTransactionHandler :: AppState -> Handler
 postTransactionHandler appState = do
-  fBody :: F (Array String) <- getBody
-  case runExcept fBody of
-    Left errors -> sendJson { status: statusToString NotOk
-                            , errors: show errors
-                            }
-    Right hash  -> sendJson { status: statusToString Ok }
+  -- TODO: find a proper way to manage body decoding
+  body :: String <- unsafeCoerce <$> getBody'
+  case jsonParser body of
+    Left error -> sendJson
+      { status : statusToString NotOk
+      , error  : error
+      }
+    Right json -> do
+      case decodeTxSum json of
+        Left error -> sendJson
+          { status : statusToString NotOk
+          , error  : error
+          }
+        Right txSum -> do
+          transactionDictionary <- liftEffect $ read appState
+          updatedTransactionDictionary <- liftAff $ runStateT (inMemoryActions $ putTransaction "new-hash" txSum) transactionDictionary
+          liftEffect $ write (snd updatedTransactionDictionary) appState
+          sendJson { status: stringify json }
 
 -- application definition with routing
 
 app :: AppState -> App
 app state = do
-  useExternal         jsonBodyParser
+  useExternal         stringBodyParser
   use                 logger
   get  "/"            index
   get  "/healthcheck" healthcheck
+  get  "/tx"          (getTransactionsHandler state)
   get  "/tx/:hash"    (getTransactionHandler state)
   post "/tx"          (postTransactionHandler state)
   useOnError          errorHandler
