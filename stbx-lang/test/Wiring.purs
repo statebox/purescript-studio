@@ -10,6 +10,7 @@ import Effect.Class.Console (log)
 import Language.Statebox as Statebox
 import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
 import Language.Statebox.Wiring.AST (Node(..), GElem(..), HyperEdge(..), Label, stripSpan)
+import Language.Statebox.Wiring.Generator.Diagram
 import Test.Spec                  (Spec, describe, pending, it)
 import Test.Spec.Console          (write)
 import Test.Spec.Runner           (runSpec)
@@ -24,6 +25,7 @@ spec = do
     it "should parse wirings correctly" do
       let ast = Statebox.parseWiring wiring1src
       let astDump = spy "ast" $ show $ ast
+      let diagram1 = spy "diagram1" $ toDiagramWithName "dummy" <$> ast
       (ast # map (map (lmap stripSpan))) `shouldEqual` pure wiring1expected
 
 wiring1src :: String
