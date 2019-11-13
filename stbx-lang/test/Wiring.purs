@@ -5,21 +5,16 @@ import Data.Bifunctor (lmap)
 import Data.List as List
 import Data.List (List(..))
 import Data.String (trim)
-import Effect (Effect)
-import Effect.Class.Console (log)
 import Language.Statebox as Statebox
-import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
-import Language.Statebox.Wiring.AST (Node(..), GElem(..), HyperEdge(..), Label, stripSpan)
-import Language.Statebox.Wiring.Generator.Diagram
-import Test.Spec                  (Spec, describe, pending, it)
-import Test.Spec.Console          (write)
-import Test.Spec.Runner           (runSpec)
+import Language.Statebox.Hypergraph (HyperEdgeF(..), GElemF(..))
+import Language.Statebox.Wiring.AST (Label, stripSpan)
+import Language.Statebox.Wiring.Generator.Diagram (toDiagramWithName)
+import Test.Spec                  (Spec, describe, it)
 import Test.Spec.Assertions       (shouldEqual)
-import Test.Spec.Reporter.Console (consoleReporter)
 
 import Debug.Trace (spy)
 
-spec :: Spec _
+spec :: Spec Unit
 spec = do
   describe "Statebox wiring compiler" do
     it "should parse wirings correctly" do
