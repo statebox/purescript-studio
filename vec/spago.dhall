@@ -1,14 +1,10 @@
 { name =
-    "studio-common"
+    "vec"
 , dependencies =
     [ "console"
     , "effect"
-    , "foreign-object"
-    , "group"
-    , "integers"
-    , "ordered-collections"
+    , "foldable-traversable"
     , "psci-support"
-    , "vec"
     ]
 , packages =
     ../packages.dhall

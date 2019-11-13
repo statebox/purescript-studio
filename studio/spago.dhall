@@ -23,6 +23,7 @@
     , "strings"
     , "studio-common"
     , "web-uievents"
+    , "vec"
     ]
 , packages =
     ../packages.dhall
