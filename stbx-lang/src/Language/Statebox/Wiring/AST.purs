@@ -26,4 +26,4 @@ type Node = NodeF LabelWithSpan
 
 type HyperEdge = HyperEdgeF List LabelWithSpan Unit
 
-type GElem = GElemF List LabelWithSpan LabelWithSpan
+type GElem = GElemF List LabelWithSpan Unit

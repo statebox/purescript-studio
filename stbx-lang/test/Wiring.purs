@@ -1,24 +1,27 @@
 module Test.Language.Statebox.Wiring where
 
 import Prelude
+import Data.Bifunctor (lmap)
 import Data.List as List
 import Data.List (List(..))
 import Data.String (trim)
-import Effect (Effect)
-import Effect.Class.Console (log)
 import Language.Statebox as Statebox
-import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
-import Language.Statebox.Wiring.AST (Node(..), GElem(..), HyperEdge(..), Label)
-import Test.Spec                  (Spec, describe, pending, it)
-import Test.Spec.Console          (write)
-import Test.Spec.Runner           (runSpec)
+import Language.Statebox.Hypergraph (HyperEdgeF(..), GElemF(..))
+import Language.Statebox.Wiring.AST (Label, stripSpan)
+import Language.Statebox.Wiring.Generator.Diagram (toDiagramWithName)
+import Test.Spec                  (Spec, describe, it)
 import Test.Spec.Assertions       (shouldEqual)
-import Test.Spec.Reporter.Console (consoleReporter)
 
-spec :: Spec _
+import Debug.Trace (spy)
+
+spec :: Spec Unit
 spec = do
   describe "Statebox wiring compiler" do
-    pending "Implement wiring tests."
+    it "should parse wirings correctly" do
+      let ast = Statebox.parseWiring wiring1src
+      let astDump = spy "ast" $ show $ ast
+      let diagram1 = spy "diagram1" $ toDiagramWithName "dummy" <$> ast
+      (ast # map (map (lmap stripSpan))) `shouldEqual` pure wiring1expected
 
 wiring1src :: String
 wiring1src = trim """
