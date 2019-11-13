@@ -21,7 +21,10 @@ import Data.Traversable
 
 -- | A Petri net encoding based on NLL (Number List List).
 -- | See https://github.com/statebox/stbx-js/blob/master/spec for more info.
-type NetF p = Array (ArrayMultiset p /\ ArrayMultiset p)
+type NetF p = Array (TransitionF' p)
+
+-- TODO Come up with a name that isn't absolutely horrific.
+type TransitionF' p = ArrayMultiset p /\ ArrayMultiset p
 
 --------------------------------------------------------------------------------
 
