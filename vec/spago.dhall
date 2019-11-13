@@ -1,7 +1,11 @@
 { name =
-    "vec3"
+    "vec"
 , dependencies =
-    [ "effect", "console", "psci-support" ]
+    [ "console"
+    , "effect"
+    , "foldable-traversable"
+    , "psci-support"
+    ]
 , packages =
     ../packages.dhall
 , sources =

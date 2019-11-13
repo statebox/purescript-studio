@@ -1,7 +1,15 @@
 { name =
     "studio-common"
 , dependencies =
-    [ "effect", "console", "psci-support" ]
+    [ "console"
+    , "effect"
+    , "foreign-object"
+    , "group"
+    , "integers"
+    , "ordered-collections"
+    , "psci-support"
+    , "vec"
+    ]
 , packages =
     ../packages.dhall
 , sources =
