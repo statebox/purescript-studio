@@ -3,9 +3,11 @@ module Main where
 import Prelude
 
 import Control.Monad.State.Trans (runStateT)
+import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
 import Data.Either (Either(..))
+import Data.Either.Nested (type (\/))
 import Data.Function.Uncurried (Fn3)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (snd)
@@ -26,9 +28,11 @@ import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core (decodeToJsonString, hash) as Stbx
-import Statebox.Core.Transaction (Tx, TxSum(..))
+import Statebox.Core.Transaction (HashStr, Tx, TxSum(..))
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 import Statebox.Core.Types (HexStr)
+import Statebox.Service as Statebox.Service
+import Statebox.Service (Err(..))
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
 import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
@@ -47,7 +51,6 @@ initialState :: Effect AppState
 initialState = map { transactionDictionaryRef: _ } <$> Ref.new $ initialTransactionDictionary
   where
     initialTransactionDictionary = mempty
-
 
 -- middleware
 
@@ -99,13 +102,10 @@ getTransactionHandler state = do
         Just transaction /\ _ -> sendTxTxSum
           { status: statusToString Ok
           , hash: hash
-          , hex: "TODO" -- TODO #237
+          , hex: "TODO" -- TODO #237 get from transaction store instead of computing, if possible
           , decoded: transaction
           }
-        Nothing /\ _ -> sendJson
-          { status: statusToString TxNotFound
-          , hash: hash
-          }
+        Nothing /\ _ -> sendErr (TxNotFound { hash })
 
 -- | Endpoint for saving transactions to the transaction store.
 -- | Responds to `POST /tx`.
@@ -115,25 +115,22 @@ postTransactionHandler state = do
   bodyStr :: String <- unsafeCoerce <$> getBody'
   case jsonParser bodyStr of
     Left error -> sendJson
-      { status : statusToString NotOk
+      { status : statusToString Failed
       , error  : error
       }
-    Right json -> case decodeJson json of
-      Left error -> sendJson
-        { status : statusToString NotOk
-        , error  : error
-        }
-      Right (body :: TxPostBody) -> do
+    Right json -> case decodeJson json :: String \/ TxPostRequestBody of
+      Left error -> sendErr TxNoTxField
+      Right (body :: TxPostRequestBody) -> do
         let txHex = body.tx
         decodedJsonString <- liftEffect $ Stbx.decodeToJsonString txHex
         case jsonParser decodedJsonString of
           Left error -> sendJson
-            { status : statusToString NotOk
+            { status : statusToString Failed
             , error  : error
             }
-          Right json -> case decodeTxSum json of
+          Right txJson -> case decodeTxSum txJson of
             Left error -> sendJson
-              { status : statusToString NotOk
+              { status : statusToString Failed
               , error  : error
               }
             Right txSum -> do
@@ -147,10 +144,32 @@ postTransactionHandler state = do
                           , decoded: txSum
                           }
 
-type TxPostBody = { tx :: HexStr }
+type TxPostRequestBody = { tx :: HexStr }
 
 sendTxTxSum :: Tx TxSum -> Handler
 sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum
+
+--------------------------------------------------------------------------------
+
+-- TODO add "data" field modeled after the `StateboxException` code in the js codebase
+type ErrResponseBody =
+  { status  :: String
+  , code    :: String
+  , message :: String
+  }
+
+toErrResponseBody :: Statebox.Service.Err -> ErrResponseBody
+toErrResponseBody err =
+  { status  : statusCode Failed
+  , code    : Statebox.Service.errorCode err
+  , message : Statebox.Service.toMessage err
+  }
+
+sendErr :: Statebox.Service.Err -> Handler
+sendErr = sendJson <<< toErrResponseBody
+
+--------------------------------------------------------------------------------
+
 
 -- application definition with routing
 
@@ -176,13 +195,16 @@ main = do
 --------------------------------------------------------------------------------
 
 -- | TODO this is now used ad hoc in JSON responses; these should be made to conform to the Statebox protocol spec.
-data Status = Ok | NotOk | TxNotFound
+data Status = Ok | Failed
+
+statusCode :: Status -> String
+statusCode = case _ of
+  Ok     -> "ok"
+  Failed -> "failed"
+
 
 instance showStatus :: Show Status where
-  show = case _ of
-    Ok         -> "Ok"
-    NotOk      -> "NotOk"
-    TxNotFound -> "TxNotFound"
+  show = statusCode
 
 statusToString :: Status -> String
 statusToString = show -- TODO this should be a JSON-compatible value; perhaps a regular JSON encoder
