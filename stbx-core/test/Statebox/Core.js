@@ -1,4 +1,4 @@
-// module Test.Statebox.Core.Execution
+// module Test.Statebox.Core
 
 // install 'Stbx' in global scope
 Stbx = require('../../node_modules/@statebox/stbx-js/dist/stbx.min.js')
