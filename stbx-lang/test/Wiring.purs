@@ -3,7 +3,7 @@ module Test.Language.Statebox.Wiring where
 import Prelude
 import Data.Bifunctor (lmap)
 import Data.List as List
-import Data.List (List(..))
+import Data.List (List)
 import Data.String (trim)
 import Language.Statebox as Statebox
 import Language.Statebox.Hypergraph (HyperEdgeF(..), GElemF(..))

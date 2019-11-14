@@ -7,10 +7,9 @@ import Data.Foldable (foldMap)
 import Data.Bitraversable (bitraverse)
 import Data.Traversable (traverse)
 import Data.Traversable.Accum.Internal (StateL(..), stateL)
-import Data.List as List
-import Data.List (List(..))
+import Data.List (List)
 
-import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
+import Language.Statebox.Hypergraph (HyperEdgeF(..), GElemF(..))
 import Language.Statebox.Wiring.AST (GElem, stripSpan)
 import Statebox.Core.Types (Diagram)
 
