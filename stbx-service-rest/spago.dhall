@@ -11,7 +11,6 @@
     , "stbx-core"
     , "stbx-client-rest"
     , "stbx-tx-store"
-    , "stbx-example-data"
     ]
 , packages =
     ./../packages.dhall
