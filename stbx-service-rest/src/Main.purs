@@ -3,7 +3,6 @@ module Main where
 import Prelude
 
 import Control.Monad.State.Trans (runStateT)
-import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
 import Data.Either (Either(..))
@@ -28,11 +27,10 @@ import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core (decodeToJsonString, hash) as Stbx
-import Statebox.Core.Transaction (HashStr, Tx, TxSum(..))
+import Statebox.Core.Transaction (Tx, TxSum(..))
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 import Statebox.Core.Types (HexStr)
-import Statebox.Service as Statebox.Service
-import Statebox.Service (Err(..))
+import Statebox.Service (TxError(..), txErrorCode, txErrorMessage)
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
 import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
@@ -105,7 +103,7 @@ getTransactionHandler state = do
           , hex: "TODO" -- TODO #237 get from transaction store instead of computing, if possible
           , decoded: transaction
           }
-        Nothing /\ _ -> sendErr (TxNotFound { hash })
+        Nothing /\ _ -> sendTxError (TxNotFound { hash })
 
 -- | Endpoint for saving transactions to the transaction store.
 -- | Responds to `POST /tx`.
@@ -119,7 +117,7 @@ postTransactionHandler state = do
       , error  : error
       }
     Right json -> case decodeJson json :: String \/ TxPostRequestBody of
-      Left error -> sendErr TxNoTxField
+      Left error -> sendTxError TxNoTxField
       Right (body :: TxPostRequestBody) -> do
         let txHex = body.tx
         decodedJsonString <- liftEffect $ Stbx.decodeToJsonString txHex
@@ -152,21 +150,21 @@ sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum
 --------------------------------------------------------------------------------
 
 -- TODO add "data" field modeled after the `StateboxException` code in the js codebase
-type ErrResponseBody =
+type TxErrorResponseBody =
   { status  :: String
   , code    :: String
   , message :: String
   }
 
-toErrResponseBody :: Statebox.Service.Err -> ErrResponseBody
-toErrResponseBody err =
+toTxErrorResponseBody :: TxError -> TxErrorResponseBody
+toTxErrorResponseBody err =
   { status  : statusCode Failed
-  , code    : Statebox.Service.errorCode err
-  , message : Statebox.Service.toMessage err
+  , code    : txErrorCode err
+  , message : txErrorMessage err
   }
 
-sendErr :: Statebox.Service.Err -> Handler
-sendErr = sendJson <<< toErrResponseBody
+sendTxError :: TxError -> Handler
+sendTxError = sendJson <<< toTxErrorResponseBody
 
 --------------------------------------------------------------------------------
 
