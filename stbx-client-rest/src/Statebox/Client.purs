@@ -5,20 +5,23 @@ import Affjax as Affjax
 import Affjax (URL, Response)
 import Affjax.ResponseFormat as ResponseFormat
 import Affjax.ResponseFormat (ResponseFormatError)
+import Affjax.RequestBody as RequestBody
 import Control.Coroutine (Producer)
 import Control.Coroutine.Aff (emit, close, produceAff, Emitter)
 import Control.Monad.Rec.Class (Step(Loop, Done), tailRecM)
 import Control.Monad.Free.Trans (hoistFreeT)
 import Data.Argonaut.Core (Json)
+import Data.Argonaut.Encode (encodeJson)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
 import Data.Profunctor.Choice ((|||), (+++))
-import Data.HTTP.Method (Method(GET))
+import Data.HTTP.Method (Method(GET, POST))
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff)
 
 import Statebox.Core.Transaction (HashTx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
 import Statebox.Core.Transaction.Codec (decodeTxTxSum, DecodingError(..))
+import Statebox.Core.Types (HexStr)
 
 
 -- | A convenience function for processing API responses.
@@ -104,3 +107,13 @@ fetchAndEmitTxStep emitter apiBaseUrl hash = liftAff $ do
                  pure $ Loop x.previous)
        tx
     )
+
+--------------------------------------------------------------------------------
+
+postTransactionHex :: URL -> HexStr -> Aff (Response (ResponseFormatError \/ Json))
+postTransactionHex apiBaseUrl txHex =
+  Affjax.request $ Affjax.defaultRequest { url = apiBaseUrl <> "/tx"
+                                         , method = Left POST
+                                         , responseFormat = ResponseFormat.json
+                                         , content = pure $ RequestBody.json $ encodeJson {tx: txHex}
+                                         }
