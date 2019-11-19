@@ -6,6 +6,7 @@
     [ "affjax"
     , "argonaut-codecs"
     , "argonaut-core"
+    , "brick-editor"
     , "console"
     , "debug"
     , "effect"
