@@ -1,5 +1,5 @@
 { name =
-    "brick-editor"
+    "halogen-diagram-editor"
 , dependencies =
     [ "vec"
     , "halogen-svg"
