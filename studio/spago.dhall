@@ -12,6 +12,7 @@
     , "group"
     , "halogen"
     , "halogen-svg"
+    , "halogen-diagram-editor"
     , "halogen-petrinet-editor"
     , "halogen-tree-menu"
     , "pnpro"

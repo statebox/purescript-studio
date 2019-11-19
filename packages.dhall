@@ -10,6 +10,7 @@ let additions =
       , stbx-tx-store = ./stbx-tx-store/spago.dhall as Location
       , studio-common = ./studio-common/spago.dhall as Location
       , vec = ./vec/spago.dhall as Location
+      , halogen-diagram-editor = ./halogen-diagram-editor/spago.dhall as Location
       , halogen-petrinet-editor = ./halogen-petrinet-editor/spago.dhall as Location
       , halogen-tree-menu = ./halogen-tree-menu/spago.dhall as Location
       , pnpro = ./pnpro/spago.dhall as Location
