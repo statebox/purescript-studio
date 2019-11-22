@@ -5,6 +5,7 @@
     , "debug"
     , "effect"
     , "halogen-petrinet-editor"
+    , "memoize"
     , "parsing"
     , "psci-support"
     , "spec"

@@ -9,9 +9,12 @@ import Language.Statebox as Statebox
 import Language.Statebox.Hypergraph (HyperEdgeF(..), GElemF(..))
 import Language.Statebox.Wiring.AST (Label, stripSpan)
 import Language.Statebox.Wiring.Generator.Diagram (toDiagramWithName)
+import Language.Statebox.Wiring.Generator.DiagramV2 (diagramEdges, fromEdges)
 import Statebox.Core.Types (Diagram)
 import Test.Spec                  (Spec, describe, it)
 import Test.Spec.Assertions       (shouldEqual)
+
+import Debug.Trace (spy)
 
 spec :: Spec Unit
 spec = do
@@ -19,6 +22,7 @@ spec = do
     it "should parse wirings correctly" do
       let ast = Statebox.parseWiring wiring1src
       let diagram1 = toDiagramWithName "dummy" <$> ast
+      let diagramv2 = diagram1 <#> diagramEdges <#> fromEdges <#> \{pixels, context} -> spy pixels (spy context "newline hack")
       (ast # map (map (lmap stripSpan))) `shouldEqual` pure wiring1expected
       diagram1 `shouldEqual` pure diagram1expected
 
