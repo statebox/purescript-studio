@@ -14,6 +14,7 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (alaF)
 import Data.String (trim, split, joinWith)
+import Data.String.CodeUnits (singleton, toCharArray)
 import Data.String.Pattern (Pattern(..))
 import Data.String.Regex (regex, match)
 import Data.String.Regex.Flags (noFlags)
@@ -74,7 +75,7 @@ inferType ctx tm = { term, bounds, matches: matches <> typeToMatches, errors }
                 replaceInferredType bounds $
                   (acc <> step <> empty { bounds = bounds, matches = [Matched matches] })
                     { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) }
-  tmWithDecl = tm # traverse (\{ bid, box } -> Map.lookup bid ctx # maybe (Left $ "Undeclared name: " <> show bid) \decl -> Right { bid, box, decl })
+  tmWithDecl = tm # traverse (\{ bid, box } -> Map.lookup bid ctx # maybe (Left $ "Undeclared name: " <> show bid) \decl -> Right { bid, box, decl: decl.type })
   fatTerm = tmWithDecl # either (const (Fix (Ann empty TUnit))) (reannotateFix alg)
   typeToMatches = case (getAnn fatTerm).type of Ty l r -> [Unmatched Valid Input l, Unmatched Valid Output r]
   { bounds, matches, errors } = getAnn fatTerm
@@ -145,7 +146,7 @@ getSubTerm' _ _ mkTerm = mkTerm []
 
 
 defaultEnv :: Context String String
-defaultEnv = Map.fromFoldable
+defaultEnv = Map.fromFoldable $ map (\(name /\ ty) -> name /\ { name, type: ty })
   [ " " /\ Perm []
   , "-" /\ Perm [1]
   , "=" /\ Perm [1, 2]
@@ -167,22 +168,28 @@ parseContext = spl "\n" >>> alaF App foldMap toEntry
   where
     spl :: String -> String -> Array String
     spl p = trim >>> split (Pattern p) >>> map trim
+    parseName :: String -> { name :: String, bids :: Array String }
+    parseName nameBid = case nameBid # spl "@" of
+      [name, bids] -> { name, bids: toCharArray bids <#> singleton }
+      _ -> { name: nameBid, bids: toCharArray nameBid <#> singleton }
     toEntry :: String -> Either String (Context String String)
     toEntry line = case spl ":" line of
-      [name, typ] -> case typ # spl "->" <#> (spl " " >>> filter (_ /= "")) of
-        [left, right] -> pure $ Map.singleton name (Gen $ Ty left right)
-        _ -> do
-          permRe <- regex "^\\[(.*)\\]$" noFlags
-          case match permRe typ # map toArray of
-            Just [_, Just perm] ->
-              pure $ Map.singleton name (Perm $ perm # (spl " " >>> filter (_ /= "") >>> map (readInt 10 >>> floor)))
-            _ -> do
-              spiderRe <- regex "^(\\d+)(o|\\.)(\\d+)$" noFlags
-              case match spiderRe typ # map toArray of
-                Just [_, Just ls, Just cs, Just rs] -> pure $ Map.singleton name (Spider
-                  (if cs == "." then Black else White)
-                  (readInt 10 ls # floor)
-                  (readInt 10 rs # floor)
-                )
-                _ -> Left $ "Invalid type: " <> typ
+      [nameBid, typ] -> let { name, bids } = parseName nameBid in
+        (\ty -> foldMap (\bid -> Map.singleton bid { name, type: ty }) bids) <$>
+        case typ # spl "->" <#> (spl " " >>> filter (_ /= "")) of
+          [left, right] -> pure $ Gen $ Ty left right
+          _ -> do
+            permRe <- regex "^\\[(.*)\\]$" noFlags
+            case match permRe typ # map toArray of
+              Just [_, Just perm] ->
+                pure (Perm $ perm # (spl " " >>> filter (_ /= "") >>> map (readInt 10 >>> floor)))
+              _ -> do
+                spiderRe <- regex "^(\\d+)(o|\\.)(\\d+)$" noFlags
+                case match spiderRe typ # map toArray of
+                  Just [_, Just ls, Just cs, Just rs] -> pure (Spider
+                    (if cs == "." then Black else White)
+                    (readInt 10 ls # floor)
+                    (readInt 10 rs # floor)
+                  )
+                  _ -> Left $ "Invalid type: " <> typ
       _ -> Left $ "Invalid signature: " <> line

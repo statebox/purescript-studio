@@ -116,30 +116,30 @@ render { input: { bricks: { width, height, boxes }, matches, context, selectedBo
     ] ]
   ]
 
-renderBrick :: ∀ m. InputOutput String -> Maybe (TypeDecl String) -> Brick String
+renderBrick :: ∀ m. InputOutput String -> Maybe { name :: String, type :: TypeDecl String } -> Brick String
   -> { className :: String, content :: Array (H.ComponentHTML Action () m) }
-renderBrick io (Just (Gen _)) b@{ box } =
+renderBrick io (Just { name, type: Gen _ }) b@{ box } =
   { className: "box"
   , content:
-      renderBox b
+      renderBox name box
       <> maybe [] (foldMap (renderLines genLineSettings Input b)) (lookup (box /\ Input) io)
       <> maybe [] (foldMap (renderLines genLineSettings Output b)) (lookup (box /\ Output) io)
   }
-renderBrick io (Just (Perm perm)) b = { className: "wires", content: renderPerm io b perm }
-renderBrick io (Just (Spider c _ _)) b@{ box } =
+renderBrick io (Just { type: Perm perm }) b = { className: "wires", content: renderPerm io b perm }
+renderBrick io (Just { type: Spider c _ _ }) b@{ box } =
   { className: "wires"
   , content:
       maybe [] (foldMap (renderLines spiderLineSettings Input b)) (lookup (box /\ Input) io) <>
       maybe [] (foldMap (renderLines spiderLineSettings Output b)) (lookup (box /\ Output) io) <>
       renderNode b c
   }
-renderBrick io (Just Cup) b@{ box } =
+renderBrick io (Just { type: Cup }) b@{ box } =
   { className: "wires"
   , content:
       maybe [] (foldMap (renderLines cupcapLineSettings Input b)) (lookup (box /\ Input) io) <>
       maybe [] (foldMap (renderLines cupcapLineSettings Output b)) (lookup (box /\ Output) io)
   }
-renderBrick io (Just Cap) b@{ box } =
+renderBrick io (Just { type: Cap }) b@{ box } =
   { className: "wires"
   , content:
       maybe [] (foldMap (renderLines cupcapLineSettings Input b)) (lookup (box /\ Input) io) <>
@@ -147,14 +147,14 @@ renderBrick io (Just Cap) b@{ box } =
   }
 renderBrick _ Nothing _ = { className: "box", content: [] }
 
-renderBox :: ∀ m. Brick String -> Array (H.ComponentHTML Action () m)
-renderBox { bid, box: { topLeft: { x: xl, y: yt }, bottomRight: { x: xr, y: yb } } } =
+renderBox :: ∀ m. String -> Box -> Array (H.ComponentHTML Action () m)
+renderBox name { topLeft: { x: xl, y: yt }, bottomRight: { x: xr, y: yb } } =
   [ S.rect [ S.x (mx - 0.18), S.y (my - 0.25), S.width 0.36, S.height 0.5, svgClasses [ ClassName "inner-box" ] ]
   , S.text
     [ S.x mx, S.y (my + 0.12)
     , S.attr (AttrName "text-anchor") "middle"
     , svgClasses [ ClassName "inner-box-text" ]
-    ] [ text bid ]
+    ] [ text name, sub_ [ text "1" ] ]
   ]
   where
     mx = (toNumber xl + toNumber xr) / 2.0

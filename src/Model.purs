@@ -138,7 +138,7 @@ isGen :: ∀ bv. TypeDecl bv -> Boolean
 isGen (Gen _) = true
 isGen _ = false
 
-type Context bv bid = Map bid (TypeDecl bv)
+type Context bv bid = Map bid { name :: String, type :: TypeDecl bv }
 
 
 data Var bv
