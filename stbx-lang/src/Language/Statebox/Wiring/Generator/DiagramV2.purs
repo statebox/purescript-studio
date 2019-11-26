@@ -17,15 +17,32 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Data.Function.Memoize (memoize, class Tabulate)
 import Statebox.Core.Types (Diagram)
 
-import Language.Statebox.Wiring.Generator (Edges)
+import Language.Statebox.Wiring.Generator (Edges, toIndexedGraph, getEdges)
+import Language.Statebox.Wiring.AST (GElem)
 
 type DiagramV2 =
   { pixels :: String
   , context :: String
   }
 
-fromEdges :: ∀ a. Ord a => Tabulate a => Show a => Edges a -> DiagramV2
-fromEdges edges = { pixels, context }
+
+fromWiring :: List GElem -> DiagramV2
+fromWiring ast = fromEdges (_ - 1) name edges
+  where
+    { graph, names } = toIndexedGraph ast
+    edges = getEdges graph
+    name id = names !! (id - 1) # fromMaybe "?"
+
+fromDiagram :: Diagram -> DiagramV2
+fromDiagram { width, pixels, names } = fromEdges (_ - 1) name edges
+  where
+    rows = chunks width pixels
+    edges = concat $ zipWith (zipWith (\src tgt -> { src, tgt })) rows (drop 1 rows)
+    name id = names !! (id - 1) # fromMaybe "?"
+
+
+fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
+fromEdges fromEnum name edges = { pixels, context }
   where
     pixels = (0 .. height) <#> row # intercalate "\n"
     context = [nodeTypes, swapTypes] # intercalate "\n"
@@ -48,14 +65,16 @@ fromEdges edges = { pixels, context }
     height = grouped <#> length # maximum # fromMaybe 0
     typeStr :: a -> Map a (Array a) -> (a -> String) -> String
     typeStr a m f = mlookup a m <#> f # intercalate " "
+    pixel :: a -> String
+    pixel a = nextChar 'A' (fromEnum a)
     nodeType :: a -> String
-    nodeType a = show a <> ": " <> typeStr a predecessors (\b -> show b <> "-" <> show a)
-                      <> " -> " <> typeStr a successors (\b -> show a <> "-" <> show b)
+    nodeType a = name a <> "@" <> pixel a <> ": " <> typeStr a predecessors (\b -> name b <> "_" <> name a)
+                                        <> " -> " <> typeStr a successors   (\b -> name a <> "_" <> name b)
     nodeTypes :: String
     nodeTypes = map nodeType nodes # intercalate "\n"
     row :: Int -> String
     row y = grouped # foldMapWithIndex \x g ->
-      ((g !! y) # maybe (if x > 0 && x < width - 1 then nextChar 'A' (x - 1) else " ") show) <>
+      ((g !! y) # maybe (if x > 0 && x < width - 1 then nextChar 'n' (x - 1) else " ") pixel) <>
       if x < width - 1 then nextChar 'a' x else ""
     swapTypes :: String
     swapTypes = grouped
@@ -66,7 +85,7 @@ fromEdges edges = { pixels, context }
     mkSwap i edgeIds as = { accum: levelOutputs as <> rest, value }
       where
         value = nextChar 'a' i <> ": [" <> intercalate " " order <> "]\n" <>
-                nextChar 'A' i <> ": [" <> intercalate " " ((1 ..< (length rest + 1)) <#> show) <> "]"
+                nextChar 'n' i <> ": [" <> intercalate " " ((1 ..< (length rest + 1)) <#> show) <> "]"
         ids = foldMap (\a -> mlookup a inputs) as
         order = (ids <> rest) <#> \id -> elemIndex id edgeIds # maybe "?" ((_ + 1) >>> show)
         rest = filter (\id -> id `notElem` ids) edgeIds
@@ -86,11 +105,6 @@ rangeEx :: Int -> Int -> Array Int
 rangeEx x y = if y > x then x .. (y - 1) else []
 
 infix 8 rangeEx as ..<
-
-diagramEdges :: Diagram -> Edges Int
-diagramEdges { width, pixels } = concat $ zipWith (zipWith (\src tgt -> { src, tgt })) rows (drop 1 rows)
-  where
-    rows = chunks width pixels
 
 chunks :: ∀ a. Int -> Array a -> Array (Array a)
 chunks _ [] = []
