@@ -17,14 +17,14 @@ import Model
 
 
 haskellCode :: String -> TypedTerm String String -> String
-haskellCode name tm = case haskellCode' tm of
+haskellCode fnName tm = case haskellCode' tm of
   { i, o, code } -> typeDecl <> args <> indent ("\n" <> arr (tuple $ foldMap singleton i) (showNested i) `comp` code `comp` arr (showNested o) (tuple $ foldMap singleton o))
   where
-    gens = tm # foldMap \{ decl, bid } -> case decl of
-      Gen ty -> Map.singleton bid ty
+    gens = tm # foldMap \{ decl, name } -> case decl of
+      Gen ty -> Map.singleton name ty
       otherwise -> Map.empty
-    args = if length gens > 0 then name <> " " <> toLower (intercalate " " $ Map.keys gens) <> " = " else ""
-    typeDecl = name <>
+    args = if length gens > 0 then fnName <> " " <> toLower (intercalate " " $ Map.keys gens) <> " = " else ""
+    typeDecl = fnName <>
       "\n  :: Arrow arr" <>
       "\n  => " <> intercalate "\n  -> " (showTy <$> Map.values gens) <>
       "\n  -> " <> showTy (getAnn tm) <>
@@ -39,7 +39,7 @@ haskellEmpty = { i: liftF [], o: liftF [], code: "returnA" }
 haskellCode' :: TypedTerm String String -> HaskellCode
 haskellCode' = foldFix \(Ann _ f) -> alg f where
   alg TUnit = haskellEmpty
-  alg (TBox { bid, decl }) = case decl of
+  alg (TBox { name, decl }) = case decl of
     Perm perm -> perm # foldMapWithIndex (\i p -> ["a" <> show i] /\ ["a" <> show (p - 1)]) #
       \(i /\ o) -> { i: liftF i, o: liftF o, code: arr (tuple i) (tuple o) }
     Spider _ l r -> { i: liftF i, o: liftF o, code: arr (tuple i) out }
@@ -52,7 +52,7 @@ haskellCode' = foldFix \(Ann _ f) -> alg f where
     Gen (Ty i o) ->
       { i: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) i
       , o: liftF $ foldMapWithIndex (\j n -> [toLower n <> show j]) o
-      , code: toLower bid }
+      , code: name }
     Cup -> { i: liftF [], o: liftF ["a0", "a1"], code: "cup" }
     Cap -> { i: liftF ["a0", "a1"], o: liftF [], code: "cap" }
   alg (TC ts) = ts # unsnoc # maybe haskellEmpty (\{ init, last } -> foldr compose last init) # mapCode braced

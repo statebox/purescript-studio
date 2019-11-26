@@ -14,34 +14,34 @@ json = foldFix alg >>> stringify where
   alg (Ann _ TUnit) = encodeJson { type: "unit" }
   alg (Ann _ (TC terms)) = encodeJson { type: "compose", terms }
   alg (Ann _ (TT terms)) = encodeJson { type: "tensor", terms }
-  alg (Ann (Ty l r) (TBox { bid, decl: Gen _ })) = encodeJson
+  alg (Ann (Ty l r) (TBox { name, decl: Gen _ })) = encodeJson
     { type: "generator"
-    , name: bid
+    , name
     , inputTypes: l
     , outputTypes: r }
-  alg (Ann (Ty l _) (TBox { bid, decl: Perm p }))
+  alg (Ann (Ty l _) (TBox { name, decl: Perm p }))
     | take (length p) [1,2,3,4,5,6,7,8,9] == p = encodeJson
       { type: "identity"
-      , name: bid
+      , name
       , typeParams: l }
     | otherwise = encodeJson
       { type: "permutation"
-      , name: bid
+      , name
       , permutation: p
       , typeParams: l }
-  alg (Ann (Ty l r) (TBox { bid, decl: Spider c ni no })) = encodeJson
+  alg (Ann (Ty l r) (TBox { name, decl: Spider c ni no })) = encodeJson
     { type: "spider"
-    , name: bid
+    , name
     , inputs: ni
     , outputs: no
     , color: show c
     , typeParam: l <> r # head
     }
-  alg (Ann (Ty l r) (TBox { bid, decl: Cup })) = encodeJson
+  alg (Ann (Ty l r) (TBox { name, decl: Cup })) = encodeJson
     { type: "cup"
-    , name: bid
+    , name
     , typeParam: l <> r # head }
-  alg (Ann (Ty l r) (TBox { bid, decl: Cap })) = encodeJson
+  alg (Ann (Ty l r) (TBox { name, decl: Cap })) = encodeJson
     { type: "cap"
-    , name: bid
+    , name
     , typeParam: l <> r # head }

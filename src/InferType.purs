@@ -75,7 +75,7 @@ inferType ctx tm = { term, bounds, matches: matches <> typeToMatches, errors }
                 replaceInferredType bounds $
                   (acc <> step <> empty { bounds = bounds, matches = [Matched matches] })
                     { type = Ty (a <#> replaceBoxed bounds) (c <#> replaceBoxed bounds) }
-  tmWithDecl = tm # traverse (\{ bid, box } -> Map.lookup bid ctx # maybe (Left $ "Undeclared name: " <> show bid) \decl -> Right { bid, box, decl: decl.type })
+  tmWithDecl = tm # traverse (\{ bid, box } -> Map.lookup bid ctx # maybe (Left $ "Undeclared name: " <> show bid) \decl -> Right { bid, box, decl: decl.type, name: decl.name })
   fatTerm = tmWithDecl # either (const (Fix (Ann empty TUnit))) (reannotateFix alg)
   typeToMatches = case (getAnn fatTerm).type of Ty l r -> [Unmatched Valid Input l, Unmatched Valid Output r]
   { bounds, matches, errors } = getAnn fatTerm

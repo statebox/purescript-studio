@@ -162,7 +162,7 @@ derive instance eqValidity :: Eq Validity
 
 data Matches a = Matched (Array (Validity /\ a /\ a)) | Unmatched Validity Side (Array a)
 
-type TypedTerm bv bid = Fix (Ann (Ty String) TermF) { bid :: bid, box :: Box, decl :: TypeDecl bv }
+type TypedTerm bv bid = Fix (Ann (Ty String) TermF) { bid :: bid, box :: Box, decl :: TypeDecl bv, name :: String }
 
 
 class FlipDir bv where
