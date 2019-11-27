@@ -7,11 +7,10 @@ import Data.Array (range)
 import Data.Bifunctor
 import Data.Bitraversable
 import Data.Traversable
-
+import Data.Vec3
 
 data VoidF a
 
-type Vec2 a = { x :: a, y :: a }
 type Disc2 = Vec2 Int
 type Cont2 = Vec2 Number
 

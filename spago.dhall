@@ -14,6 +14,7 @@
     , "psci-support"
     , "strings"
     , "variant"
+    , "vec"
     ]
 , packages =
     ./packages.dhall

@@ -83,7 +83,7 @@ appView =
     }
 
 initialState :: Input -> State
-initialState input = { input, selectionBox: { topLeft: { x: 0, y: 0 }, bottomRight: { x: 0, y: 0 } } }
+initialState input = { input, selectionBox: { topLeft: zero, bottomRight: zero } }
 
 render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
 render st = div [ classes [ ClassName "app" ] ]
