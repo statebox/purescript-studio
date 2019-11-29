@@ -20,14 +20,14 @@ import Statebox.Core.Types (Diagram)
 import Language.Statebox.Wiring.Generator (Edges, toIndexedGraph, getEdges)
 import Language.Statebox.Wiring.AST (GElem)
 
+-- | A kdmoncat-compatible diagram in source code representation.
 type DiagramV2 =
-  { pixels :: String
+  { pixels  :: String
   , context :: String
   }
 
-
-fromWiring :: List GElem -> DiagramV2
-fromWiring ast = fromEdges (_ - 1) name edges
+fromDiagramAst :: List GElem -> DiagramV2
+fromDiagramAst ast = fromEdges (_ - 1) name edges
   where
     { graph, names } = toIndexedGraph ast
     edges = getEdges graph
@@ -39,7 +39,6 @@ fromDiagram { width, pixels, names } = fromEdges (_ - 1) name edges
     rows = chunks width pixels
     edges = concat $ zipWith (zipWith (\src tgt -> { src, tgt })) rows (drop 1 rows)
     name id = names !! (id - 1) # fromMaybe "?"
-
 
 fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
 fromEdges fromEnum name edges = { pixels, context }
