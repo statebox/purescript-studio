@@ -34,29 +34,30 @@ data MouseMsg
 
 data Msg
   = OperatorClicked OperatorId
-  | CursorMoved
+  | OpsChanged (Array Operator)
 
 --------------------------------------------------------------------------------
 
-evalModel :: MouseMsg -> Model -> Model
+evalModel :: MouseMsg -> Model -> Boolean /\ Model
 evalModel msg model = case msg of
-  MouseIsOut    _   -> model { mouseOver = Nothing }
-  MouseIsOver   x k -> model { mouseOver = Just (x /\ k) }
-  MousePos      p   -> model { mousePos = p }
-  MouseDown     p   -> model { mousePos = p
-                             , mousePressed = true
-                             , dragStart = case model.mouseOver of
-                                             Nothing            -> DragStartedOnBackground model.mousePos
-                                             Just (op /\ opPos) -> DragStartedOnOperator   model.mousePos op opPos
-                             }
-  MouseUp       p   -> (dropGhost model) { mousePos = p
-                                         , mousePressed = false
-                                         , dragStart = DragNotStarted
-                                         }
+  MouseIsOut    _   -> (false /\ model { mouseOver = Nothing })
+  MouseIsOver   x k -> (false /\ model { mouseOver = Just (x /\ k) })
+  MousePos      p   -> (false /\ model { mousePos = p })
+  MouseDown     p   -> (false /\ model { mousePos = p
+                                       , mousePressed = true
+                                       , dragStart = case model.mouseOver of
+                                                       Nothing            -> DragStartedOnBackground model.mousePos
+                                                       Just (op /\ opPos) -> DragStartedOnOperator   model.mousePos op opPos
+                                       })
+  MouseUp       p   -> let (b /\ model') = dropGhost model in
+                       (b /\ model' { mousePos = p
+                                    , mousePressed = false
+                                    , dragStart = DragNotStarted
+                                    })
 
 --------------------------------------------------------------------------------
 
-dropGhost :: Model -> Model
+dropGhost :: Model -> Boolean /\ Model
 dropGhost model = case model.dragStart of
   DragStartedOnOperator _ op _ ->
     let scale      = model.config.scale
@@ -72,5 +73,5 @@ dropGhost model = case model.dragStart of
         (ox /\ ow) = if _z opxyw > zero then _x opxyw /\ _z opxyw else (_x opxyw + _z opxyw) /\ (- _z opxyw)
         modOp o    = o { pos = vec3 ox (_y opxyw) ow }
         newOps     = modifyOperator op.identifier modOp model.ops
-    in if isValid then model { ops = newOps } else model
-  _ -> model
+    in if isValid then (true /\ model { ops = newOps }) else (false /\ model)
+  _ -> (false /\ model)

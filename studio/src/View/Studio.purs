@@ -4,10 +4,10 @@ import Prelude hiding (div)
 import Affjax as Affjax
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
-import Data.Array (cons)
+import Data.Array (cons, length)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
@@ -24,7 +24,8 @@ import Statebox.Core.Transaction (HashTx)
 import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
-import View.Studio.Model (Action(..), State, fromPNPROProject)
+import View.Model (Project)
+import View.Studio.Model (Action(..), State, fromPNPROProject, findProject, findDiagramInfo, modifyProject, modifyDiagramInfo)
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
@@ -112,8 +113,18 @@ ui =
             _                     -> Nothing
         maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
-      HandleDiagramEditorMsg (DiagramEditor.CursorMoved) -> do
-        pure unit
+      HandleDiagramEditorMsg (DiagramEditor.OpsChanged ops) -> do
+        H.liftEffect $ log $ "DiagramEditor.OpsChanged: " <> show ops
+        state <- H.get
+        let
+          projects' :: Maybe (Array Project)
+          projects' = case state.route of
+            Diagram pname dname _ ->
+              modifyProject pname (\p -> p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (\d -> d {ops = ops}) p.diagrams) }) state.projects
+            _ -> Nothing
+        H.liftEffect $ log $ "saving " <> show (map (map (\p -> map (\di -> length di.ops) p.diagrams)) projects')
+        maybe (pure unit) --(const $ pure unit) projects'
+                          (\ps -> H.modify_ (\state -> state { projects = ps }) ) projects'
 
       HandlePetrinetEditorMsg NetUpdated -> do
         pure unit

@@ -7,6 +7,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
+import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML (HTML, div)
@@ -75,7 +76,6 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         let { cursorPos, config: { scale, width, height } } = m
         let cursorPos' = clamp2d (width/scale+1) (height/scale+1) (cursorPos + delta)
         H.modify_ \st -> st { model = m { cursorPos = cursorPos' } }
-        H.raise CursorMoved
 
       KeyboardAction k -> do
         H.liftEffect $ preventDefault $ toEvent k
@@ -91,9 +91,12 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
       MouseAction msg -> do
         state <- H.get
-        let state' = state { model = evalModel msg state.model }
-
-            isOperatorClicked = case msg of
+        let (opsMoved /\ model') = evalModel msg state.model
+            state' = state { model = model' }
+        if opsMoved
+          then H.raise $ OpsChanged model'.ops
+          else pure unit
+        let isOperatorClicked = case msg of
               MouseUp _ -> true
               _         -> false
 
@@ -108,8 +111,9 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
         maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
 
-      UpdateDiagram ops ->
+      UpdateDiagram ops -> do
         H.modify_ \state -> state { model = state.model { ops = ops } }
+        H.raise $ OpsChanged ops
 
       Initialize -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel

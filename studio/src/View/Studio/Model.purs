@@ -2,7 +2,7 @@ module View.Studio.Model where
 
 import Prelude
 import Affjax (URL) -- TODO introduce URL alias in Client so we can abstract Affjax away
-import Data.Array (index)
+import Data.Array (index, findIndex, modifyAt)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
 import Data.Bifunctor (bimap)
@@ -84,6 +84,11 @@ resolveRoute route {projects, hashSpace} = case route of
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
 
+modifyProject :: ProjectName -> (Project -> Project) -> Array Project -> Maybe (Array Project)
+modifyProject projectName fn projects =
+  do ix <- findIndex (\p -> p.name == projectName) projects
+     modifyAt ix fn projects
+
 findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
 
@@ -93,6 +98,11 @@ findNetInfoWithTypesAndRoles project netName =
 
 findDiagramInfo :: Project -> DiagramName -> Maybe DiagramInfo
 findDiagramInfo project diagramName = find (\d -> d.name == diagramName) project.diagrams
+
+modifyDiagramInfo :: DiagramName -> (DiagramInfo -> DiagramInfo) -> Array DiagramInfo -> Maybe (Array DiagramInfo)
+modifyDiagramInfo diagramName fn diagrams =
+  do ix <- findIndex (\d -> d.name == diagramName) diagrams
+     modifyAt ix fn diagrams
 
 findWiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe WiringTx
 findWiringTx hashSpace wiringHash = preview _wiringTx =<< AdjacencySpace.lookup wiringHash hashSpace
