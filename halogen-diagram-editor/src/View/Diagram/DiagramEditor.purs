@@ -69,7 +69,7 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         let id = length ops
         let newOp = { identifier: "new" <> show id, pos: m.cursorPos + vec3 1 0 7, label: "new" <> show id }
         H.modify_ \st -> st { model = m { cursorPos = m.cursorPos + vec3 0 1 0 } }
-        handleAction $ UpdateDiagram (ops `snoc` newOp)
+        H.raise $ OpsChanged (ops `snoc` newOp)
 
       MoveCursor delta -> do
         m <- H.get <#> _.model
@@ -113,7 +113,6 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
       UpdateDiagram ops -> do
         H.modify_ \state -> state { model = state.model { ops = ops } }
-        H.raise $ OpsChanged ops
 
       Initialize -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
