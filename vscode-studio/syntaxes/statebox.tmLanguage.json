@@ -1,0 +1,30 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "statebox",
+	"patterns": [
+		{
+			"include": "#keywords"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.other.statebox",
+				"match": "\\b(name)\\b"
+			}, {
+				"name": "keyword.control.statebox",
+				"match": "(->|:)"
+			}, {
+				"name": "entity.name.function.statebox",
+				"match": "^([A-Za-z0-9\\_])+"
+			}, {
+				"name": "entity.name.type.statebox",
+				"match": "\\b([A-Za-z0-9\\_])+\\b"
+			}, {
+				"name": "invalid",
+				"match": "XXX"
+			}]
+		}
+	},
+	"scopeName": "text.statebox"
+}

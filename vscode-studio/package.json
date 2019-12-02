@@ -1,0 +1,63 @@
+{
+	"name": "statebox",
+	"displayName": "statebox",
+	"description": "Statebox Formal Visual Process and Contract Language",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.39.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:extension.compileNet",
+		"onCommand:extension.viewNet",
+		"onLanguage:statebox"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "extension.compileNet",
+				"title": "Statebox: Compile process definition"
+			},
+			{
+				"command": "extension.viewNet",
+				"title": "Statebox: View Petri net"
+			}
+		],
+		"languages": [
+			{
+				"id": "statebox",
+				"aliases": [
+					"statebox"
+				],
+				"extensions": [
+					".stbx"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "statebox",
+				"scopeName": "text.statebox",
+				"path": "./syntaxes/statebox.tmLanguage.json"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"postinstall": "node ./node_modules/vscode/bin/install",
+		"test": "npm run compile && node ./node_modules/vscode/bin/test"
+	},
+	"devDependencies": {
+		"typescript": "^3.3.1",
+		"vscode": "^1.1.28",
+		"tslint": "^5.12.1",
+		"@types/node": "^10.12.21",
+		"@types/mocha": "^2.2.42"
+	}
+}
