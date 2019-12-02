@@ -1,7 +1,7 @@
 'use strict'
 import * as path from 'path'
 
-let psRootPath = path.join('/', 'Users', 'erik', 'dev', 'statebox', 'studio', 'stbx-lang', 'output')
+let psRootPath = path.join(__dirname, '..', '..', 'stbx-lang', 'output')
 
 export const PS = {
   Prelude:       require(path.join(psRootPath, 'Prelude', 'index.js')),
