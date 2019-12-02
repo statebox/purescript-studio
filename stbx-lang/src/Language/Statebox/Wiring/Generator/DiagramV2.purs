@@ -48,38 +48,51 @@ fromEdges fromEnum name edges = { pixels, context }
 
     predecessors :: Map a (Array a)
     predecessors = edges <#> (\{ src, tgt } -> tgt /\ [src]) # mfromFoldable
+
     successors :: Map a (Array a)
     successors = edges <#> (\{ src, tgt } -> src /\ [tgt]) # mfromFoldable
+
     inputs :: Map a (Array Int)
     inputs = edges # mapWithIndex (\i { tgt } -> tgt /\ [i]) # mfromFoldable
+
     outputs :: Map a (Array Int)
     outputs = edges # mapWithIndex (\i { src } -> src /\ [i]) # mfromFoldable
+
     level :: a -> Int
     level = memoize \a -> mlookup a predecessors <#> level # maximum # maybe 0 (_ + 1)
+
     nodes :: List a
     nodes = (successors `union` predecessors) # keys
+
     grouped :: Array (Array a)
     grouped = nodes <#> (\id -> level id /\ [id]) # mfromFoldable # toUnfoldable <#> snd
+
     width = length grouped
     height = grouped <#> length # maximum # fromMaybe 0
+
     typeStr :: a -> Map a (Array a) -> (a -> String) -> String
     typeStr a m f = mlookup a m <#> f # intercalate " "
+
     pixel :: a -> String
     pixel a = nextChar 'A' (fromEnum a)
+
     nodeType :: a -> String
     nodeType a = name a <> "@" <> pixel a <> ": " <> typeStr a predecessors (\b -> name b <> "_" <> name a)
                                         <> " -> " <> typeStr a successors   (\b -> name a <> "_" <> name b)
     nodeTypes :: String
     nodeTypes = map nodeType nodes # intercalate "\n"
+
     row :: Int -> String
     row y = grouped # foldMapWithIndex \x g ->
       ((g !! y) # maybe (if x > 0 && x < width - 1 then nextChar 'n' (x - 1) else " ") pixel) <>
       if x < width - 1 then nextChar 'a' x else ""
+
     swapTypes :: String
     swapTypes = grouped
               # uncons
              <#> (\{ head, tail } -> mapAccumLWithIndex mkSwap (levelOutputs head) tail)
               # maybe "" (_.value >>> intercalate "\n")
+
     mkSwap :: Int -> Array Int -> Array a -> { accum :: Array Int, value :: String }
     mkSwap i edgeIds as = { accum: levelOutputs as <> rest, value }
       where
@@ -88,6 +101,7 @@ fromEdges fromEnum name edges = { pixels, context }
         ids = foldMap (\a -> mlookup a inputs) as
         order = (ids <> rest) <#> \id -> elemIndex id edgeIds # maybe "?" ((_ + 1) >>> show)
         rest = filter (\id -> id `notElem` ids) edgeIds
+
     levelOutputs :: Array a -> Array Int
     levelOutputs = foldMap (\a -> mlookup a outputs)
 
