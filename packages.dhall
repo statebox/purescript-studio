@@ -10,8 +10,8 @@ let additions = {
     , version = "d0a4cbc79b5513296cb746576824dce967aedbab"
     },
   vec =
-    { dependencies = [ "foldable-traversable" ]
-    , repo = "https://github.com/statebox/purescript-vec.git"
+    { dependencies = [ "prelude", "foldable-traversable" ]
+    , repo = "https://${env:GITHUB_TOKEN as Text}:x-oauth-basic@github.com/statebox/purescript-vec.git"
     , version = "c7c8486a4e36ed37baf67cbe026d42acd4aa9b02"
     }
 }
