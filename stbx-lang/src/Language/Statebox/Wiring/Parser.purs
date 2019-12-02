@@ -18,8 +18,8 @@ import Language.Statebox.Hypergraph (NodeF(..), HyperEdgeF(..), GElemF(..))
 import Language.Statebox.Wiring.AST (Node(..), HyperEdge(..), LabelWithSpan, GElem(..))
 import Language.Statebox.Parser.Util (getPosition, hspaces, inside, isAlphaNum, someOf)
 
-graph1 :: Parser String (List GElem)
-graph1 = (gElem `inside` hspaces) `sepEndBy` (semicolon <|> newlines)
+diagram :: Parser String (List GElem)
+diagram = (gElem `inside` hspaces) `sepEndBy` (semicolon <|> newlines)
   where
     newlines = skipMany1 (char '\n')
     semicolon = const unit <$> char ';'

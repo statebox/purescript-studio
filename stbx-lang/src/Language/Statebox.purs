@@ -11,7 +11,7 @@ import Language.Statebox.Wiring.AST (GElem(..)) as Wiring
 import Language.Statebox.Wiring.Parser as WiringParser
 
 parseNet :: String -> Either ParseError (List Net.GElem)
-parseNet src = runParser src NetParser.graph1
+parseNet src = runParser src NetParser.net
 
-parseWiring :: String -> Either ParseError (List Wiring.GElem)
-parseWiring src = runParser src WiringParser.graph1
+parseDiagram :: String -> Either ParseError (List Wiring.GElem)
+parseDiagram src = runParser src WiringParser.diagram
