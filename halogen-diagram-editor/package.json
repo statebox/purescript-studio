@@ -1,0 +1,18 @@
+{
+  "name": "purescript-halogen-diagram-editor",
+  "version": "1.0.0",
+  "description": "Halogen brick diagram editor component",
+  "author": "Erik Post <erik@shinsetsu.nl>",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "spago install",
+    "build": "spago build -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago build --watch -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport"
+  },
+  "devDependencies": {
+    "purescript": "^0.13.3",
+    "purescript-psa": "^0.7.3",
+    "spago": "^0.9.0"
+  },
+  "license": "ISC"
+}
