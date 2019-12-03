@@ -38,6 +38,7 @@ data Msg
 
 --------------------------------------------------------------------------------
 
+-- first parameter indicates if any ops where modified
 evalModel :: MouseMsg -> Model -> Boolean /\ Model
 evalModel msg model = case msg of
   MouseIsOut    _   -> (false /\ model { mouseOver = Nothing })
@@ -57,6 +58,7 @@ evalModel msg model = case msg of
 
 --------------------------------------------------------------------------------
 
+-- first parameter indicates if any ops where modified
 dropGhost :: Model -> Boolean /\ Model
 dropGhost model = case model.dragStart of
   DragStartedOnOperator _ op _ ->

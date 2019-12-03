@@ -114,17 +114,16 @@ ui =
         maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
       HandleDiagramEditorMsg (DiagramEditor.OpsChanged ops) -> do
-        H.liftEffect $ log $ "DiagramEditor.OpsChanged: " <> show ops
         state <- H.get
         let
           projects' :: Maybe (Array Project)
           projects' = case state.route of
             Diagram pname dname _ ->
-              modifyProject pname (\p -> p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (\d -> d {ops = ops}) p.diagrams) }) state.projects
+              modifyProject pname (\p ->
+                  p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (\d -> d {ops = ops}) p.diagrams) }
+                ) state.projects
             _ -> Nothing
-        H.liftEffect $ log $ "saving " <> show (map (map (\p -> map (\di -> length di.ops) p.diagrams)) projects')
-        maybe (pure unit) --(const $ pure unit) projects'
-                          (\ps -> H.modify_ (\state -> state { projects = ps }) ) projects'
+        maybe (pure unit) (\ps -> H.modify_ (\state -> state { projects = ps }) ) projects'
 
       HandlePetrinetEditorMsg NetUpdated -> do
         pure unit

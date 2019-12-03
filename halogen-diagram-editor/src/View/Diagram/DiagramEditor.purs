@@ -91,9 +91,9 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
       MouseAction msg -> do
         state <- H.get
-        let (opsMoved /\ model') = evalModel msg state.model
+        let (opsChanged /\ model') = evalModel msg state.model
             state' = state { model = model' }
-        if opsMoved
+        if opsChanged
           then H.raise $ OpsChanged model'.ops
           else pure unit
         let isOperatorClicked = case msg of
