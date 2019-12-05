@@ -35,6 +35,9 @@ import Debug.Trace
 import Model
 import Common (VoidF, Disc2)
 
+import View.Box as Box
+
+
 type Match bv = { y :: Number, validity :: Validity, center :: Boolean, object :: bv }
 type InputOutput bv = Map (Box /\ Side) (Array (Match bv))
 
@@ -70,6 +73,12 @@ type Input =
 
 data Output = SelectionChanged Box
 
+type ChildSlots =
+  ( box :: Box.Slot Action Disc2
+  )
+
+_box = SProxy :: SProxy "box"
+
 type Slot = H.Slot VoidF Output
 
 bricksView :: ∀ q m. MonadEffect m => H.Component HTML q Input Output m
@@ -91,7 +100,7 @@ initialState input =
   , showWires: false
   }
 
-render :: ∀ m. State -> H.ComponentHTML Action () m
+render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
 render { input: { bricks: { width, height, boxes }, matches, context, selectedBoxes }, selection, showWires } = div
   [ ref (RefLabel "bricks")
   , classes [ ClassName "bricks", ClassName $ if showWires then "show-wires" else "show-bricks" ]
@@ -117,14 +126,14 @@ render { input: { bricks: { width, height, boxes }, matches, context, selectedBo
     ] ]
   ]
 
-renderBrick :: ∀ m. InputOutput String -> Maybe { name :: String, type :: TypeDecl String } -> Brick String
-  -> { className :: String, content :: Array (H.ComponentHTML Action () m) }
+renderBrick :: ∀ m. MonadEffect m => InputOutput String -> Maybe { name :: String, type :: TypeDecl String } -> Brick String
+  -> { className :: String, content :: Array (H.ComponentHTML Action ChildSlots m) }
 renderBrick io (Just { name, type: Gen _ }) b@{ box } =
   { className: "box"
   , content:
+      maybe [] (foldMap (renderLines genLineSettings Input b)) (lookup (box /\ Input) io) <>
+      maybe [] (foldMap (renderLines genLineSettings Output b)) (lookup (box /\ Output) io) <>
       renderBox name box
-      <> maybe [] (foldMap (renderLines genLineSettings Input b)) (lookup (box /\ Input) io)
-      <> maybe [] (foldMap (renderLines genLineSettings Output b)) (lookup (box /\ Output) io)
   }
 renderBrick io (Just { type: Perm perm }) b = { className: "wires", content: renderPerm io b perm }
 renderBrick io (Just { type: Spider c _ _ }) b@{ box } =
@@ -148,21 +157,29 @@ renderBrick io (Just { type: Cap }) b@{ box } =
   }
 renderBrick _ Nothing _ = { className: "box", content: [] }
 
-renderBox :: ∀ m. String -> Box -> Array (H.ComponentHTML Action () m)
+renderBox :: ∀ m. MonadEffect m => String -> Box -> Array (H.ComponentHTML Action ChildSlots m)
 renderBox name { topLeft, bottomRight } =
-  [ S.rect [ S.x (mx - 0.18), S.y (my - 0.25), S.width 0.36, S.height 0.5, svgClasses [ ClassName "inner-box" ] ]
-  , S.text
-    [ S.x mx, S.y (my + 0.12)
-    , S.attr (AttrName "text-anchor") "middle"
-    , svgClasses [ ClassName "inner-box-text" ]
-    ] [ text name ]
+  [ slot _box topLeft Box.boxView
+    { content: S.text
+      [ S.x mx, S.y (my + 0.14)
+      , S.attr (AttrName "text-anchor") "middle"
+      , svgClasses [ ClassName "inner-box-text" ]
+      ] [ text name ]
+    , minWidth: 0.33
+    , maxWidth: 0.5
+    , minHeight: 0.5
+    , maxHeight: 0.5
+    , padding: 0.015
+    , className: "inner-box"
+    }
+    Just
   ]
   where
     center = map toNumber (topLeft + bottomRight) / pure 2.0
     mx = _x center
     my = _y center
 
-renderNode :: ∀ m. Brick String -> Color -> Array (H.ComponentHTML Action () m)
+renderNode :: ∀ m. Brick String -> Color -> Array (H.ComponentHTML Action ChildSlots m)
 renderNode { bid, box: { topLeft, bottomRight } } color =
   [ S.circle [ S.cx mx, S.cy my, S.r 0.05, svgClasses [ ClassName "node", ClassName (show color) ] ]
   ]
@@ -184,7 +201,7 @@ spiderLineSettings = { toBox: false, cpxf: \dx -> dx / 2.0, cpyf: \dy -> dy * 0.
 cupcapLineSettings :: LineSettings
 cupcapLineSettings = { toBox: false, cpxf: \dx -> 0.0, cpyf: \dy -> 0.0 }
 
-renderLines :: ∀ m. LineSettings -> Side -> Brick String -> Match String -> Array (H.ComponentHTML Action () m)
+renderLines :: ∀ m. LineSettings -> Side -> Brick String -> Match String -> Array (H.ComponentHTML Action ChildSlots m)
 renderLines { toBox, cpxf, cpyf } side { box: { topLeft, bottomRight } } m@{ y } =
   [ S.g [ svgClasses (objectClassNames m) ] $
     (if not toBox && m.center then [] else renderObject side x m) <>
@@ -209,7 +226,7 @@ renderLines { toBox, cpxf, cpyf } side { box: { topLeft, bottomRight } } m@{ y }
     cpx = mx + cpxf (x - mx)
     cpy = my + cpyf ((y - my) / height)
 
-renderObject :: ∀ m. Side -> Number -> Match String -> Array (H.ComponentHTML Action () m)
+renderObject :: ∀ m. Side -> Number -> Match String -> Array (H.ComponentHTML Action ChildSlots m)
 renderObject Input x m =
   [ S.text
     [ S.x x, S.y m.y
@@ -231,7 +248,7 @@ typeName :: Match String -> String
 typeName { object, validity: Invalid } = object
 typeName { object, validity: Valid } = makeForwards object
 
-renderPerm :: ∀ m. InputOutput String -> Brick String -> Array Int -> Array (H.ComponentHTML Action () m)
+renderPerm :: ∀ m. InputOutput String -> Brick String -> Array Int -> Array (H.ComponentHTML Action ChildSlots m)
 renderPerm io { box: b } perm =
   case lookup (b /\ Input) io <#> sortWith _.y, lookup (b /\ Output) io <#> sortWith _.y of
     Just yls, Just yrs ->
@@ -266,13 +283,13 @@ selectionBox { topLeft, bottomRight } =
   }
 
 
-handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action () Output m Unit
+handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots Output m Unit
 handleAction = case _ of
   Update input ->
     H.modify_ $ \st -> st { input = input }
   GetFocus -> do
     mb <- H.getRef (RefLabel "bricks")
-    maybe (pure unit) (liftEffect <<< focus <<< unsafeCoerce) mb
+    mb # maybe (pure unit) (unsafeCoerce >>> focus >>> liftEffect)
   MoveCursorStart d -> updateSelection \sel ->
     { topLeft: moveCursor d sel.topLeft sel.bottomRight
     , bottomRight: moveCursor d sel.bottomRight sel.topLeft
@@ -302,7 +319,7 @@ handleAction = case _ of
   OnMouseUp ->
     H.modify_ $ \st -> st { mouseDownFrom = Nothing }
 
-updateSelection :: ∀ m. (Box -> Box) -> H.HalogenM State Action () Output m Unit
+updateSelection :: ∀ m. (Box -> Box) -> H.HalogenM State Action ChildSlots Output m Unit
 updateSelection f = do
   { selection, input: { bricks: { width, height } } } <- H.get
   let { topLeft, bottomRight } = f selection
@@ -321,7 +338,7 @@ moveCursor d2 p0 p1 = move <$> d2 <*> p0 <*> p1
     move 1 a b = max a b
     move _ a _ = a
 
-rect :: ∀ m. Box -> String -> H.ComponentHTML Action () m
+rect :: ∀ m. Box -> String -> H.ComponentHTML Action ChildSlots m
 rect { topLeft: p0, bottomRight: p1 } cls = let dp = p1 - p0 in S.rect $
   [ S.x (toNumber (_x p0) + 0.005)
   , S.y (toNumber (_y p0) + 0.005)
