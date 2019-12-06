@@ -4,7 +4,6 @@ import Prelude
 
 import Data.Bifunctor (bimap)
 import Data.Maybe
-import Data.Traversable (traverse)
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen as H
@@ -20,12 +19,12 @@ import Common (VoidF)
 import Debug.Trace
 
 type Input a c m =
-  { content :: H.ComponentHTML a c m
-  , minWidth :: Number
-  , maxWidth :: Number
+  { content   :: H.ComponentHTML a c m
+  , minWidth  :: Number
+  , maxWidth  :: Number
   , minHeight :: Number
   , maxHeight :: Number
-  , padding :: Number
+  , padding   :: Number
   , className :: String
   }
 
@@ -55,8 +54,10 @@ initialState = { input: _, box: Nothing }
 
 boxRef :: RefLabel
 boxRef = RefLabel "box"
+
 contentRef :: RefLabel
 contentRef = RefLabel "content"
+
 parentRef :: RefLabel
 parentRef = RefLabel "parent"
 
@@ -64,7 +65,7 @@ render :: ∀ a c m. State a c m -> H.ComponentHTML (Action a c m) c m
 render { input: { content, className } } = S.g []
   [ S.rect [ ref boxRef, S.attr (AttrName "class") className ]
   , S.g [ ref contentRef, S.transform [S.Scale 1.0 1.0] ]
-    [ mapAction ContentAction content ]
+        [ mapAction ContentAction content ]
   ]
 
 handleAction :: ∀ a c m. MonadEffect m => Action a c m -> H.HalogenM (State a c m) (Action a c m) c a m Unit
@@ -74,22 +75,32 @@ handleAction = case _ of
     mbox     <- H.getRef boxRef
     mcontent <- H.getRef contentRef
     { input: { minWidth, maxWidth, minHeight, maxHeight, padding } } <- H.get
+
     case mbox, mcontent of
+
+      -- make the box content fit
       Just box, Just content -> do
         svgrect <- content # getBBox # liftEffect
-        let midX = svgrect.x + svgrect.width / 2.0
-        let midY = svgrect.y + svgrect.height / 2.0
-        let scale = min 1.0 (min (maxWidth / svgrect.width) (maxHeight / svgrect.height))
-        let width = max minWidth (svgrect.width * scale) + padding * 2.0
-        let x = midX - width / 2.0
-        let height = max minHeight (svgrect.height * scale) + padding * 2.0
-        let y = midY - height / 2.0
-        setAttribute "x" (show x) box # liftEffect
-        setAttribute "y" (show y) box # liftEffect
-        setAttribute "width" (show width) box # liftEffect
-        setAttribute "height" (show height) box # liftEffect
-        setAttribute "transform" ("scale(" <> show scale <> ")") content # liftEffect
-        setAttribute "transform-origin" (show midX <> " " <> show midY) content # liftEffect
+
+        let
+          midX   = svgrect.x + svgrect.width  / 2.0
+          midY   = svgrect.y + svgrect.height / 2.0
+          scale  = min 1.0 (min (maxWidth / svgrect.width) (maxHeight / svgrect.height))
+          width  = max minWidth  (svgrect.width  * scale) + padding * 2.0
+          height = max minHeight (svgrect.height * scale) + padding * 2.0
+          x      = midX - width  / 2.0
+          y      = midY - height / 2.0
+
+        liftEffect do
+          setAttribute "x"      (show x)      box
+          setAttribute "y"      (show y)      box
+          setAttribute "width"  (show width)  box
+          setAttribute "height" (show height) box
+
+        liftEffect do
+          setAttribute "transform"        ("scale(" <> show scale <> ")") content
+          setAttribute "transform-origin" (show midX <> " " <> show midY) content
+
       _, _ -> pure unit
 
   Update input -> do
@@ -99,15 +110,18 @@ handleAction = case _ of
   ContentAction a ->
     H.raise a
 
-
 mapAction :: ∀ m c a b. (a -> b) -> H.ComponentHTML a c m -> H.ComponentHTML b c m
 mapAction f = bimap (map f) f
 
+--------------------------------------------------------------------------------
+
+-- TODO move to SVG lib
 type SVGRect =
-  { x :: Number
-  , y :: Number
-  , width :: Number
+  { x      :: Number
+  , y      :: Number
+  , width  :: Number
   , height :: Number
   }
 
+-- TODO move to SVG lib
 foreign import getBBox :: Element -> Effect SVGRect
