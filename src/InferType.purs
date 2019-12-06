@@ -175,7 +175,7 @@ parseContext = spl "\n" >>> alaF App foldMap toEntry
     toEntry :: String -> Either String (Context String String)
     toEntry line = case spl ":" line of
       [nameBid, typ] -> let { name, bids } = parseName nameBid in
-        (\ty -> foldMap (\bid -> Map.singleton bid { name, type: ty }) bids) <$>
+        (\ty -> foldMap (\bid -> Map.singleton bid { name: if name == "" then bid else name, type: ty }) bids) <$>
         case typ # spl "->" <#> (spl " " >>> filter (_ /= "")) of
           [left, right] -> pure $ Gen $ Ty left right
           _ -> do
