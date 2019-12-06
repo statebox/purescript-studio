@@ -26,8 +26,9 @@ import Halogen.HTML.Events (onKeyDown, onMouseDown, onMouseMove, onMouseUp)
 import Halogen.Query.Input (RefLabel(..))
 import Svg.Elements as S
 import Svg.Attributes hiding (path) as S
+import Web.DOM (Element)
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, shiftKey)
-import Web.HTML.HTMLElement (focus)
+import Web.HTML.HTMLElement (HTMLElement, focus)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Debug.Trace
@@ -289,7 +290,7 @@ handleAction = case _ of
     H.modify_ $ \st -> st { input = input }
   GetFocus -> do
     mb <- H.getRef (RefLabel "bricks")
-    mb # maybe (pure unit) (unsafeCoerce >>> focus >>> liftEffect)
+    mb # maybe (pure unit) (toHTMLElement >>> focus >>> liftEffect)
   MoveCursorStart d -> updateSelection \sel ->
     { topLeft: moveCursor d sel.topLeft sel.bottomRight
     , bottomRight: moveCursor d sel.bottomRight sel.topLeft
@@ -395,3 +396,8 @@ matchesToIO = foldMap matchesToIO' >>> foldr (Map.unionWith (<>)) Map.empty
         objects = nonEmpty # foldMapWithIndex \i v -> [{ validity, y: y0 + (y1 - y0) * (0.5 + toNumber i) / n, object: getObject v, center: false }]
     getObject { var: BoundVar bv } = bv
     getObject _ = ""
+
+--------------------------------------------------------------------------------
+
+toHTMLElement :: Element -> HTMLElement
+toHTMLElement = unsafeCoerce
