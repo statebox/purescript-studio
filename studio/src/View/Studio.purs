@@ -4,7 +4,7 @@ import Prelude hiding (div)
 import Affjax as Affjax
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
-import Data.Array (cons, length)
+import Data.Array (cons)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
@@ -25,7 +25,7 @@ import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
 import View.Model (Project)
-import View.Studio.Model (Action(..), State, fromPNPROProject, findProject, findDiagramInfo, modifyProject, modifyDiagramInfo)
+import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo)
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
@@ -116,14 +116,14 @@ ui =
       HandleDiagramEditorMsg (DiagramEditor.OperatorsChanged ops) -> do
         state <- H.get
         let
-          projects' :: Maybe (Array Project)
-          projects' = case state.route of
+          projectsUpdatedMaybe :: Maybe (Array Project)
+          projectsUpdatedMaybe = case state.route of
             Diagram pname dname _ ->
               modifyProject pname (\p ->
-                  p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (\d -> d {ops = ops}) p.diagrams) }
+                  p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (_ {ops = ops}) p.diagrams) }
                 ) state.projects
             _ -> Nothing
-        maybe (pure unit) (\ps -> H.modify_ (\state -> state { projects = ps }) ) projects'
+        maybe (pure unit) (\projects -> H.modify_ (_ { projects = projects }) ) projectsUpdatedMaybe
 
       HandlePetrinetEditorMsg NetUpdated -> do
         pure unit

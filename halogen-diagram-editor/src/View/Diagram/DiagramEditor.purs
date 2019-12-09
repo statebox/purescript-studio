@@ -4,10 +4,9 @@ import Prelude hiding (div)
 
 import Data.Array (snoc, length)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
-import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML (HTML, div)
@@ -93,9 +92,10 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         state <- H.get
         let (opsChanged /\ model') = evalModel msg state.model
             state' = state { model = model' }
-        if opsChanged
-          then H.raise $ OperatorsChanged model'.ops
-          else pure unit
+
+        if opsChanged then H.raise (OperatorsChanged model'.ops)
+                      else pure unit
+
         let isOperatorClicked = case msg of
               MouseUp _ -> true
               _         -> false
