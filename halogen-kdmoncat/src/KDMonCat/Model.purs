@@ -1,4 +1,4 @@
-module Model where
+module KDMonCat.Model where
 
 import Prelude
 
@@ -14,7 +14,7 @@ import Data.String (joinWith, stripSuffix, Pattern(..))
 import Data.Traversable
 import Data.Tuple.Nested (type (/\))
 
-import Common
+import KDMonCat.Common
 
 data TermF brick r
   = TUnit

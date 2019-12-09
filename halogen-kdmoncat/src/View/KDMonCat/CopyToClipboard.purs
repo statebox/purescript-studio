@@ -1,4 +1,4 @@
-module View.CopyToClipboard where
+module View.KDMonCat.CopyToClipboard where
 
 import Prelude
 import Effect (Effect)

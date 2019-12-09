@@ -1,4 +1,4 @@
-module View.Box where
+module View.KDMonCat.Box where
 
 import Prelude
 
@@ -14,7 +14,7 @@ import Svg.Elements as S
 import Svg.Attributes hiding (path) as S
 import Web.DOM.Element (Element, setAttribute)
 
-import Common (VoidF)
+import KDMonCat.Common (VoidF)
 
 import Debug.Trace
 

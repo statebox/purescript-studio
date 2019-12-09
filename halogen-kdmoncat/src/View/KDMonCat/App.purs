@@ -1,4 +1,4 @@
-module View.App where
+module View.KDMonCat.App where
 
 import Prelude hiding (div)
 
@@ -22,16 +22,16 @@ import Web.HTML (window)
 import Web.HTML.Location (setHash)
 import Web.HTML.Window (location)
 
-import Bricks as Bricks
-import InferType
-import Model
+import KDMonCat.Bricks as Bricks
+import KDMonCat.InferType
+import KDMonCat.Model
 
-import Output.Haskell (haskellCode)
-import Output.JSON (json)
+import KDMonCat.Output.Haskell (haskellCode)
+import KDMonCat.Output.JSON (json)
 
-import View.Bricks as Bricks
-import View.Term as Term
-import View.CopyToClipboard (copyToClipboard)
+import View.KDMonCat.Bricks as Bricks
+import View.KDMonCat.Term as Term
+import View.KDMonCat.CopyToClipboard (copyToClipboard)
 
 type State =
   { input :: Input

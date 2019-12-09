@@ -1,4 +1,4 @@
-module Main where
+module KDMonCat.Main where
 
 import Prelude
 
@@ -27,11 +27,11 @@ import Web.HTML.Event.EventTypes (message) as ET
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.MessageEvent as MessageEvent
 
-import Model (Box, Selection)
-import View.App as App
-import View.App (Action(UpdateContext, UpdatePixels))
-import View.Bricks as Bricks
-import View.Term as Term
+import KDMonCat.Model (Box, Selection)
+import View.KDMonCat.App as App
+import View.KDMonCat.App (Action(UpdateContext, UpdatePixels))
+import View.KDMonCat.Bricks as Bricks
+import View.KDMonCat.Term as Term
 
 
 initialPixels :: String

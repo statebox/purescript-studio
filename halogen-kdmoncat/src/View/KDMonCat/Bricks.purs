@@ -1,4 +1,4 @@
-module View.Bricks where
+module View.KDMonCat.Bricks where
 
 import Prelude hiding (div)
 
@@ -33,10 +33,10 @@ import Unsafe.Coerce (unsafeCoerce)
 
 import Debug.Trace
 
-import Model
-import Common (VoidF, Disc2)
+import KDMonCat.Model
+import KDMonCat.Common (VoidF, Disc2)
 
-import View.Box as Box
+import View.KDMonCat.Box as Box
 
 
 type Match bv = { y :: Number, validity :: Validity, center :: Boolean, object :: bv }

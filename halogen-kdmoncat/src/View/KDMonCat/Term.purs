@@ -1,4 +1,4 @@
-module View.Term where
+module View.KDMonCat.Term where
 
 import Prelude hiding (div)
 
@@ -11,8 +11,8 @@ import Halogen as H
 import Halogen.HTML hiding (map, head)
 import Halogen.HTML.Properties (classes)
 
-import Model
-import Common (VoidF, Fix(..), Ann(..))
+import KDMonCat.Model
+import KDMonCat.Common (VoidF, Fix(..), Ann(..))
 
 type TTerm = TypedTerm String String
 

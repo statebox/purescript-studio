@@ -1,4 +1,4 @@
-module Bricks where
+module KDMonCat.Bricks where
 
 import Prelude
 
@@ -11,8 +11,8 @@ import Data.Ord.Max (Max(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (vec2, _x, _y)
 
-import Model
-import Common ((..<), Fix(..), Ann(..), Disc2)
+import KDMonCat.Model
+import KDMonCat.Common ((..<), Fix(..), Ann(..), Disc2)
 
 
 fromPixels :: ∀ bid. Ord bid => Array (Array bid) -> (bid -> Boolean) -> Bricks bid

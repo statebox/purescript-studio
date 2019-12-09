@@ -1,4 +1,4 @@
-module Common where
+module KDMonCat.Common where
 
 import Prelude
 

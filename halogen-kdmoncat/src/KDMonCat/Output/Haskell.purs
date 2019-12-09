@@ -1,4 +1,4 @@
-module Output.Haskell where
+module KDMonCat.Output.Haskell where
 
 import Prelude
 
@@ -12,8 +12,8 @@ import Data.String (toLower, contains, replaceAll, Pattern(..), Replacement(..))
 import Data.Traversable (mapAccumL)
 import Data.Tuple.Nested ((/\))
 
-import Common
-import Model
+import KDMonCat.Common
+import KDMonCat.Model
 
 
 haskellCode :: String -> TypedTerm String String -> String
