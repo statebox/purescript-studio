@@ -3,10 +3,9 @@ module View.Diagram.View where
 import Prelude
 import Data.Array (snoc)
 import Data.Foldable (elem)
-import Data.Int (toNumber, fromStringAs, hexadecimal)
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
-import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ord (abs)
 import Data.Vec3 (Vec3, Vec2, _x, _y, _z, vec3)
 import Halogen as H

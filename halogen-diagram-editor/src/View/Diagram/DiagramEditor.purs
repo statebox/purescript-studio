@@ -4,7 +4,7 @@ import Prelude hiding (div)
 
 import Data.Array (snoc, length)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
@@ -21,7 +21,7 @@ import Web.UIEvent.KeyboardEvent (code, toEvent)
 
 import View.Diagram.Common (classesWithNames)
 import View.Diagram.Model (DragStart(..), Operators)
-import View.Diagram.Update (Action(..), MouseMsg(..), Msg(..), State, evalModel)
+import View.Diagram.Update (Action(..), MouseMsg(..), Msg(..), DirtyState(Clean, Dirty), State, evalModel)
 import View.Diagram.View as View
 import View.Diagram.Inspector as Inspector
 
@@ -68,14 +68,13 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         let id = length ops
         let newOp = { identifier: "new" <> show id, pos: m.cursorPos + vec3 1 0 7, label: "new" <> show id }
         H.modify_ \st -> st { model = m { cursorPos = m.cursorPos + vec3 0 1 0 } }
-        handleAction $ UpdateDiagram (ops `snoc` newOp)
+        H.raise $ OperatorsChanged (ops `snoc` newOp)
 
       MoveCursor delta -> do
         m <- H.get <#> _.model
         let { cursorPos, config: { scale, width, height } } = m
         let cursorPos' = clamp2d (width/scale+1) (height/scale+1) (cursorPos + delta)
         H.modify_ \st -> st { model = m { cursorPos = cursorPos' } }
-        H.raise CursorMoved
 
       KeyboardAction k -> do
         H.liftEffect $ preventDefault $ toEvent k
@@ -91,9 +90,14 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
       MouseAction msg -> do
         state <- H.get
-        let state' = state { model = evalModel msg state.model }
+        let (opsChanged /\ model') = evalModel msg state.model
+            state' = state { model = model' }
 
-            isOperatorClicked = case msg of
+        case opsChanged of
+          Dirty -> H.raise (OperatorsChanged model'.ops)
+          Clean -> pure unit
+
+        let isOperatorClicked = case msg of
               MouseUp _ -> true
               _         -> false
 
@@ -108,7 +112,7 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
         maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
 
-      UpdateDiagram ops ->
+      UpdateDiagram ops -> do
         H.modify_ \state -> state { model = state.model { ops = ops } }
 
       Initialize -> do

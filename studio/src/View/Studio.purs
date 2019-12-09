@@ -7,7 +7,7 @@ import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, con
 import Data.Array (cons)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
@@ -24,7 +24,8 @@ import Statebox.Core.Transaction (HashTx)
 import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
-import View.Studio.Model (Action(..), State, fromPNPROProject)
+import View.Model (Project)
+import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo)
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
@@ -112,8 +113,17 @@ ui =
             _                     -> Nothing
         maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
-      HandleDiagramEditorMsg (DiagramEditor.CursorMoved) -> do
-        pure unit
+      HandleDiagramEditorMsg (DiagramEditor.OperatorsChanged ops) -> do
+        state <- H.get
+        let
+          projectsUpdatedMaybe :: Maybe (Array Project)
+          projectsUpdatedMaybe = case state.route of
+            Diagram pname dname _ ->
+              modifyProject pname (\p ->
+                  p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (_ {ops = ops}) p.diagrams) }
+                ) state.projects
+            _ -> Nothing
+        maybe (pure unit) (\projects -> H.modify_ (_ { projects = projects }) ) projectsUpdatedMaybe
 
       HandlePetrinetEditorMsg NetUpdated -> do
         pure unit

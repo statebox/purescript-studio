@@ -1,9 +1,9 @@
 module View.Diagram.Model where
 
 import Data.Maybe
+import Data.Tuple.Nested (type (/\))
 import Prelude
 
-import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec3, Vec2, vec3, _x, _y)
 
 import View.Diagram.Common (snap)
@@ -13,7 +13,7 @@ type DiagramInfo =
   , ops  :: Array Operator
   }
 
--- must be unique; problematic, want to lenses instead
+-- must be unique; problematic, want to use lenses instead
 type OperatorId = String
 
 type Operator =
