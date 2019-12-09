@@ -21,7 +21,7 @@ import Web.UIEvent.KeyboardEvent (code, toEvent)
 
 import View.Diagram.Common (classesWithNames)
 import View.Diagram.Model (DragStart(..), Operators)
-import View.Diagram.Update (Action(..), MouseMsg(..), Msg(..), State, evalModel)
+import View.Diagram.Update (Action(..), MouseMsg(..), Msg(..), DirtyState(Clean, Dirty), State, evalModel)
 import View.Diagram.View as View
 import View.Diagram.Inspector as Inspector
 
@@ -93,8 +93,9 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         let (opsChanged /\ model') = evalModel msg state.model
             state' = state { model = model' }
 
-        if opsChanged then H.raise (OperatorsChanged model'.ops)
-                      else pure unit
+        case opsChanged of
+          Dirty -> H.raise (OperatorsChanged model'.ops)
+          Clean -> pure unit
 
         let isOperatorClicked = case msg of
               MouseUp _ -> true

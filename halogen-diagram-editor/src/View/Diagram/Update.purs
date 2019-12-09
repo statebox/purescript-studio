@@ -36,15 +36,17 @@ data Msg
   = OperatorClicked OperatorId
   | OperatorsChanged (Array Operator)
 
+data DirtyState = Clean | Dirty
+
 --------------------------------------------------------------------------------
 
--- | The Boolean in the result indicates if any ops were modified.
-evalModel :: MouseMsg -> Model -> Boolean /\ Model
+-- | The `DirtyState` in the result indicates if any ops were modified.
+evalModel :: MouseMsg -> Model -> DirtyState /\ Model
 evalModel msg model = case msg of
-  MouseIsOut    _   -> false       /\ model  { mouseOver = Nothing }
-  MouseIsOver   x k -> false       /\ model  { mouseOver = Just (x /\ k) }
-  MousePos      p   -> false       /\ model  { mousePos = p }
-  MouseDown     p   -> false       /\ model  { mousePos = p
+  MouseIsOut    _   -> Clean       /\ model  { mouseOver = Nothing }
+  MouseIsOver   x k -> Clean       /\ model  { mouseOver = Just (x /\ k) }
+  MousePos      p   -> Clean       /\ model  { mousePos = p }
+  MouseDown     p   -> Clean       /\ model  { mousePos = p
                                              , mousePressed = true
                                              , dragStart = case model.mouseOver of
                                                              Nothing            -> DragStartedOnBackground model.mousePos
@@ -60,10 +62,10 @@ evalModel msg model = case msg of
 --------------------------------------------------------------------------------
 
 -- | The Boolean in the result indicates if any ops were modified.
-dropGhost :: Model -> Boolean /\ Model
+dropGhost :: Model -> DirtyState /\ Model
 dropGhost model = case model.dragStart of
-  DragStartedOnOperator _ op _ -> if isValid then true  /\ model { ops = newOps }
-                                             else false /\ model
+  DragStartedOnOperator _ op _ -> if isValid then Dirty /\ model { ops = newOps }
+                                             else Clean /\ model
     where
       scale      = model.config.scale
       dd         = dragDelta model
@@ -78,4 +80,4 @@ dropGhost model = case model.dragStart of
       (ox /\ ow) = if _z opxyw > zero then _x opxyw /\ _z opxyw else (_x opxyw + _z opxyw) /\ (- _z opxyw)
       modOp o    = o { pos = vec3 ox (_y opxyw) ow }
       newOps     = modifyOperator op.identifier modOp model.ops
-  _ -> false /\ model
+  _ -> Clean /\ model
