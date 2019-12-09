@@ -61,7 +61,7 @@ evalModel msg model = case msg of
 
 --------------------------------------------------------------------------------
 
--- | The Boolean in the result indicates if any ops were modified.
+-- | The `DirtyState` in the result indicates if any ops were modified.
 dropGhost :: Model -> DirtyState /\ Model
 dropGhost model = case model.dragStart of
   DragStartedOnOperator _ op _ -> if isValid then Dirty /\ model { ops = newOps }
