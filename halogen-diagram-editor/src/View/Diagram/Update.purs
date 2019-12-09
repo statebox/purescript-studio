@@ -34,7 +34,7 @@ data MouseMsg
 
 data Msg
   = OperatorClicked OperatorId
-  | OpsChanged (Array Operator)
+  | OperatorsChanged (Array Operator)
 
 --------------------------------------------------------------------------------
 

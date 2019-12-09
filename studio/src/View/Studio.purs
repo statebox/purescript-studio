@@ -113,7 +113,7 @@ ui =
             _                     -> Nothing
         maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
-      HandleDiagramEditorMsg (DiagramEditor.OpsChanged ops) -> do
+      HandleDiagramEditorMsg (DiagramEditor.OperatorsChanged ops) -> do
         state <- H.get
         let
           projects' :: Maybe (Array Project)

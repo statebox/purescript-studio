@@ -69,7 +69,7 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         let id = length ops
         let newOp = { identifier: "new" <> show id, pos: m.cursorPos + vec3 1 0 7, label: "new" <> show id }
         H.modify_ \st -> st { model = m { cursorPos = m.cursorPos + vec3 0 1 0 } }
-        H.raise $ OpsChanged (ops `snoc` newOp)
+        H.raise $ OperatorsChanged (ops `snoc` newOp)
 
       MoveCursor delta -> do
         m <- H.get <#> _.model
@@ -94,7 +94,7 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         let (opsChanged /\ model') = evalModel msg state.model
             state' = state { model = model' }
         if opsChanged
-          then H.raise $ OpsChanged model'.ops
+          then H.raise $ OperatorsChanged model'.ops
           else pure unit
         let isOperatorClicked = case msg of
               MouseUp _ -> true
