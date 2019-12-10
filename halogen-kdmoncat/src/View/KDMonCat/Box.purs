@@ -64,7 +64,7 @@ parentRef = RefLabel "parent"
 render :: ∀ a c m. State a c m -> H.ComponentHTML (Action a c m) c m
 render { input: { content, className } } = S.g []
   [ S.rect [ ref boxRef, S.attr (AttrName "class") className ]
-  , S.g [ ref contentRef, S.transform [S.Scale 1.0 1.0] ]
+  , S.g [ ref contentRef, S.attr (AttrName "style") "transform: scale(1.0); transform-origin: 0px 0px" ]
         [ mapAction ContentAction content ]
   ]
 
@@ -98,8 +98,9 @@ handleAction = case _ of
           setAttribute "height" (show height) box
 
         liftEffect do
-          setAttribute "transform"        ("scale(" <> show scale <> ")") content
-          setAttribute "transform-origin" (show midX <> " " <> show midY) content
+          setAttribute "style" (
+            "transform: scale(" <> show scale <> ");" <>
+            "transform-origin: " <> show midX <> "px " <> show midY <> "px") content
 
       _, _ -> pure unit
 
