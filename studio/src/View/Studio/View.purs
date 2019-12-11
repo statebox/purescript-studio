@@ -87,8 +87,7 @@ contentView apiUrl route = case route of
     slot _petrinetEditor unit (PetrinetEditor.ui (Just "main_net")) netInfo (Just <<< HandlePetrinetEditorMsg)
 
   ResolvedDiagram diagramInfo nodeMaybe ->
-    let bricksInput = Bricks.toBricksInput (fromOps diagramInfo.ops) { topLeft: zero, bottomRight: zero }
-    in div [ classes [ ClassName "flex" ] ]
+    div [ classes [ ClassName "flex" ] ]
         [ div [ classes [ ClassName "w-1/2" ] ]
               [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
         , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
@@ -99,6 +98,8 @@ contentView apiUrl route = case route of
                   Nothing                         -> text "Click a node to show the corresponding net or diagram."
               ]
         ]
+    where
+      bricksInput = Bricks.toBricksInput (fromOps diagramInfo.ops) { topLeft: zero, bottomRight: zero }
 
   ResolvedUberRoot url ->
     text $ "Service über-root " <> url
