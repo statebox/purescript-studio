@@ -11,6 +11,7 @@
     , "spec"
     , "stbx-core"
     , "studio-common"
+    , "vec"
     ]
 , packages =
     ./../packages.dhall
