@@ -90,7 +90,7 @@ contentView apiUrl route = case route of
     let bricksInput = Bricks.toBricksInput (fromOps diagramInfo.ops) { topLeft: zero, bottomRight: zero }
     in div [ classes [ ClassName "flex" ] ]
         [ div [ classes [ ClassName "w-1/2" ] ]
-              [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg)]
+              [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
         , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
               [ slot _bricks unit Bricks.bricksView bricksInput (\_ -> Nothing)
               , case nodeMaybe of
