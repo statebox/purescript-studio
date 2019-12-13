@@ -27,7 +27,8 @@ import Halogen.Query.Input (RefLabel(..))
 import Svg.Elements as S
 import Svg.Attributes hiding (path) as S
 import Web.DOM (Element)
-import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, shiftKey)
+import Web.Event.Event (preventDefault)
+import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, shiftKey, toEvent)
 import Web.HTML.HTMLElement (HTMLElement, focus)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -87,7 +88,7 @@ bricksView =
   H.mkComponent
     { initialState
     , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction, receive = Just <<< Update, initialize = Just GetFocus }
+    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction, receive = Just <<< Update }
     }
 
 initialState :: Input -> State
@@ -98,7 +99,7 @@ initialState input =
     , bottomRight: zero
     }
   , mouseDownFrom: Nothing
-  , showWires: false
+  , showWires: true
   }
 
 render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
@@ -296,8 +297,8 @@ handleAction = case _ of
     , bottomRight: moveCursor d sel.bottomRight sel.topLeft
     }
   MoveCursorEnd d -> updateSelection (_bottomRight +~ d)
-  OnKeyDown k -> let act dx dy = handleAction $ (if shiftKey k then MoveCursorEnd else MoveCursorStart) (vec2 dx dy) in
-    case code k of
+  OnKeyDown e -> let act dx dy = handleAction $ (if shiftKey e then MoveCursorEnd else MoveCursorStart) (vec2 dx dy) in do
+    case code e of
       "ArrowLeft" -> act (-1) 0
       "ArrowUp" -> act 0 (-1)
       "ArrowRight" -> act 1 0
@@ -305,6 +306,7 @@ handleAction = case _ of
       "AltLeft" -> H.modify_ \st -> st { showWires = not st.showWires }
       "AltRight" -> H.modify_ \st -> st { showWires = not st.showWires }
       x -> trace x pure
+    preventDefault (toEvent e) # liftEffect
   OnMouseDown b@{ topLeft, bottomRight } -> do
     H.modify_ \st -> st { mouseDownFrom = Just b }
     updateSelection \_ -> { topLeft, bottomRight: bottomRight - vec2 1 1 }

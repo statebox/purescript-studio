@@ -77,8 +77,8 @@ fromEdges fromEnum name edges = { pixels, context }
     pixel a = nextChar 'A' (fromEnum a)
 
     nodeType :: a -> String
-    nodeType a = name a <> "@" <> pixel a <> ": " <> typeStr a predecessors (\b -> name b <> "_" <> name a)
-                                        <> " -> " <> typeStr a successors   (\b -> name a <> "_" <> name b)
+    nodeType a = name a <> "@" <> pixel a <> ": " <> typeStr a predecessors (\b -> "u") --name b <> "_" <> name a)
+                                        <> " -> " <> typeStr a successors   (\b -> "u") --name a <> "_" <> name b)
     nodeTypes :: String
     nodeTypes = map nodeType nodes # intercalate "\n"
 
