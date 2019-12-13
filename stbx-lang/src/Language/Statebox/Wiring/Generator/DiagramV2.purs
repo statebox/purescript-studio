@@ -45,14 +45,14 @@ type Op r = { label :: String, pos :: Vec3 Int | r }
 fromOps :: ∀ r. Array (Op r) -> DiagramV2
 fromOps ops = fromEdges identity ((ops !! _) >>> maybe "" _.label) edges
   where
-    edges = ops # foldMapWithIndex \i { pos : posi } ->
-      ops # foldMapWithIndex \j { pos : posj } ->
-        let
-          xi1 = _x posi
-          xj1 = _x posj
-          xi2 = xi1 + _z posi
-          xj2 = xj1 + _z posj
-        in if _y posj == _y posi + 1 && xi1 < xj2 && xj1 < xi2 then [{ src: i, tgt: j }] else []
+    edges = ops # foldMapWithIndex \src { pos : srcPos } ->
+      ops # foldMapWithIndex \tgt { pos : tgtPos } ->
+        if _y tgtPos == _y srcPos + 1 then let
+          srcStart = _x srcPos
+          tgtStart = _x tgtPos
+          srcEnd = srcStart + _z srcPos
+          tgtEnd = tgtStart + _z tgtPos
+        in if srcStart < tgtEnd && tgtStart < srcEnd then [{ src, tgt }] else [] else []
 
 fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
 fromEdges fromEnum name edges = { pixels, context }
