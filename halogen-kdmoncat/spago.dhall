@@ -17,7 +17,7 @@
     , "vec"
     ]
 , packages =
-    ./packages.dhall
+    ../packages.dhall
 , sources =
     [ "src/**/*.purs", "test/**/*.purs" ]
 }
