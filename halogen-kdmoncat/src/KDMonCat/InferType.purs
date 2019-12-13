@@ -1,4 +1,4 @@
-module InferType where
+module KDMonCat.InferType where
 
 import Prelude
 
@@ -22,8 +22,8 @@ import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
 import Global (readInt)
 
-import Model
-import Common
+import KDMonCat.Model
+import KDMonCat.Common
 
 
 type Meta bv =

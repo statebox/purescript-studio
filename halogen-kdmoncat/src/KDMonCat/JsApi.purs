@@ -1,11 +1,11 @@
-module JsApi where
+module KDMonCat.JsApi where
 
 import Prelude
 import Data.Variant as Variant
 import Data.Variant (Variant)
 import Data.Symbol (SProxy(..))
 
-import View.App (Input) as App
+import View.KDMonCat.App (Input) as App
 
 -- | These commands form a Variant, which makes them easy to send from JavaScript to the component.
 type Command = Variant

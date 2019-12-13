@@ -1,4 +1,4 @@
-module Output.JSON where
+module KDMonCat.Output.JSON where
 
 import Prelude
 
@@ -6,8 +6,8 @@ import Data.Array (take, length, head)
 import Data.Argonaut.Core (stringify)
 import Data.Argonaut.Encode (encodeJson)
 
-import Common
-import Model
+import KDMonCat.Common
+import KDMonCat.Model
 
 json :: TypedTerm String String -> String
 json = foldFix alg >>> stringify where
