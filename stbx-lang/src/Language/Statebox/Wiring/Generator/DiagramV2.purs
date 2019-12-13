@@ -15,6 +15,7 @@ import Data.TraversableWithIndex (mapAccumLWithIndex)
 import Data.Tuple (snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Function.Memoize (memoize, class Tabulate)
+import Data.Vec3 (Vec3, _x, _y, _z)
 import Statebox.Core.Types (Diagram)
 
 import Language.Statebox.Wiring.Generator (Edges, toIndexedGraph, getEdges)
@@ -39,6 +40,19 @@ fromDiagram { width, pixels, names } = fromEdges (_ - 1) name edges
     rows = chunks width pixels
     edges = concat $ zipWith (zipWith (\src tgt -> { src, tgt })) rows (drop 1 rows)
     name id = names !! (id - 1) # fromMaybe "?"
+
+type Op r = { label :: String, pos :: Vec3 Int | r }
+fromOps :: ∀ r. Array (Op r) -> DiagramV2
+fromOps ops = fromEdges identity ((ops !! _) >>> maybe "" _.label) edges
+  where
+    edges = ops # foldMapWithIndex \i { pos : posi } ->
+      ops # foldMapWithIndex \j { pos : posj } ->
+        let
+          xi1 = _x posi
+          xj1 = _x posj
+          xi2 = xi1 + _z posi
+          xj2 = xj1 + _z posj
+        in if _y posj == _y posi + 1 && xi1 < xj2 && xj1 < xi2 then [{ src: i, tgt: j }] else []
 
 fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
 fromEdges fromEnum name edges = { pixels, context }

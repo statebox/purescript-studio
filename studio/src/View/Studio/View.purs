@@ -5,16 +5,14 @@ import Affjax (URL) -- TODO introduce URL alias in Client so we can abstract Aff
 import Control.Comonad.Cofree ((:<))
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
-import Data.Array (cons, index)
+import Data.Array (cons)
 import Data.Foldable (foldMap, foldr)
 import Data.FunctorWithIndex (mapWithIndex)
-import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
 import Data.String.CodePoints (take)
 import Data.Symbol (SProxy(..))
 import Data.Tuple.Nested ((/\))
-import Data.Vec3 (_x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML)
@@ -23,7 +21,7 @@ import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, src, href, placeholder, value)
 
-import Language.Statebox.Wiring.Generator.DiagramV2 (fromEdges)
+import Language.Statebox.Wiring.Generator.DiagramV2 (fromOps)
 import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree, Item)
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
@@ -89,18 +87,7 @@ contentView apiUrl route = case route of
     slot _petrinetEditor unit (PetrinetEditor.ui (Just "main_net")) netInfo (Just <<< HandlePetrinetEditorMsg)
 
   ResolvedDiagram diagramInfo nodeMaybe ->
-    let
-      edges = diagramInfo.ops # foldMapWithIndex \i { pos } ->
-        let
-          xi1 = _x pos
-          xi2 = xi1 + _z pos
-        in diagramInfo.ops # foldMapWithIndex \j { pos : posj } ->
-          let
-            xj1 = _x posj
-            xj2 = xj1 + _z posj
-          in if _y posj == _y pos + 1 && xi1 <= xj2 && xj1 <= xi2 then [{ src: i, tgt: j }] else []
-      input = fromEdges identity (index diagramInfo.ops >>> maybe "" _.label) edges
-      bricksInput = Bricks.toBricksInput input { topLeft: zero, bottomRight: zero }
+    let bricksInput = Bricks.toBricksInput (fromOps diagramInfo.ops) { topLeft: zero, bottomRight: zero }
     in div [ classes [ ClassName "flex" ] ]
         [ div [ classes [ ClassName "w-1/2" ] ]
               [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg)]
