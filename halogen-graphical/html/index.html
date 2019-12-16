@@ -10,9 +10,10 @@
 <body>
   <div id="canvas"></div>
   <form>
-    <p><input type="range" min="-5" max="5" oninput="f(this.form)" step="0.01" value="0" name="scale" />
-    <p><input type="range" min="-5" max="5" oninput="f(this.form)" step="0.01" value="0" name="x" />
-    <p><input type="range" min="-5" max="5" oninput="f(this.form)" step="0.01" value="0" name="y" />
+    <p><input type="range" min="0" max="3" oninput="f(this.form)" step="0.01" value="1.5" name="spacing" /> Grid spacing
+    <p><input type="range" min="-5" max="5" oninput="f(this.form)" step="0.01" value="0" name="scale" /> Scale
+    <p><input type="range" min="-5" max="5" oninput="f(this.form)" step="0.01" value="0" name="x" /> X
+    <p><input type="range" min="-5" max="5" oninput="f(this.form)" step="0.01" value="0" name="y" /> Y
   </form>
 </body>
 <script src="index.js"></script>
