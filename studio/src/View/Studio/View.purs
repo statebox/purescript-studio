@@ -29,8 +29,8 @@ import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
-import View.KDMonCat.App as KDMonCatBricks
-import View.KDMonCat.Bricks as KDMonCatBricks
+import View.KDMonCat.App as KDMonCat.Bricks
+import View.KDMonCat.Bricks as KDMonCat.Bricks
 import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
@@ -45,7 +45,7 @@ type ChildSlots =
   ( objectTree     :: H.Slot VoidF (TreeMenu.Msg Route) Unit
   , petrinetEditor :: H.Slot VoidF PetrinetEditor.Msg Unit
   , diagramEditor  :: H.Slot VoidF DiagramEditor.Msg Unit
-  , kdmoncatBricks :: KDMonCatBricks.Slot Unit
+  , kdmoncatBricks :: KDMonCat.Bricks.Slot Unit
   )
 
 _objectTree     = SProxy :: SProxy "objectTree"
@@ -91,7 +91,7 @@ contentView apiUrl route = case route of
         [ div [ classes [ ClassName "w-1/2" ] ]
               [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
         , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
-              [ slot _kdmoncatBricks unit KDMonCatBricks.bricksView bricksInput (\_ -> Nothing)
+              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (\_ -> Nothing)
               , case nodeMaybe of
                   Just (NetNode netInfo)          -> slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
                   Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
