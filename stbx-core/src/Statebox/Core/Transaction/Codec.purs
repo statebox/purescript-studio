@@ -8,11 +8,16 @@ import Data.Argonaut.Encode.Class (encodeJson)
 import Data.Argonaut.Decode (decodeJson, (.:), (.:?))
 import Data.Argonaut.Decode.Class (decodeJArray)
 import Data.Profunctor.Choice (left)
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
-import Data.Maybe (maybe)
+import Data.Foldable (foldr)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.NonEmpty (singleton)
-import Data.Traversable (traverse)
+import Data.String.Regex (Regex, regex, match)
+import Data.String.Regex.Flags (noFlags)
+import Data.Traversable (sequence, traverse)
+import Data.Tuple.Nested ((/\))
+import Effect.Exception (Error, message)
 import Foreign.Object (Object, lookup)
 
 import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), mapTx, evalTxSum)
@@ -153,3 +158,44 @@ encodeTxWith encodeBody t =
   ~> "hex"     := t.hex
   ~> "decoded" := encodeBody t.decoded
   ~> jsonEmptyObject
+
+--------------------------------------------------------------------------------
+
+data DecodeError
+  = MissingRequired String
+  | InvalidHexString
+  | InvalidOutOfRange String
+  | InvalidWireType String
+  | Other String
+
+instance showDecodeError :: Show DecodeError where
+  show = case _ of
+    MissingRequired s   -> "Missing required field: " <> s
+    InvalidHexString    -> "Invalid Hex String"
+    InvalidOutOfRange s -> "Invalid out of range: " <> s
+    InvalidWireType s   -> "Invalid wire type: " <> s
+    Other s             -> "Other: " <> s
+
+errorToSingleDecodeError :: Regex -> (String -> DecodeError) -> Error -> Maybe DecodeError
+errorToSingleDecodeError regex constructor error =
+  const (constructor $ message error) <$> match regex (message error)
+
+errorToDecodeError :: Error -> DecodeError
+errorToDecodeError error =
+  let missingRequiredRegex   = regex "^missing required" noFlags
+      invalidHexRegex        = regex "^Invalid hex string$" noFlags
+      invalidOutOfRangeRegex = regex "^index out of range" noFlags
+      invalidWireTypeRegex   = regex "^invalid wire type" noFlags
+      regexes = sequence [ (\r -> r /\ MissingRequired)          <$> missingRequiredRegex
+                         , (\r -> r /\ (const InvalidHexString)) <$> invalidHexRegex
+                         , (\r -> r /\ InvalidOutOfRange)        <$> invalidOutOfRangeRegex
+                         , (\r -> r /\ InvalidWireType)          <$> invalidWireTypeRegex
+                         ]
+  in
+    either (const $ Other "regex error")
+           (   (fromMaybe (Other $ message error))
+           <<< (foldr (\(regex /\ constructor) previous ->     previous
+                                                           <|> errorToSingleDecodeError regex constructor error)
+                      Nothing)
+           )
+           regexes
