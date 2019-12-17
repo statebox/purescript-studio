@@ -41,18 +41,28 @@ fromDiagram { width, pixels, names } = fromEdges (_ - 1) name edges
     edges = concat $ zipWith (zipWith (\src tgt -> { src, tgt })) rows (drop 1 rows)
     name id = names !! (id - 1) # fromMaybe "?"
 
-type Op r = { label :: String, pos :: Vec3 Int | r }
-fromOps :: ∀ r. Array (Op r) -> DiagramV2
-fromOps ops = fromEdges identity ((ops !! _) >>> maybe "" _.label) edges
+type Operator r =
+  { label :: String
+  , pos :: Vec3 Int
+  | r
+  }
+
+fromOperators :: ∀ r. Array (Operator r) -> DiagramV2
+fromOperators ops = fromEdges identity ((ops !! _) >>> maybe "" _.label) edges
   where
-    edges = ops # foldMapWithIndex \src { pos : srcPos } ->
-      ops # foldMapWithIndex \tgt { pos : tgtPos } ->
-        if _y tgtPos == _y srcPos + 1 then let
-          srcStart = _x srcPos
-          tgtStart = _x tgtPos
-          srcEnd = srcStart + _z srcPos
-          tgtEnd = tgtStart + _z tgtPos
-        in if srcStart < tgtEnd && tgtStart < srcEnd then [{ src, tgt }] else [] else []
+    isConnected srcPos tgtPos
+         = _y tgtPos == _y srcPos + 1
+        && srcStart < tgtEnd
+        && tgtStart < srcEnd
+      where
+        srcStart = _x srcPos
+        tgtStart = _x tgtPos
+        srcEnd = srcStart + _z srcPos
+        tgtEnd = tgtStart + _z tgtPos
+    edges =
+      ops # foldMapWithIndex \src { pos : srcPos } ->
+        ops # foldMapWithIndex \tgt { pos : tgtPos } ->
+          if isConnected srcPos tgtPos then [{ src, tgt }] else []
 
 fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
 fromEdges fromEnum name edges = { pixels, context }
