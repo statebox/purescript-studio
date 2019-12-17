@@ -9,6 +9,19 @@ function decode (hexStr) {
   }
 }
 
+function decodeEither (hexStr) {
+  return function (onError) {
+    return function (handler) {
+      try {
+        var decoded = decode(hexStr)();
+        return handler(decoded);
+      } catch (error) {
+        return onError(error);
+      }
+    }
+  }
+}
+
 function stbxObjToJsonString (stbxObj) {
   return JSON.stringify(stbxObj)
 }
@@ -18,5 +31,6 @@ function hash (hexStr) {
 }
 
 exports.decode = decode;
+exports.decodeEither = decodeEither;
 exports.stbxObjToJsonString = stbxObjToJsonString;
 exports.hash = hash;
