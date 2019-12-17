@@ -99,7 +99,7 @@ contentView apiUrl route = case route of
               ]
         ]
     where
-      bricksInput = KDMonCatBricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) { topLeft: zero, bottomRight: zero }
+      bricksInput = KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) zero
 
   ResolvedUberRoot url ->
     text $ "Service über-root " <> url
