@@ -15,6 +15,7 @@ import Data.TraversableWithIndex (mapAccumLWithIndex)
 import Data.Tuple (snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Function.Memoize (memoize, class Tabulate)
+import Data.Vec3 (Vec3, _x, _y, _z)
 import Statebox.Core.Types (Diagram)
 
 import Language.Statebox.Wiring.Generator (Edges, toIndexedGraph, getEdges)
@@ -39,6 +40,29 @@ fromDiagram { width, pixels, names } = fromEdges (_ - 1) name edges
     rows = chunks width pixels
     edges = concat $ zipWith (zipWith (\src tgt -> { src, tgt })) rows (drop 1 rows)
     name id = names !! (id - 1) # fromMaybe "?"
+
+type Operator r =
+  { label :: String
+  , pos :: Vec3 Int
+  | r
+  }
+
+fromOperators :: ∀ r. Array (Operator r) -> DiagramV2
+fromOperators ops = fromEdges identity ((ops !! _) >>> maybe "" _.label) edges
+  where
+    isConnected srcPos tgtPos
+         = _y tgtPos == _y srcPos + 1
+        && srcStart < tgtEnd
+        && tgtStart < srcEnd
+      where
+        srcStart = _x srcPos
+        tgtStart = _x tgtPos
+        srcEnd = srcStart + _z srcPos
+        tgtEnd = tgtStart + _z tgtPos
+    edges =
+      ops # foldMapWithIndex \src { pos : srcPos } ->
+        ops # foldMapWithIndex \tgt { pos : tgtPos } ->
+          if isConnected srcPos tgtPos then [{ src, tgt }] else []
 
 fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
 fromEdges fromEnum name edges = { pixels, context }
@@ -74,18 +98,18 @@ fromEdges fromEnum name edges = { pixels, context }
     typeStr a m f = mlookup a m <#> f # intercalate " "
 
     pixel :: a -> String
-    pixel a = nextChar 'A' (fromEnum a)
+    pixel a = nextChar 'a' (fromEnum a)
 
     nodeType :: a -> String
-    nodeType a = name a <> "@" <> pixel a <> ": " <> typeStr a predecessors (\b -> name b <> "_" <> name a)
-                                        <> " -> " <> typeStr a successors   (\b -> name a <> "_" <> name b)
+    nodeType a = name a <> "@" <> pixel a <> ": " <> typeStr a predecessors (\b -> pixel b <> pixel a)
+                                        <> " -> " <> typeStr a successors   (\b -> pixel a <> pixel b)
     nodeTypes :: String
     nodeTypes = map nodeType nodes # intercalate "\n"
 
     row :: Int -> String
     row y = grouped # foldMapWithIndex \x g ->
-      ((g !! y) # maybe (if x > 0 && x < width - 1 then nextChar 'n' (x - 1) else " ") pixel) <>
-      if x < width - 1 then nextChar 'a' x else ""
+      ((g !! y) # maybe (if x > 0 && x < width - 1 then nextChar 'N' (x - 1) else " ") pixel) <>
+      if x < width - 1 then nextChar 'A' x else ""
 
     swapTypes :: String
     swapTypes = grouped
@@ -96,8 +120,8 @@ fromEdges fromEnum name edges = { pixels, context }
     mkSwap :: Int -> Array Int -> Array a -> { accum :: Array Int, value :: String }
     mkSwap i edgeIds as = { accum: levelOutputs as <> rest, value }
       where
-        value = nextChar 'a' i <> ": [" <> intercalate " " order <> "]\n" <>
-                nextChar 'n' i <> ": [" <> intercalate " " ((1 ..< (length rest + 1)) <#> show) <> "]"
+        value = nextChar 'A' i <> ": [" <> intercalate " " order <> "]\n" <>
+                nextChar 'N' i <> ": [" <> intercalate " " ((1 ..< (length rest + 1)) <#> show) <> "]"
         ids = foldMap (\a -> mlookup a inputs) as
         order = (ids <> rest) <#> \id -> elemIndex id edgeIds # maybe "?" ((_ + 1) >>> show)
         rest = filter (\id -> id `notElem` ids) edgeIds

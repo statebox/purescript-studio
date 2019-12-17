@@ -56,6 +56,8 @@ binOp f (Vec3 { x: x1, y: y1, z: z1 })
 
 derive instance eqVec3 :: Eq a => Eq (Vec3 a)
 
+derive instance ordVec3 :: Ord a => Ord (Vec3 a)
+
 instance showVec3 :: Show a => Show (Vec3 a) where
   show (Vec3 {x, y, z}) = "(" <> show x <> "," <> show y <> "," <> show z <> ")"
 
