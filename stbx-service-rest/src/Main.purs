@@ -28,7 +28,7 @@ import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core (decodeToJsonString, hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum(..))
-import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
+import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum, errorToDecodeError)
 import Statebox.Core.Types (HexStr)
 import Statebox.Service (TxError(..), txErrorCode, txErrorMessage)
 import Statebox.TransactionStore (get, put) as TransactionStore
@@ -69,14 +69,17 @@ index :: Handler
 index = sendJson
   { name        : "Statebox REST API"
   , description : "collection of endpoints to interact with the Statebox protocol"
-  , endpoints   : { healthcheck    : "/healthcheck"
-                  , getTransaction : "/tx/:hash"
+  , endpoints   : { healthcheck     : "/healthcheck"
+                  , getTransactions : "/tx"
+                  , getTransaction  : "/tx/:hash"
                   }
   }
 
 healthcheck :: Handler
 healthcheck = sendJson { health: "I'm fine" }
 
+-- | Endpoint for getting all the transactions from the transaction store
+-- | Responds to `GET /tx`
 getTransactionsHandler :: AppState -> Handler
 getTransactionsHandler state = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
@@ -120,27 +123,33 @@ postTransactionHandler state = do
       Left error -> sendTxError TxNoTxField
       Right (body :: TxPostRequestBody) -> do
         let txHex = body.tx
-        decodedJsonString <- liftEffect $ Stbx.decodeToJsonString txHex
-        case jsonParser decodedJsonString of
+        case Stbx.decodeToJsonString txHex of
           Left error -> sendJson
             { status : statusToString Failed
-            , error  : error
+            , error  : show $ errorToDecodeError error
             }
-          Right txJson -> case decodeTxSum txJson of
-            Left error -> sendJson
-              { status : statusToString Failed
-              , error  : error
-              }
-            Right txSum -> do
-              let hash = Stbx.hash txHex
-              transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
-              updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash txSum) transactionDictionary
-              liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
-              sendTxTxSum { status: statusToString Ok
-                          , hash: hash
-                          , hex: txHex
-                          , decoded: txSum
-                          }
+          Right decodedJsonString ->
+        -- decodedJsonString <- liftEffect $ Stbx.decodeToJsonString txHex
+            case jsonParser decodedJsonString of
+              Left error -> sendJson
+                { status : statusToString Failed
+                , error  : error
+                }
+              Right txJson -> case decodeTxSum txJson of
+                Left error -> sendJson
+                  { status : statusToString Failed
+                  , error  : error
+                  }
+                Right txSum -> do
+                  let hash = Stbx.hash txHex
+                  transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
+                  updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash txSum) transactionDictionary
+                  liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
+                  sendTxTxSum { status: statusToString Ok
+                              , hash: hash
+                              , hex: txHex
+                              , decoded: txSum
+                              }
 
 type TxPostRequestBody = { tx :: HexStr }
 
