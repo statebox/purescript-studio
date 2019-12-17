@@ -105,7 +105,7 @@ initialState input =
 render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
 render { input: { bricks: { width, height, boxes }, matches, context, selectedBoxes }, selection, showWires } = div
   [ ref (RefLabel "bricks")
-  , classes [ ClassName "bricks", ClassName $ if showWires then "show-wires" else "show-bricks" ]
+  , classes [ ClassName "kdmoncat-bricks", ClassName $ if showWires then "show-wires" else "show-bricks" ]
   , tabIndex 0
   , onKeyDown (Just <<< OnKeyDown)
   , onMouseUp (const $ Just $ OnMouseUp)

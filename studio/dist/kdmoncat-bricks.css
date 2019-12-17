@@ -1,12 +1,12 @@
 /* studio specific bricks css */
-.bricks {
+.kdmoncat-bricks {
   outline: none;
   height: 50vh;
   margin-bottom: 2em;
 }
 
 /* generic bricks css */
-.bricks {
+.kdmoncat-bricks {
   position: relative;
   justify-self: stretch;
   display: grid;
@@ -15,53 +15,50 @@
   user-select: none;
   -webkit-user-select: none;
 }
-.bricks svg {
+.kdmoncat-bricks svg {
   position: relative;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
 }
-.box > rect:first-child {
+.kdmoncat-bricks .box > rect:first-child {
   fill: rgba(0, 0, 0, .07);
   transition: fill 0.3s;
 }
-.bricks:focus .box.selected > rect:first-child {
+.kdmoncat-bricks:focus .box.selected > rect:first-child {
   fill: rgba(0, 112, 204, 0.2);
 }
-.bricks.show-wires:not(:focus) .box > rect:first-child {
+.kdmoncat-bricks.show-wires:not(:focus) .box > rect:first-child {
   fill: rgba(221, 221, 221, 0) !important;
 }
-.inner-box {
+.kdmoncat-bricks .inner-box {
   fill: rgba(255, 255, 255, 0);
   stroke: rgba(68, 68, 68, 0);
   stroke-width: 0.01;
   transition: fill 0.3s, stroke 0.3s;
 }
-.inner-box-text {
-  fill: white;
+.kdmoncat-bricks .inner-box-text {
+  fill: #444;
   font-size: .4px;
   font-weight: bold;
   transition: fill 0.3s;
 }
-.bricks.show-wires .inner-box {
+.kdmoncat-bricks.show-wires .inner-box {
   fill: white;
   stroke: #444;
 }
-.bricks.show-wires .inner-box-text {
-  fill: #444;
-}
-.selection {
+.kdmoncat-bricks .selection {
   fill: none;
   stroke: rgba(112, 112, 112, 0);
   stroke-width: 0.02;
   pointer-events: none;
   transition: stroke 0.3s;
 }
-.bricks:focus .selection {
+.kdmoncat-bricks:focus .selection {
   stroke: rgba(0, 112, 204, 0.7);
 }
-.object {
+.kdmoncat-bricks .object {
   fill: #444;
   stroke-width: 0;
   transition: opacity 0.3s;
@@ -69,34 +66,34 @@
   font-style: italic;
   font-size: 0.13px;
 }
-.object.invalid {
+.kdmoncat-bricks .object.invalid {
   fill: rgba(204, 0, 0, 1);
 }
-.show-wires path, .show-wires .object circle {
+.kdmoncat-bricks.show-wires path, .kdmoncat-bricks.show-wires .object circle {
   opacity: 0;
 }
-.object.equal.valid span.output {
+.kdmoncat-bricks .object.equal.valid span.output {
   display: none;
 }
-.line {
+.kdmoncat-bricks .line {
   stroke: #444;
   stroke-width: 0.01;
   fill: none;
   transition: opacity 0.3s, stroke 0.3s, stroke-width 0.3s;
 }
-.arrowhead {
+.kdmoncat-bricks .arrowhead {
   fill: #444;
 }
-.object.invalid .line, .object.invalid .arrowhead {
+.kdmoncat-bricks .object.invalid .line, .kdmoncat-bricks .object.invalid .arrowhead {
   stroke: rgba(204, 0, 0, 1);
 }
-.show-wires .line, .show-wires .arrowhead {
+.kdmoncat-bricks.show-wires .line, .kdmoncat-bricks.show-wires .arrowhead {
   opacity: 1;
 }
-.show-bricks .box .line {
+.kdmoncat-bricks.show-bricks .box .line {
   stroke: rgba(68, 68, 68, 0);
 }
-.bricks:focus::after {
+.kdmoncat-bricks:focus::after {
   content: 'Press alt to toggle between bricks and wires.';
   position: absolute;
   right: 0;
@@ -105,31 +102,31 @@
   font-style: italic;
   padding-top: 5px;
 }
-.wires {
+.kdmoncat-bricks .wires {
   fill: #444;
 }
-.wires > rect:first-child {
+.kdmoncat-bricks .wires > rect:first-child {
   opacity: 0;
 }
-.wires .node {
+.kdmoncat-bricks .wires .node {
   stroke: #444;
   stroke-width: 0.01;
   z-index: 1;
 }
-.wires .node.white {
+.kdmoncat-bricks .wires .node.white {
   fill: #fff;
 }
-.bricks:focus .wires.selected > rect:first-child {
+.kdmoncat-bricks:focus .wires.selected > rect:first-child {
   fill: rgba(0, 112, 204, 0.1);
   opacity: 1;
 }
-text.object[text-anchor=start] {
+.kdmoncat-bricks text.object[text-anchor=start] {
   transform: translate(0.05px, -0.05px);
 }
-text.object[text-anchor=end] {
+.kdmoncat-bricks text.object[text-anchor=end] {
   transform: translate(-0.05px, -0.05px);
 }
-text.object.centered {
+.kdmoncat-bricks text.object.centered {
   text-anchor: middle !important;
   transform: translate(0, -0.07px);
 }
