@@ -21,7 +21,7 @@ import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, src, href, placeholder, value)
 
-import Language.Statebox.Wiring.Generator.DiagramV2 (fromOperators)
+import Language.Statebox.Wiring.Generator.DiagramV2 (fromOperators) as DiagramV2
 import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree, Item)
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
@@ -99,7 +99,7 @@ contentView apiUrl route = case route of
               ]
         ]
     where
-      bricksInput = KDMonCatBricks.toBricksInput (fromOperators diagramInfo.ops) { topLeft: zero, bottomRight: zero }
+      bricksInput = KDMonCatBricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) { topLeft: zero, bottomRight: zero }
 
   ResolvedUberRoot url ->
     text $ "Service über-root " <> url
