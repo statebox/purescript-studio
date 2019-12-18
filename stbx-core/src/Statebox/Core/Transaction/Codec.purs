@@ -14,7 +14,7 @@ import Data.Foldable (foldr)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.NonEmpty (singleton)
 import Data.String.Regex (Regex, regex, match)
-import Data.String.Regex.Flags (noFlags)
+import Data.String.Regex.Flags (ignore)
 import Data.Traversable (sequence, traverse)
 import Data.Tuple.Nested ((/\))
 import Effect.Exception (Error, message)
@@ -182,10 +182,10 @@ errorToSingleDecodeError regex constructor error =
 
 errorToDecodeError :: Error -> DecodeError
 errorToDecodeError error =
-  let missingRequiredRegex   = regex "^missing required" noFlags
-      invalidHexRegex        = regex "^Invalid hex string$" noFlags
-      invalidOutOfRangeRegex = regex "^index out of range" noFlags
-      invalidWireTypeRegex   = regex "^invalid wire type" noFlags
+  let missingRequiredRegex   = regex "^missing required" ignoreCase
+      invalidHexRegex        = regex "^invalid hex string" ignoreCase
+      invalidOutOfRangeRegex = regex "^index out of range" ignoreCase
+      invalidWireTypeRegex   = regex "^invalid wire type" ignoreCase
       regexes = sequence [ (\r -> r /\ MissingRequired)          <$> missingRequiredRegex
                          , (\r -> r /\ (const InvalidHexString)) <$> invalidHexRegex
                          , (\r -> r /\ InvalidOutOfRange)        <$> invalidOutOfRangeRegex
