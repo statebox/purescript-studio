@@ -10,8 +10,8 @@
     "prepare": "cp node_modules/@statebox/stbx-js/dist/stbx.min.js dist/ && cp node_modules/dagre/dist/dagre.min.js dist/",
     "postinstall": "spago install",
     "build": "spago build --no-share-output --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago bundle --no-share-output-app --watch --main Main --to dist/app.js  --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "bundle": "spago bundle --no-share-output-app --main Main --to dist/app.js --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago bundle-app --no-share-output --watch --main Main --to dist/app.js  --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "bundle": "spago bundle-app --no-share-output --main Main --to dist/app.js --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "test": "spago test --no-share-output",
     "docs": "spago docs --no-share-output",
     "repl": "spago repl --no-share-output"
