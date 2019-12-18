@@ -126,7 +126,7 @@ postTransactionHandler state = do
         case Stbx.decodeToJsonString txHex of
           Left error -> sendJson
             { status : statusToString Failed
-            , error  : show $ errorToDecodeError error
+            , error  : show error
             }
           Right decodedJsonString ->
         -- decodedJsonString <- liftEffect $ Stbx.decodeToJsonString txHex
