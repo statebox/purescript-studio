@@ -30,7 +30,6 @@ function hash (hexStr) {
   return Stbx.hash(hexStr);
 }
 
-exports.decode = decode;
 exports.decodeEither = decodeEither;
 exports.stbxObjToJsonString = stbxObjToJsonString;
 exports.hash = hash;

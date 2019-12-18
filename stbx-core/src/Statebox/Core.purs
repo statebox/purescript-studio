@@ -1,7 +1,6 @@
 module Statebox.Core where
 
-import Prelude
-import Effect
+import Prelude ((<$>), (<<<))
 import Data.Either (Either (..))
 import Data.Either.Nested (type (\/))
 import Effect.Exception (Error)
@@ -12,18 +11,15 @@ import Statebox.Core.Transaction.Codec (DecodeError, errorToDecodeError)
 
 import Statebox.Core.Execution (StbxObj) -- TODO StbxObj shouldn't be in Execution
 
--- TODO In what sense is this effectful? Let's reify exceptions here.
-foreign import decode :: HexStr -> Effect StbxObj
-
 foreign import decodeEither :: forall a. HexStr -> (Error -> a) -> (StbxObj -> a) -> a
 
 foreign import stbxObjToJsonString :: StbxObj -> String
 
 decodeToJsonString :: HexStr -> DecodeError \/ String
-decodeToJsonString hexStr = stbxObjToJsonString <$> decodeFoo hexStr
+decodeToJsonString hexStr = stbxObjToJsonString <$> decode hexStr
 
-decodeFoo :: HexStr -> DecodeError \/ StbxObj
-decodeFoo hexStr = decodeEither hexStr (Left <<< errorToDecodeError) Right
+decode :: HexStr -> DecodeError \/ StbxObj
+decode hexStr = decodeEither hexStr (Left <<< errorToDecodeError) Right
 
 --------------------------------------------------------------------------------
 

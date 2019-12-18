@@ -27,8 +27,8 @@ import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core (decodeToJsonString, hash) as Stbx
-import Statebox.Core.Transaction (Tx, TxSum(..))
-import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum, errorToDecodeError)
+import Statebox.Core.Transaction (Tx, TxSum)
+import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 import Statebox.Core.Types (HexStr)
 import Statebox.Service (TxError(..), txErrorCode, txErrorMessage)
 import Statebox.TransactionStore (get, put) as TransactionStore

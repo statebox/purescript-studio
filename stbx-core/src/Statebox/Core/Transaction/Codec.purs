@@ -176,6 +176,8 @@ instance showDecodeError :: Show DecodeError where
     InvalidWireType s   -> "Invalid wire type: " <> s
     Other s             -> "Other: " <> s
 
+derive instance eqDecodeError :: Eq DecodeError
+
 errorToSingleDecodeError :: Regex -> (String -> DecodeError) -> Error -> Maybe DecodeError
 errorToSingleDecodeError regex constructor error =
   const (constructor $ message error) <$> match regex (message error)
