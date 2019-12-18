@@ -2,12 +2,13 @@ module Statebox.Core where
 
 import Prelude
 import Effect
-import Data.Either
+import Data.Either (Either (..))
+import Data.Either.Nested (type (\/))
 import Effect.Exception (Error)
 
 import Statebox.Core.Types (HexStr)
 import Statebox.Core.Transaction (HashStr)
-import Statebox.Core.Transaction.Codec (DecodeError)
+import Statebox.Core.Transaction.Codec (DecodeError, errorToDecodeError)
 
 import Statebox.Core.Execution (StbxObj) -- TODO StbxObj shouldn't be in Execution
 
@@ -18,8 +19,11 @@ foreign import decodeEither :: forall a. HexStr -> (Error -> a) -> (StbxObj -> a
 
 foreign import stbxObjToJsonString :: StbxObj -> String
 
-decodeToJsonString :: forall a. HexStr -> Either Error String
-decodeToJsonString hexStr = decodeEither hexStr (Left) (Right <<< stbxObjToJsonString)
+decodeToJsonString :: HexStr -> DecodeError \/ String
+decodeToJsonString hexStr = stbxObjToJsonString <$> decodeFoo hexStr
+
+decodeFoo :: HexStr -> DecodeError \/ StbxObj
+decodeFoo hexStr = decodeEither hexStr (Left <<< errorToDecodeError) Right
 
 --------------------------------------------------------------------------------
 
