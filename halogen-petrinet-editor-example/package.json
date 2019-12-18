@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago build --watch -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "build": "spago build --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago build --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "start": "parcel html/index.html",
     "bundle": "npm run build && parcel build html/index.html --public-url .",
     "test": "spago test"
@@ -24,7 +24,7 @@
     "parcel-bundler": "^1.12.4",
     "purescript": "^0.13.3",
     "purescript-psa": "^0.7.3",
-    "spago": "^0.9.0"
+    "spago": "^0.12.1"
   },
   "dependencies": {
     "dagre": "^0.8.4"
