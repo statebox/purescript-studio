@@ -7,8 +7,8 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build",
-    "test": "spago test"
+    "build": "spago build --no-share-output",
+    "test": "spago test --no-share-output"
   },
   "keywords": [
     "petrinet"

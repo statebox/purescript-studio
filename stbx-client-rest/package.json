@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build",
-    "test": "spago test",
-    "repl": "spago repl",
-    "docs": "spago docs"
+    "build": "spago build --no-share-output",
+    "test": "spago test --no-share-output",
+    "repl": "spago repl --no-share-output",
+    "docs": "spago docs --no-share-output"
   },
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",

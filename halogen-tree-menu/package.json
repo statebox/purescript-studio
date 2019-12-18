@@ -5,9 +5,9 @@
   "author": "Erik Post <erik@shinsetsu.nl>",
   "main": "index.js",
   "scripts": {
-    "postinstall": "spago install",
-    "build": "spago build",
-    "watch": "spago build --watch"
+    "postinstall": " spago --no-share-output install",
+    "build": " spago --no-share-output build",
+    "watch": " spago --no-share-output build --watch"
   },
   "devDependencies": {
     "purescript": "^0.13.3",

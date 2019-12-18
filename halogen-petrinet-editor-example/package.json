@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago build --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "build": "spago build --no-share-output --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago build --no-share-output --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "start": "parcel html/index.html",
     "bundle": "npm run build && parcel build html/index.html --public-url .",
-    "test": "spago test"
+    "test": "spago test --no-share-output"
   },
   "keywords": [
     "purescript",

@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Statebox example data",
   "scripts": {
-    "build": "spago build",
-    "test": "spago test",
-    "repl": "spago repl"
+    "build": "spago build --no-share-output",
+    "test": "spago test --no-share-output",
+    "repl": "spago repl --no-share-output"
   },
   "author": "Marco Perone <pasafama@gmail.com>",
   "license": "ISC",

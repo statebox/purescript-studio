@@ -12,10 +12,10 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "start": "spago run",
-    "build": "spago build",
-    "watch": "spago build --watch",
-    "test": "spago test"
+    "start": "spago run --no-share-output",
+    "build": "spago build --no-share-output",
+    "watch": "spago build --no-share-output --watch",
+    "test": "spago test --no-share-output"
   },
   "license": "ISC",
   "dependencies": {},

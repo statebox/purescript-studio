@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build",
-    "test": "spago test",
-    "docs": "spago docs",
-    "repl": "spago repl",
-    "watch": "spago build --watch"
+    "build": "spago build --no-share-output",
+    "test": "spago test --no-share-output",
+    "docs": "spago docs --no-share-output",
+    "repl": "spago repl --no-share-output",
+    "watch": "spago build --no-share-output --watch"
   },
   "repository": {
     "type": "git",

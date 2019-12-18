@@ -8,11 +8,11 @@
   },
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago build --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "test": "spago test",
-    "docs": "spago docs",
-    "repl": "spago repl",
+    "build": "spago build --no-share-output --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago build --no-share-output --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "test": "spago test --no-share-output",
+    "docs": "spago docs --no-share-output",
+    "repl": "spago repl --no-share-output",
     "start": "parcel html/index.html",
     "start1": "parcel html/index.html --public-url .",
     "bundle": "npm run build && parcel build html/index.html --public-url ."

@@ -6,8 +6,8 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago build --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport"
+    "build": "spago build --no-share-output --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago build --no-share-output --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport"
   },
   "devDependencies": {
     "purescript": "^0.13.3",
