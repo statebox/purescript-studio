@@ -14,6 +14,8 @@ newtype Box a = Box (BoxRecF (Vec3 a))
 
 derive instance newtypeBox :: Newtype (Box a)  _
 derive instance functorBox :: Functor Box
+derive instance eqBox :: Eq a => Eq (Box a)
+derive instance ordBox :: Ord a => Ord (Box a)
 
 type BoxRecF a =
   { topLeft     :: a
