@@ -1,5 +1,5 @@
 { name =
-    "halogen-graphical"
+    "halogen-grid-kit"
 , dependencies =
     [ "console"
     , "debug"

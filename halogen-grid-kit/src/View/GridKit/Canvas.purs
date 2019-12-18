@@ -1,4 +1,4 @@
-module View.Graphical.Canvas where
+module View.GridKit.Canvas where
 
 import Prelude
 

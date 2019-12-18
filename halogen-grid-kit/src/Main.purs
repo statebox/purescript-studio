@@ -13,7 +13,7 @@ import Halogen.Aff.Util (selectElement)
 import Halogen.VDom.Driver (runUI)
 import Web.DOM.ParentNode (QuerySelector(..))
 
-import View.Graphical.Canvas as Canvas
+import View.GridKit.Canvas as Canvas
 
 
 main :: Effect Unit
