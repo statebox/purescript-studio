@@ -12,17 +12,17 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "start": "spago run",
-    "build": "spago build",
-    "watch": "spago build --watch",
-    "test": "spago test"
+    "start": "spago run --no-share-output",
+    "build": "spago build --no-share-output",
+    "watch": "spago build --no-share-output --watch",
+    "test": "spago test --no-share-output"
   },
   "license": "ISC",
   "dependencies": {},
   "devDependencies": {
     "purescript": "^0.13.3",
     "purescript-psa": "^0.7.3",
-    "spago": "^0.9.0"
+    "spago": "^0.12.1"
   },
   "directories": {
     "test": "test"

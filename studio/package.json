@@ -9,12 +9,12 @@
   "scripts": {
     "prepare": "cp node_modules/@statebox/stbx-js/dist/stbx.min.js dist/ && cp node_modules/dagre/dist/dagre.min.js dist/",
     "postinstall": "spago install",
-    "build": "spago build  -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago bundle-app --watch --main Main --to dist/app.js  -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "bundle": "spago bundle-app --main Main --to dist/app.js  -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "test": "spago test",
-    "docs": "spago docs",
-    "repl": "spago repl"
+    "build": "spago build --no-share-output --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago bundle-app --no-share-output --watch --main Main --to dist/app.js  --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "bundle": "spago bundle-app --no-share-output --main Main --to dist/app.js --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "test": "spago test --no-share-output",
+    "docs": "spago docs --no-share-output",
+    "repl": "spago repl --no-share-output"
   },
   "keywords": [
     "statebox",
@@ -25,7 +25,7 @@
   "devDependencies": {
     "purescript": "^0.13.3",
     "purescript-psa": "^0.7.3",
-    "spago": "^0.9.0"
+    "spago": "^0.12.1"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.6.3",
