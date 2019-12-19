@@ -2,7 +2,7 @@ module View.GridKit.Canvas where
 
 import Prelude
 
-import Data.Array ((..))
+import Data.Array ((..), filter)
 import Data.Bifunctor (bimap)
 import Data.Maybe
 import Data.Int (floor, ceil, toNumber)
@@ -13,12 +13,14 @@ import Halogen as H
 import Halogen.HTML hiding (code, head, prop, map, div)
 import Halogen.HTML.Properties (ref)
 import Halogen.Query.Input (RefLabel(..))
-import Math (log, pow, ln10, round)
+import Math (log, pow, ln10, round, sqrt)
 import Svg.Elements as S
 import Svg.Attributes hiding (path) as S
 import Web.DOM.Element (Element, setAttribute)
 
 import View.ReactiveInput as RI
+
+import Debug.Trace
 
 type Input =
   { gridSpacing :: Number
@@ -54,17 +56,26 @@ render { gridSpacing, range: range@(Box { topLeft, bottomRight }), size } _ =
 type GridLine = { pos :: Number, width :: Number }
 gridLines :: Number -> Number -> Number -> Number -> Array GridLine
 gridLines pixelSpacing pixelSize start end
-  = (ceil (start / step) .. floor (end / step))
-  # map \n -> { pos: toNumber n * step, width: pixelSize * max 0.0 (min 2.0 (0.3 * step * w n / spacing - 0.1)) }
+  = (ceil (start / stepSize) .. floor (end / stepSize))
+  # map (\n -> { pos: toNumber n * stepSize, width: pixelSize * (w n - thresholdWidth) })
+  # filter (\{ width } -> width > 0.0)
   where
     spacing = pixelSpacing * pixelSize
-    step = pow 10.0 (round (log spacing / ln10 - 0.3))
-    w 0 = 100.0
-    w n = if n `mod` 5 == 0
-      then if n `mod` 10 == 0
-        then min 100.0 (10.0 * w (n `div` 10))
-        else 3.0
-      else 1.0
+    stepSize = pow 10.0 (round (log (spacing / stepMultiplyer) / ln10))
+    zoom = stepSize / spacing
+    w 0 = maxLineWidth
+    w n =
+      if n `mod` 5 /= 0 then onesWidth * zoom else
+      if n `mod` 10 /= 0 then fivesWidth * zoom else
+      min maxLineWidth (10.0 * w (n `div` 10))
+    onesWidth = 0.3
+    fivesWidth = 1.0
+    maxLineWidth = 2.5
+    -- the pixel width below the grid lines become hidden
+    -- we subtract the threshold so the lines fade in/out instead of suddenly appearing/disappearing
+    thresholdWidth = 0.1
+    -- Increase the number of lines just when the fives-lines are appearing:
+    stepMultiplyer = fivesWidth / thresholdWidth / sqrt(10.0)
 
 viewBox :: ∀ r i. Box Number -> IProp (viewBox :: String | r) i
 viewBox (Box { topLeft: p0, bottomRight: p1 }) =
