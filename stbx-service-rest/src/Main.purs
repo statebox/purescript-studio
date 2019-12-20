@@ -78,7 +78,7 @@ index = sendJson
 healthcheck :: Handler
 healthcheck = sendJson { health: "I'm fine" }
 
--- | Endpoint for getting all the transactions from the transaction store
+-- | Endpoint for getting all the transactions from the transaction store.
 -- | Responds to `GET /tx`
 getTransactionsHandler :: AppState -> Handler
 getTransactionsHandler state = do
@@ -129,7 +129,6 @@ postTransactionHandler state = do
             , error  : show error
             }
           Right decodedJsonString ->
-        -- decodedJsonString <- liftEffect $ Stbx.decodeToJsonString txHex
             case jsonParser decodedJsonString of
               Left error -> sendJson
                 { status : statusToString Failed

@@ -88,7 +88,7 @@ decodeFiring :: Json -> String \/ Firing
 decodeFiring = decodeJson >=> \x -> do
   message   <- x .:? "message"
   execution <- x .:? "execution"
-  path      <- x .:  "path" >>= case _ of [x] -> Right (singleton x)
+  path      <- x .:  "path" >>= case _ of [y] -> Right (singleton y)
                                           _   -> Left "The 'path' field in a firing must be a singleton array."
   pure { message, execution, path }
 
@@ -162,19 +162,19 @@ encodeTxWith encodeBody t =
 --------------------------------------------------------------------------------
 
 data DecodeError
-  = MissingRequired String
+  = MissingRequiredField String
   | InvalidHexString
-  | InvalidOutOfRange String
+  | IndexOutOfRange String
   | InvalidWireType String
   | Other String
 
 instance showDecodeError :: Show DecodeError where
   show = case _ of
-    MissingRequired s   -> "Missing required field: " <> s
-    InvalidHexString    -> "Invalid Hex String"
-    InvalidOutOfRange s -> "Invalid out of range: " <> s
-    InvalidWireType s   -> "Invalid wire type: " <> s
-    Other s             -> "Other: " <> s
+    MissingRequiredField s -> "Missing required field: " <> s
+    InvalidHexString       -> "Invalid Hex String"
+    IndexOutOfRange s      -> "Invalid out of range: " <> s
+    InvalidWireType s      -> "Invalid wire type: " <> s
+    Other s                -> "Other: " <> s
 
 derive instance eqDecodeError :: Eq DecodeError
 
@@ -184,20 +184,12 @@ errorToSingleDecodeError regex constructor error =
 
 errorToDecodeError :: Error -> DecodeError
 errorToDecodeError error =
-  let missingRequiredRegex   = regex "^missing required" ignoreCase
-      invalidHexRegex        = regex "^invalid hex string" ignoreCase
-      invalidOutOfRangeRegex = regex "^index out of range" ignoreCase
-      invalidWireTypeRegex   = regex "^invalid wire type" ignoreCase
-      regexes = sequence [ (\r -> r /\ MissingRequired)          <$> missingRequiredRegex
-                         , (\r -> r /\ (const InvalidHexString)) <$> invalidHexRegex
-                         , (\r -> r /\ InvalidOutOfRange)        <$> invalidOutOfRangeRegex
-                         , (\r -> r /\ InvalidWireType)          <$> invalidWireTypeRegex
-                         ]
-  in
-    either (const $ Other "regex error")
-           (   (fromMaybe (Other $ message error))
-           <<< (foldr (\(regex /\ constructor) previous ->     previous
-                                                           <|> errorToSingleDecodeError regex constructor error)
-                      Nothing)
-           )
-           regexes
+  errorMatchers # either (const $ Other "Error in regex definition.")
+                         (foldr tryMatch Nothing >>> fromMaybe (Other $ message error))
+  where
+    errorMatchers = sequence [ (_ /\ MissingRequiredField)     <$> regex "^missing required"   ignoreCase
+                             , (_ /\ InvalidHexString # const) <$> regex "^invalid hex string" ignoreCase
+                             , (_ /\ IndexOutOfRange)          <$> regex "^index out of range" ignoreCase
+                             , (_ /\ InvalidWireType)          <$> regex "^invalid wire type"  ignoreCase
+                             ]
+    tryMatch (regex /\ errorConstructor) previous = previous <|> errorToSingleDecodeError regex errorConstructor error
