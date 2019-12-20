@@ -8,16 +8,11 @@ import Data.Argonaut.Encode.Class (encodeJson)
 import Data.Argonaut.Decode (decodeJson, (.:), (.:?))
 import Data.Argonaut.Decode.Class (decodeJArray)
 import Data.Profunctor.Choice (left)
-import Data.Either (Either(..), either)
+import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
-import Data.Foldable (foldr)
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (maybe)
 import Data.NonEmpty (singleton)
-import Data.String.Regex (Regex, regex, match)
-import Data.String.Regex.Flags (ignoreCase)
-import Data.Traversable (sequence, traverse)
-import Data.Tuple.Nested ((/\))
-import Effect.Exception (Error, message)
+import Data.Traversable (traverse)
 import Foreign.Object (Object, lookup)
 
 import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), mapTx, evalTxSum)
@@ -146,38 +141,3 @@ encodeTxWith encodeBody t =
   ~> "hex"     := t.hex
   ~> "decoded" := encodeBody t.decoded
   ~> jsonEmptyObject
-
---------------------------------------------------------------------------------
-
-data DecodeError
-  = MissingRequiredField String
-  | InvalidHexString
-  | IndexOutOfRange String
-  | InvalidWireType String
-  | Other String
-
-instance showDecodeError :: Show DecodeError where
-  show = case _ of
-    MissingRequiredField s -> "Missing required field: " <> s
-    InvalidHexString       -> "Invalid Hex String"
-    IndexOutOfRange s      -> "Invalid out of range: " <> s
-    InvalidWireType s      -> "Invalid wire type: " <> s
-    Other s                -> "Other: " <> s
-
-derive instance eqDecodeError :: Eq DecodeError
-
-errorToSingleDecodeError :: Regex -> (String -> DecodeError) -> Error -> Maybe DecodeError
-errorToSingleDecodeError regex constructor error =
-  const (constructor $ message error) <$> match regex (message error)
-
-errorToDecodeError :: Error -> DecodeError
-errorToDecodeError error =
-  errorMatchers # either (const $ Other "Error in regex definition.")
-                         (foldr tryMatch Nothing >>> fromMaybe (Other $ message error))
-  where
-    errorMatchers = sequence [ (_ /\ MissingRequiredField)     <$> regex "^missing required"   ignoreCase
-                             , (_ /\ InvalidHexString # const) <$> regex "^invalid hex string" ignoreCase
-                             , (_ /\ IndexOutOfRange)          <$> regex "^index out of range" ignoreCase
-                             , (_ /\ InvalidWireType)          <$> regex "^invalid wire type"  ignoreCase
-                             ]
-    tryMatch (regex /\ errorConstructor) previous = previous <|> errorToSingleDecodeError regex errorConstructor error
