@@ -7,14 +7,14 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build --no-share-output",
-    "test": "spago test --no-share-output"
+    "build": "spago build",
+    "test": "spago test"
   },
   "keywords": [
     "petrinet"
   ],
   "devDependencies": {
     "purescript": "^0.13.3",
-    "spago": "^0.12.1"
+    "spago": "^0.13"
   }
 }

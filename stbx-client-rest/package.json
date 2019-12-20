@@ -5,16 +5,16 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "spago install",
-    "build": "spago build --no-share-output",
-    "test": "spago test --no-share-output",
-    "repl": "spago repl --no-share-output",
-    "docs": "spago docs --no-share-output"
+    "build": "spago build",
+    "test": "spago test",
+    "repl": "spago repl",
+    "docs": "spago docs"
   },
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",
   "devDependencies": {
     "purescript": "^0.13.3",
-    "spago": "^0.12.1",
+    "spago": "^0.13",
     "xhr2": "^0.2.0"
   }
 }
