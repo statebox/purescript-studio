@@ -2,8 +2,8 @@ module Test.Main where
 
 import Prelude
 
+import Affjax as Affjax
 import Affjax (URL)
-import Affjax.ResponseFormat (ResponseFormatError(..))
 import Data.Either (Either(..))
 import Debug.Trace (spy)
 import Effect.Aff (Fiber, launchAff)
@@ -79,9 +79,9 @@ requestTransactionSpec txDescription requestedHash =
   it ("should respond to GET /tx/" <> requestedHash <> " for " <> txDescription <> " correctly") do
     res <- Stbx.requestTransaction endpointUrl requestedHash
     res # evalTransactionResponse
-      (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e) -- TODO spy obj?
-      (\(DecodingError e)           -> fail $ "DecodingError: " <> e)
-      (\{id, tx}                    -> succeed)                                  -- TODO more checks
+      (\(affjaxError)     -> fail $ "Affjax.Error: " <> Affjax.printError affjaxError) -- TODO spy obj?
+      (\(DecodingError e) -> fail $ "DecodingError: " <> e)
+      (\{id, tx}          -> succeed)                                                  -- TODO more checks
 
 -- TODO for now
 todo = succeed

@@ -5,12 +5,12 @@
   "author": "Erik Post <erik@shinsetsu.nl>",
   "main": "index.js",
   "scripts": {
-    "postinstall": " spago --no-share-output install",
-    "build": " spago --no-share-output build",
-    "watch": " spago --no-share-output build --watch"
+    "postinstall": " spago install",
+    "build": " spago build",
+    "watch": " spago build --watch"
   },
   "devDependencies": {
-    "purescript": "^0.13.3",
+    "purescript": "^0.13.5",
     "spago": "^0.12.1"
   },
   "license": "ISC"
