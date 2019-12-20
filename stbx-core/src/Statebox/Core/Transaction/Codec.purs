@@ -132,18 +132,6 @@ elaborateFailure s e =
 
 --------------------------------------------------------------------------------
 
--- TODO This is no longer used in this module and should probably be moved into Client
-newtype DecodingError = DecodingError String
-
-instance eqDecodingError :: Eq DecodingError where
-  eq (DecodingError x) (DecodingError y) = x == y
-
-instance showDecodingError :: Show DecodingError where
-  show = case _ of
-    DecodingError e -> "(DecodingError " <> show e <> ")"
-
---------------------------------------------------------------------------------
-
 encodeTxSum :: TxSum -> Json
 encodeTxSum = evalTxSum
   (\_ -> jsonEmptyObject) -- TODO do we want to encode/decode this?

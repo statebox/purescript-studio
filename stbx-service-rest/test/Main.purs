@@ -14,7 +14,6 @@ import Test.Spec.Runner (runSpec)
 import Test.Spec.Reporter.Console (consoleReporter)
 
 import Statebox.Core.Transaction (TxId)
-import Statebox.Core.Transaction.Codec (DecodingError(..))
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 
@@ -80,7 +79,7 @@ requestTransactionSpec txDescription requestedHash =
     res <- Stbx.requestTransaction endpointUrl requestedHash
     res # evalTransactionResponse
       (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e) -- TODO spy obj?
-      (\(DecodingError e)           -> fail $ "DecodingError: " <> e)
+      (\(Stbx.DecodingError e)      -> fail $ "DecodingError: " <> e)
       (\{id, tx}                    -> succeed)                                  -- TODO more checks
 
 -- TODO for now

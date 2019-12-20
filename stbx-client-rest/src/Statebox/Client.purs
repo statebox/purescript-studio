@@ -20,9 +20,18 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff)
 
 import Statebox.Core.Transaction (HashTx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
-import Statebox.Core.Transaction.Codec (decodeTxTxSum, DecodingError(..))
+import Statebox.Core.Transaction.Codec (decodeTxTxSum)
 import Statebox.Core.Types (HexStr)
 
+
+newtype DecodingError = DecodingError String
+
+instance eqDecodingError :: Eq DecodingError where
+  eq (DecodingError x) (DecodingError y) = x == y
+
+instance showDecodingError :: Show DecodingError where
+  show = case _ of
+    DecodingError e -> "(DecodingError " <> show e <> ")"
 
 -- | A convenience function for processing API responses.
 evalTransactionResponse
