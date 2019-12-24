@@ -10,6 +10,7 @@ module Data.Vec3.Vec3
   , minMax
   , minMaxVecs
   , minMaxZero
+  , inproduct
 
   , Vec2()
   , vec2
@@ -135,8 +136,11 @@ minMax m n =
   , max: binOp max m.max n.max
   }
 
-toArray :: forall a. Vec3 a -> Array a
+toArray :: ∀ a. Vec3 a -> Array a
 toArray v = [_x v, _y v, _z v]
+
+inproduct :: ∀ a. Semiring a => Vec3 a -> Vec3 a -> a
+inproduct l r = _x l * _x r + _y l * _y r + _z l * _z r
 
 -- Legacy Vec2 interface--------------------------------------------------------
 
@@ -147,3 +151,6 @@ type Vec2D = Vec3 Number
 -- | 'Smart' constructor.
 vec2 :: ∀ a. Semiring a => a -> a -> Vec3 a
 vec2 x y = vec3 x y zero
+
+point2 :: ∀ a. Semiring a => a -> a -> Vec3 a
+point2 x y = vec3 x y one
