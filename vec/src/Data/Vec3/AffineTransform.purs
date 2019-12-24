@@ -33,8 +33,8 @@ scale s = AF
 
 translate :: ∀ a. Semiring a => Vec2 a -> AffineTransform a
 translate v = AF
-  { x: vec3 zero zero (_x v)
-  , y: vec3 zero zero (_y v)
+  { x: vec3 one zero (_x v)
+  , y: vec3 zero one (_y v)
   }
 
 rotate :: Radians -> AffineTransform Number

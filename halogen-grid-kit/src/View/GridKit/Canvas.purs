@@ -6,7 +6,8 @@ import Data.Array ((..), filter)
 import Data.Bifunctor (bimap)
 import Data.Maybe
 import Data.Int (floor, ceil, toNumber)
-import Data.Vec3 (Vec2, _x, _y, Box(..))
+import Data.Vec3 (Vec2, _x, _y, Box(..), origin2)
+import Data.Vec3.AffineTransform
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen as H
@@ -41,19 +42,28 @@ ui =
 
 render :: ∀ m. Input -> {} -> H.ComponentHTML Void () m
 render { gridSpacing, range: range@(Box { topLeft, bottomRight }), size } _ =
-  S.svg [ S.width (_x size), S.height (_y size), viewBox range ]
+  S.svg [ S.width (_x size), S.height (_y size), S.viewBox x1 y1 (x2 - x1) (y2 - y1) ]
   [ S.g [ S.attr (AttrName "class") "grid grid-v" ] $
-      gridLines gridSpacing ((x2 - x1) / _x size) x1 x2
+      gridLines gridSpacing pixelSize x1 x2
         # map \{ width, pos } -> S.line [ S.strokeWidth width, S.x1 pos, S.y1 y1, S.x2 pos, S.y2 y2 ]
   , S.g [ S.attr (AttrName "class") "grid grid-h" ] $
-      gridLines gridSpacing ((y2 - y1) / _y size) y1 y2
+      gridLines gridSpacing pixelSize y1 y2
         # map \{ width, pos } -> S.line [ S.strokeWidth width, S.x1 x1, S.y1 pos, S.x2 x2, S.y2 pos ]
   ]
   where
-    x1 = _x topLeft
-    y1 = _y topLeft
-    x2 = _x bottomRight
-    y2 = _y bottomRight
+    scaleXY = size / (bottomRight - topLeft)
+    scaleMin = min (_x scaleXY) (_y scaleXY)
+    pixelSize = 1.0 / scaleMin
+    rangeCenter = (topLeft + bottomRight) / pure 2.0
+    canvasCenter = size / pure 2.0
+    model2canvas = translate canvasCenter * scale scaleMin * translate (-rangeCenter)
+    canvas2model = translate rangeCenter * scale pixelSize * translate (-canvasCenter)
+    topLeft' = canvas2model `transform` origin2
+    bottomRight' = canvas2model `transform` (origin2 + size)
+    x1 = _x topLeft'
+    y1 = _y topLeft'
+    x2 = _x bottomRight'
+    y2 = _y bottomRight'
 
 type GridLine = { pos :: Number, width :: Number }
 gridLines :: Number -> Number -> Number -> Number -> Array GridLine
@@ -78,7 +88,3 @@ gridLines pixelSpacing pixelSize start end
     thresholdWidth = 0.1
     -- Increase the number of lines just when the fives-lines are appearing:
     stepMultiplyer = fivesWidth / thresholdWidth / sqrt(10.0)
-
-viewBox :: ∀ r i. Box Number -> IProp (viewBox :: String | r) i
-viewBox (Box { topLeft: p0, bottomRight: p1 }) =
-  let dp = p1 - p0 in S.viewBox (_x p0) (_y p0) (_x dp) (_y dp)

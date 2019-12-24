@@ -15,10 +15,12 @@ module Data.Vec3.Vec3
   , Vec2()
   , vec2
   , Vec2D()
+  , point2
+  , origin2
   ) where
 
 import Prelude
-import Data.Foldable (class Foldable, foldl)
+import Data.Foldable (class Foldable, foldl, sum, foldrDefault, foldlDefault)
 import Data.Monoid.Additive (Additive)
 import Data.Monoid.Multiplicative (Multiplicative)
 import Data.Newtype (class Newtype)
@@ -63,6 +65,11 @@ instance showVec3 :: Show a => Show (Vec3 a) where
   show (Vec3 {x, y, z}) = "(" <> show x <> "," <> show y <> "," <> show z <> ")"
 
 derive instance functorVec3 :: Functor Vec3
+
+instance foldableVec3 :: Foldable Vec3 where
+  foldMap f (Vec3 {x, y, z}) = f x <> f y <> f z
+  foldr f z = foldrDefault f z
+  foldl f z = foldlDefault f z
 
 instance applyVec3 :: Apply Vec3 where
   apply (Vec3 {x: fx, y: fy, z: fz}) (Vec3 {x,y,z}) = Vec3 {x: fx x, y: fy y, z: fz z}
@@ -140,7 +147,7 @@ toArray :: ∀ a. Vec3 a -> Array a
 toArray v = [_x v, _y v, _z v]
 
 inproduct :: ∀ a. Semiring a => Vec3 a -> Vec3 a -> a
-inproduct l r = _x l * _x r + _y l * _y r + _z l * _z r
+inproduct l r = sum (l * r)
 
 -- Legacy Vec2 interface--------------------------------------------------------
 
@@ -154,3 +161,6 @@ vec2 x y = vec3 x y zero
 
 point2 :: ∀ a. Semiring a => a -> a -> Vec3 a
 point2 x y = vec3 x y one
+
+origin2 :: ∀ a. Semiring a => Vec3 a
+origin2 = point2 zero zero
