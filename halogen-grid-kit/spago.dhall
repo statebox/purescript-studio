@@ -7,6 +7,7 @@
     , "functors"
     , "halogen"
     , "halogen-svg"
+    , "numbers"
     , "ordered-collections"
     , "profunctor-lenses"
     , "psci-support"

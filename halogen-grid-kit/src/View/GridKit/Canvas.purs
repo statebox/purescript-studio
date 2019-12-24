@@ -20,13 +20,15 @@ import Web.DOM.Element (Element, setAttribute)
 
 import View.ReactiveInput as RI
 
-import Debug.Trace
 
 type Input =
   { gridSpacing :: Number
   , range :: Box Number
   , size :: Vec2 Number
   }
+
+data VoidF a
+type Slot = H.Slot VoidF Void
 
 ui :: ∀ q m. MonadEffect m => H.Component HTML q Input Void m
 ui =

@@ -13,13 +13,13 @@ import Halogen.Aff.Util (selectElement)
 import Halogen.VDom.Driver (runUI)
 import Web.DOM.ParentNode (QuerySelector(..))
 
-import View.GridKit.Canvas as Canvas
+import Example as Example
 
 
 main :: Effect Unit
 main = log "main: loaded."
 
-run :: ∀ f. Canvas.Input -> String -> Aff (Maybe (HalogenIO f Void Aff))
-run input selector = do
+-- run :: ∀ f. {} -> String -> Aff (Maybe (HalogenIO f Void Aff))
+run {} selector = do
   elemMaybe <- selectElement (QuerySelector selector)
-  runUI Canvas.ui input `traverse` elemMaybe
+  runUI Example.ui {} `traverse` elemMaybe
