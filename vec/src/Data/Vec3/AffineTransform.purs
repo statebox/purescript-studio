@@ -14,6 +14,9 @@ type AffineTransformF a =
   , y :: a
   }
 
+extended :: ∀ a. Semiring a => AffineTransform a -> Vec3 (Vec3 a)
+extended (AF {x, y}) = vec3 x y (vec3 zero zero one)
+
 derive instance newtypeBox :: Newtype (AffineTransform a) _
 derive instance functorBox :: Functor AffineTransform
 derive instance eqBox :: Eq a => Eq (AffineTransform a)
@@ -52,7 +55,9 @@ instance semiringVec3 :: Semiring a => Semiring (AffineTransform a) where
   --                     [    0     0     1]
   -- [l.x.x l.x.y l.x.z]
   -- [l.y.x l.y.y l.y.z]
-  mul (AF l) (AF r) = AF
-    { x: pure (_x l.x) * r.x + pure (_y l.x) * r.y + vec3 zero zero (_z l.x)
-    , y: pure (_x l.y) * r.x + pure (_y l.y) * r.y + vec3 zero zero (_z l.y)
+  mul (AF l) r = AF
+    { x: map pure l.x `inproduct` extendedR
+    , y: map pure l.y `inproduct` extendedR
     }
+    where
+      extendedR = extended r
