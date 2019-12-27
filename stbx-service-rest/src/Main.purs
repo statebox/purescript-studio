@@ -3,14 +3,17 @@ module Main where
 import Prelude
 
 import Control.Monad.State.Trans (runStateT)
+import Data.Argonaut.Core (Json, stringify)
 import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
-import Data.Either (Either(..))
+import Data.Bifunctor (lmap, bimap)
+import Data.Either (Either, either)
 import Data.Either.Nested (type (\/))
 import Data.Function.Uncurried (Fn3)
 import Data.Maybe (Maybe(..))
+import Data.Traversable (traverse)
 import Data.Tuple (snd)
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
@@ -26,7 +29,7 @@ import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Core (decodeToJsonString, hash) as Stbx
+import Statebox.Core (DecodeError, decodeToJsonString, hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum)
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 import Statebox.Core.Types (HexStr)
@@ -114,46 +117,79 @@ postTransactionHandler :: AppState -> Handler
 postTransactionHandler state = do
   -- TODO: find a proper way to manage body decoding
   bodyStr :: String <- unsafeCoerce <$> getBody'
-  case jsonParser bodyStr of
-    Left error -> sendJson
-      { status : statusToString Failed
-      , error  : error
-      }
-    Right json -> case decodeJson json :: String \/ TxPostRequestBody of
-      Left error -> sendTxError TxNoTxField
-      Right (body :: TxPostRequestBody) -> do
-        let txHex = body.tx
-        case Stbx.decodeToJsonString txHex of
-          Left error -> sendJson
-            { status : statusToString Failed
-            , error  : show error
-            }
-          Right decodedJsonString ->
-            case jsonParser decodedJsonString of
-              Left error -> sendJson
-                { status : statusToString Failed
-                , error  : error
-                }
-              Right txJson -> case decodeTxSum txJson of
-                Left error -> sendJson
-                  { status : statusToString Failed
-                  , error  : error
-                  }
-                Right txSum -> do
-                  let hash = Stbx.hash txHex
-                  transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
-                  updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash txSum) transactionDictionary
-                  liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
-                  sendTxTxSum { status: statusToString Ok
-                              , hash: hash
-                              , hex: txHex
-                              , decoded: txSum
-                              }
+  let eitherErrorOrTxHexAndTxSum = bodyStr #   (parseBodyToJson
+                                           >=> jsonBodyToTxString
+                                           >=> txStringToTxJsonString
+                                           >=> txJsonStringToTxData
+                                           >=> txDataToTxSum)
+  either
+    sendResponseError
+    (\(txHex /\ txSum) -> do
+      let hash = Stbx.hash txHex
+      transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
+      updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash txSum) transactionDictionary
+      liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
+      sendTxTxSum { status: statusToString Ok
+                  , hash: hash
+                  , hex: txHex
+                  , decoded: txSum
+                  })
+    eitherErrorOrTxHexAndTxSum
+
+parseBodyToJson :: String -> Either ResponseError Json
+parseBodyToJson bodyStr = lmap
+  (\error -> FailedBodyToJson { body : bodyStr, error : error })
+  (jsonParser bodyStr)
+
+jsonBodyToTxString :: Json -> Either ResponseError HexStr
+jsonBodyToTxString jsonBody = bimap
+  (\error -> FailedJsonToTxString { jsonBody : jsonBody, error : error })
+  (\body -> body.tx)
+  (decodeJson jsonBody :: String \/ TxPostRequestBody)
+
+txStringToTxJsonString :: HexStr -> Either ResponseError (HexStr /\ String)
+txStringToTxJsonString txHex = bimap
+  (\error -> FailedTxStringToTxJsonString { hash : txHex, error : error })
+  (txHex /\ _)
+  (Stbx.decodeToJsonString txHex)
+
+txJsonStringToTxData :: (HexStr /\ String) -> Either ResponseError (HexStr /\ Json)
+txJsonStringToTxData (txHex /\ decodedJsonString) = traverse
+  (lmap (\error -> FailedTxJsonToTxData { txString : decodedJsonString, error : error }))
+  (txHex /\ jsonParser decodedJsonString)
+
+txDataToTxSum :: (HexStr /\ Json) -> Either ResponseError (HexStr /\ TxSum)
+txDataToTxSum (txHex /\ txJson) = traverse
+  (lmap (\error -> FailedTxDataToTxSum {txData : txJson, error : error }))
+  (txHex /\ decodeTxSum txJson)
+
 
 type TxPostRequestBody = { tx :: HexStr }
 
 sendTxTxSum :: Tx TxSum -> Handler
 sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum
+
+--------------------------------------------------------------------------------
+
+data ResponseError
+  = FailedBodyToJson             { body :: String, error :: String }
+  | FailedJsonToTxString         { jsonBody :: Json, error :: String }
+  | FailedTxStringToTxJsonString { hash :: HexStr, error :: Stbx.DecodeError }
+  | FailedTxJsonToTxData         { txString :: String, error :: String }
+  | FailedTxDataToTxSum          { txData :: Json, error :: String }
+
+instance showResponseError :: Show ResponseError where
+  show (FailedBodyToJson             o) = "The received body does not contain valid Json: \"" <> show o.body <> "\". The specific error is: " <> o.error
+  show (FailedJsonToTxString         o) = "The received body does not contain Json compliant with the specification: \"" <> stringify o.jsonBody <> "\". The specific error is: " <> o.error
+  show (FailedTxStringToTxJsonString o) = "The received hash does not contain valid transaction data: \"" <> o.hash <> "\". The specific error is: " <> show o.error
+  show (FailedTxJsonToTxData         o) = "The received transaction data do not contain Json compliant with the js specification: \"" <> o.txString <> "\". The specific error is: " <> o.error
+  show (FailedTxDataToTxSum          o) = "The received transaction data do not contain Json compliant with the ps specification: \"" <> stringify o.txData <> "\". The specific error is: " <> o.error
+
+sendResponseError :: ResponseError -> Handler
+sendResponseError responseError = sendJson
+  { status : statusToString Failed
+  , error  : show responseError
+  }
 
 --------------------------------------------------------------------------------
 
