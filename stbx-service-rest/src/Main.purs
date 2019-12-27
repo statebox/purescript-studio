@@ -29,7 +29,7 @@ import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Core (DecodeError, decodeToJsonString, hash) as Stbx
+import Statebox.Core (DecodeError(..), decodeToJsonString, hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum)
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 import Statebox.Core.Types (HexStr)
@@ -117,11 +117,11 @@ postTransactionHandler :: AppState -> Handler
 postTransactionHandler state = do
   -- TODO: find a proper way to manage body decoding
   bodyStr :: String <- unsafeCoerce <$> getBody'
-  let eitherErrorOrTxHexAndTxSum = bodyStr #   (parseBodyToJson
-                                           >=> jsonBodyToTxString
-                                           >=> txStringToTxJsonString
-                                           >=> txJsonStringToTxData
-                                           >=> txDataToTxSum)
+  let eitherErrorOrTxHexAndTxSum = bodyStr #   (parseBodyToJson       -- convert body from string to json
+                                           >=> jsonBodyToTxString     -- retrieve hex string from tx field of body
+                                           >=> txStringToTxJsonString -- decode hex string to string using js service
+                                           >=> txJsonStringToTxData   -- parse string to json
+                                           >=> txDataToTxSum)         -- parse json into txSum
   either
     sendResponseError
     (\(txHex /\ txSum) -> do
@@ -190,6 +190,18 @@ sendResponseError responseError = sendJson
   { status : statusToString Failed
   , error  : show responseError
   }
+
+responseErrorToTxError :: ResponseError -> TxError
+responseErrorToTxError (FailedBodyToJson             o) = ?a
+responseErrorToTxError (FailedJsonToTxString         o) = TxNoTxField -- this could actually fail also for other reasons
+responseErrorToTxError (FailedTxStringToTxJsonString o) = case o.error of
+  Stbx.MissingRequiredField message -> TxDecodeFail { txHex : o.hash }
+  Stbx.InvalidHexString             -> TxNotHex { txHex : o.hash }
+  Stbx.IndexOutOfRange      message -> TxDecodeFail { txHex : o.hash }
+  Stbx.InvalidWireType      message -> TxDecodeFail { txHex : o.hash }
+  Stbx.Other                message -> TxDecodeFail { txHex : o.hash }
+responseErrorToTxError (FailedTxJsonToTxData         o) = ?b
+responseErrorToTxError (FailedTxDataToTxSum          o) = ?c
 
 --------------------------------------------------------------------------------
 
