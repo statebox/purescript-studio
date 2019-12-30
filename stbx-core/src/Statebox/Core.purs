@@ -2,10 +2,14 @@ module Statebox.Core where
 
 import Prelude
 import Control.Alt ((<|>))
+import Data.Argonaut.Core (caseJsonString)
+import Data.Argonaut.Decode.Class (class DecodeJson)
 import Data.Either (Either (..), either)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (foldr)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.String (stripPrefix)
+import Data.String.Pattern (Pattern(..))
 import Data.String.Regex (Regex, regex, match)
 import Data.String.Regex.Flags (ignoreCase)
 import Data.Traversable (sequence)
@@ -25,15 +29,46 @@ data DecodeError
   | InvalidWireType String
   | Other String
 
+missingRequiredFieldMessage :: String
+missingRequiredFieldMessage = "Missing required field: "
+
+invalidHexStringMessage :: String
+invalidHexStringMessage = "Invalid Hex String"
+
+indexOutOfRangeMessage :: String
+indexOutOfRangeMessage = "Index out of range: "
+
+invalidWireTypeMessage :: String
+invalidWireTypeMessage = "Invalid wire type: "
+
+otherMessage :: String
+otherMessage = "Other: "
+
 instance showDecodeError :: Show DecodeError where
   show = case _ of
-    MissingRequiredField s -> "Missing required field: " <> s
-    InvalidHexString       -> "Invalid Hex String"
-    IndexOutOfRange s      -> "Invalid out of range: " <> s
-    InvalidWireType s      -> "Invalid wire type: " <> s
-    Other s                -> "Other: " <> s
+    MissingRequiredField s -> missingRequiredFieldMessage <> s
+    InvalidHexString       -> invalidHexStringMessage
+    IndexOutOfRange s      -> indexOutOfRangeMessage <> s
+    InvalidWireType s      -> invalidWireTypeMessage <> s
+    Other s                -> otherMessage <> s
 
 derive instance eqDecodeError :: Eq DecodeError
+
+decodeDecodeErrorCase :: (String -> DecodeError) -> String -> String -> Either String DecodeError
+decodeDecodeErrorCase constructor message s = case stripPrefix (Pattern message) s of
+  Just s' -> Right $ constructor s'
+  Nothing -> Left "Unrecognised string for DecodeError"
+
+instance decodeJsonDecodeError :: DecodeJson DecodeError where
+  decodeJson = caseJsonString (Left "DecodeError should be represented by a string") decodeString
+    where
+      decodeString :: String -> Either String DecodeError
+      decodeString s
+        =   decodeDecodeErrorCase MissingRequiredField     missingRequiredFieldMessage s
+        <|> decodeDecodeErrorCase (const InvalidHexString) invalidHexStringMessage     s
+        <|> decodeDecodeErrorCase IndexOutOfRange          indexOutOfRangeMessage      s
+        <|> decodeDecodeErrorCase InvalidWireType          invalidWireTypeMessage      s
+        <|> decodeDecodeErrorCase Other                    otherMessage                s
 
 errorToSingleDecodeError :: Regex -> (String -> DecodeError) -> Error -> Maybe DecodeError
 errorToSingleDecodeError regex constructor error =
