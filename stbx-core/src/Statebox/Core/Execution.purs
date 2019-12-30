@@ -1,7 +1,7 @@
 module Statebox.Core.Execution where
 
 import Prelude
-import Data.Array (index, length, (..))
+import Data.Array (index, (..))
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
