@@ -3,7 +3,7 @@ module Main where
 import Prelude
 
 import Control.Monad.State.Trans (runStateT)
-import Data.Argonaut.Core (Json, stringify)
+import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
 import Data.Bifunctor (lmap, bimap)
@@ -29,11 +29,11 @@ import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Core (DecodeError(..), decodeToJsonString, hash) as Stbx
+import Statebox.Core (decodeToJsonString, hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum)
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 import Statebox.Core.Types (HexStr)
-import Statebox.Service (TxError(..), txErrorCode, txErrorMessage)
+import Statebox.Service (ResponseError(..), TxError(..), txErrorCode, txErrorMessage)
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
 import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
@@ -171,37 +171,11 @@ sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum
 
 --------------------------------------------------------------------------------
 
-data ResponseError
-  = FailedBodyToJson             { body :: String, error :: String }
-  | FailedJsonToTxString         { jsonBody :: Json, error :: String }
-  | FailedTxStringToTxJsonString { hash :: HexStr, error :: Stbx.DecodeError }
-  | FailedTxJsonToTxData         { txString :: String, error :: String }
-  | FailedTxDataToTxSum          { txData :: Json, error :: String }
-
-instance showResponseError :: Show ResponseError where
-  show (FailedBodyToJson             o) = "The received body does not contain valid Json: \"" <> show o.body <> "\". The specific error is: " <> o.error
-  show (FailedJsonToTxString         o) = "The received body does not contain Json compliant with the specification: \"" <> stringify o.jsonBody <> "\". The specific error is: " <> o.error
-  show (FailedTxStringToTxJsonString o) = "The received hash does not contain valid transaction data: \"" <> o.hash <> "\". The specific error is: " <> show o.error
-  show (FailedTxJsonToTxData         o) = "The received transaction data do not contain Json compliant with the js specification: \"" <> o.txString <> "\". The specific error is: " <> o.error
-  show (FailedTxDataToTxSum          o) = "The received transaction data do not contain Json compliant with the ps specification: \"" <> stringify o.txData <> "\". The specific error is: " <> o.error
-
 sendResponseError :: ResponseError -> Handler
 sendResponseError responseError = sendJson
   { status : statusToString Failed
   , error  : show responseError
   }
-
-responseErrorToTxError :: ResponseError -> TxError
-responseErrorToTxError (FailedBodyToJson             o) = ?a
-responseErrorToTxError (FailedJsonToTxString         o) = TxNoTxField -- this could actually fail also for other reasons
-responseErrorToTxError (FailedTxStringToTxJsonString o) = case o.error of
-  Stbx.MissingRequiredField message -> TxDecodeFail { txHex : o.hash }
-  Stbx.InvalidHexString             -> TxNotHex { txHex : o.hash }
-  Stbx.IndexOutOfRange      message -> TxDecodeFail { txHex : o.hash }
-  Stbx.InvalidWireType      message -> TxDecodeFail { txHex : o.hash }
-  Stbx.Other                message -> TxDecodeFail { txHex : o.hash }
-responseErrorToTxError (FailedTxJsonToTxData         o) = ?b
-responseErrorToTxError (FailedTxDataToTxSum          o) = ?c
 
 --------------------------------------------------------------------------------
 
