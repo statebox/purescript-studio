@@ -6,15 +6,17 @@ import Affjax (URL, Response)
 import Affjax.ResponseFormat as ResponseFormat
 import Affjax.ResponseFormat (ResponseFormatError)
 import Affjax.RequestBody as RequestBody
+import Control.Alt ((<|>))
 import Control.Coroutine (Producer)
 import Control.Coroutine.Aff (emit, close, produceAff, Emitter)
 import Control.Monad.Rec.Class (Step(Loop, Done), tailRecM)
 import Control.Monad.Free.Trans (hoistFreeT)
 import Data.Argonaut.Core (Json)
 import Data.Argonaut.Encode (encodeJson)
-import Data.Either (Either(..))
+import Data.Bifunctor (lmap)
+import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
-import Data.Profunctor.Choice ((|||), (+++))
+import Data.Profunctor.Choice ((|||))
 import Data.HTTP.Method (Method(GET, POST))
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff (Aff)
@@ -22,6 +24,7 @@ import Effect.Aff (Aff)
 import Statebox.Core.Transaction (HashTx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
 import Statebox.Core.Transaction.Codec (decodeTxTxSum)
 import Statebox.Core.Types (HexStr)
+import Statebox.Service (ResponseError, decodeResponseError)
 
 
 newtype DecodingError = DecodingError String
@@ -33,33 +36,63 @@ instance showDecodingError :: Show DecodingError where
   show = case _ of
     DecodingError e -> "(DecodingError " <> show e <> ")"
 
+data ClientError
+  = ClientResponseFormatError ResponseFormatError
+  | ClientDecodingError DecodingError
+  | ClientResponseError ResponseError
+
+evalClientError
+  :: forall a
+  .  (ResponseFormatError -> a)
+  -> (DecodingError       -> a)
+  -> (ResponseError       -> a)
+  -> ClientError
+  -> a
+evalClientError onResponseFormatError onDecodingError onResponseError clientError =
+  case clientError of
+    ClientResponseFormatError responseFormatError -> onResponseFormatError responseFormatError
+    ClientDecodingError       decodingError       -> onDecodingError       decodingError
+    ClientResponseError       responseError       -> onResponseError       responseError
+
 -- | A convenience function for processing API responses.
 evalTransactionResponse
   :: forall a
    . (ResponseFormatError -> a)
   -> (DecodingError       -> a)
+  -> (ResponseError       -> a)
   -> (HashTx              -> a)
-  -> ResponseFormatError \/ (DecodingError \/ HashTx)
+  -> ClientError \/ HashTx
   -> a
-evalTransactionResponse onResponseFormatError onDecodingError onTx =
-  onResponseFormatError ||| onDecodingError ||| onTx
+evalTransactionResponse onResponseFormatError onDecodingError onResponseError onTx =
+  evalClientError onResponseFormatError onDecodingError onResponseError ||| onTx
 
 --------------------------------------------------------------------------------
 
 -- | Request a single transaction from the API.
-requestTransaction :: URL -> TxId -> Aff (ResponseFormatError \/ (DecodingError \/ HashTx))
+requestTransaction :: URL -> TxId -> Aff (ClientError \/ HashTx)
 requestTransaction apiBaseUrl hash =
-   requestTransaction' apiBaseUrl hash # map (map (map (attachTxId hash)))
+   requestTransaction' apiBaseUrl hash # map (map (attachTxId hash))
 
-requestTransaction' :: URL -> TxId -> Aff (ResponseFormatError \/ (DecodingError \/ TxSum))
+parseTxTxSum :: Json -> String \/ (ClientError \/ TxSum)
+parseTxTxSum = (map (Right <<< _.decoded)) <<< decodeTxTxSum
+
+parseResponseError :: Json -> String \/ (ClientError \/ TxSum)
+parseResponseError = (map (Left <<< ClientResponseError)) <<< decodeResponseError
+
+fromEither :: forall a b . (a -> b) -> (Either a b) -> b
+fromEither f = either f identity
+
+requestTransaction' :: URL -> TxId -> Aff (ClientError \/ TxSum)
 requestTransaction' apiBaseUrl hash =
   if isUberRootHash hash then
-    pure $ Right <<< Right $ UberRootTxInj
+    pure $ Right UberRootTxInj
   else do
     res <- requestTransactionJson apiBaseUrl hash
     let
-      tx :: ResponseFormatError \/ DecodingError \/ TxSum
-      tx = (DecodingError +++ _.decoded) <<< decodeTxTxSum <$> res.body
+      tx :: ClientError \/ TxSum
+      tx = do
+        json <- lmap ClientResponseFormatError res.body
+        fromEither (Left <<< ClientDecodingError <<< DecodingError) $ parseTxTxSum json <|> parseResponseError json
     pure tx
 
 --------------------------------------------------------------------------------
@@ -101,6 +134,8 @@ requestTransactionsToRoot apiBaseUrl startHash =
 fetchAndEmitTxStep :: Emitter Aff HashTx Unit -> URL -> TxId -> Aff (Step TxId Unit)
 fetchAndEmitTxStep emitter apiBaseUrl hash = liftAff $ do
   requestTransaction apiBaseUrl hash >>= evalTransactionResponse
+    (\e -> do close emitter unit -- TODO emit error?
+              pure $ Done unit)
     (\e -> do close emitter unit -- TODO emit error?
               pure $ Done unit)
     (\e -> do close emitter unit -- TODO emit error?
