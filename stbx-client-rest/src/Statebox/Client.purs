@@ -4,7 +4,7 @@ import Prelude
 import Affjax as Affjax
 import Affjax (URL, Response)
 import Affjax.ResponseFormat as ResponseFormat
-import Affjax.ResponseFormat (ResponseFormatError)
+import Affjax.ResponseFormat (ResponseFormatError, printResponseFormatError)
 import Affjax.RequestBody as RequestBody
 import Control.Alt ((<|>))
 import Control.Coroutine (Producer)
@@ -24,7 +24,7 @@ import Effect.Aff (Aff)
 import Statebox.Core.Transaction (HashTx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
 import Statebox.Core.Transaction.Codec (decodeTxTxSum)
 import Statebox.Core.Types (HexStr)
-import Statebox.Service (ResponseError, decodeResponseError)
+import Statebox.Service.Codec (decodeTxErrorResponseBody)
 
 
 newtype DecodingError = DecodingError String
@@ -36,35 +36,45 @@ instance showDecodingError :: Show DecodingError where
   show = case _ of
     DecodingError e -> "(DecodingError " <> show e <> ")"
 
+newtype TxNotFoundError = TxNotFoundError String
+
+instance showTxNotFoundError :: Show TxNotFoundError where
+  show (TxNotFoundError s) = "TxNotFoundError: " <> s
+
 data ClientError
   = ClientResponseFormatError ResponseFormatError
-  | ClientDecodingError DecodingError
-  | ClientResponseError ResponseError
+  | ClientDecodingError       DecodingError
+  | ClientTxNotFoundError     TxNotFoundError
+
+instance showClientError :: Show ClientError where
+  show (ClientResponseFormatError responseFormatError) = "Response format error: "       <> printResponseFormatError responseFormatError
+  show (ClientDecodingError       decodingError      ) = "Decoding error: "              <> show decodingError
+  show (ClientTxNotFoundError     txNotFoundError    ) = "Transaction not found error: " <> show txNotFoundError
 
 evalClientError
   :: forall a
   .  (ResponseFormatError -> a)
   -> (DecodingError       -> a)
-  -> (ResponseError       -> a)
+  -> (TxNotFoundError     -> a)
   -> ClientError
   -> a
-evalClientError onResponseFormatError onDecodingError onResponseError clientError =
+evalClientError onResponseFormatError onDecodingError onTxNotFoundError clientError =
   case clientError of
     ClientResponseFormatError responseFormatError -> onResponseFormatError responseFormatError
     ClientDecodingError       decodingError       -> onDecodingError       decodingError
-    ClientResponseError       responseError       -> onResponseError       responseError
+    ClientTxNotFoundError     txNotFoundError     -> onTxNotFoundError     txNotFoundError
 
 -- | A convenience function for processing API responses.
 evalTransactionResponse
   :: forall a
    . (ResponseFormatError -> a)
   -> (DecodingError       -> a)
-  -> (ResponseError       -> a)
+  -> (TxNotFoundError     -> a)
   -> (HashTx              -> a)
   -> ClientError \/ HashTx
   -> a
-evalTransactionResponse onResponseFormatError onDecodingError onResponseError onTx =
-  evalClientError onResponseFormatError onDecodingError onResponseError ||| onTx
+evalTransactionResponse onResponseFormatError onDecodingError onTxNotFoundError onTx =
+  evalClientError onResponseFormatError onDecodingError onTxNotFoundError ||| onTx
 
 --------------------------------------------------------------------------------
 
@@ -76,12 +86,13 @@ requestTransaction apiBaseUrl hash =
 parseTxTxSum :: Json -> String \/ (ClientError \/ TxSum)
 parseTxTxSum = (map (Right <<< _.decoded)) <<< decodeTxTxSum
 
-parseResponseError :: Json -> String \/ (ClientError \/ TxSum)
-parseResponseError = (map (Left <<< ClientResponseError)) <<< decodeResponseError
+parseTxNotFoundError :: Json -> String \/ (ClientError \/ TxSum)
+parseTxNotFoundError = (map (Left <<< ClientTxNotFoundError <<< TxNotFoundError <<< _.message)) <<< decodeTxErrorResponseBody
 
 fromEither :: forall a b . (a -> b) -> (Either a b) -> b
 fromEither f = either f identity
 
+-- TODO: handle empty string as TxId or exlude the possibility at the type level
 requestTransaction' :: URL -> TxId -> Aff (ClientError \/ TxSum)
 requestTransaction' apiBaseUrl hash =
   if isUberRootHash hash then
@@ -92,7 +103,7 @@ requestTransaction' apiBaseUrl hash =
       tx :: ClientError \/ TxSum
       tx = do
         json <- lmap ClientResponseFormatError res.body
-        fromEither (Left <<< ClientDecodingError <<< DecodingError) $ parseTxTxSum json <|> parseResponseError json
+        fromEither (Left <<< ClientDecodingError <<< DecodingError) $ parseTxTxSum json <|> parseTxNotFoundError json
     pure tx
 
 --------------------------------------------------------------------------------
