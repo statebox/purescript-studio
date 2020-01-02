@@ -1,5 +1,5 @@
 { sources =
-    [ "src/**/*.purs", "test/**/*.purs" ]
+    [ "src/**/*.purs" ]
 , name =
     "stbx-service-rest"
 , dependencies =
@@ -9,7 +9,6 @@
     , "express"
     , "psci-support"
     , "stbx-core"
-    , "stbx-client-rest"
     , "stbx-tx-store"
     ]
 , packages =

@@ -31,6 +31,9 @@ main = launchAff $ runSpec [consoleReporter] do
   -- then we try to read them back in
   getExampleTransactionsSpec
 
+  -- then we try cases which produce a decoding error
+  -- getDecodingErrorTransactionsSpec
+
 
 postExampleTransactionsSpec :: Spec Unit
 postExampleTransactionsSpec =
@@ -81,6 +84,18 @@ requestTransactionSpec txDescription requestedHash =
       (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e) -- TODO spy obj?
       (\(Stbx.DecodingError e)      -> fail $ "DecodingError: " <> e)
       (\{id, tx}                    -> succeed)                                  -- TODO more checks
+
+--------------------------------------------------------------------------------
+
+-- getDecodingErrorTransactionsSpec :: Spec Unit
+-- getDecodingErrorTransactionsSpec =
+--   describe "Statebox transactions API HTTP service decoding errors" do
+--     it ("should error to GET /tx/") do
+--       res <- Stbx.requestTransaction endpointUrl ""
+--       res # evalTransactionResponse
+--         (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e) -- TODO spy obj?
+--         (\(Stbx.DecodingError e)      -> fail $ "DecodingError: " <> e)
+--         (\{id, tx}                    -> succeed)                                  -- TODO more checks
 
 -- TODO for now
 todo = succeed
