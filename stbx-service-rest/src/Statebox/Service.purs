@@ -134,3 +134,36 @@ decodeFailedTxDataToTxSum = decodeJson >=> \x -> do
 
 instance decodeJsonResponseError :: DecodeJson ResponseError where
   decodeJson = decodeResponseError
+
+--------------------------------------------------------------------------------
+
+-- TODO add "data" field modeled after the `StateboxException` code in the js codebase
+type TxErrorResponseBody =
+  { status  :: String
+  , code    :: String
+  , message :: String
+  }
+
+toTxErrorResponseBody :: TxError -> TxErrorResponseBody
+toTxErrorResponseBody err =
+  { status  : statusCode Failed
+  , code    : txErrorCode err
+  , message : txErrorMessage err
+  }
+
+--------------------------------------------------------------------------------
+
+-- | TODO this is now used ad hoc in JSON responses; these should be made to conform to the Statebox protocol spec.
+data Status = Ok | Failed
+
+statusCode :: Status -> String
+statusCode = case _ of
+  Ok     -> "ok"
+  Failed -> "failed"
+
+
+instance showStatus :: Show Status where
+  show = statusCode
+
+statusToString :: Status -> String
+statusToString = show -- TODO this should be a JSON-compatible value; perhaps a regular JSON encoder

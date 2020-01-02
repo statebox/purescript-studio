@@ -33,7 +33,7 @@ import Statebox.Core (decodeToJsonString, hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum)
 import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
 import Statebox.Core.Types (HexStr)
-import Statebox.Service (ResponseError(..), TxError(..), txErrorCode, txErrorMessage)
+import Statebox.Service (Status(..), ResponseError(..), TxError(..), statusToString, toTxErrorResponseBody)
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
 import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
@@ -179,20 +179,6 @@ sendResponseError responseError = sendJson
 
 --------------------------------------------------------------------------------
 
--- TODO add "data" field modeled after the `StateboxException` code in the js codebase
-type TxErrorResponseBody =
-  { status  :: String
-  , code    :: String
-  , message :: String
-  }
-
-toTxErrorResponseBody :: TxError -> TxErrorResponseBody
-toTxErrorResponseBody err =
-  { status  : statusCode Failed
-  , code    : txErrorCode err
-  , message : txErrorMessage err
-  }
-
 sendTxError :: TxError -> Handler
 sendTxError = sendJson <<< toTxErrorResponseBody
 
@@ -219,20 +205,3 @@ main = do
   state <- initialState
   listenHttp (app state) stbxPort \_ ->
     log $ "Listening on " <> show stbxPort
-
---------------------------------------------------------------------------------
-
--- | TODO this is now used ad hoc in JSON responses; these should be made to conform to the Statebox protocol spec.
-data Status = Ok | Failed
-
-statusCode :: Status -> String
-statusCode = case _ of
-  Ok     -> "ok"
-  Failed -> "failed"
-
-
-instance showStatus :: Show Status where
-  show = statusCode
-
-statusToString :: Status -> String
-statusToString = show -- TODO this should be a JSON-compatible value; perhaps a regular JSON encoder
