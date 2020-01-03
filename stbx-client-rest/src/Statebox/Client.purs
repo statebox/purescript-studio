@@ -24,7 +24,8 @@ import Effect.Aff (Aff)
 import Statebox.Core.Transaction (HashTx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
 import Statebox.Core.Transaction.Codec (decodeTxTxSum)
 import Statebox.Core.Types (HexStr)
-import Statebox.Service.Codec (decodeTxErrorResponseBody)
+import Statebox.Service (ResponseError)
+import Statebox.Service.Codec (decodeTxErrorResponseBody, jsonBodyToTxString, txStringToTxJsonString, txJsonStringToTxData, txDataToTxSum)
 
 
 newtype DecodingError = DecodingError String
@@ -167,6 +168,7 @@ fetchAndEmitTxStep emitter apiBaseUrl hash = liftAff $ do
 
 data ClientPostError
   = ClientPostResponseFormatError ResponseFormatError
+  | ClientPostResponseError       ResponseError
 
 --------------------------------------------------------------------------------
 
@@ -185,5 +187,5 @@ postTransactionHex apiBaseUrl txHex = do
     tx :: ClientPostError \/ TxSum
     tx = do
       json <- lmap ClientPostResponseFormatError res.body
-      ?asdf
+      lmap ClientPostResponseError $ (jsonBodyToTxString >=> txStringToTxJsonString >=> txJsonStringToTxData >=> txDataToTxSum) json
   pure tx
