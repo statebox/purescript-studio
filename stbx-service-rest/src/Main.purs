@@ -3,17 +3,11 @@ module Main where
 import Prelude
 
 import Control.Monad.State.Trans (runStateT)
-import Data.Argonaut.Core (Json)
-import Data.Argonaut.Decode (decodeJson)
-import Data.Argonaut.Parser (jsonParser)
-import Data.Bifunctor (lmap, bimap)
-import Data.Either (Either, either)
-import Data.Either.Nested (type (\/))
+import Data.Either (either)
 import Data.Function.Uncurried (Fn3)
 import Data.Maybe (Maybe(..))
-import Data.Traversable (traverse)
 import Data.Tuple (snd)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
@@ -29,11 +23,11 @@ import Node.Express.Types (Request, Response)
 import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Core (decodeToJsonString, hash) as Stbx
+import Statebox.Core (hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum)
-import Statebox.Core.Transaction.Codec (decodeTxSum, encodeTxWith, encodeTxSum)
-import Statebox.Core.Types (HexStr)
-import Statebox.Service (Status(..), ResponseError(..), TxError(..), statusToString, toTxErrorResponseBody)
+import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
+import Statebox.Service (Status(..), ResponseError, TxError(..), statusToString, toTxErrorResponseBody)
+import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString, txJsonStringToTxData, txDataToTxSum)
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
 import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
@@ -135,36 +129,6 @@ postTransactionHandler state = do
                   , decoded: txSum
                   })
     eitherErrorOrTxHexAndTxSum
-
-parseBodyToJson :: String -> Either ResponseError Json
-parseBodyToJson bodyStr = lmap
-  (\error -> FailedBodyToJson { body : bodyStr, error : error })
-  (jsonParser bodyStr)
-
-jsonBodyToTxString :: Json -> Either ResponseError HexStr
-jsonBodyToTxString jsonBody = bimap
-  (\error -> FailedJsonToTxString { jsonBody : jsonBody, error : error })
-  (\body -> body.tx)
-  (decodeJson jsonBody :: String \/ TxPostRequestBody)
-
-txStringToTxJsonString :: HexStr -> Either ResponseError (HexStr /\ String)
-txStringToTxJsonString txHex = bimap
-  (\error -> FailedTxStringToTxJsonString { hash : txHex, error : error })
-  (txHex /\ _)
-  (Stbx.decodeToJsonString txHex)
-
-txJsonStringToTxData :: (HexStr /\ String) -> Either ResponseError (HexStr /\ Json)
-txJsonStringToTxData (txHex /\ decodedJsonString) = traverse
-  (lmap (\error -> FailedTxJsonToTxData { txString : decodedJsonString, error : error }))
-  (txHex /\ jsonParser decodedJsonString)
-
-txDataToTxSum :: (HexStr /\ Json) -> Either ResponseError (HexStr /\ TxSum)
-txDataToTxSum (txHex /\ txJson) = traverse
-  (lmap (\error -> FailedTxDataToTxSum {txData : txJson, error : error }))
-  (txHex /\ decodeTxSum txJson)
-
-
-type TxPostRequestBody = { tx :: HexStr }
 
 sendTxTxSum :: Tx TxSum -> Handler
 sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum
