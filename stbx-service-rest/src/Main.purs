@@ -26,7 +26,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import Statebox.Core (hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum)
 import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
-import Statebox.Service (Status(..), ResponseError, TxError(..), statusToString, toTxErrorResponseBody)
+import Statebox.Service (Status(..), TxError(..), responseErrorToTxError, statusToString, toTxErrorResponseBody)
 import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
@@ -117,7 +117,7 @@ postTransactionHandler state = do
                                            >=> txJsonStringToTxData'    -- parse string to json
                                            >=> txDataToTxSum')          -- parse json into txSum
   either
-    sendResponseError
+    (sendTxError <<< responseErrorToTxError)
     (\(txHex /\ txSum) -> do
       let hash = Stbx.hash txHex
       transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
@@ -132,14 +132,6 @@ postTransactionHandler state = do
 
 sendTxTxSum :: Tx TxSum -> Handler
 sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum
-
---------------------------------------------------------------------------------
-
-sendResponseError :: ResponseError -> Handler
-sendResponseError responseError = sendJson
-  { status : statusToString Failed
-  , error  : show responseError
-  }
 
 --------------------------------------------------------------------------------
 
