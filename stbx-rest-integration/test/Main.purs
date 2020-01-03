@@ -4,19 +4,19 @@ import Prelude
 
 import Affjax (URL)
 import Affjax.ResponseFormat (ResponseFormatError(..))
-import Data.Either (Either(..))
+import Control.Monad.Error.Class (class MonadThrow)
 import Debug.Trace (spy)
 import Effect.Aff (Fiber, launchAff)
 import Effect (Effect)
+import Effect.Exception (Error)
 import Test.Spec (Spec, describe, it, pending)
-import Test.Spec.Assertions (shouldEqual, shouldSatisfy, fail)
+import Test.Spec.Assertions (fail)
 import Test.Spec.Runner (runSpec)
 import Test.Spec.Reporter.Console (consoleReporter)
 
 import Statebox.Core.Transaction (TxId)
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
-import Statebox.Service (ResponseError)
 
 import Test.Common
 
@@ -33,7 +33,7 @@ main = launchAff $ runSpec [consoleReporter] do
   getExampleTransactionsSpec
 
   -- then we try cases which produce a decoding error
-  -- getDecodingErrorTransactionsSpec
+  getDecodingErrorTransactionsSpec
 
 
 postExampleTransactionsSpec :: Spec Unit
@@ -84,20 +84,22 @@ requestTransactionSpec txDescription requestedHash =
     res # evalTransactionResponse
       (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e) -- TODO spy obj?
       (\(Stbx.DecodingError e)      -> fail $ "DecodingError: " <> e)
-      (\responseError               -> fail $ "ResponseError: " <> show responseError)
+      (\(Stbx.TxNotFoundError e)    -> fail $ "TxNotFoundError: " <> show e)
       (\{id, tx}                    -> succeed)                                  -- TODO more checks
 
 --------------------------------------------------------------------------------
 
--- getDecodingErrorTransactionsSpec :: Spec Unit
--- getDecodingErrorTransactionsSpec =
---   describe "Statebox transactions API HTTP service decoding errors" do
---     it ("should error to GET /tx/") do
---       res <- Stbx.requestTransaction endpointUrl ""
---       res # evalTransactionResponse
---         (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e) -- TODO spy obj?
---         (\(Stbx.DecodingError e)      -> fail $ "DecodingError: " <> e)
---         (\{id, tx}                    -> succeed)                                  -- TODO more checks
+getDecodingErrorTransactionsSpec :: Spec Unit
+getDecodingErrorTransactionsSpec =
+  describe "Statebox transactions API HTTP service decoding errors" do
+    it ("should error to GET /tx/0") do
+      res <- Stbx.requestTransaction endpointUrl "0"
+      res # evalTransactionResponse
+        (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e) -- TODO spy obj?
+        (\(Stbx.DecodingError e)      -> fail $ "DecodingError: " <> e)
+        (\(Stbx.TxNotFoundError e)    -> succeed)
+        (\{id, tx}                    -> fail $ "Should error getting unknown hash")
 
 -- TODO for now
+todo :: forall m. MonadThrow Error m => m Unit
 todo = succeed
