@@ -7,7 +7,7 @@ import Data.Argonaut.Parser (jsonParser)
 import Data.Bifunctor (lmap, bimap)
 import Data.Either (Either)
 import Data.Either.Nested (type (\/))
-import Data.Traversable (traverse)
+import Data.Profunctor.Strong ((&&&))
 import Data.Tuple.Nested (type (/\), (/\))
 
 import Statebox.Core (decodeToJsonString) as Stbx
@@ -38,18 +38,29 @@ jsonBodyToTxString jsonBody = bimap
   (\body -> body.tx)
   (decodeJson jsonBody :: String \/ TxPostRequestBody)
 
-txStringToTxJsonString :: HexStr -> Either ResponseError (HexStr /\ String)
-txStringToTxJsonString txHex = bimap
+txStringToTxJsonString :: HexStr -> Either ResponseError String
+txStringToTxJsonString txHex = lmap
   (\error -> FailedTxStringToTxJsonString { hash : txHex, error : error })
-  (txHex /\ _)
   (Stbx.decodeToJsonString txHex)
 
-txJsonStringToTxData :: (HexStr /\ String) -> Either ResponseError (HexStr /\ Json)
-txJsonStringToTxData (txHex /\ decodedJsonString) = traverse
-  (lmap (\error -> FailedTxJsonToTxData { txString : decodedJsonString, error : error }))
-  (txHex /\ jsonParser decodedJsonString)
+txStringToTxJsonString' :: HexStr -> Either ResponseError (HexStr /\ String)
+txStringToTxJsonString' txHex =
+  ((const txHex) &&& identity) <$> txStringToTxJsonString txHex
 
-txDataToTxSum :: (HexStr /\ Json) -> Either ResponseError (HexStr /\ TxSum)
-txDataToTxSum (txHex /\ txJson) = traverse
-  (lmap (\error -> FailedTxDataToTxSum {txData : txJson, error : error }))
-  (txHex /\ decodeTxSum txJson)
+txJsonStringToTxData :: String -> Either ResponseError Json
+txJsonStringToTxData decodedJsonString = lmap
+  (\error -> FailedTxJsonToTxData { txString : decodedJsonString, error : error })
+  (jsonParser decodedJsonString)
+
+txJsonStringToTxData' :: (HexStr /\ String) -> Either ResponseError (HexStr /\ Json)
+txJsonStringToTxData' (txHex /\ decodedJsonString) =
+  (const txHex &&& identity) <$> (txJsonStringToTxData decodedJsonString)
+
+txDataToTxSum :: Json -> Either ResponseError TxSum
+txDataToTxSum txJson = lmap
+  (\error -> FailedTxDataToTxSum {txData : txJson, error : error })
+  (decodeTxSum txJson)
+
+txDataToTxSum' :: (HexStr /\ Json) -> Either ResponseError (HexStr /\ TxSum)
+txDataToTxSum' (txHex /\ txJson) =
+  (const txHex &&& identity) <$> (txDataToTxSum txJson)

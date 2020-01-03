@@ -27,7 +27,7 @@ import Statebox.Core (hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum)
 import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
 import Statebox.Service (Status(..), ResponseError, TxError(..), statusToString, toTxErrorResponseBody)
-import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString, txJsonStringToTxData, txDataToTxSum)
+import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
 import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
@@ -111,11 +111,11 @@ postTransactionHandler :: AppState -> Handler
 postTransactionHandler state = do
   -- TODO: find a proper way to manage body decoding
   bodyStr :: String <- unsafeCoerce <$> getBody'
-  let eitherErrorOrTxHexAndTxSum = bodyStr #   (parseBodyToJson       -- convert body from string to json
-                                           >=> jsonBodyToTxString     -- retrieve hex string from tx field of body
-                                           >=> txStringToTxJsonString -- decode hex string to string using js service
-                                           >=> txJsonStringToTxData   -- parse string to json
-                                           >=> txDataToTxSum)         -- parse json into txSum
+  let eitherErrorOrTxHexAndTxSum = bodyStr #   (parseBodyToJson        -- convert body from string to json
+                                           >=> jsonBodyToTxString      -- retrieve hex string from tx field of body
+                                           >=> txStringToTxJsonString' -- decode hex string to string using js service
+                                           >=> txJsonStringToTxData'    -- parse string to json
+                                           >=> txDataToTxSum')          -- parse json into txSum
   either
     sendResponseError
     (\(txHex /\ txSum) -> do
