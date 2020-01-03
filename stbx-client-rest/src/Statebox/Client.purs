@@ -170,6 +170,16 @@ data ClientPostError
   = ClientPostResponseFormatError ResponseFormatError
   | ClientPostResponseError       ResponseError
 
+evalClientPostError
+  :: forall a
+  .  (ResponseFormatError -> a)
+  -> (ResponseError       -> a)
+  -> ClientPostError
+  -> a
+evalClientPostError onResponseFormatError onResponseError = case _ of
+  ClientPostResponseFormatError responseFormatError -> onResponseFormatError responseFormatError
+  ClientPostResponseError       responseError       -> onResponseError       responseError
+
 --------------------------------------------------------------------------------
 
 postTransactionHexJson :: URL -> HexStr -> Aff (Response (ResponseFormatError \/ Json))
@@ -189,3 +199,15 @@ postTransactionHex apiBaseUrl txHex = do
       json <- lmap ClientPostResponseFormatError res.body
       lmap ClientPostResponseError $ (jsonBodyToTxString >=> txStringToTxJsonString >=> txJsonStringToTxData >=> txDataToTxSum) json
   pure tx
+
+--------------------------------------------------------------------------------
+
+evalPostTransaction
+  :: forall a
+  .  (ResponseFormatError -> a)
+  -> (ResponseError       -> a)
+  -> (TxSum               -> a)
+  -> ClientPostError \/ TxSum
+  -> a
+evalPostTransaction onResponseFormatError onResponseError onTxSum =
+  evalClientPostError onResponseFormatError onResponseError ||| onTxSum
