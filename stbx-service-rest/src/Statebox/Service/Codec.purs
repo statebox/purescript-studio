@@ -16,12 +16,14 @@ import Statebox.Core.Transaction.Codec (decodeTxSum)
 import Statebox.Core.Types (HexStr)
 import Statebox.Service (ResponseError(..), TxErrorResponseBody)
 
+
 decodeTxErrorResponseBody :: Json -> String \/ TxErrorResponseBody
 decodeTxErrorResponseBody = decodeJson >=> \x -> do
   status  <- x .: "status"
   code    <- x .: "code"
   message <- x .: "message"
-  pure { status, code, message }
+  error   <- x .: "error"
+  pure { status, code, message, error }
 
 --------------------------------------------------------------------------------
 
@@ -45,7 +47,7 @@ txStringToTxJsonString txHex = lmap
 
 txStringToTxJsonString' :: HexStr -> Either ResponseError (HexStr /\ String)
 txStringToTxJsonString' txHex =
-  ((const txHex) &&& identity) <$> txStringToTxJsonString txHex
+  (const txHex &&& identity) <$> txStringToTxJsonString txHex
 
 txJsonStringToTxData :: String -> Either ResponseError Json
 txJsonStringToTxData decodedJsonString = lmap

@@ -2,10 +2,13 @@ module Statebox.Service where
 
 import Prelude
 import Control.Alt ((<|>))
-import Data.Argonaut.Core (Json, stringify)
+import Data.Argonaut.Core (Json, jsonEmptyObject, stringify)
 import Data.Argonaut.Decode (decodeJson, (.:))
 import Data.Argonaut.Decode.Class (class DecodeJson)
+import Data.Argonaut.Encode.Class (class EncodeJson)
+import Data.Either (Either(..), hush)
 import Data.Either.Nested (type (\/))
+import Data.Maybe (Maybe)
 import Statebox.Core (DecodeError(..)) as Stbx
 import Statebox.Core.Types (HexStr)
 import Statebox.Core.Transaction (HashStr)
@@ -64,30 +67,59 @@ txErrorCode = case _ of
   TxNotEnabled       -> "tx-not-enabled"
 
 instance showTxError :: Show TxError where
-  show = show <<< txErrorCode
+  show = txErrorCode
+
+encodeTxError :: TxError -> Json
+encodeTxError txError = jsonEmptyObject
+
+instance encodeJsonTxError :: EncodeJson TxError where
+  encodeJson = encodeTxError
+
+instance decodeJsonTxError :: DecodeJson TxError where
+  decodeJson json = decodeTxNotFound json <|> decodeTxNotHex json
+    where
+      decodeTxNotFound :: Json -> String \/ TxError
+      decodeTxNotFound = decodeJson >=> \x -> do
+        tag <- x .: "tag"
+        if tag /= "tx-not-found"
+        then Left "invalid tag"
+        else do
+          hash <- x .: "hash"
+          pure $ TxNotFound { hash : hash }
+
+      decodeTxNotHex :: Json -> String \/ TxError
+      decodeTxNotHex = decodeJson >=> \x -> do
+        tag <- x .: "tag"
+        if tag /= "tx-not-found"
+        then Left "invalid tag"
+        else do
+          txHex <- x .: "txHex"
+          pure $ TxNotHex { txHex : txHex }
+
 
 --------------------------------------------------------------------------------
 
 data ResponseError
-  = FailedBodyToJson             { body :: String, error :: String }
-  | FailedJsonToTxString         { jsonBody :: Json, error :: String }
-  | FailedTxStringToTxJsonString { hash :: HexStr, error :: Stbx.DecodeError }
-  | FailedTxJsonToTxData         { txString :: String, error :: String }
-  | FailedTxDataToTxSum          { txData :: Json, error :: String }
+  = FailedBodyToJson             { error :: String          , body     :: String }
+  | FailedJsonToTxString         { error :: String          , jsonBody :: Json   }
+  | FailedTxStringToTxJsonString { error :: Stbx.DecodeError, hash     :: HexStr }
+  | FailedTxJsonToTxData         { error :: String          , txString :: String }
+  | FailedTxDataToTxSum          { error :: String          , txData   :: Json   }
 
 instance showResponseError :: Show ResponseError where
-  show (FailedBodyToJson             o) = "The received body does not contain valid Json: \"" <> show o.body <> "\". The specific error is: " <> o.error
-  show (FailedJsonToTxString         o) = "The received body does not contain Json compliant with the specification: \"" <> stringify o.jsonBody <> "\". The specific error is: " <> o.error
-  show (FailedTxStringToTxJsonString o) = "The received hash does not contain valid transaction data: \"" <> o.hash <> "\". The specific error is: " <> show o.error
-  show (FailedTxJsonToTxData         o) = "The received transaction data do not contain Json compliant with the js specification: \"" <> o.txString <> "\". The specific error is: " <> o.error
-  show (FailedTxDataToTxSum          o) = "The received transaction data do not contain Json compliant with the ps specification: \"" <> stringify o.txData <> "\". The specific error is: " <> o.error
+  show = case _ of
+    FailedBodyToJson             o -> "The received body does not contain valid Json: \"" <> show o.body <> "\". The specific error is: " <> o.error
+    FailedJsonToTxString         o -> "The received body does not contain Json compliant with the specification: \"" <> stringify o.jsonBody <> "\". The specific error is: " <> o.error
+    FailedTxStringToTxJsonString o -> "The received hash does not contain valid transaction data: \"" <> o.hash <> "\". The specific error is: " <> show o.error
+    FailedTxJsonToTxData         o -> "The received transaction data do not contain Json compliant with the js specification: \"" <> o.txString <> "\". The specific error is: " <> o.error
+    FailedTxDataToTxSum          o -> "The received transaction data do not contain Json compliant with the ps specification: \"" <> stringify o.txData <> "\". The specific error is: " <> o.error
 
 responseErrorToTxError :: ResponseError -> TxError
 responseErrorToTxError (FailedBodyToJson             o) = TxNoTxField -- TODO: handle this case correctly
 responseErrorToTxError (FailedJsonToTxString         o) = TxNoTxField -- this could actually fail also for other reasons
 responseErrorToTxError (FailedTxStringToTxJsonString o) = case o.error of
   Stbx.MissingRequiredField message -> TxDecodeFail { txHex : o.hash }
-  Stbx.InvalidHexString             -> TxNotHex { txHex : o.hash }
+  Stbx.InvalidHexString             -> TxNotHex     { txHex : o.hash }
   Stbx.IndexOutOfRange      message -> TxDecodeFail { txHex : o.hash }
   Stbx.InvalidWireType      message -> TxDecodeFail { txHex : o.hash }
   Stbx.Other                message -> TxDecodeFail { txHex : o.hash }
@@ -142,14 +174,20 @@ type TxErrorResponseBody =
   { status  :: String
   , code    :: String
   , message :: String
+  , error   :: Json
   }
 
+-- TODO: these two function form a Prism, so we make this explicit in the types?
 toTxErrorResponseBody :: TxError -> TxErrorResponseBody
 toTxErrorResponseBody err =
   { status  : statusCode Failed
   , code    : txErrorCode err
   , message : txErrorMessage err
+  , error   : encodeTxError err
   }
+
+fromTxErrorResponseBody :: TxErrorResponseBody -> Maybe TxError
+fromTxErrorResponseBody responseBody = hush $ decodeJson responseBody.error
 
 --------------------------------------------------------------------------------
 
