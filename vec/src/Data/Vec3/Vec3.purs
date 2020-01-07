@@ -12,9 +12,10 @@ module Data.Vec3.Vec3
   , minMaxZero
   , inproduct
 
-  , Vec2()
+  , Vec2
   , vec2
-  , Vec2D()
+  , Vec2D
+  , Point2
   , point2
   , origin2
   ) where
@@ -152,15 +153,16 @@ inproduct l r = sum (l * r)
 -- Legacy Vec2 interface--------------------------------------------------------
 
 type Vec2 a = Vec3 a
+type Point2 a = Vec3 a
 
 type Vec2D = Vec3 Number
 
 -- | 'Smart' constructor.
-vec2 :: ∀ a. Semiring a => a -> a -> Vec3 a
+vec2 :: ∀ a. Semiring a => a -> a -> Vec2 a
 vec2 x y = vec3 x y zero
 
-point2 :: ∀ a. Semiring a => a -> a -> Vec3 a
+point2 :: ∀ a. Semiring a => a -> a -> Point2 a
 point2 x y = vec3 x y one
 
-origin2 :: ∀ a. Semiring a => Vec3 a
+origin2 :: ∀ a. Semiring a => Point2 a
 origin2 = point2 zero zero

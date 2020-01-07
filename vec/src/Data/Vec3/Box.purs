@@ -9,7 +9,6 @@ module Data.Vec3.Box
 
 import Prelude
 import Data.Newtype (class Newtype, over)
-import Data.Ring (class Ring)
 
 import Data.Vec3.Vec3
 

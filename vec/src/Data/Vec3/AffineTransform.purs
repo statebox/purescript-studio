@@ -46,6 +46,20 @@ rotate a = AF
     c = cos a
     s = sin a
 
+inverse :: AffineTransform Number -> AffineTransform Number
+inverse (AF {x, y}) = AF
+  { x: vec3 e (-b) (b * f - c * e) / pure denom
+  , y: vec3 (-d) a (c * d - a * f) / pure denom
+  }
+  where
+    a = _x x
+    b = _y x
+    c = _z x
+    d = _x y
+    e = _y y
+    f = _z y
+    denom = a * e - b * d
+
 instance semiringVec3 :: Semiring a => Semiring (AffineTransform a) where
   zero = scale zero
   add (AF l) (AF r) = AF { x: l.x + r.x, y: l.y + r.y }

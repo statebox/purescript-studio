@@ -1,24 +1,24 @@
-module View.GridKit.Canvas where
+module View.GridKit.Grid where
 
 import Prelude
 
 import Data.Array ((..), filter)
 import Data.Int (floor, ceil, toNumber)
-import Data.Vec3 (Vec2, _x, _y, origin2, point2, Box, boxSize, boxCenter)
+import Data.Vec3 (Vec2, vec2, _x, _y, origin2, point2)
 import Data.Vec3.AffineTransform
 import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML hiding (code, head, prop, map, div)
 import Math (log, pow, ln10, round, sqrt)
 import Svg.Elements as S
-import Svg.Attributes hiding (path) as S
+import Svg.Attributes as S
 
 import View.ReactiveInput as RI
 
 
 type Input =
   { gridSpacing :: Number
-  , range :: Box Number
+  , model2svg :: AffineTransform Number
   , size :: Vec2 Number
   }
 
@@ -35,27 +35,22 @@ ui =
     }
 
 render :: ∀ m. Input -> {} -> H.ComponentHTML Void () m
-render { gridSpacing, range, size } _ =
-  S.svg [ S.width (_x size), S.height (_y size) ]
+render { gridSpacing, model2svg, size } _ =
+  S.g []
   [ S.g [ S.attr (AttrName "class") "grid grid-v" ] $
       gridLines spacing (_x topLeft) (_x bottomRight)
-        # map \{ width, pos } -> let x = m2c_x pos in S.line [ S.strokeWidth width, S.x1 x, S.y1 0.0, S.x2 x, S.y2 (_y size) ]
+        # map \{ width, pos } -> let x = m2s_x pos in S.line [ S.strokeWidth width, S.x1 x, S.y1 0.0, S.x2 x, S.y2 (_y size) ]
   , S.g [ S.attr (AttrName "class") "grid grid-h" ] $
       gridLines spacing (_y topLeft) (_y bottomRight)
-        # map \{ width, pos } -> let y = m2c_y pos in S.line [ S.strokeWidth width, S.x1 0.0, S.y1 y, S.x2 (_x size), S.y2 y ]
+        # map \{ width, pos } -> let y = m2s_y pos in S.line [ S.strokeWidth width, S.x1 0.0, S.y1 y, S.x2 (_x size), S.y2 y ]
   ]
   where
-    scaleXY = size / boxSize range
-    scaleMin = min (_x scaleXY) (_y scaleXY)
-    spacing = gridSpacing / scaleMin
-    rangeCenter = boxCenter range
-    canvasCenter = size / pure 2.0
-    canvas2model = translate rangeCenter * scale (1.0 / scaleMin) * translate (-canvasCenter)
-    model2canvas = translate canvasCenter * scale scaleMin * translate (-rangeCenter)
-    m2c_x x = _x (model2canvas `transform` point2 x 0.0)
-    m2c_y y = _y (model2canvas `transform` point2 0.0 y)
-    topLeft = canvas2model `transform` origin2
-    bottomRight = canvas2model `transform` (origin2 + size)
+    svg2model = inverse model2svg
+    spacing = _x (svg2model `transform` vec2 gridSpacing gridSpacing)
+    m2s_x x = _x (model2svg `transform` point2 x 0.0)
+    m2s_y y = _y (model2svg `transform` point2 0.0 y)
+    topLeft = svg2model `transform` origin2
+    bottomRight = svg2model `transform` (origin2 + size)
 
 type GridLine = { pos :: Number, width :: Number }
 gridLines :: Number -> Number -> Number -> Array GridLine
