@@ -6,9 +6,12 @@ import Data.Argonaut.Core (Json, jsonEmptyObject, stringify)
 import Data.Argonaut.Decode (decodeJson, (.:))
 import Data.Argonaut.Decode.Class (class DecodeJson)
 import Data.Argonaut.Encode.Class (class EncodeJson)
+import Data.Argonaut.Encode.Combinators ((:=), (~>), (~>?))
 import Data.Either (Either(..), hush)
 import Data.Either.Nested (type (\/))
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
+import Data.Tuple.Nested (type (/\))
+import Foreign.Object (Object)
 import Statebox.Core (DecodeError(..)) as Stbx
 import Statebox.Core.Types (HexStr)
 import Statebox.Core.Transaction (HashStr)
@@ -69,32 +72,92 @@ txErrorCode = case _ of
 instance showTxError :: Show TxError where
   show = txErrorCode
 
+encodeTxErrorField :: TxError -> Maybe (String /\ Json)
+encodeTxErrorField = case _ of
+  TxNotFound       i -> Just ("hash"     := i)
+  TxNotHex         i -> Just ("txHex"    := i)
+  TxNoTxField        -> Nothing
+  TxDecodeFail     i -> Just ("txHex"    := i)
+  RootNonexistPrev i -> Just ("previous" := i)
+  InitExecExists     -> Nothing
+  InitNonexistPrev i -> Just ("previous" := i)
+  InvalidState       -> Nothing
+  TxNotEnabled       -> Nothing
+
 encodeTxError :: TxError -> Json
-encodeTxError txError = jsonEmptyObject
+encodeTxError txError =
+     "tag" := txErrorCode txError
+  ~> encodeTxErrorField txError
+  ~>? jsonEmptyObject
 
 instance encodeJsonTxError :: EncodeJson TxError where
   encodeJson = encodeTxError
 
+decodeTxErrorCase :: String -> (Object Json -> String \/ TxError) -> Json -> String \/ TxError
+decodeTxErrorCase caseTag decoder = decodeJson >=> \x -> do
+  tag <- x .: "tag"
+  if tag /= caseTag
+  then Left "invalid tag"
+  else decoder x
+
 instance decodeJsonTxError :: DecodeJson TxError where
-  decodeJson json = decodeTxNotFound json <|> decodeTxNotHex json
+  decodeJson json
+    =   decodeTxNotFound       json
+    <|> decodeTxNotHex         json
+    <|> decodeTxNoTxField      json
+    <|> decodeTxDecodeFail     json
+    <|> decodeRootNonexistPrev json
+    <|> decodeInitExecExists   json
+    <|> decodeInitNonexistPrev json
+    <|> decodeInvalidState     json
+    <|> decodeTxNotEnabled     json
     where
       decodeTxNotFound :: Json -> String \/ TxError
-      decodeTxNotFound = decodeJson >=> \x -> do
-        tag <- x .: "tag"
-        if tag /= "tx-not-found"
-        then Left "invalid tag"
-        else do
+      decodeTxNotFound = decodeTxErrorCase "tx-not-found"
+        (\x -> do
           hash <- x .: "hash"
-          pure $ TxNotFound { hash : hash }
+          pure $ TxNotFound { hash : hash })
 
       decodeTxNotHex :: Json -> String \/ TxError
-      decodeTxNotHex = decodeJson >=> \x -> do
-        tag <- x .: "tag"
-        if tag /= "tx-not-found"
-        then Left "invalid tag"
-        else do
+      decodeTxNotHex = decodeTxErrorCase "tx-not-hex"
+        (\x -> do
           txHex <- x .: "txHex"
-          pure $ TxNotHex { txHex : txHex }
+          pure $ TxNotHex { txHex : txHex })
+
+      decodeTxNoTxField :: Json -> String \/ TxError
+      decodeTxNoTxField = decodeTxErrorCase "tx-no-tx"
+        (\_ -> pure TxNoTxField)
+
+      decodeTxDecodeFail :: Json -> String \/ TxError
+      decodeTxDecodeFail = decodeTxErrorCase "tx-decode-fail"
+        (\x -> do
+          txHex <- x .: "txHex"
+          pure $ TxDecodeFail { txHex : txHex })
+
+      decodeRootNonexistPrev :: Json -> String \/ TxError
+      decodeRootNonexistPrev = decodeTxErrorCase "root-nonexist-prev"
+        (\x -> do
+          previous <- x .: "previous"
+          pure $ RootNonexistPrev { previous : previous })
+
+      decodeInitExecExists :: Json -> String \/ TxError
+      decodeInitExecExists = decodeTxErrorCase "init-exec-exists"
+        (\_ -> pure InitExecExists)
+
+      decodeInitNonexistPrev :: Json -> String \/ TxError
+      decodeInitNonexistPrev = decodeTxErrorCase "init-nonexist-prev"
+        (\x -> do
+          previous <- x .: "previous"
+          pure $ RootNonexistPrev { previous : previous })
+
+      decodeInvalidState :: Json -> String \/ TxError
+      decodeInvalidState = decodeTxErrorCase "invalid-state"
+        (\_ -> pure InvalidState)
+
+      decodeTxNotEnabled :: Json -> String \/ TxError
+      decodeTxNotEnabled = decodeTxErrorCase "tx-not-enabled"
+        (\_ -> pure TxNotEnabled)
+
 
 
 --------------------------------------------------------------------------------
