@@ -16,7 +16,8 @@ import Test.Spec.Reporter.Console (consoleReporter)
 
 import Statebox.Core.Transaction (TxId)
 import Statebox.Client as Stbx
-import Statebox.Client (evalTransactionResponse)
+import Statebox.Client (evalTransactionResponse, evalPostTransaction)
+import Statebox.Service (TxError(..))
 
 import Test.Common
 
@@ -34,6 +35,9 @@ main = launchAff $ runSpec [consoleReporter] do
 
   -- then we try cases which produce a decoding error
   getNotFoundErrorTransactionSpec
+
+  -- then we try posting transactions which produce errors
+  postTransactionErrorSpec
 
 
 postExampleTransactionsSpec :: Spec Unit
@@ -83,22 +87,43 @@ requestTransactionSpec txDescription requestedHash =
     res <- Stbx.requestTransaction endpointUrl requestedHash
     res # evalTransactionResponse
       (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e) -- TODO spy obj?
-      (\(Stbx.DecodingError e)      -> fail $ "DecodingError: " <> e)
-      (\(Stbx.TxNotFoundError e)    -> fail $ "TxNotFoundError: " <> show e)
+      (\(Stbx.DecodingError  e    ) -> fail $ "DecodingError: " <> e)
+      (\e                           -> fail $ "TxError: " <> show e)
       (\{id, tx}                    -> succeed)                                  -- TODO more checks
 
 --------------------------------------------------------------------------------
 
 getNotFoundErrorTransactionSpec :: Spec Unit
 getNotFoundErrorTransactionSpec =
-  describe "Statebox transactions API HTTP service decoding errors" do
-    it ("should error to GET /tx/0") do
-      res <- Stbx.requestTransaction endpointUrl "0"
+  describe "Statebox transactions API HTTP GET transaction service errors" do
+    let invalidTxHash = "0"
+    it ("should error in case of invalid tx hash" <> invalidTxHash) do
+      res <- Stbx.requestTransaction endpointUrl invalidTxHash
       res # evalTransactionResponse
         (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e) -- TODO spy obj?
-        (\(Stbx.DecodingError e)      -> fail $ "DecodingError: " <> e)
-        (\(Stbx.TxNotFoundError e)    -> succeed)
-        (\{id, tx}                    -> fail $ "Should error getting unknown hash")
+        (\(Stbx.DecodingError  e    ) -> fail $ "DecodingError: " <> e)
+        (\e                           -> succeed)
+        (\{id, tx}                    -> fail "Should error getting unknown hash")
+
+postTransactionErrorSpec :: Spec Unit
+postTransactionErrorSpec =
+  describe "Statebox POST transactions API HTTP service errors" do
+    it "should error to POST tx \"\"" do
+      res <- Stbx.postTransactionHex endpointUrl ""
+      res # evalPostTransaction
+        (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e)
+        (\(Stbx.DecodingError  e    ) -> fail $ "DecodingError: "       <> show e)
+        (case _ of
+          TxNotFound       _ -> fail "TxError: TxNotFound"
+          TxNotHex         _ -> fail "TxError: TxNotHex"
+          TxNoTxField        -> fail "TxError: TxNotTxField"
+          TxDecodeFail     _ -> succeed
+          RootNonexistPrev _ -> fail "TxError: RootNonexistPrev"
+          InitExecExists     -> fail "TxError: InitExecExists"
+          InitNonexistPrev _ -> fail "TxError: InitNonexistPrev"
+          InvalidState       -> fail "TxError: InvalidState"
+          TxNotEnabled       -> fail "TxError: TxNotEnabled")
+        (\txSum -> fail "Should error posting empty hexStr")
 
 -- TODO for now
 todo :: forall m. MonadThrow Error m => m Unit

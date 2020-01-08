@@ -74,13 +74,13 @@ instance showTxError :: Show TxError where
 
 encodeTxErrorField :: TxError -> Maybe (String /\ Json)
 encodeTxErrorField = case _ of
-  TxNotFound       i -> Just ("hash"     := i)
-  TxNotHex         i -> Just ("txHex"    := i)
+  TxNotFound       i -> Just ("hash"     := i.hash)
+  TxNotHex         i -> Just ("txHex"    := i.txHex)
   TxNoTxField        -> Nothing
-  TxDecodeFail     i -> Just ("txHex"    := i)
-  RootNonexistPrev i -> Just ("previous" := i)
+  TxDecodeFail     i -> Just ("txHex"    := i.txHex)
+  RootNonexistPrev i -> Just ("previous" := i.previous)
   InitExecExists     -> Nothing
-  InitNonexistPrev i -> Just ("previous" := i)
+  InitNonexistPrev i -> Just ("previous" := i.previous)
   InvalidState       -> Nothing
   TxNotEnabled       -> Nothing
 

@@ -114,8 +114,8 @@ postTransactionHandler state = do
   let eitherErrorOrTxHexAndTxSum = bodyStr #   (parseBodyToJson        -- convert body from string to json
                                            >=> jsonBodyToTxString      -- retrieve hex string from tx field of body
                                            >=> txStringToTxJsonString' -- decode hex string to string using js service
-                                           >=> txJsonStringToTxData'    -- parse string to json
-                                           >=> txDataToTxSum')          -- parse json into txSum
+                                           >=> txJsonStringToTxData'   -- parse string to json
+                                           >=> txDataToTxSum')         -- parse json into txSum
   either
     (sendTxError <<< responseErrorToTxError)
     (\(txHex /\ txSum) -> do
