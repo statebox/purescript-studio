@@ -168,19 +168,19 @@ data ResponseError
   = FailedBodyToJson             { error :: String          , body     :: String }
   | FailedJsonToTxString         { error :: String          , jsonBody :: Json   }
   | FailedTxStringToTxJsonString { error :: Stbx.DecodeError, hash     :: HexStr }
-  | FailedTxJsonToTxData         { error :: String          , txString :: String }
-  | FailedTxDataToTxSum          { error :: String          , txData   :: Json   }
+  | FailedTxJsonStringToTxData   { error :: String          , hash     :: HexStr, txString :: String }
+  | FailedTxDataToTxSum          { error :: String          , hash     :: HexStr, txData   :: Json   }
 
 instance showResponseError :: Show ResponseError where
   show = case _ of
     FailedBodyToJson             o -> "The received body does not contain valid Json: \"" <> show o.body <> "\". The specific error is: " <> o.error
     FailedJsonToTxString         o -> "The received body does not contain Json compliant with the specification: \"" <> stringify o.jsonBody <> "\". The specific error is: " <> o.error
     FailedTxStringToTxJsonString o -> "The received hash does not contain valid transaction data: \"" <> o.hash <> "\". The specific error is: " <> show o.error
-    FailedTxJsonToTxData         o -> "The received transaction data do not contain Json compliant with the js specification: \"" <> o.txString <> "\". The specific error is: " <> o.error
+    FailedTxJsonStringToTxData   o -> "The received transaction data do not contain Json compliant with the js specification: \"" <> o.txString <> "\". The specific error is: " <> o.error
     FailedTxDataToTxSum          o -> "The received transaction data do not contain Json compliant with the ps specification: \"" <> stringify o.txData <> "\". The specific error is: " <> o.error
 
 responseErrorToTxError :: ResponseError -> TxError
-responseErrorToTxError (FailedBodyToJson             o) = TxNoTxField -- TODO: handle this case correctly
+responseErrorToTxError (FailedBodyToJson             o) = TxNoTxField -- this could actually fail also for other reasons
 responseErrorToTxError (FailedJsonToTxString         o) = TxNoTxField -- this could actually fail also for other reasons
 responseErrorToTxError (FailedTxStringToTxJsonString o) = case o.error of
   Stbx.MissingRequiredField message -> TxDecodeFail { txHex : o.hash }
@@ -188,15 +188,15 @@ responseErrorToTxError (FailedTxStringToTxJsonString o) = case o.error of
   Stbx.IndexOutOfRange      message -> TxDecodeFail { txHex : o.hash }
   Stbx.InvalidWireType      message -> TxDecodeFail { txHex : o.hash }
   Stbx.Other                message -> TxDecodeFail { txHex : o.hash }
-responseErrorToTxError (FailedTxJsonToTxData         o) = TxNoTxField -- TODO: handle this case correctly
-responseErrorToTxError (FailedTxDataToTxSum          o) = TxNoTxField -- TODO: handle this case correctly
+responseErrorToTxError (FailedTxJsonStringToTxData   o) = TxDecodeFail { txHex : o.hash }
+responseErrorToTxError (FailedTxDataToTxSum          o) = TxDecodeFail { txHex : o.hash }
 
 decodeResponseError :: Json -> String \/ ResponseError
 decodeResponseError json
   =   FailedBodyToJson             <$> decodeFailedBodyToJson json
   <|> FailedJsonToTxString         <$> decodeFailedJsonToTxString json
   <|> FailedTxStringToTxJsonString <$> decodeFailedTxStringToTxJsonString json
-  <|> FailedTxJsonToTxData         <$> decodeFailedTxJsonToTxData json
+  <|> FailedTxJsonStringToTxData   <$> decodeFailedTxJsonStringToTxData json
   <|> FailedTxDataToTxSum          <$> decodeFailedTxDataToTxSum json
 
 decodeFailedBodyToJson :: Json -> String \/ { body :: String, error :: String }
@@ -217,17 +217,19 @@ decodeFailedTxStringToTxJsonString = decodeJson >=> \x -> do
   error <- x .: "error"
   pure { hash : hash, error : error }
 
-decodeFailedTxJsonToTxData :: Json -> String \/ { txString :: String, error :: String }
-decodeFailedTxJsonToTxData = decodeJson >=> \x -> do
+decodeFailedTxJsonStringToTxData :: Json -> String \/ { hash :: HexStr, txString :: String, error :: String }
+decodeFailedTxJsonStringToTxData = decodeJson >=> \x -> do
+  hash     <- x .: "hash"
   txString <- x .: "txString"
   error    <- x .: "error"
-  pure { txString : txString, error : error }
+  pure { hash : hash, txString : txString, error : error }
 
-decodeFailedTxDataToTxSum :: Json -> String \/ { txData :: Json, error :: String }
+decodeFailedTxDataToTxSum :: Json -> String \/ { hash :: HexStr, txData :: Json, error :: String }
 decodeFailedTxDataToTxSum = decodeJson >=> \x -> do
+  hash   <- x .: "hash"
   txData <- x .: "txData"
   error  <- x .: "error"
-  pure { txData : txData, error : error }
+  pure { hash : hash, txData : txData, error : error }
 
 instance decodeJsonResponseError :: DecodeJson ResponseError where
   decodeJson = decodeResponseError

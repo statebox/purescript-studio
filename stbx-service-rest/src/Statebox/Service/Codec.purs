@@ -49,20 +49,20 @@ txStringToTxJsonString' :: HexStr -> Either ResponseError (HexStr /\ String)
 txStringToTxJsonString' txHex =
   (const txHex &&& identity) <$> txStringToTxJsonString txHex
 
-txJsonStringToTxData :: String -> Either ResponseError Json
-txJsonStringToTxData decodedJsonString = lmap
-  (\error -> FailedTxJsonToTxData { txString : decodedJsonString, error : error })
+txJsonStringToTxData :: HexStr -> String -> Either ResponseError Json
+txJsonStringToTxData hash decodedJsonString = lmap
+  (\error -> FailedTxJsonStringToTxData { hash : hash, txString : decodedJsonString, error : error })
   (jsonParser decodedJsonString)
 
 txJsonStringToTxData' :: (HexStr /\ String) -> Either ResponseError (HexStr /\ Json)
 txJsonStringToTxData' (txHex /\ decodedJsonString) =
-  (const txHex &&& identity) <$> (txJsonStringToTxData decodedJsonString)
+  (const txHex &&& identity) <$> (txJsonStringToTxData txHex decodedJsonString)
 
-txDataToTxSum :: Json -> Either ResponseError TxSum
-txDataToTxSum txJson = lmap
-  (\error -> FailedTxDataToTxSum {txData : txJson, error : error })
+txDataToTxSum :: HexStr -> Json -> Either ResponseError TxSum
+txDataToTxSum hash txJson = lmap
+  (\error -> FailedTxDataToTxSum { hash : hash, txData : txJson, error : error })
   (decodeTxSum txJson)
 
 txDataToTxSum' :: (HexStr /\ Json) -> Either ResponseError (HexStr /\ TxSum)
 txDataToTxSum' (txHex /\ txJson) =
-  (const txHex &&& identity) <$> (txDataToTxSum txJson)
+  (const txHex &&& identity) <$> (txDataToTxSum txHex txJson)
