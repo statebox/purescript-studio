@@ -4,7 +4,6 @@ import Prelude
 import Affjax as Affjax
 import Affjax (URL, Response)
 import Affjax.ResponseFormat as ResponseFormat
-import Affjax.ResponseFormat (ResponseFormatError, printResponseFormatError)
 import Affjax.RequestBody as RequestBody
 import Control.Alt ((<|>))
 import Control.Coroutine (Producer)
@@ -13,7 +12,6 @@ import Control.Monad.Rec.Class (Step(Loop, Done), tailRecM)
 import Control.Monad.Free.Trans (hoistFreeT)
 import Data.Argonaut.Core (Json)
 import Data.Argonaut.Encode (encodeJson)
-import Data.Bifunctor (lmap)
 import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
 import Data.Profunctor.Choice ((|||))
@@ -38,27 +36,27 @@ instance showDecodingError :: Show DecodingError where
     DecodingError e -> "(DecodingError " <> show e <> ")"
 
 data ClientError
-  = ClientResponseFormatError ResponseFormatError
-  | ClientDecodingError       DecodingError
-  | ClientTxError             TxError
+  = ClientAffjaxError   Affjax.Error
+  | ClientDecodingError DecodingError
+  | ClientTxError       TxError
 
 instance showClientError :: Show ClientError where
-  show (ClientResponseFormatError responseFormatError) = "Response format error: " <> printResponseFormatError responseFormatError
-  show (ClientDecodingError       decodingError      ) = "Decoding error: "        <> show decodingError
-  show (ClientTxError             txError            ) = "Transaction error: "     <> show txError
+  show (ClientAffjaxError   affjaxError   ) = "Response format error: " <> Affjax.printError affjaxError
+  show (ClientDecodingError decodingError ) = "Decoding error: "        <> show decodingError
+  show (ClientTxError       txError       ) = "Transaction error: "     <> show txError
 
 evalClientError
   :: forall a
-  .  (ResponseFormatError -> a)
-  -> (DecodingError       -> a)
-  -> (TxError             -> a)
+  .  (Affjax.Error  -> a)
+  -> (DecodingError -> a)
+  -> (TxError       -> a)
   -> ClientError
   -> a
-evalClientError onResponseFormatError onDecodingError onTxError clientError =
+evalClientError onAffjaxError onDecodingError onTxError clientError =
   case clientError of
-    ClientResponseFormatError responseFormatError -> onResponseFormatError responseFormatError
-    ClientDecodingError       decodingError       -> onDecodingError       decodingError
-    ClientTxError             txError             -> onTxError             txError
+    ClientAffjaxError   affjaxError   -> onAffjaxError   affjaxError
+    ClientDecodingError decodingError -> onDecodingError decodingError
+    ClientTxError       txError       -> onTxError       txError
 
 -- | A convenience function for processing API responses.
 evalTransactionResponse
@@ -69,8 +67,8 @@ evalTransactionResponse
   -> (HashTx        -> a)
   -> ClientError \/ HashTx
   -> a
-evalTransactionResponse onResponseFormatError onDecodingError onTxError onTx =
-  evalClientError onResponseFormatError onDecodingError onTxError ||| onTx
+evalTransactionResponse onAffjaxError onDecodingError onTxError onTx =
+  evalClientError onAffjaxError onDecodingError onTxError ||| onTx
 
 --------------------------------------------------------------------------------
 
@@ -89,10 +87,12 @@ parseTxError = decodeTxErrorResponseBody >>>
 fromEither :: forall a b . (a -> b) -> (Either a b) -> b
 fromEither f = either f identity
 
-processResponse :: Response (ResponseFormatError \/ Json) -> Either ClientError TxSum
-processResponse res = do
-  json <- lmap ClientResponseFormatError res.body
-  fromEither (Left <<< ClientDecodingError <<< DecodingError) $ parseTxTxSum json <|> parseTxError json
+processResponse :: Affjax.Error \/ Response Json -> ClientError \/ TxSum
+processResponse
+  =   Left <<< ClientAffjaxError
+  ||| (\response ->
+    let json = response.body in
+    fromEither (Left <<< ClientDecodingError <<< DecodingError) $ parseTxTxSum json <|> parseTxError json)
 
 -- TODO: handle empty string as TxId or exclude the possibility at the type level
 requestTransaction' :: URL -> TxId -> Aff (ClientError \/ TxSum)
@@ -162,7 +162,7 @@ fetchAndEmitTxStep emitter apiBaseUrl hash = liftAff $ do
 
 --------------------------------------------------------------------------------
 
-postTransactionHexJson :: URL -> HexStr -> Aff (Response (ResponseFormatError \/ Json))
+postTransactionHexJson :: URL -> HexStr -> Aff (Affjax.Error \/ Response Json)
 postTransactionHexJson apiBaseUrl txHex =
   Affjax.request $ Affjax.defaultRequest { url = apiBaseUrl <> "/tx"
                                          , method = Left POST
@@ -179,11 +179,11 @@ postTransactionHex apiBaseUrl txHex = do
 
 evalPostTransaction
   :: forall a
-  .  (ResponseFormatError -> a)
-  -> (DecodingError       -> a)
-  -> (TxError             -> a)
-  -> (TxSum               -> a)
+  .  (Affjax.Error  -> a)
+  -> (DecodingError -> a)
+  -> (TxError       -> a)
+  -> (TxSum         -> a)
   -> ClientError \/ TxSum
   -> a
-evalPostTransaction onResponseFormatError onDecodingError onTxError onTxSum =
-  evalClientError onResponseFormatError onDecodingError onTxError ||| onTxSum
+evalPostTransaction onAffjaxError onDecodingError onTxError onTxSum =
+  evalClientError onAffjaxError onDecodingError onTxError ||| onTxSum
