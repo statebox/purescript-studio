@@ -66,6 +66,7 @@ ui =
         res # evalTransactionResponse
           (\err                      -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printError err)
           (\(Stbx.DecodingError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
+          (\txError                  -> H.liftEffect $ log $ "Handling error of received data: " <> show txError)
           (\{id, tx}                 -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
                                            H.liftEffect $ log $ show tx)
 
