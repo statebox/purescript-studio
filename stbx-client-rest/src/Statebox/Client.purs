@@ -63,10 +63,10 @@ evalClientError onResponseFormatError onDecodingError onTxError clientError =
 -- | A convenience function for processing API responses.
 evalTransactionResponse
   :: forall a
-   . (ResponseFormatError -> a)
-  -> (DecodingError       -> a)
-  -> (TxError             -> a)
-  -> (HashTx              -> a)
+   . (Affjax.Error  -> a)
+  -> (DecodingError -> a)
+  -> (TxError       -> a)
+  -> (HashTx        -> a)
   -> ClientError \/ HashTx
   -> a
 evalTransactionResponse onResponseFormatError onDecodingError onTxError onTx =
@@ -105,7 +105,7 @@ requestTransaction' apiBaseUrl hash =
 
 --------------------------------------------------------------------------------
 
-requestTransactionJson :: URL -> TxId -> Aff (Response (ResponseFormatError \/ Json))
+requestTransactionJson :: URL -> TxId -> Aff (Affjax.Error \/ Response Json)
 requestTransactionJson apiBaseUrl hash =
   Affjax.request $ Affjax.defaultRequest { url = txUrl apiBaseUrl hash
                                          , method = Left GET

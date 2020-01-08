@@ -64,7 +64,7 @@ ui =
         H.liftEffect $ log $ "LoadTransaction: requesting transaction " <> hash <> " from " <> endpointUrl
         res <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
         res # evalTransactionResponse
-          (\err                      -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
+          (\err                      -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printError err)
           (\(Stbx.DecodingError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
           (\{id, tx}                 -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
                                            H.liftEffect $ log $ show tx)
@@ -91,11 +91,11 @@ ui =
 
       LoadPNPRO url -> do
         H.liftEffect $ log $ "LoadPNPRO: requesting PNPRO file from " <> url
-        res <- H.liftAff $ Affjax.request $ Affjax.defaultRequest { url = url, responseFormat = ResponseFormat.string }
-        res.body # either
-          (\err -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
-          (\body -> do
-               pnproDocumentE <- H.liftEffect $ try $ PNPRO.fromString body
+        resE <- H.liftAff $ Affjax.request $ Affjax.defaultRequest { url = url, responseFormat = ResponseFormat.string }
+        resE # either
+          (\err -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printError err)
+          (\res -> do
+               pnproDocumentE <- H.liftEffect $ try $ PNPRO.fromString res.body
                pnproDocumentE # either
                  (\err      -> H.liftEffect $ log $ "Error decoding PNPRO document: " <> show err)
                  (\pnproDoc -> H.modify_ $ \state -> state { projects = fromPNPROProject pnproDoc.project `cons` state.projects })
