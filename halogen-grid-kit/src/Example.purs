@@ -127,5 +127,3 @@ containedIn range size = translate svgCenter * scale scaleMin * translate (-rang
     scaleMin = min (_x scaleXY) (_y scaleXY)
     rangeCenter = boxCenter range
     svgCenter = size / pure 2.0
-
-
