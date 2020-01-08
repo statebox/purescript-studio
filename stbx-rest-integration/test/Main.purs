@@ -108,8 +108,56 @@ getNotFoundErrorTransactionSpec =
 postTransactionErrorSpec :: Spec Unit
 postTransactionErrorSpec =
   describe "Statebox POST transactions API HTTP service errors" do
-    it "should error to POST tx \"\"" do
+    it "should error on transaction missing required previous" do
       res <- Stbx.postTransactionHex endpointUrl ""
+      res # evalPostTransaction
+        (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e)
+        (\(Stbx.DecodingError  e    ) -> fail $ "DecodingError: "       <> show e)
+        (case _ of
+          TxNotFound       _ -> fail "TxError: TxNotFound"
+          TxNotHex         _ -> fail "TxError: TxNotHex"
+          TxNoTxField        -> fail "TxError: TxNotTxField"
+          TxDecodeFail     _ -> succeed
+          RootNonexistPrev _ -> fail "TxError: RootNonexistPrev"
+          InitExecExists     -> fail "TxError: InitExecExists"
+          InitNonexistPrev _ -> fail "TxError: InitNonexistPrev"
+          InvalidState       -> fail "TxError: InvalidState"
+          TxNotEnabled       -> fail "TxError: TxNotEnabled")
+        (\txSum -> fail "Should error posting empty hexStr")
+    it "should error on invalid hex string" do
+      res <- Stbx.postTransactionHex endpointUrl "1"
+      res # evalPostTransaction
+        (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e)
+        (\(Stbx.DecodingError  e    ) -> fail $ "DecodingError: "       <> show e)
+        (case _ of
+          TxNotFound       _ -> fail "TxError: TxNotFound"
+          TxNotHex         _ -> succeed
+          TxNoTxField        -> fail "TxError: TxNotTxField"
+          TxDecodeFail     _ -> fail "TxError: TxDecodeFail"
+          RootNonexistPrev _ -> fail "TxError: RootNonexistPrev"
+          InitExecExists     -> fail "TxError: InitExecExists"
+          InitNonexistPrev _ -> fail "TxError: InitNonexistPrev"
+          InvalidState       -> fail "TxError: InvalidState"
+          TxNotEnabled       -> fail "TxError: TxNotEnabled")
+        (\txSum -> fail "Should error posting empty hexStr")
+    it "should error on index out of range" do
+      res <- Stbx.postTransactionHex endpointUrl "00"
+      res # evalPostTransaction
+        (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e)
+        (\(Stbx.DecodingError  e    ) -> fail $ "DecodingError: "       <> show e)
+        (case _ of
+          TxNotFound       _ -> fail "TxError: TxNotFound"
+          TxNotHex         _ -> fail "TxError: TxNotHex"
+          TxNoTxField        -> fail "TxError: TxNotTxField"
+          TxDecodeFail     _ -> succeed
+          RootNonexistPrev _ -> fail "TxError: RootNonexistPrev"
+          InitExecExists     -> fail "TxError: InitExecExists"
+          InitNonexistPrev _ -> fail "TxError: InitNonexistPrev"
+          InvalidState       -> fail "TxError: InvalidState"
+          TxNotEnabled       -> fail "TxError: TxNotEnabled")
+        (\txSum -> fail "Should error posting empty hexStr")
+    it "should error on invalid wire type" do
+      res <- Stbx.postTransactionHex endpointUrl "04"
       res # evalPostTransaction
         (\(ResponseFormatError e obj) -> fail $ "ResponseFormatError: " <> show e)
         (\(Stbx.DecodingError  e    ) -> fail $ "DecodingError: "       <> show e)
