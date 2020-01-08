@@ -37,13 +37,13 @@ ui =
 render :: ∀ m. Input -> {} -> H.ComponentHTML Void () m
 render { gridSpacing, model2svg, size } _ =
   S.g []
-  [ S.g [ S.attr (AttrName "class") "grid grid-v" ] $
-      gridLines spacing (_x topLeft) (_x bottomRight)
-        # map \{ width, pos } -> let x = m2s_x pos in S.line [ S.strokeWidth width, S.x1 x, S.y1 0.0, S.x2 x, S.y2 (_y size) ]
-  , S.g [ S.attr (AttrName "class") "grid grid-h" ] $
-      gridLines spacing (_y topLeft) (_y bottomRight)
-        # map \{ width, pos } -> let y = m2s_y pos in S.line [ S.strokeWidth width, S.x1 0.0, S.y1 y, S.x2 (_x size), S.y2 y ]
-  ]
+      [ S.g [ S.attr (AttrName "class") "grid grid-v" ] $
+          gridLines spacing (_x topLeft) (_x bottomRight)
+            # map \{ width, pos } -> let x = m2s_x pos in S.line [ S.strokeWidth width, S.x1 x, S.y1 0.0, S.x2 x, S.y2 (_y size) ]
+      , S.g [ S.attr (AttrName "class") "grid grid-h" ] $
+          gridLines spacing (_y topLeft) (_y bottomRight)
+            # map \{ width, pos } -> let y = m2s_y pos in S.line [ S.strokeWidth width, S.x1 0.0, S.y1 y, S.x2 (_x size), S.y2 y ]
+      ]
   where
     svg2model = inverse model2svg
     spacing = _x (svg2model `transform` vec2 gridSpacing gridSpacing)
