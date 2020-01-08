@@ -1,4 +1,4 @@
-module Main where
+module Statebox.Service.Main where
 
 import Prelude
 
