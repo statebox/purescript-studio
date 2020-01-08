@@ -1,9 +1,11 @@
 module Example where
 
-import Prelude
+import Prelude hiding (div)
 
 import Data.Array ((..))
 import Data.Int (toNumber, floor)
+import Data.Lens (Lens, (+~), (-~))
+import Data.Lens.Record (prop)
 import Data.Maybe
 import Data.Number (fromString)
 import Data.Symbol (SProxy(..))
@@ -13,13 +15,13 @@ import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML
 import Halogen.HTML.Events (onValueInput)
-import Halogen.HTML.Properties hiding (min, max)
+import Halogen.HTML.Properties hiding (min, max, prop)
 import Halogen.HTML.Properties as H
 import Math (pow, pi)
 import Svg.Elements as S
 import Svg.Attributes as S
 
-
+import GridKit.KeyHandler
 import View.ReactiveInput as RI
 import View.GridKit.Grid as Grid
 import View.GridKit.Point as Point
@@ -38,6 +40,9 @@ type State =
   , radius :: Number
   , count :: Number
   }
+
+_logScale :: ∀ a b r. Lens { logScale :: a | r } { logScale :: b | r } a b
+_logScale = prop (SProxy :: SProxy "logScale")
 
 type ChildSlots =
   ( grid :: Grid.Slot Unit
@@ -67,7 +72,8 @@ ui =
     }
 
 render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
-render _ { logSpacing, logScale, posX, posY, radius, count } = div_
+render _ { logSpacing, logScale, posX, posY, radius, count } = div
+  [ tabIndex 0, handleKeyDown (zoomKeys <> debugKeyCodes) ]
   [ S.svg [ S.width (_x size), S.height (_y size) ] $
     [ grid gridInput ] <>
     ((1 .. floor count) <#> \n ->
@@ -107,8 +113,8 @@ render _ { logSpacing, logScale, posX, posY, radius, count } = div_
       scaling = pow 10.0 logScale
       pos = vec2 posX posY
       range = Box
-        { topLeft: (vec2 (-0.5) (-0.5) - pos) * pure scaling
-        , bottomRight: (vec2 0.5 0.5 - pos) * pure scaling
+        { topLeft: (vec2 (-0.5) (-0.5) - pos) / pure scaling
+        , bottomRight: (vec2 0.5 0.5 - pos) / pure scaling
         }
       size = vec2 777.0 600.0
 
@@ -119,6 +125,16 @@ render _ { logSpacing, logScale, posX, posY, radius, count } = div_
         , model2svg
         , size
         }
+
+      zoomKeys = zoomInKey <> zoomOutKey
+      zoomInKey = keyHandler
+        [ Shortcut metaKey "Equal", Shortcut ctrlKey "Equal" ]
+        (text "Zoom in")
+        (ChangeState $ _logScale +~ 0.1)
+      zoomOutKey = keyHandler
+        [ Shortcut metaKey "Minus", Shortcut ctrlKey "Minus" ]
+        (text "Zoom out")
+        (ChangeState $ _logScale -~ 0.1)
 
 containedIn :: Box Number -> Vec2 Number -> AffineTransform Number
 containedIn range size = translate svgCenter * scale scaleMin * translate (-rangeCenter)
