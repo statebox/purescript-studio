@@ -1,4 +1,5 @@
 /.cache
+/.psci_modules
 /.spago
 /node_modules/
 /output/

@@ -2,10 +2,6 @@
   "name": "halogen-grid-kit",
   "version": "1.0.0",
   "description": "Halogen Grid Kit",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
   "scripts": {
     "postinstall": "spago install",
     "start": "concurrently --kill-others --handle-input npm:watch npm:serve",
