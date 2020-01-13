@@ -26,12 +26,12 @@ import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
 import View.Model (Project)
 import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo)
-import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
+import View.Studio.Model.Route (Route, RouteF(..), Query, Input, NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
 import ExampleData as Ex
 
-ui :: ∀ m q. MonadAff m => H.Component HTML q Unit Void m
+ui :: ∀ m. MonadAff m => H.Component HTML Query Input Void m
 ui =
   H.mkComponent
     { initialState: const initialState
