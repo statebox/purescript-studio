@@ -25,12 +25,13 @@ type ComponentSpec surface state action slots input output m =
   , handleAction :: action -> H.HalogenM state action slots output m Unit
   }
 
-mkComponent :: ∀ surface state query action slots input output m
-             . MonadEffect m
-            => Eq input
-            => Bifunctor surface
-            => ComponentSpec surface state action slots input output m
-            -> H.Component surface query input output m
+mkComponent
+  :: ∀ surface state query action slots input output m
+   . MonadEffect m
+  => Eq input
+  => Bifunctor surface
+  => ComponentSpec surface state action slots input output m
+  -> H.Component surface query input output m
 mkComponent spec@{ initialState, render } =
   H.mkComponent
     { initialState: { input: _, rest: initialState }
@@ -42,12 +43,13 @@ mkComponent spec@{ initialState, render } =
       }
     }
 
-handle :: ∀ surface state action slots input output m
-        . MonadEffect m
-       => Eq input
-       => ComponentSpec surface state action slots input output m
-       -> Action input action
-       -> H.HalogenM (State input state) (Action input action) slots output m Unit
+handle
+  :: ∀ surface state action slots input output m
+   . MonadEffect m
+  => Eq input
+  => ComponentSpec surface state action slots input output m
+  -> Action input action
+  -> H.HalogenM (State input state) (Action input action) slots output m Unit
 handle { handleInput, handleAction } = case _ of
 
   Initialize -> do
@@ -65,17 +67,19 @@ handle { handleInput, handleAction } = case _ of
     mapHalogenM $ handleAction action
 
 
-mapHalogenM :: ∀ state action slots input output m. MonadEffect m
-            => H.HalogenM state action slots output m Unit
-            -> H.HalogenM (State input state) (Action input action) slots output m Unit
+mapHalogenM
+  :: ∀ state action slots input output m. MonadEffect m
+  => H.HalogenM state action slots output m Unit
+  -> H.HalogenM (State input state) (Action input action) slots output m Unit
 mapHalogenM h = do
   { input } <- H.get
   h # H.mapAction Rest
     # H.imapState { input, rest: _ } _.rest
 
-mapAction :: ∀ surface slots m a b
-           . Bifunctor surface
-          => (a -> b)
-          -> surface (H.ComponentSlot surface slots m a) a
-          -> surface (H.ComponentSlot surface slots m b) b
+mapAction
+  :: ∀ surface slots m a b
+   . Bifunctor surface
+  => (a -> b)
+  -> surface (H.ComponentSlot surface slots m a) a
+  -> surface (H.ComponentSlot surface slots m b) b
 mapAction f = bimap (map f) f

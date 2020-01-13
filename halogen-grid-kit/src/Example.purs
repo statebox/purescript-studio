@@ -22,15 +22,13 @@ import Svg.Elements as S
 import Svg.Attributes as S
 
 import GridKit.KeyHandler
-import View.ReactiveInput as RI
+import View.ReactiveInput as ReactiveInput
 import View.GridKit.Grid as Grid
 import View.GridKit.Point as Point
 
-
 type Input = {}
 
-data Action
-  = ChangeState (State -> State)
+data Action = ChangeState (State -> State)
 
 type State =
   { logSpacing :: Number
@@ -53,97 +51,102 @@ type ChildSlots =
   , point :: Point.Slot Int
   )
 
-grid :: ∀ m. MonadEffect m => Grid.Input -> H.ComponentHTML Action ChildSlots m
-grid input = slot (SProxy :: SProxy "grid") unit Grid.ui input (const Nothing)
-
-point :: ∀ m. MonadEffect m => Int -> Point.Input -> H.ComponentHTML Action ChildSlots m
-point id input = slot (SProxy :: SProxy "point") id Point.ui input (const Nothing)
-
 ui :: ∀ q m. MonadEffect m => H.Component HTML q Input Void m
-ui =
-  RI.mkComponent
-    { initialState:
-      { logSpacing: 1.0
-      , logScale: 0.0
-      , posX: 0.0
-      , posY: 0.0
-      , radius: 0.5
-      , count: 10.0
-      , keyHelpVisible: true
-      }
-    , render
-    , handleAction
-    , handleInput: \_ -> pure unit
+
+ui = ReactiveInput.mkComponent
+  { initialState:
+    { logSpacing: 1.0
+    , logScale: 0.0
+    , posX: 0.0
+    , posY: 0.0
+    , radius: 0.5
+    , count: 10.0
+    , keyHelpVisible: true
     }
+  , render
+  , handleAction
+  , handleInput: \_ -> pure unit
+  }
+
+handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots Void m Unit
+handleAction (ChangeState f) = H.modify_ f
 
 render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
 render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = div
   [ tabIndex 0, keys.onKeyDown ]
   [ S.svg [ S.width (_x size), S.height (_y size) ] $
-    [ grid gridInput ] <>
-    ((1 .. floor count) <#> \n ->
-      point n { position: rotate (toNumber n * 2.0 * pi / count) `transform` point2 radius 0.0, model2svg })
-  , p_
-    [ input [ type_ InputRange, H.min 0.0, H.max 2.0, step Any, value (show logSpacing)
-            , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { logSpacing = v }) ]
-    , text " Grid spacing"
-    ]
-  , p_
-    [ input [ type_ InputRange, H.min (-5.0), H.max 5.0, step Any, value (show logScale)
-            , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { logScale = v }) ]
-    , text " Scale"
-    ]
-  , p_
-    [ input [ type_ InputRange, H.min (-5.0), H.max 5.0, step Any, value (show posX)
-            , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { posX = v }) ]
-    , text " X"
-    ]
-  , p_
-    [ input [ type_ InputRange, H.min (-5.0), H.max 5.0, step Any, value (show posY)
-            , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { posY = v }) ]
-    , text " Y"
-    ]
-  , p_
-    [ input [ type_ InputRange, H.min (-5.0), H.max 5.0, step Any, value (show radius)
-            , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { radius = v }) ]
-    , text " Radius"
-    ]
-  , p_
-    [ input [ type_ InputRange, H.min 1.0, H.max 100.0, step (Step 1.0), value (show count)
-            , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { count = v }) ]
-    , text " Count"
-    ]
+          [ grid gridInput ] <>
+          ((1 .. floor count) <#> \n ->
+            point n { position: rotate (toNumber n * 2.0 * pi / count) `transform` point2 radius 0.0, model2svg })
+  , p_ [ input [ type_ InputRange, H.min 0.0, H.max 2.0, step Any, value (show logSpacing)
+               , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { logSpacing = v })
+               ]
+       , text " Grid spacing"
+       ]
+  , p_ [ input [ type_ InputRange, H.min (-5.0), H.max 5.0, step Any, value (show logScale)
+               , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { logScale = v })
+               ]
+       , text " Scale"
+       ]
+  , p_ [ input [ type_ InputRange, H.min (-5.0), H.max 5.0, step Any, value (show posX)
+               , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { posX = v })
+               ]
+       , text " X"
+       ]
+  , p_ [ input [ type_ InputRange, H.min (-5.0), H.max 5.0, step Any, value (show posY)
+               , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { posY = v })
+               ]
+       , text " Y"
+       ]
+  , p_ [ input [ type_ InputRange, H.min (-5.0), H.max 5.0, step Any, value (show radius)
+               , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { radius = v })
+               ]
+       , text " Radius"
+       ]
+  , p_ [ input [ type_ InputRange, H.min 1.0, H.max 100.0, step (Step 1.0), value (show count)
+               , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { count = v })
+               ]
+       , text " Count"
+       ]
   , keys.helpPopup keyHelpVisible
   ]
-    where
-      scaling = pow 10.0 logScale
-      pos = vec2 posX posY
-      range = Box
-        { topLeft: (vec2 (-0.5) (-0.5) - pos) / pure scaling
-        , bottomRight: (vec2 0.5 0.5 - pos) / pure scaling
-        }
-      size = vec2 777.0 600.0
+  where
+    scaling = pow 10.0 logScale
 
-      model2svg = range `containedIn` size
+    pos = vec2 posX posY
 
-      gridInput =
-        { gridSpacing: pow 10.0 logSpacing
-        , model2svg
-        , size
-        }
+    size = vec2 777.0 600.0
 
-      zoomInKey = keyHandler
-        [ Shortcut metaKey "Equal" "+", Shortcut ctrlKey "Equal" "+"]
-        (text "Zoom in")
-        (ChangeState $ _logScale +~ 0.1)
-      zoomOutKey = keyHandler
-        [ Shortcut metaKey "Minus" "-", Shortcut ctrlKey "Minus" "-"]
-        (text "Zoom out")
-        (ChangeState $ _logScale -~ 0.1)
-      keys = keysWithHelpPopup
-        { keys: zoomInKey <> zoomOutKey <> debugKeyCodes
-        , popupAction: ChangeState $ _keyHelpVisible %~ not
-        }
+    gridInput = { gridSpacing: pow 10.0 logSpacing
+                , model2svg
+                , size
+                }
+
+    model2svg = range `containedIn` size
+
+    range = Box { topLeft:     (vec2 (-0.5) (-0.5) - pos) * pure scaling
+                , bottomRight: (vec2   0.5    0.5  - pos) * pure scaling
+                }
+
+    zoomInKey = keyHandler
+      [ Shortcut metaKey "Equal" "+", Shortcut ctrlKey "Equal" "+"]
+      (text "Zoom in")
+      (ChangeState $ _logScale +~ 0.1)
+    zoomOutKey = keyHandler
+      [ Shortcut metaKey "Minus" "-", Shortcut ctrlKey "Minus" "-"]
+      (text "Zoom out")
+      (ChangeState $ _logScale -~ 0.1)
+
+    keys = keysWithHelpPopup
+      { keys: zoomInKey <> zoomOutKey <> debugKeyCodes
+      , popupAction: ChangeState $ _keyHelpVisible %~ not
+      }
+
+grid :: ∀ m. MonadEffect m => Grid.Input -> H.ComponentHTML Action ChildSlots m
+grid input = slot (SProxy :: SProxy "grid") unit Grid.ui input (const Nothing)
+
+point :: ∀ m. MonadEffect m => Int -> Point.Input -> H.ComponentHTML Action ChildSlots m
+point id input = slot (SProxy :: SProxy "point") id Point.ui input (const Nothing)
 
 
 containedIn :: Box Number -> Vec2 Number -> AffineTransform Number
@@ -153,7 +156,3 @@ containedIn range size = translate svgCenter * scale scaleMin * translate (-rang
     scaleMin = min (_x scaleXY) (_y scaleXY)
     rangeCenter = boxCenter range
     svgCenter = size / pure 2.0
-
-
-handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots Void m Unit
-handleAction (ChangeState f) = H.modify_ f
