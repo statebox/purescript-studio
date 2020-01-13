@@ -13,7 +13,7 @@ import Math (log, pow, ln10, round, sqrt)
 import Svg.Elements as S
 import Svg.Attributes as S
 
-import View.ReactiveInput as RI
+import View.ReactiveInput as ReactiveInput
 
 
 type Input =
@@ -26,13 +26,12 @@ data VoidF a
 type Slot = H.Slot VoidF Void
 
 ui :: ∀ q m. MonadEffect m => H.Component HTML q Input Void m
-ui =
-  RI.mkComponent
-    { initialState: {}
-    , render
-    , handleAction: \_ -> pure unit
-    , handleInput: \_ -> pure unit
-    }
+ui = ReactiveInput.mkComponent
+  { initialState: {}
+  , render
+  , handleAction: \_ -> pure unit
+  , handleInput: \_ -> pure unit
+  }
 
 render :: ∀ m. Input -> {} -> H.ComponentHTML Void () m
 render { gridSpacing, model2svg, size } _ =
@@ -53,13 +52,14 @@ render { gridSpacing, model2svg, size } _ =
     bottomRight = svg2model `transform` (origin2 + size)
 
 type GridLine = { pos :: Number, width :: Number }
+
 gridLines :: Number -> Number -> Number -> Array GridLine
 gridLines spacing start end
   = (ceil (start / stepSize) .. floor (end / stepSize))
   # map (\n -> { pos: toNumber n * stepSize, width: w n - thresholdWidth })
   # filter (\{ width } -> width > 0.0)
   where
-    stepSize = pow 10.0 (round (log (spacing / stepMultiplyer) / ln10))
+    stepSize = pow 10.0 (round (log (spacing / stepMultiplier) / ln10))
     zoom = stepSize / spacing
     w 0 = maxLineWidth
     w n =
@@ -73,4 +73,4 @@ gridLines spacing start end
     -- we subtract the threshold so the lines fade in/out instead of suddenly appearing/disappearing
     thresholdWidth = 0.1
     -- Increase the number of lines just when the fives-lines are appearing:
-    stepMultiplyer = fivesWidth / thresholdWidth / sqrt(10.0)
+    stepMultiplier = fivesWidth / thresholdWidth / sqrt(10.0)

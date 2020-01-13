@@ -10,7 +10,7 @@ import Halogen.HTML
 import Svg.Elements as S
 import Svg.Attributes hiding (path) as S
 
-import View.ReactiveInput as RI
+import View.ReactiveInput as ReactiveInput
 
 type Input =
   { position :: Point2 Number
@@ -21,13 +21,12 @@ data VoidF a
 type Slot = H.Slot VoidF Void
 
 ui :: ∀ q m. MonadEffect m => H.Component HTML q Input Void m
-ui =
-  RI.mkComponent
-    { initialState: {}
-    , render
-    , handleAction: \_ -> pure unit
-    , handleInput: \_ -> pure unit
-    }
+ui = ReactiveInput.mkComponent
+  { initialState: {}
+  , render
+  , handleAction: \_ -> pure unit
+  , handleInput: \_ -> pure unit
+  }
 
 render :: ∀ m. Input -> {} -> H.ComponentHTML Void () m
 render { position, model2svg } _ =
