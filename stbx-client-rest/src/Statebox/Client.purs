@@ -4,7 +4,6 @@ import Prelude
 import Affjax as Affjax
 import Affjax (URL, Response)
 import Affjax.ResponseFormat as ResponseFormat
-import Affjax.ResponseFormat (ResponseFormatError)
 import Affjax.RequestBody as RequestBody
 import Control.Coroutine (Producer)
 import Control.Coroutine.Aff (emit, close, produceAff, Emitter)
@@ -27,35 +26,36 @@ import Statebox.Core.Types (HexStr)
 -- | A convenience function for processing API responses.
 evalTransactionResponse
   :: forall a
-   . (ResponseFormatError -> a)
-  -> (DecodingError       -> a)
-  -> (HashTx              -> a)
-  -> ResponseFormatError \/ (DecodingError \/ HashTx)
+   . (Affjax.Error  -> a)
+  -> (DecodingError -> a)
+  -> (HashTx        -> a)
+  -> Affjax.Error \/ (DecodingError \/ HashTx)
   -> a
-evalTransactionResponse onResponseFormatError onDecodingError onTx =
-  onResponseFormatError ||| onDecodingError ||| onTx
+evalTransactionResponse onAffjaxError onDecodingError onTx =
+  onAffjaxError ||| onDecodingError ||| onTx
 
 --------------------------------------------------------------------------------
 
--- | Request a single transaction from the API.
-requestTransaction :: URL -> TxId -> Aff (ResponseFormatError \/ (DecodingError \/ HashTx))
+-- | Request a single transaction from the API and return it along with its hash.
+requestTransaction :: URL -> TxId -> Aff (Affjax.Error \/ (DecodingError \/ HashTx))
 requestTransaction apiBaseUrl hash =
    requestTransaction' apiBaseUrl hash # map (map (map (attachTxId hash)))
 
-requestTransaction' :: URL -> TxId -> Aff (ResponseFormatError \/ (DecodingError \/ TxSum))
+-- | Request a single transaction from the API and return it along with its hash.
+requestTransaction' :: URL -> TxId -> Aff (Affjax.Error \/ (DecodingError \/ TxSum))
 requestTransaction' apiBaseUrl hash =
   if isUberRootHash hash then
     pure $ Right <<< Right $ UberRootTxInj
   else do
     res <- requestTransactionJson apiBaseUrl hash
     let
-      tx :: ResponseFormatError \/ DecodingError \/ TxSum
-      tx = (DecodingError +++ _.decoded) <<< decodeTxTxSum <$> res.body
+      tx :: Affjax.Error \/ DecodingError \/ TxSum
+      tx = (DecodingError +++ _.decoded) <<< decodeTxTxSum <<< _.body <$> res
     pure tx
 
 --------------------------------------------------------------------------------
 
-requestTransactionJson :: URL -> TxId -> Aff (Response (ResponseFormatError \/ Json))
+requestTransactionJson :: URL -> TxId -> Aff (Affjax.Error \/ Response Json)
 requestTransactionJson apiBaseUrl hash =
   Affjax.request $ Affjax.defaultRequest { url = txUrl apiBaseUrl hash
                                          , method = Left GET
@@ -110,7 +110,7 @@ fetchAndEmitTxStep emitter apiBaseUrl hash = liftAff $ do
 
 --------------------------------------------------------------------------------
 
-postTransactionHex :: URL -> HexStr -> Aff (Response (ResponseFormatError \/ Json))
+postTransactionHex :: URL -> HexStr -> Aff (Affjax.Error \/ Response Json)
 postTransactionHex apiBaseUrl txHex =
   Affjax.request $ Affjax.defaultRequest { url = apiBaseUrl <> "/tx"
                                          , method = Left POST
