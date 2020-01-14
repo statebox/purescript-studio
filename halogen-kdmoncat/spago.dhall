@@ -8,6 +8,7 @@
     , "effect"
     , "functors"
     , "halogen"
+    , "halogen-grid-kit"
     , "halogen-svg"
     , "ordered-collections"
     , "profunctor-lenses"

@@ -52,7 +52,7 @@ footer {
 }
 
 
-.bricks {
+.kdmoncat-bricks {
   position: relative;
   justify-self: stretch;
   display: grid;
@@ -61,7 +61,7 @@ footer {
   user-select: none;
   -webkit-user-select: none;
 }
-.bricks svg {
+.kdmoncat-bricks svg {
   position: absolute;
   top: 0;
   left: 0;
@@ -72,10 +72,10 @@ footer {
   fill: rgba(0, 0, 0, .07);
   transition: fill 0.3s;
 }
-.bricks:focus .box.selected > rect:first-child {
+.kdmoncat-bricks:focus .box.selected > rect:first-child {
   fill: rgba(0, 112, 204, 0.2);
 }
-.bricks.show-wires:not(:focus) .box > rect:first-child {
+.kdmoncat-bricks.show-wires:not(:focus) .box > rect:first-child {
   fill: rgba(221, 221, 221, 0) !important;
 }
 .inner-box {
@@ -90,11 +90,11 @@ footer {
   font-weight: bold;
   transition: fill 0.3s;
 }
-.bricks.show-wires .inner-box {
+.kdmoncat-bricks.show-wires .inner-box {
   fill: white;
   stroke: #444;
 }
-.bricks.show-wires .inner-box-text {
+.kdmoncat-bricks.show-wires .inner-box-text {
   fill: #444;
 }
 .selection {
@@ -104,7 +104,7 @@ footer {
   pointer-events: none;
   transition: stroke 0.3s;
 }
-.bricks:focus .selection {
+.kdmoncat-bricks:focus .selection {
   stroke: rgba(0, 112, 204, 0.7);
 }
 .object {
@@ -142,7 +142,7 @@ footer {
 .show-bricks .box .line {
   stroke: rgba(68, 68, 68, 0);
 }
-.bricks:focus::after {
+.kdmoncat-bricks:focus::after {
   content: 'Press alt to toggle between bricks and wires.';
   position: absolute;
   right: 0;
@@ -165,7 +165,7 @@ footer {
 .wires .node.white {
   fill: #fff;
 }
-.bricks:focus .wires.selected > rect:first-child {
+.kdmoncat-bricks:focus .wires.selected > rect:first-child {
   fill: rgba(0, 112, 204, 0.1);
   opacity: 1;
 }

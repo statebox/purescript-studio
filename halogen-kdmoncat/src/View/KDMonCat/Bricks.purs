@@ -37,6 +37,7 @@ import Debug.Trace
 import KDMonCat.Model
 import KDMonCat.Common (VoidF, Disc2)
 
+import View.ReactiveInput as ReactiveInput
 import View.KDMonCat.Box as Box
 
 
@@ -44,10 +45,11 @@ type Match bv = { y :: Number, validity :: Validity, center :: Boolean, object :
 type InputOutput bv = Map (Box /\ Side) (Array (Match bv))
 
 type State =
-  { input :: Input
-  , selection :: Box
+  { selection :: Box
   , mouseDownFrom :: Maybe Box
   , showWires :: Boolean
+  , width :: Int
+  , height :: Int
   }
 
 _selection :: ∀ a b r. Lens { selection :: a | r } { selection :: b | r } a b
@@ -60,7 +62,6 @@ data Action
   = GetFocus
   | MoveCursorStart Disc2
   | MoveCursorEnd Disc2
-  | Update Input
   | OnKeyDown KeyboardEvent
   | OnMouseDown Box
   | OnMouseMove Box
@@ -84,26 +85,22 @@ _box = SProxy :: SProxy "box"
 type Slot = H.Slot VoidF Output
 
 bricksView :: ∀ q m. MonadEffect m => H.Component HTML q Input Output m
-bricksView =
-  H.mkComponent
-    { initialState
-    , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction, receive = Just <<< Update }
-    }
+bricksView = ReactiveInput.mkComponent { initialState, render, handleInput, handleAction }
 
-initialState :: Input -> State
-initialState input =
-  { input
-  , selection:
+initialState :: State
+initialState  =
+  { selection:
     { topLeft: zero
     , bottomRight: zero
     }
   , mouseDownFrom: Nothing
   , showWires: true
+  , width: 0
+  , height: 0
   }
 
-render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
-render { input: { bricks: { width, height, boxes }, matches, context, selectedBoxes }, selection, showWires } = div
+render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
+render { bricks: { width, height, boxes }, matches, context, selectedBoxes } { selection, showWires } = div
   [ ref (RefLabel "bricks")
   , classes [ ClassName "kdmoncat-bricks", ClassName $ if showWires then "show-wires" else "show-bricks" ]
   , tabIndex 0
@@ -284,11 +281,13 @@ selectionBox { topLeft, bottomRight } =
   , bottomRight: binOp max topLeft bottomRight + vec2 1 1
   }
 
+handleInput :: ∀ m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots Output m Unit
+handleInput { bricks: { width, height } } = do
+  H.modify_ _ { width = width, height = height }
+  updateSelection identity
 
 handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots Output m Unit
 handleAction = case _ of
-  Update input ->
-    H.modify_ $ \st -> st { input = input }
   GetFocus -> do
     mb <- H.getRef (RefLabel "bricks")
     mb # maybe (pure unit) (toHTMLElement >>> focus >>> liftEffect)
@@ -297,8 +296,8 @@ handleAction = case _ of
     , bottomRight: moveCursor d sel.bottomRight sel.topLeft
     }
   MoveCursorEnd d -> updateSelection (_bottomRight +~ d)
-  OnKeyDown e -> let act dx dy = handleAction $ (if shiftKey e then MoveCursorEnd else MoveCursorStart) (vec2 dx dy) in do
-    case code e of
+  OnKeyDown k -> let act dx dy = handleAction $ (if shiftKey k then MoveCursorEnd else MoveCursorStart) (vec2 dx dy) in
+    case code k of
       "ArrowLeft" -> act (-1) 0
       "ArrowUp" -> act 0 (-1)
       "ArrowRight" -> act 1 0
@@ -306,9 +305,8 @@ handleAction = case _ of
       "AltLeft" -> H.modify_ \st -> st { showWires = not st.showWires }
       "AltRight" -> H.modify_ \st -> st { showWires = not st.showWires }
       x -> trace x pure
-    preventDefault (toEvent e) # liftEffect
   OnMouseDown b@{ topLeft, bottomRight } -> do
-    H.modify_ \st -> st { mouseDownFrom = Just b }
+    H.modify_ _ { mouseDownFrom = Just b }
     updateSelection \_ -> { topLeft, bottomRight: bottomRight - vec2 1 1 }
   OnMouseMove b1 -> do
     mb0 <- H.gets _.mouseDownFrom
@@ -324,11 +322,13 @@ handleAction = case _ of
 
 updateSelection :: ∀ m. (Box -> Box) -> H.HalogenM State Action ChildSlots Output m Unit
 updateSelection f = do
-  { selection, input: { bricks: { width, height } } } <- H.get
+  { selection, width, height } <- H.get
   let { topLeft, bottomRight } = f selection
   let selection' = { topLeft: clamp2d width height topLeft, bottomRight: clamp2d width height bottomRight }
-  H.modify_ \st -> st { selection = selection' }
-  H.raise (SelectionChanged $ selectionBox selection')
+  if selection.topLeft /= selection'.topLeft || selection.bottomRight /= selection'.bottomRight then do
+    H.modify_ \st -> st { selection = selection' }
+    H.raise (SelectionChanged $ selectionBox selection')
+  else pure unit
 
 clamp2d :: Int -> Int -> Disc2 -> Disc2
 clamp2d width height p = clamp <$> pure 0 <*> vec2 (width - 1) (height - 1) <*> p
