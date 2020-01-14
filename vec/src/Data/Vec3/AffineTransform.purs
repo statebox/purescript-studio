@@ -39,8 +39,8 @@ translate v = AT
 
 rotate :: Radians -> AffineTransform Number
 rotate a = AT
-  { x: vec2   c  s
-  , y: vec2 (-s) c
+  { x: vec2 c (-s)
+  , y: vec2 s   c
   }
   where
     c = cos a
@@ -59,6 +59,12 @@ inverse (AT {x, y}) = AT
     e = _y y
     f = _z y
     denom = a * e - b * d
+
+affineTransformApproxEqual :: AffineTransform Number -> AffineTransform Number -> Boolean
+affineTransformApproxEqual (AT l) (AT r) = vec3ApproxEqual l.x r.x && vec3ApproxEqual l.y r.y
+
+instance showAffineTransform :: Show a => Show (AffineTransform a) where
+  show (AT {x, y}) = "(" <> show x <> "," <> show y <> ")"
 
 instance semiringVec3 :: Semiring a => Semiring (AffineTransform a) where
   zero = scale zero
