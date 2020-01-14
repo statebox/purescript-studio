@@ -30,9 +30,9 @@ spec = do
       rot45 `shouldVecApproxEqual` vec2 (sqrt 0.5) (sqrt 0.5)
 
     it "should translate points, not vectors" do
-      let vec = translate (vec2 1.0 2.0) `transform` (vec2 3.0 5.0)
+      let vec = translate (vec2 1.0 2.0) `transform` vec2 3.0 5.0
       vec `shouldVecApproxEqual` vec2 3.0 5.0
-      let pt = translate (vec2 1.0 2.0) `transform` (point2 3.0 5.0)
+      let pt = translate (vec2 1.0 2.0) `transform` point2 3.0 5.0
       pt `shouldVecApproxEqual` point2 4.0 7.0
 
     it "should compose transformations by multipying" do
