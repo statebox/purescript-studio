@@ -1,4 +1,4 @@
-module Example where
+module GridKit.Example.Example where
 
 import Prelude hiding (div)
 
@@ -61,7 +61,7 @@ ui = ReactiveInput.mkComponent
     , posY: 0.0
     , radius: 0.5
     , count: 10.0
-    , keyHelpVisible: true
+    , keyHelpVisible: false
     }
   , render
   , handleAction
@@ -129,11 +129,11 @@ render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = d
                 }
 
     zoomInKey = keyHandler
-      [ Shortcut metaKey "Equal" "+", Shortcut ctrlKey "Equal" "+"]
+      [ Shortcut metaKey "Equal", Shortcut ctrlKey "Equal"]
       (text "Zoom in")
       (ChangeState $ _logScale +~ 0.1)
     zoomOutKey = keyHandler
-      [ Shortcut metaKey "Minus" "-", Shortcut ctrlKey "Minus" "-"]
+      [ Shortcut metaKey "Minus", Shortcut ctrlKey "Minus"]
       (text "Zoom out")
       (ChangeState $ _logScale -~ 0.1)
 

@@ -13,19 +13,9 @@ npm install
 
 Run these simultaneously:
 
-- `npm run watch`
 - `npm start`
 
 Then open `localhost:1234` in your browser.
-
-### usage without server
-
-Run these simultaneously:
-
-- `npm run watch`
-- `npm run start1`
-
-Then open `dist/index.html` in your browser.
 
 ## bundling
 

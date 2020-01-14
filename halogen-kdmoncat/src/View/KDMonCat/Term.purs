@@ -7,6 +7,7 @@ import Data.Foldable (intercalate)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..))
+import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.HTML hiding (map, head)
 import Halogen.HTML.Properties (classes)

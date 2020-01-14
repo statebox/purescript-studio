@@ -8,7 +8,7 @@ import Data.Foldable (foldMap, foldr, length)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.Function (on)
 import Data.Int (toNumber)
-import Data.Lens (Lens, (+~))
+import Data.Lens (Lens, (+~), (%~))
 import Data.Lens.Record (prop)
 import Data.Map as Map
 import Data.Map (Map, lookup)
@@ -19,20 +19,17 @@ import Data.Symbol (SProxy(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (vec2, _x, _y, binOp)
 import Effect.Class (class MonadEffect, liftEffect)
+import GridKit.KeyHandler
 import Halogen as H
 import Halogen.HTML hiding (code, head, prop, map)
 import Halogen.HTML.Properties (classes, tabIndex, ref)
-import Halogen.HTML.Events (onKeyDown, onMouseDown, onMouseMove, onMouseUp)
+import Halogen.HTML.Events (onMouseDown, onMouseMove, onMouseUp)
 import Halogen.Query.Input (RefLabel(..))
 import Svg.Elements as S
 import Svg.Attributes hiding (path) as S
 import Web.DOM (Element)
-import Web.Event.Event (preventDefault)
-import Web.UIEvent.KeyboardEvent (KeyboardEvent, code, shiftKey, toEvent)
 import Web.HTML.HTMLElement (HTMLElement, focus)
 import Unsafe.Coerce (unsafeCoerce)
-
-import Debug.Trace
 
 import KDMonCat.Model
 import KDMonCat.Common (VoidF, Disc2)
@@ -48,6 +45,7 @@ type State =
   { selection :: Box
   , mouseDownFrom :: Maybe Box
   , showWires :: Boolean
+  , keyHelpVisible :: Boolean
   , width :: Int
   , height :: Int
   }
@@ -58,11 +56,17 @@ _selection = prop (SProxy :: SProxy "selection")
 _bottomRight :: ∀ a b r. Lens { bottomRight :: a | r } { bottomRight :: b | r } a b
 _bottomRight = prop (SProxy :: SProxy "bottomRight")
 
+_showWires :: ∀ a b r. Lens { showWires :: a | r } { showWires :: b | r } a b
+_showWires = prop (SProxy :: SProxy "showWires")
+
+_keyHelpVisible :: ∀ a b r. Lens { keyHelpVisible :: a | r } { keyHelpVisible :: b | r } a b
+_keyHelpVisible = prop (SProxy :: SProxy "keyHelpVisible")
+
 data Action
   = GetFocus
+  | ChangeState (State -> State)
   | MoveCursorStart Disc2
   | MoveCursorEnd Disc2
-  | OnKeyDown KeyboardEvent
   | OnMouseDown Box
   | OnMouseMove Box
   | OnMouseUp
@@ -95,16 +99,17 @@ initialState  =
     }
   , mouseDownFrom: Nothing
   , showWires: true
+  , keyHelpVisible: false
   , width: 0
   , height: 0
   }
 
 render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
-render { bricks: { width, height, boxes }, matches, context, selectedBoxes } { selection, showWires } = div
+render { bricks: { width, height, boxes }, matches, context, selectedBoxes } { selection, showWires, keyHelpVisible } = div
   [ ref (RefLabel "bricks")
   , classes [ ClassName "kdmoncat-bricks", ClassName $ if showWires then "show-wires" else "show-bricks" ]
   , tabIndex 0
-  , onKeyDown (Just <<< OnKeyDown)
+  , keys.onKeyDown
   , onMouseUp (const $ Just $ OnMouseUp)
   ]
   [ S.svg [ viewBox { topLeft: vec2 0 0, bottomRight: vec2 width height } ] $
@@ -123,7 +128,25 @@ render { bricks: { width, height, boxes }, matches, context, selectedBoxes } { s
         S.path [ svgClasses [ ClassName "arrowhead" ], S.d [ S.Abs (S.M 6.0 0.0), S.Abs (S.L 0.0 4.0), S.Abs (S.L 6.0 8.0), S.Abs (S.L 4.0 4.0), S.Abs S.Z ] ]
       ]
     ] ]
+  , keys.helpPopup keyHelpVisible
   ]
+  where
+    altKey = keyHandler
+      [ Char "Alt" ]
+      (text "Toggle between bricks and wires")
+      (ChangeState $ _showWires %~ not)
+    cursorKeys =
+      [ { key: "ArrowLeft",  dx: -1, dy:  0 }
+      , { key: "ArrowUp",    dx:  0, dy: -1 }
+      , { key: "ArrowRight", dx:  1, dy:  0 }
+      , { key: "ArrowDown",  dx:  0, dy:  1 }
+      ] # foldMap \{ key, dx, dy } ->
+        keyHandlerNoHelp [ Shortcut noMods   key ] (MoveCursorStart (vec2 dx dy))
+        <> keyHandlerNoHelp [ Shortcut shiftKey key ] (MoveCursorEnd (vec2 dx dy))
+    keys = keysWithHelpPopup
+      { keys: altKey <> cursorKeys
+      , popupAction: ChangeState $ _keyHelpVisible %~ not
+      }
 
 renderBrick :: ∀ m. MonadEffect m => InputOutput String -> Maybe { name :: String, type :: TypeDecl String } -> Brick String
   -> { className :: String, content :: Array (H.ComponentHTML Action ChildSlots m) }
@@ -291,20 +314,12 @@ handleAction = case _ of
   GetFocus -> do
     mb <- H.getRef (RefLabel "bricks")
     mb # maybe (pure unit) (toHTMLElement >>> focus >>> liftEffect)
+  ChangeState f -> H.modify_ f
   MoveCursorStart d -> updateSelection \sel ->
     { topLeft: moveCursor d sel.topLeft sel.bottomRight
     , bottomRight: moveCursor d sel.bottomRight sel.topLeft
     }
   MoveCursorEnd d -> updateSelection (_bottomRight +~ d)
-  OnKeyDown k -> let act dx dy = handleAction $ (if shiftKey k then MoveCursorEnd else MoveCursorStart) (vec2 dx dy) in
-    case code k of
-      "ArrowLeft" -> act (-1) 0
-      "ArrowUp" -> act 0 (-1)
-      "ArrowRight" -> act 1 0
-      "ArrowDown" -> act 0 1
-      "AltLeft" -> H.modify_ \st -> st { showWires = not st.showWires }
-      "AltRight" -> H.modify_ \st -> st { showWires = not st.showWires }
-      x -> trace x pure
   OnMouseDown b@{ topLeft, bottomRight } -> do
     H.modify_ _ { mouseDownFrom = Just b }
     updateSelection \_ -> { topLeft, bottomRight: bottomRight - vec2 1 1 }

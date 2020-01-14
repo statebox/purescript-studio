@@ -50,11 +50,11 @@ metaKey   = noMods { meta  = true }
 
 data Key
   = Char String
-  | Shortcut Modifiers String String
+  | Shortcut Modifiers String
 
 matches :: K.KeyboardEvent -> Key -> Boolean
 matches e (Char key) = K.key e == key
-matches e (Shortcut modifiers code _) =
+matches e (Shortcut modifiers code) =
   K.code e == code &&
   { ctrl : K.ctrlKey  e
   , shift: K.shiftKey e
@@ -76,6 +76,11 @@ keyHandler keys description action = { handler, documentation: [{ keys, descript
   where
     handler keyEvent = guard (any (matches keyEvent) keys) (pure action)
 
+keyHandlerNoHelp :: ∀ action. Array Key -> action -> KeyHandler action
+keyHandlerNoHelp keys action = { handler, documentation: [] }
+  where
+    handler keyEvent = guard (any (matches keyEvent) keys) (pure action)
+
 handleKeyDown :: ∀ action r. KeyHandler action -> IProp (onKeyDown :: K.KeyboardEvent | r) action
 handleKeyDown { handler } = onKeyDown \keyEvent -> unwrap (handler keyEvent) <#> prevent keyEvent
   where
@@ -90,11 +95,16 @@ debugKeyCodes =
   , documentation: []
   }
 
+displayKeyCode :: String -> String
+displayKeyCode "Minus" = "-"
+displayKeyCode "Equal" = "+"
+displayKeyCode k = k
+
 renderKeyHelpPopup :: ∀ action m c. MonadEffect m
                    => KeyHandler action -> action -> Boolean
                    -> ComponentHTML action c m
-renderKeyHelpPopup { documentation } toggleAction visible =
-  div [ classes [ClassName "key-help-popup-container"] ] $ guard visible
+renderKeyHelpPopup { documentation } toggleAction visible = div_ $ guard visible
+  [ div [ classes [ClassName "key-help-popup-container"] ]
     [ div [ classes [ClassName "key-help-popup-backdrop" ], onClick $ \_ -> Just toggleAction ] []
     , div [ classes [ClassName "key-help-popup"] ]
       [ h3_ [ text "Keyboard shortcuts" ]
@@ -104,9 +114,10 @@ renderKeyHelpPopup { documentation } toggleAction visible =
         ]
       ]
     ]
+  ]
   where
     renderKeys = map renderKey >>> intercalate [text " or "]
     renderKey (Char c) = [ kbd_ [text c] ]
-    renderKey (Shortcut { ctrl, alt, shift, meta } _ name) = [ kbd_ [ text $
-      guard ctrl "Ctrl " <> guard alt "Alt " <> guard shift "Shift " <> guard meta "Command " <> name
+    renderKey (Shortcut { ctrl, alt, shift, meta } code) = [ kbd_ [ text $
+      guard ctrl "Ctrl " <> guard alt "Alt " <> guard shift "Shift " <> guard meta "Command " <> displayKeyCode code
     ] ]

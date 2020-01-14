@@ -1,4 +1,4 @@
-module Main where
+module GridKit.Example.Main where
 
 import Prelude
 
@@ -12,7 +12,7 @@ import Halogen.Aff.Util (selectElement)
 import Halogen.VDom.Driver (runUI)
 import Web.DOM.ParentNode (QuerySelector(..))
 
-import Example as Example
+import GridKit.Example.Example as Example
 
 
 main :: Effect Unit
