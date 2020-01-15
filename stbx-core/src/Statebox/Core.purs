@@ -76,16 +76,17 @@ errorToSingleDecodeError :: Regex -> (String -> DecodeError) -> Error -> Maybe D
 errorToSingleDecodeError regex constructor error =
   const (constructor $ message error) <$> match regex (message error)
 
+errorMatchers = sequence [ (_ /\ MissingRequiredField)     <$> regex "^missing required"   ignoreCase
+                         , (_ /\ InvalidHexString # const) <$> regex "^invalid hex string" ignoreCase
+                         , (_ /\ IndexOutOfRange)          <$> regex "^index out of range" ignoreCase
+                         , (_ /\ InvalidWireType)          <$> regex "^invalid wire type"  ignoreCase
+                         ]
+
 errorToDecodeError :: Error -> DecodeError
 errorToDecodeError error =
   errorMatchers # either (const $ Other "Error in regex definition.")
                          (foldr tryMatch Nothing >>> fromMaybe (Other $ message error))
   where
-    errorMatchers = sequence [ (_ /\ MissingRequiredField)     <$> regex "^missing required"   ignoreCase
-                             , (_ /\ InvalidHexString # const) <$> regex "^invalid hex string" ignoreCase
-                             , (_ /\ IndexOutOfRange)          <$> regex "^index out of range" ignoreCase
-                             , (_ /\ InvalidWireType)          <$> regex "^invalid wire type"  ignoreCase
-                             ]
     tryMatch (regex /\ errorConstructor) previous = previous <|> errorToSingleDecodeError regex errorConstructor error
 
 --------------------------------------------------------------------------------
