@@ -12,9 +12,11 @@ import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested (type (/\))
 import Foreign.Object (Object)
+
 import Statebox.Core (DecodeError(..)) as Stbx
 import Statebox.Core.Types (HexStr)
 import Statebox.Core.Transaction (HashStr)
+import Statebox.Service.Status (Status(..), statusCode)
 
 -- | Based on the `StateboxException`s thrown in https://github.com/statebox/cloud/blob/73158c3a779cbc8a6348aac60e2d0b21e907b2c1/services/tx/process-tx.js.
 data TxError
@@ -255,19 +257,3 @@ toTxErrorResponseBody err =
 
 fromTxErrorResponseBody :: TxErrorResponseBody -> Maybe TxError
 fromTxErrorResponseBody responseBody = hush $ decodeJson responseBody.error
-
---------------------------------------------------------------------------------
-
--- | TODO this is now used ad hoc in JSON responses; these should be made to conform to the Statebox protocol spec.
-data Status = Ok | Failed
-
-statusCode :: Status -> String
-statusCode = case _ of
-  Ok     -> "ok"
-  Failed -> "failed"
-
-instance showStatus :: Show Status where
-  show = statusCode
-
-statusToString :: Status -> String
-statusToString = show -- TODO this should be a JSON-compatible value; perhaps a regular JSON encoder

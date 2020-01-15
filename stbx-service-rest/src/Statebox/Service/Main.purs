@@ -26,8 +26,9 @@ import Unsafe.Coerce (unsafeCoerce)
 import Statebox.Core (hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum)
 import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
-import Statebox.Service (Status(..), TxError(..), responseErrorToTxError, statusToString, toTxErrorResponseBody)
+import Statebox.Service (TxError(..), responseErrorToTxError, toTxErrorResponseBody)
 import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
+import Statebox.Service.Status (Status(..))
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
 import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
@@ -81,7 +82,7 @@ getTransactionsHandler :: AppState -> Handler
 getTransactionsHandler state = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
   transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
-  sendJson { status: statusToString Ok
+  sendJson { status: show Ok
            , transactions: encodeTransactionDictionary transactionDictionary
            }
 
@@ -98,7 +99,7 @@ getTransactionHandler state = do
       maybeTransaction <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.get hash) transactionDictionary
       case maybeTransaction of
         Just transaction /\ _ -> sendTxTxSum
-          { status: statusToString Ok
+          { status: show Ok
           , hash: hash
           , hex: "TODO" -- TODO #237 get from transaction store instead of computing, if possible
           , decoded: transaction
@@ -123,7 +124,7 @@ postTransactionHandler state = do
       transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
       updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash txSum) transactionDictionary
       liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
-      sendTxTxSum { status: statusToString Ok
+      sendTxTxSum { status: show Ok
                   , hash: hash
                   , hex: txHex
                   , decoded: txSum
