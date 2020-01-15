@@ -1,4 +1,4 @@
-module Statebox.Service where
+module Statebox.Service.Error where
 
 import Prelude
 import Control.Alt ((<|>))

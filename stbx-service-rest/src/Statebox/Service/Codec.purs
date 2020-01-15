@@ -14,7 +14,7 @@ import Statebox.Core (decodeToJsonString) as Stbx
 import Statebox.Core.Transaction (TxSum)
 import Statebox.Core.Transaction.Codec (decodeTxSum)
 import Statebox.Core.Types (HexStr)
-import Statebox.Service (ResponseError(..), TxErrorResponseBody)
+import Statebox.Service.Error (ResponseError(..), TxErrorResponseBody)
 
 
 decodeTxErrorResponseBody :: Json -> String \/ TxErrorResponseBody

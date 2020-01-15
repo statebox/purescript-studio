@@ -26,8 +26,8 @@ import Unsafe.Coerce (unsafeCoerce)
 import Statebox.Core (hash) as Stbx
 import Statebox.Core.Transaction (Tx, TxSum)
 import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
-import Statebox.Service (TxError(..), responseErrorToTxError, toTxErrorResponseBody)
 import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
+import Statebox.Service.Error (TxError(..), responseErrorToTxError, toTxErrorResponseBody)
 import Statebox.Service.Status (Status(..))
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory

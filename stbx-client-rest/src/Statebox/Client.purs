@@ -22,8 +22,8 @@ import Effect.Aff (Aff)
 import Statebox.Core.Transaction (HashTx, TxId, TxSum(..), evalTxSum, isUberRootHash, attachTxId)
 import Statebox.Core.Transaction.Codec (decodeTxTxSum)
 import Statebox.Core.Types (HexStr)
-import Statebox.Service (TxError, decodeTxError)
 import Statebox.Service.Codec (decodeTxErrorResponseBody)
+import Statebox.Service.Error (TxError, decodeTxError)
 
 
 -- we use this name instead of `DecodingError` to align with the function name `jsonDecode`

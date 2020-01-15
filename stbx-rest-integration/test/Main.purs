@@ -16,7 +16,7 @@ import Test.Spec.Reporter.Console (consoleReporter)
 import Statebox.Core.Transaction (TxId)
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse, evalPostTransaction)
-import Statebox.Service (TxError(..))
+import Statebox.Service.Error (TxError(..))
 
 import Test.Common
 
