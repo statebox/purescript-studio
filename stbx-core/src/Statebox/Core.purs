@@ -13,7 +13,7 @@ import Data.String.Pattern (Pattern(..))
 import Data.String.Regex (Regex, regex, match)
 import Data.String.Regex.Flags (ignoreCase)
 import Data.Traversable (sequence)
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Exception (Error, message)
 
 import Statebox.Core.Types (HexStr)
@@ -76,6 +76,7 @@ errorToSingleDecodeError :: Regex -> (String -> DecodeError) -> Error -> Maybe D
 errorToSingleDecodeError regex constructor error =
   const (constructor $ message error) <$> match regex (message error)
 
+errorMatchers :: Either String (Array (Regex /\ (String -> DecodeError)))
 errorMatchers = sequence [ (_ /\ MissingRequiredField)     <$> regex "^missing required"   ignoreCase
                          , (_ /\ InvalidHexString # const) <$> regex "^invalid hex string" ignoreCase
                          , (_ /\ IndexOutOfRange)          <$> regex "^index out of range" ignoreCase
