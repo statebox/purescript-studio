@@ -4,7 +4,7 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 
-import Statebox.Core.Transaction (HashStr, InitialTx, TxId, TxSum(..), WiringTx, evalTxSum, isUberRootHash)
+import Statebox.Core.Transaction (FiringTx, HashStr, InitialTx, TxId, TxSum(..), WiringTx, evalTxSum, isUberRootHash)
 import Statebox.TransactionStore.Types (Actions, get, put)
 
 data ProcessError
@@ -17,7 +17,7 @@ processTxSum hash = case _ of
   UberRootTxInj           -> pure $ Left NoUberRoot
   InitialTxInj  initialTx -> processInitialTx hash initialTx
   WiringTxInj   wiringTx  -> processWiringTx  hash wiringTx
-  FiringTxInj   firingTx  -> ?f
+  FiringTxInj   firingTx  -> processFiringTx  hash firingTx
 
 processInitialTx :: HashStr -> InitialTx -> Actions (Either ProcessError Unit)
 processInitialTx hash initialTx =
@@ -41,3 +41,18 @@ processWiringTx hash wiringTx =
     if isPreviousInitial
     then map Right $ put hash $ WiringTxInj wiringTx
     else pure $ Left $ WiringNotPreviousInitial hash
+
+processFiringTx :: HashStr -> FiringTx -> Actions (Either ProcessError Unit)
+processFiringTx hash firingTx =
+  -- check if the firing is initial
+  case firingTx.firing.execution of
+    -- it does not have an execution, hence it is initial
+    Nothing -> processInitialFiringTx hash firingTx
+    -- it does have an execution, hence it is a normal firing
+    Just ex -> processNormalFiringTx hash firingTx ex
+
+processInitialFiringTx :: HashStr -> FiringTx -> Actions (Either ProcessError Unit)
+processInitialFiringTx hash firingTx = ?if
+
+processNormalFiringTx :: HashStr -> FiringTx -> TxId -> Actions (Either ProcessError Unit)
+processNormalFiringTx hash firingTx executionTxId = ?nf
