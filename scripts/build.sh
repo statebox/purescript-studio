@@ -7,4 +7,5 @@ cd .. && \
 cd stbx-lang                       && npm install && npm run build && \
 cd .. && \
 cd halogen-petrinet-editor-example && npm install && npm run build && \
-cd ..
+cd .. && \
+cd stbx-rest-integration           && npm install
