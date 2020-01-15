@@ -9,8 +9,8 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List)
 import Data.Map (Map, fromFoldableWith, lookup, union, toUnfoldable)
 import Data.Map.Internal (keys)
-import Data.Maybe (maybe, fromMaybe)
-import Data.String.CodeUnits (singleton)
+import Data.Maybe (Maybe, maybe, fromMaybe)
+import Data.String.CodeUnits (singleton, charAt)
 import Data.TraversableWithIndex (mapAccumLWithIndex)
 import Data.Tuple (snd)
 import Data.Tuple.Nested ((/\), type (/\))
@@ -63,6 +63,11 @@ fromOperators ops = fromEdges identity ((ops !! _) >>> maybe "" _.label) edges
       ops # foldMapWithIndex \src { pos : srcPos } ->
         ops # foldMapWithIndex \tgt { pos : tgtPos } ->
           if isConnected srcPos tgtPos then [{ src, tgt }] else []
+
+pixel2operator :: ∀ r. Array (Operator r) -> String -> Maybe (Operator r)
+pixel2operator ops pixelName = do
+  pixelChar <- charAt 0 pixelName
+  ops !! (toCharCode pixelChar - toCharCode 'a')
 
 fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
 fromEdges fromEnum name edges = { pixels, context }

@@ -8,6 +8,7 @@ import Data.Array (cons)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
+import Data.Set as Set
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
@@ -17,6 +18,7 @@ import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
+import Language.Statebox.Wiring.Generator.DiagramV2 as DiagramV2
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
@@ -24,6 +26,8 @@ import Statebox.Core.Transaction (HashTx)
 import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
+import View.KDMonCat.App as KDMonCat.Bricks
+import View.KDMonCat.Bricks as KDMonCat.Bricks
 import View.Model (Project)
 import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo)
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
@@ -124,6 +128,13 @@ ui =
                 ) state.projects
             _ -> Nothing
         maybe (pure unit) (\projects -> H.modify_ (_ { projects = projects }) ) projectsUpdatedMaybe
+
+      HandleKDMoncatMsg diagramInfo (KDMonCat.Bricks.SelectionChanged selBox) -> do
+        let boxes = (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) selBox).selectedBoxes
+        maybe (pure unit) (handleAction <<< HandleDiagramEditorMsg <<< DiagramEditor.OperatorClicked) $ do
+          box <- Set.findMin boxes
+          op <- DiagramV2.pixel2operator diagramInfo.ops box.bid
+          pure op.identifier
 
       HandlePetrinetEditorMsg NetUpdated -> do
         pure unit
