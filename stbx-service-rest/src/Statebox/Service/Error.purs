@@ -49,13 +49,13 @@ data TxError
 
 txErrorMessage :: TxError -> String
 txErrorMessage = case _ of
-  TxNotFound       i -> "Transaction " <> i.hash <> " not found."
-  TxNotHex         i -> "Transaction " <> i.txHex <> " is not a hexadecimal string."
+  TxNotFound       i -> "Transaction hash '" <> i.hash <> "' not found."
+  TxNotHex         i -> "Transaction hash '" <> i.txHex <> "' is not a hexadecimal string."
   TxNoTxField        -> "You must pass a JSON body with a 'tx' attribute containing a hex-encoded Statebox transaction."
-  TxDecodeFail     i -> "Failed to decode transaction " <> i.txHex <> "."
-  RootNonexistPrev i -> "Root transaction must have 'previous' attribute set to 'z', yours has " <> i.previous <> "."
+  TxDecodeFail     i -> "Failed to decode transaction with hash '" <> i.txHex <> "'."
+  RootNonexistPrev i -> "Root transaction must have 'previous' attribute set to 'z', yours has '" <> i.previous <> "'."
   InitExecExists     -> "Execution already exists."
-  InitNonexistPrev i -> "Failed to fire, 'previous' hash " <> i.previous <> " could not be found."
+  InitNonexistPrev i -> "Failed to fire, 'previous' hash '" <> i.previous <> "' could not be found."
   InvalidState       -> "Invalid state."
   TxNotEnabled       -> "Transition not enabled."
 
