@@ -21,7 +21,9 @@ import Statebox.Core.Transaction (HashStr)
 
 import Statebox.Core.Execution (StbxObj) -- TODO StbxObj shouldn't be in Execution
 
--- error cases obtained from calling `Stbx.decode`
+-- | error cases obtained from calling `Stbx.decode`
+-- | this refers to https://github.com/statebox/stbx-core-js
+-- | which calls out to https://github.com/statebox/js-stbx-packet-codec/blob/d25f4945181e19cc8b5fc7db3dfd803cb024bb48/generated/statebox.proto.js#L1493
 data DecodeError
   = MissingRequiredField String
   | InvalidHexString
