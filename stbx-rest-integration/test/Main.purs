@@ -85,10 +85,10 @@ requestTransactionSpec txDescription requestedHash =
   it ("should respond to GET /tx/" <> requestedHash <> " for " <> txDescription <> " correctly") do
     res <- Stbx.requestTransaction endpointUrl requestedHash
     res # evalTransactionResponse
-      (\affjaxError             -> fail $ "AffjaxError: "   <> printError affjaxError) -- TODO spy obj?
-      (\(Stbx.DecodingError  e) -> fail $ "DecodingError: " <> e)
-      (\e                       -> fail $ "TxError: "       <> show e)
-      (\{id, tx}                -> succeed)                                            -- TODO more checks
+      (\affjaxError               -> fail $ "AffjaxError: "   <> printError affjaxError) -- TODO spy obj?
+      (\(Stbx.JsonDecodeError  e) -> fail $ "JsonDecodeError: " <> e)
+      (\e                         -> fail $ "TxError: "       <> show e)
+      (\{id, tx}                  -> succeed)                                            -- TODO more checks
 
 --------------------------------------------------------------------------------
 
@@ -99,10 +99,10 @@ getNotFoundErrorTransactionSpec =
     it ("should error in case of invalid tx hash" <> invalidTxHash) do
       res <- Stbx.requestTransaction endpointUrl invalidTxHash
       res # evalTransactionResponse
-        (\affjaxError             -> fail $ "AffjaxError: "   <> printError affjaxError) -- TODO spy obj?
-        (\(Stbx.DecodingError  e) -> fail $ "DecodingError: " <> e)
-        (\e                       -> succeed)
-        (\{id, tx}                -> fail "Should error getting unknown hash")
+        (\affjaxError               -> fail $ "AffjaxError: "   <> printError affjaxError) -- TODO spy obj?
+        (\(Stbx.JsonDecodeError  e) -> fail $ "JsonDecodeError: " <> e)
+        (\e                         -> succeed)
+        (\{id, tx}                  -> fail "Should error getting unknown hash")
 
 postTransactionErrorSpec :: Spec Unit
 postTransactionErrorSpec =
@@ -110,8 +110,8 @@ postTransactionErrorSpec =
     it "should error on transaction missing required previous" do
       res <- Stbx.postTransactionHex endpointUrl ""
       res # evalPostTransaction
-        (\affjaxError             -> fail $ "AffjaxError: "   <> printError affjaxError)
-        (\(Stbx.DecodingError  e) -> fail $ "DecodingError: " <> show e)
+        (\affjaxError               -> fail $ "AffjaxError: "   <> printError affjaxError)
+        (\(Stbx.JsonDecodeError  e) -> fail $ "JsonDecodeError: " <> show e)
         (case _ of
           TxNotFound       _ -> fail "TxError: TxNotFound"
           TxNotHex         _ -> fail "TxError: TxNotHex"
@@ -126,8 +126,8 @@ postTransactionErrorSpec =
     it "should error on invalid hex string" do
       res <- Stbx.postTransactionHex endpointUrl "1"
       res # evalPostTransaction
-        (\affjaxError             -> fail $ "AffjaxError: "   <> printError affjaxError)
-        (\(Stbx.DecodingError  e) -> fail $ "DecodingError: " <> show e)
+        (\affjaxError               -> fail $ "AffjaxError: "   <> printError affjaxError)
+        (\(Stbx.JsonDecodeError  e) -> fail $ "JsonDecodeError: " <> show e)
         (case _ of
           TxNotFound       _ -> fail "TxError: TxNotFound"
           TxNotHex         _ -> succeed
@@ -142,8 +142,8 @@ postTransactionErrorSpec =
     it "should error on index out of range" do
       res <- Stbx.postTransactionHex endpointUrl "00"
       res # evalPostTransaction
-        (\affjaxError             -> fail $ "AffjaxError: "   <> printError affjaxError)
-        (\(Stbx.DecodingError  e) -> fail $ "DecodingError: " <> show e)
+        (\affjaxError               -> fail $ "AffjaxError: "   <> printError affjaxError)
+        (\(Stbx.JsonDecodeError  e) -> fail $ "JsonDecodeError: " <> show e)
         (case _ of
           TxNotFound       _ -> fail "TxError: TxNotFound"
           TxNotHex         _ -> fail "TxError: TxNotHex"
@@ -158,8 +158,8 @@ postTransactionErrorSpec =
     it "should error on invalid wire type" do
       res <- Stbx.postTransactionHex endpointUrl "04"
       res # evalPostTransaction
-        (\affjaxError             -> fail $ "AffjaxError: "   <> printError affjaxError)
-        (\(Stbx.DecodingError  e) -> fail $ "DecodingError: " <> show e)
+        (\affjaxError               -> fail $ "AffjaxError: "     <> printError affjaxError)
+        (\(Stbx.JsonDecodeError  e) -> fail $ "JsonDecodeError: " <> show e)
         (case _ of
           TxNotFound       _ -> fail "TxError: TxNotFound"
           TxNotHex         _ -> fail "TxError: TxNotHex"
