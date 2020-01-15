@@ -180,8 +180,8 @@ instance showResponseError :: Show ResponseError where
     FailedTxDataToTxSum          o -> "The received transaction data do not contain Json compliant with the ps specification: \"" <> stringify o.txData <> "\". The specific error is: " <> o.error
 
 responseErrorToTxError :: ResponseError -> TxError
-responseErrorToTxError (FailedBodyToJson             o) = TxNoTxField -- this could actually fail also for other reasons
-responseErrorToTxError (FailedJsonToTxString         o) = TxNoTxField -- this could actually fail also for other reasons
+responseErrorToTxError (FailedBodyToJson             o) = TxNoTxField -- this happens if the body of the request does not contain valid Json, not necessarily because there is no "tx" field
+responseErrorToTxError (FailedJsonToTxString         o) = TxNoTxField -- this happens if the decoding of the body into a record containing a tx field, which should contain a string, fails, not necessarily because there is no "tx" field
 responseErrorToTxError (FailedTxStringToTxJsonString o) = case o.error of
   Stbx.MissingRequiredField message -> TxDecodeFail { txHex : o.hash }
   Stbx.InvalidHexString             -> TxNotHex     { txHex : o.hash }
@@ -265,7 +265,6 @@ statusCode :: Status -> String
 statusCode = case _ of
   Ok     -> "ok"
   Failed -> "failed"
-
 
 instance showStatus :: Show Status where
   show = statusCode
