@@ -21,7 +21,6 @@ import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
 import Statebox.Core.Transaction (HashTx)
-import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
 import View.Model (Project)
@@ -65,10 +64,11 @@ ui =
         H.liftEffect $ log $ "LoadTransaction: requesting transaction " <> hash <> " from " <> endpointUrl
         res <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
         res # evalTransactionResponse
-          (\err                 -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printError err)
-          (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
-          (\{id, tx}            -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
-                                      H.liftEffect $ log $ show tx)
+          (\err                        -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printError err)
+          (\(Stbx.JsonDecodeError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
+          (\txError                    -> H.liftEffect $ log $ "Handling error of received data: " <> show txError)
+          (\{id, tx}                   -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
+                                             H.liftEffect $ log $ show tx)
 
       LoadTransactions endpointUrl startHash -> do
         H.liftEffect $ log $ "LoadTransactions: requesting transactions up to root, starting at " <> startHash <> " from " <> endpointUrl

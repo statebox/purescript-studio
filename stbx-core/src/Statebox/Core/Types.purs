@@ -2,8 +2,8 @@ module Statebox.Core.Types where
 
 import Prelude
 import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype, unwrap)
-import Data.NonEmpty (NonEmpty(..))
+import Data.Newtype (class Newtype)
+import Data.NonEmpty (NonEmpty)
 
 -- | Place id.
 type PID = Int
