@@ -26,7 +26,6 @@ import Statebox.Service.Codec (decodeTxErrorResponseBody)
 import Statebox.Service.Error (TxError, decodeTxError)
 
 
--- we use this name instead of `DecodingError` to align with the function name `jsonDecode`
 newtype JsonDecodeError = JsonDecodeError String
 
 instance eqJsonDecodeError :: Eq JsonDecodeError where
@@ -42,9 +41,9 @@ data ClientError
   | ClientTxError         TxError
 
 instance showClientError :: Show ClientError where
-  show (ClientAffjaxError     affjaxError   ) = "Response format error: " <> Affjax.printError affjaxError
-  show (ClientJsonDecodeError decodingError ) = "Decoding error: "        <> show decodingError
-  show (ClientTxError         txError       ) = "Transaction error: "     <> show txError
+  show (ClientAffjaxError     affjaxError) = "Response format error: " <> Affjax.printError affjaxError
+  show (ClientJsonDecodeError decodeError) = "JSON decoding error: "   <> show decodeError
+  show (ClientTxError         txError    ) = "Transaction error: "     <> show txError
 
 evalClientError
   :: forall a
@@ -55,9 +54,9 @@ evalClientError
   -> a
 evalClientError onAffjaxError onJsonDecodeError onTxError clientError =
   case clientError of
-    ClientAffjaxError     affjaxError   -> onAffjaxError     affjaxError
-    ClientJsonDecodeError decodingError -> onJsonDecodeError decodingError
-    ClientTxError         txError       -> onTxError         txError
+    ClientAffjaxError     affjaxError -> onAffjaxError     affjaxError
+    ClientJsonDecodeError decodeError -> onJsonDecodeError decodeError
+    ClientTxError         txError     -> onTxError         txError
 
 -- | A convenience function for processing API responses.
 evalTransactionResponse
@@ -85,15 +84,14 @@ parseTxError :: forall a . Json -> String \/ (ClientError \/ a)
 parseTxError = decodeTxErrorResponseBody >>>
   (map ((either (Left <<< ClientJsonDecodeError <<< JsonDecodeError) (Left <<< ClientTxError)) <<< decodeTxError <<< _.error))
 
-fromEither :: forall a b . (a -> b) -> (Either a b) -> b
+fromEither :: forall a b. (a -> b) -> a \/ b -> b
 fromEither f = either f identity
 
 processResponse :: Affjax.Error \/ Response Json -> ClientError \/ TxSum
-processResponse
-  =   Left <<< ClientAffjaxError
-  ||| (\response ->
-    let json = response.body in
-    fromEither (Left <<< ClientJsonDecodeError <<< JsonDecodeError) $ parseTxTxSum json <|> parseTxError json)
+processResponse = Left <<< ClientAffjaxError
+               ||| \response -> let json = response.body
+                                in fromEither (Left <<< ClientJsonDecodeError <<< JsonDecodeError) $ parseTxTxSum json
+                                   <|> parseTxError json
 
 -- TODO: handle empty string as TxId or exclude the possibility at the type level
 requestTransaction' :: URL -> TxId -> Aff (ClientError \/ TxSum)
@@ -180,7 +178,7 @@ postTransactionHex apiBaseUrl txHex = do
 
 evalPostTransaction
   :: forall a
-  .  (Affjax.Error    -> a)
+   . (Affjax.Error    -> a)
   -> (JsonDecodeError -> a)
   -> (TxError         -> a)
   -> (TxSum           -> a)

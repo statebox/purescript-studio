@@ -4,10 +4,11 @@ import Prelude
 
 import Control.Monad.State.Trans (runStateT)
 import Data.Either (either)
+import Data.Either.Nested (type (\/))
 import Data.Function.Uncurried (Fn3)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (snd)
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
@@ -24,10 +25,10 @@ import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core (hash) as Stbx
-import Statebox.Core.Transaction (Tx, TxSum)
+import Statebox.Core.Transaction (TxId, Tx, TxSum)
 import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
 import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
-import Statebox.Service.Error (TxError(..), responseErrorToTxError, toTxErrorResponseBody)
+import Statebox.Service.Error (ResponseError, TxError(..), responseErrorToTxError, toTxErrorResponseBody)
 import Statebox.Service.Status (Status(..))
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
@@ -106,20 +107,28 @@ getTransactionHandler state = do
           }
         Nothing /\ _ -> sendTxError (TxNotFound { hash })
 
+
+
+-- TODO leuk met +++ ofzo?
+
 -- | Endpoint for saving transactions to the transaction store.
 -- | Responds to `POST /tx`.
 postTransactionHandler :: AppState -> Handler
 postTransactionHandler state = do
   -- TODO: find a proper way to manage body decoding
   bodyStr :: String <- unsafeCoerce <$> getBody'
-  let eitherErrorOrTxHexAndTxSum = bodyStr #   (parseBodyToJson        -- convert body from string to json
-                                           >=> jsonBodyToTxString      -- retrieve hex string from tx field of body
-                                           >=> txStringToTxJsonString' -- decode hex string to string using js service
-                                           >=> txJsonStringToTxData'   -- parse string to json
-                                           >=> txDataToTxSum')         -- parse json into txSum
-  either
-    (sendTxError <<< responseErrorToTxError)
-    (\(txHex /\ txSum) -> do
+  parseTxSum bodyStr # either (sendTxError <<< responseErrorToTxError)
+                              storeAndSendTx
+  where
+    parseTxSum :: String -> ResponseError \/ (TxId /\ TxSum)
+    parseTxSum = parseBodyToJson         -- convert body from string to json
+             >=> jsonBodyToTxString      -- retrieve hex string from tx field of body
+             >=> txStringToTxJsonString' -- decode hex string to string using js service
+             >=> txJsonStringToTxData'   -- parse string to json
+             >=> txDataToTxSum'          -- parse json into txSum
+
+    storeAndSendTx :: TxId /\ TxSum -> Handler
+    storeAndSendTx (txHex /\ txSum) = do
       let hash = Stbx.hash txHex
       transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
       updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash txSum) transactionDictionary
@@ -128,8 +137,7 @@ postTransactionHandler state = do
                   , hash: hash
                   , hex: txHex
                   , decoded: txSum
-                  })
-    eitherErrorOrTxHexAndTxSum
+                  }
 
 sendTxTxSum :: Tx TxSum -> Handler
 sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum

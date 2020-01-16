@@ -116,49 +116,49 @@ decodeTxError json
   where
     decodeTxNotFound :: Json -> String \/ TxError
     decodeTxNotFound = decodeTxErrorCase "tx-not-found"
-      (\x -> do
+      \x -> do
         hash <- x .: "hash"
-        pure $ TxNotFound { hash : hash })
+        pure $ TxNotFound { hash: hash }
 
     decodeTxNotHex :: Json -> String \/ TxError
     decodeTxNotHex = decodeTxErrorCase "tx-not-hex"
-      (\x -> do
+      \x -> do
         txHex <- x .: "txHex"
-        pure $ TxNotHex { txHex : txHex })
+        pure $ TxNotHex { txHex: txHex }
 
     decodeTxNoTxField :: Json -> String \/ TxError
     decodeTxNoTxField = decodeTxErrorCase "tx-no-tx"
-      (\_ -> pure TxNoTxField)
+      \_ -> pure TxNoTxField
 
     decodeTxDecodeFail :: Json -> String \/ TxError
     decodeTxDecodeFail = decodeTxErrorCase "tx-decode-fail"
-      (\x -> do
-        txHex <- x .: "txHex"
-        pure $ TxDecodeFail { txHex : txHex })
+      \x -> do
+       txHex <- x .: "txHex"
+       pure $ TxDecodeFail { txHex: txHex }
 
     decodeRootNonexistPrev :: Json -> String \/ TxError
     decodeRootNonexistPrev = decodeTxErrorCase "root-nonexist-prev"
-      (\x -> do
+      \x -> do
         previous <- x .: "previous"
-        pure $ RootNonexistPrev { previous : previous })
+        pure $ RootNonexistPrev { previous: previous }
 
     decodeInitExecExists :: Json -> String \/ TxError
     decodeInitExecExists = decodeTxErrorCase "init-exec-exists"
-      (\_ -> pure InitExecExists)
+      \_ -> pure InitExecExists
 
     decodeInitNonexistPrev :: Json -> String \/ TxError
     decodeInitNonexistPrev = decodeTxErrorCase "init-nonexist-prev"
-      (\x -> do
+      \x -> do
         previous <- x .: "previous"
-        pure $ RootNonexistPrev { previous : previous })
+        pure $ RootNonexistPrev { previous: previous }
 
     decodeInvalidState :: Json -> String \/ TxError
     decodeInvalidState = decodeTxErrorCase "invalid-state"
-      (\_ -> pure InvalidState)
+      \_ -> pure InvalidState
 
     decodeTxNotEnabled :: Json -> String \/ TxError
     decodeTxNotEnabled = decodeTxErrorCase "tx-not-enabled"
-      (\_ -> pure TxNotEnabled)
+      \_ -> pure TxNotEnabled
 
 instance decodeJsonTxError :: DecodeJson TxError where
   decodeJson = decodeTxError
@@ -176,10 +176,10 @@ data ResponseError
 instance showResponseError :: Show ResponseError where
   show = case _ of
     FailedBodyToJson             o -> "The received body does not contain valid Json: \"" <> show o.body <> "\". The specific error is: " <> o.error
-    FailedJsonToTxString         o -> "The received body does not contain Json compliant with the specification: \"" <> stringify o.jsonBody <> "\". The specific error is: " <> o.error
+    FailedJsonToTxString         o -> "The received body does not contain JSON compliant with the specification: \"" <> stringify o.jsonBody <> "\". The specific error is: " <> o.error
     FailedTxStringToTxJsonString o -> "The received hash does not contain valid transaction data: \"" <> o.hash <> "\". The specific error is: " <> show o.error
-    FailedTxJsonStringToTxData   o -> "The received transaction data do not contain Json compliant with the js specification: \"" <> o.txString <> "\". The specific error is: " <> o.error
-    FailedTxDataToTxSum          o -> "The received transaction data do not contain Json compliant with the ps specification: \"" <> stringify o.txData <> "\". The specific error is: " <> o.error
+    FailedTxJsonStringToTxData   o -> "The received transaction data do not contain JSON compliant with the js specification: \"" <> o.txString <> "\". The specific error is: " <> o.error
+    FailedTxDataToTxSum          o -> "The received transaction data do not contain JSON compliant with the ps specification: \"" <> stringify o.txData <> "\". The specific error is: " <> o.error
 
 responseErrorToTxError :: ResponseError -> TxError
 responseErrorToTxError (FailedBodyToJson             o) = TxNoTxField -- this happens if the body of the request does not contain valid Json, not necessarily because there is no "tx" field
