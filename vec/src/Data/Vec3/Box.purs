@@ -1,6 +1,8 @@
 module Data.Vec3.Box
   ( Box(..)
   , BoxRecF
+  , boxSize
+  , boxCenter
   , mapVec3s
   , toArray
   ) where
@@ -14,11 +16,19 @@ newtype Box a = Box (BoxRecF (Vec3 a))
 
 derive instance newtypeBox :: Newtype (Box a)  _
 derive instance functorBox :: Functor Box
+derive instance eqBox :: Eq a => Eq (Box a)
+derive instance ordBox :: Ord a => Ord (Box a)
 
 type BoxRecF a =
   { topLeft     :: a
   , bottomRight :: a
   }
+
+boxSize :: ∀ a. Ring a => Box a -> Vec3 a
+boxSize (Box { topLeft, bottomRight }) = bottomRight - topLeft
+
+boxCenter :: Box Number -> Vec3 Number
+boxCenter (Box { topLeft, bottomRight }) = (topLeft + bottomRight) / pure 2.0
 
 map :: ∀ a b. (a -> b) -> BoxRecF a -> BoxRecF b
 map f {topLeft, bottomRight} = {topLeft: f topLeft, bottomRight: f bottomRight}
