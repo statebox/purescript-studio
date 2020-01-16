@@ -2,7 +2,7 @@ module Statebox.Protocol.Execution where
 
 import Statebox.Core.Transaction (TxId)
 
-data Execution = Execution
+type Execution =
   { lastTransition :: TxId
   , wiring         :: TxId
   }
