@@ -4,6 +4,7 @@
   "description": "Purescript vector library",
   "scripts": {
     "postinstall": "spago install",
+    "build": "spago build --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "test": "spago test --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "repl": "spago repl"
   },

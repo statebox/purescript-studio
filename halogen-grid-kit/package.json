@@ -7,7 +7,6 @@
     "start": "concurrently --kill-others --handle-input npm:watch npm:serve",
     "build": "spago build --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "watch": "spago build --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "test": "spago test",
     "docs": "spago docs",
     "repl": "spago repl",
     "serve": "parcel html/index.html",

@@ -6,7 +6,7 @@ import Math (cos, sin, Radians)
 
 import Data.Vec3.Vec3
 
--- | A 3x3 matrix with only 2 rows given, the 3rd is always [0 0 1]
+-- | A 3x3 matrix with only 2 rows given, the 3rd is always [0 0 1].
 newtype AffineTransform a = AT (AffineTransformF (Vec3 a))
 
 type AffineTransformF a =
