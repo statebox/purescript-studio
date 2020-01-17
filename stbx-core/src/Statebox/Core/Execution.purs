@@ -1,7 +1,7 @@
 module Statebox.Core.Execution where
 
 import Prelude
-import Data.Array (index, length, (..))
+import Data.Array (index, length, (..), filter)
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
@@ -155,6 +155,12 @@ transitionIdsUpToAndIncluding (GluedTransitionId i) = GluedTransitionId <$> 0 ..
 -- TODO add 'glued' to name?
 transitionIds :: StbxObj -> Array GluedTransitionId
 transitionIds s = transitionIdsUpToAndIncluding (GluedTransitionId $ (transitionCount s) - 1)
+
+--------------------------------------------------------------------------------
+
+-- TODO add 'glued' to name?
+enabledTransitionIds :: StbxObj -> Array GluedTransitionId
+enabledTransitionIds s = filter (enabled s <<< unwrap) (transitionIds s)
 
 --------------------------------------------------------------------------------
 
