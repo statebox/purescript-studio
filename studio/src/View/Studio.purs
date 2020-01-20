@@ -129,7 +129,7 @@ ui =
             _ -> Nothing
         maybe (pure unit) (\projects -> H.modify_ (_ { projects = projects }) ) projectsUpdatedMaybe
 
-      HandleKDMoncatMsg diagramInfo (KDMonCat.Bricks.SelectionChanged selBox) -> do
+      HandleKDMonCatMsg diagramInfo (KDMonCat.Bricks.SelectionChanged selBox) -> do
         let boxes = (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) selBox).selectedBoxes
         maybe (pure unit) (handleAction <<< HandleDiagramEditorMsg <<< DiagramEditor.OperatorClicked) $ do
           box <- Set.findMin boxes

@@ -91,7 +91,7 @@ contentView apiUrl route = case route of
         [ div [ classes [ ClassName "w-1/2" ] ]
               [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
         , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
-              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (Just <<< HandleKDMoncatMsg diagramInfo)
+              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (Just <<< HandleKDMonCatMsg diagramInfo)
               , case nodeMaybe of
                   Just (NetNode netInfo)          -> slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
                   Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."

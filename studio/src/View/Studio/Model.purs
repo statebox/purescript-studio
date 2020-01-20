@@ -46,7 +46,7 @@ data Action
   | ShowDiagramNodeContent Route
   | HandlePetrinetEditorMsg PetrinetEditor.Msg
   | HandleDiagramEditorMsg DiagramEditor.Msg
-  | HandleKDMoncatMsg DiagramInfo KDMonCat.Bricks.Output
+  | HandleKDMonCatMsg DiagramInfo KDMonCat.Bricks.Output
 
 type State =
   { route       :: Route
