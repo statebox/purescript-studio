@@ -53,7 +53,7 @@ parentRef = RefLabel "parent"
 render :: ∀ a c m. Input a c m -> State -> H.ComponentHTML (Action a) c m
 render { content, className } _ = S.g []
   [ S.rect [ ref boxRef, S.attr (AttrName "class") className ]
-  , S.g [ ref contentRef, S.attr (AttrName "style") "transform: scale(1.0); transform-origin: 0px 0px" ]
+  , S.g [ ref contentRef ]
         [ mapAction ContentAction content ]
   ]
 
@@ -66,6 +66,9 @@ handleInput { minWidth, maxWidth, minHeight, maxHeight, padding } = do
 
     -- make the box content fit
     Just box, Just content -> do
+      liftEffect do
+        setAttribute "style" "transform: scale(1.0); transform-origin: 0px 0px" content
+
       svgrect <- content # getBBox # liftEffect
 
       let
