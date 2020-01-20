@@ -16,7 +16,7 @@ import Test.Spec.Runner (run)
 
 import Statebox.Core.Transaction (TxSum(..), Tx, FiringTx, evalTxSum)
 import Statebox.Core.Types (Firing)
-import Statebox.Core.Transaction.Codec (decodeTxTxSum, decodeFiringTx, decodeTxFiringTx, DecodingError)
+import Statebox.Core.Transaction.Codec (decodeTxTxSum, decodeFiringTx, decodeTxFiringTx)
 
 suite :: Spec Unit
 suite = do

@@ -8,7 +8,8 @@
     "build": "spago build",
     "test": "spago test",
     "repl": "spago repl",
-    "docs": "spago docs"
+    "docs": "spago docs",
+    "watch": "spago build --watch"
   },
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",
