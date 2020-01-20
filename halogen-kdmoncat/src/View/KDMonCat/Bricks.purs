@@ -192,6 +192,7 @@ renderBox name { topLeft, bottomRight } =
     , minHeight: 0.5
     , maxHeight: 0.5
     , padding: 0.015
+    , center
     , className: "inner-box"
     }
     Just
