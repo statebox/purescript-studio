@@ -28,7 +28,6 @@ type ComponentSpec surface state action slots input output m =
 mkComponent
   :: ∀ surface state query action slots input output m
    . MonadEffect m
-  => Eq input
   => Bifunctor surface
   => ComponentSpec surface state action slots input output m
   -> H.Component surface query input output m
@@ -46,7 +45,6 @@ mkComponent spec@{ initialState, render } =
 handle
   :: ∀ surface state action slots input output m
    . MonadEffect m
-  => Eq input
   => ComponentSpec surface state action slots input output m
   -> Action input action
   -> H.HalogenM (State input state) (Action input action) slots output m Unit
@@ -58,10 +56,8 @@ handle { handleInput, handleAction } = case _ of
 
   Update newInput -> do
     { input } <- H.get
-    if newInput /= input then do
-      H.modify_ _ { input = newInput }
-      mapHalogenM $ handleInput newInput
-    else pure unit
+    H.modify_ _ { input = newInput }
+    mapHalogenM $ handleInput newInput
 
   Rest action ->
     mapHalogenM $ handleAction action
