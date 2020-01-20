@@ -18,12 +18,13 @@ import Web.UIEvent.KeyboardEvent as K
 
 import Debug.Trace
 
-keysWithHelpPopup :: ∀ action
-                   . { keys :: KeyHandler action
-                     , popupAction :: action }
-                  -> { onKeyDown :: ∀ r. IProp (onKeyDown :: K.KeyboardEvent | r) action
-                     , helpPopup :: ∀ m c. MonadEffect m => Boolean -> ComponentHTML action c m
-                     }
+keysWithHelpPopup
+  :: ∀ action
+   . { keys :: KeyHandler action
+     , popupAction :: action }
+  -> { onKeyDown :: ∀ r. IProp (onKeyDown :: K.KeyboardEvent | r) action
+     , helpPopup :: ∀ m c. MonadEffect m => Boolean -> ComponentHTML action c m
+     }
 keysWithHelpPopup { keys, popupAction } =
   { onKeyDown: handleKeyDown (keys <> keyHandler [ Char "?" ] (text "") popupAction)
   , helpPopup: renderKeyHelpPopup keys popupAction
@@ -41,10 +42,13 @@ noMods = ff
 
 ctrlKey  :: Modifiers
 ctrlKey   = noMods { ctrl  = true }
+
 shiftKey :: Modifiers
 shiftKey  = noMods { shift = true }
+
 altKey   :: Modifiers
 altKey    = noMods { alt   = true }
+
 metaKey  :: Modifiers
 metaKey   = noMods { meta  = true }
 
@@ -66,6 +70,7 @@ type KeyDocumentation = Array
   { keys :: Array Key
   , description :: PlainHTML
   }
+
 type KeyHandler action =
   { handler :: K.KeyboardEvent -> First action
   , documentation :: KeyDocumentation
@@ -100,20 +105,21 @@ displayKeyCode "Minus" = "-"
 displayKeyCode "Equal" = "+"
 displayKeyCode k = k
 
-renderKeyHelpPopup :: ∀ action m c. MonadEffect m
-                   => KeyHandler action -> action -> Boolean
-                   -> ComponentHTML action c m
+renderKeyHelpPopup
+  :: ∀ action m c. MonadEffect m
+  => KeyHandler action -> action -> Boolean
+  -> ComponentHTML action c m
 renderKeyHelpPopup { documentation } toggleAction visible = div_ $ guard visible
   [ div [ classes [ClassName "key-help-popup-container"] ]
-    [ div [ classes [ClassName "key-help-popup-backdrop" ], onClick $ \_ -> Just toggleAction ] []
-    , div [ classes [ClassName "key-help-popup"] ]
-      [ h3_ [ text "Keyboard shortcuts" ]
-      , ul_ $ documentation <#> \{ keys, description } -> li_
-        [ span [ classes [ClassName "key-help-popup-keys"] ] $ renderKeys keys
-        , description # fromPlainHTML
+        [ div [ classes [ClassName "key-help-popup-backdrop" ], onClick $ \_ -> Just toggleAction ] []
+        , div [ classes [ClassName "key-help-popup"] ]
+              [ h3_ [ text "Keyboard shortcuts" ]
+              , ul_ $ documentation <#> \{ keys, description } -> li_
+                    [ span [ classes [ClassName "key-help-popup-keys"] ] $ renderKeys keys
+                    , description # fromPlainHTML
+                    ]
+              ]
         ]
-      ]
-    ]
   ]
   where
     renderKeys = map renderKey >>> intercalate [text " or "]
