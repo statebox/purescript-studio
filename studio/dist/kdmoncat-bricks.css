@@ -9,8 +9,6 @@
 .kdmoncat-bricks {
   position: relative;
   justify-self: stretch;
-  display: grid;
-  grid-gap: 2px;
   flex: 1;
   user-select: none;
   -webkit-user-select: none;
@@ -47,6 +45,13 @@
 .kdmoncat-bricks.show-wires .inner-box {
   fill: white;
   stroke: #444;
+}
+.kdmoncat-bricks.show-wires .selected .inner-box {
+  fill: rgb(0, 112, 204);
+  stroke: rgb(0, 112, 204);
+}
+.kdmoncat-bricks.show-wires .selected .inner-box-text {
+  fill: white;
 }
 .kdmoncat-bricks .selection {
   fill: none;
