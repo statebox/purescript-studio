@@ -33,6 +33,7 @@ import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, 
 -- deps needed for Action, for now
 import View.Petrinet.Model as PetrinetEditor
 import View.Diagram.Update as DiagramEditor
+import View.KDMonCat.Bricks as KDMonCat.Bricks
 
 --------------------------------------------------------------------------------
 
@@ -45,6 +46,7 @@ data Action
   | ShowDiagramNodeContent Route
   | HandlePetrinetEditorMsg PetrinetEditor.Msg
   | HandleDiagramEditorMsg DiagramEditor.Msg
+  | HandleKDMonCatMsg DiagramInfo KDMonCat.Bricks.Output
 
 type State =
   { route       :: Route
