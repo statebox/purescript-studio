@@ -125,7 +125,7 @@ render st = div [ classes [ ClassName "app" ] ]
 
 toBricksInput :: Input -> Box -> Bricks.Input
 toBricksInput input selectionBox =
-  { bricks, matches, context, selectedBoxes }
+  { bricks, matches, context, selectedBoxes, renderBoxContent: Bricks.defaultRenderBoxContent }
   where
     bricks = Bricks.fromPixels (parsePixels input.pixels) (\s -> s == " " || s == "-" || s == "=")
 

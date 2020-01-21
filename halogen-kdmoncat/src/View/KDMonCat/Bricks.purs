@@ -71,11 +71,17 @@ data Action
   | OnMouseMove Box
   | OnMouseUp
 
+type BoxContent =
+  { content :: ∀ a c m. H.ComponentHTML a c m
+  , className :: String
+  }
+
 type Input =
   { bricks :: Bricks String
   , matches :: Array (Matches (VarWithBox String))
   , context :: Context String String
   , selectedBoxes :: Set (Brick String)
+  , renderBoxContent :: String -> String -> BoxContent
   }
 
 data Output = SelectionChanged Box
@@ -105,7 +111,7 @@ initialState  =
   }
 
 render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
-render { bricks: { width, height, boxes }, matches, context, selectedBoxes } { selection, showWires, keyHelpVisible } = div
+render { bricks: { width, height, boxes }, matches, context, selectedBoxes, renderBoxContent } { selection, showWires, keyHelpVisible } = div
   [ ref (RefLabel "bricks")
   , classes [ ClassName "kdmoncat-bricks", ClassName $ if showWires then "show-wires" else "show-bricks" ]
   , tabIndex 0
@@ -113,7 +119,7 @@ render { bricks: { width, height, boxes }, matches, context, selectedBoxes } { s
   , onMouseUp (const $ Just $ OnMouseUp)
   ]
   [ S.svg [ viewBox { topLeft: vec2 0 0, bottomRight: vec2 width height } ] $
-    foldMap (\b@{ bid, box } -> let { className, content } = renderBrick (matchesToIO matches) (lookup bid context) b in [ S.g
+    foldMap (\b@{ bid, box } -> let { className, content } = renderBrick renderBoxContent (matchesToIO matches) (lookup bid context) b in [ S.g
       [ svgClasses [ ClassName className, ClassName $ if Set.member b selectedBoxes then "selected" else "" ]
       , onMouseDown (const $ Just $ OnMouseDown box)
       , onMouseMove (const $ Just $ OnMouseMove box)
@@ -148,58 +154,68 @@ render { bricks: { width, height, boxes }, matches, context, selectedBoxes } { s
       , popupAction: ChangeState $ _keyHelpVisible %~ not
       }
 
-renderBrick :: ∀ m. MonadEffect m => InputOutput String -> Maybe { name :: String, type :: TypeDecl String } -> Brick String
+renderBrick
+  :: ∀ m. MonadEffect m
+  => (String -> String -> BoxContent)
+  -> InputOutput String
+  -> Maybe { name :: String, type :: TypeDecl String }
+  -> Brick String
   -> { className :: String, content :: Array (H.ComponentHTML Action ChildSlots m) }
-renderBrick io (Just { name, type: Gen _ }) b@{ box } =
-  { className: "box"
+renderBrick renderBoxContent io (Just { name, type: Gen _ }) b@{ bid, box } =
+  let boxContent = renderBoxContent name bid in
+  { className: "box " <> boxContent.className
   , content:
       maybe [] (foldMap (renderLines genLineSettings Input b)) (lookup (box /\ Input) io) <>
       maybe [] (foldMap (renderLines genLineSettings Output b)) (lookup (box /\ Output) io) <>
-      renderBox name box
+      renderBox boxContent.content box
   }
-renderBrick io (Just { type: Perm perm }) b = { className: "wires", content: renderPerm io b perm }
-renderBrick io (Just { type: Spider c _ _ }) b@{ box } =
+renderBrick _ io (Just { type: Perm perm }) b = { className: "wires", content: renderPerm io b perm }
+renderBrick _ io (Just { type: Spider c _ _ }) b@{ box } =
   { className: "wires"
   , content:
       maybe [] (foldMap (renderLines spiderLineSettings Input b)) (lookup (box /\ Input) io) <>
       maybe [] (foldMap (renderLines spiderLineSettings Output b)) (lookup (box /\ Output) io) <>
       renderNode b c
   }
-renderBrick io (Just { type: Cup }) b@{ box } =
+renderBrick _ io (Just { type: Cup }) b@{ box } =
   { className: "wires"
   , content:
       maybe [] (foldMap (renderLines cupcapLineSettings Input b)) (lookup (box /\ Input) io) <>
       maybe [] (foldMap (renderLines cupcapLineSettings Output b)) (lookup (box /\ Output) io)
   }
-renderBrick io (Just { type: Cap }) b@{ box } =
+renderBrick _ io (Just { type: Cap }) b@{ box } =
   { className: "wires"
   , content:
       maybe [] (foldMap (renderLines cupcapLineSettings Input b)) (lookup (box /\ Input) io) <>
       maybe [] (foldMap (renderLines cupcapLineSettings Output b)) (lookup (box /\ Output) io)
   }
-renderBrick _ Nothing _ = { className: "box", content: [] }
+renderBrick _ _ Nothing _ = { className: "box", content: [] }
 
-renderBox :: ∀ m. MonadEffect m => String -> Box -> Array (H.ComponentHTML Action ChildSlots m)
-renderBox name { topLeft, bottomRight } =
+renderBox :: ∀ m. MonadEffect m => H.ComponentHTML Action ChildSlots m -> Box -> Array (H.ComponentHTML Action ChildSlots m)
+renderBox content { topLeft, bottomRight } =
   [ slot _box topLeft Box.boxView
-    { content: S.text
-      [ S.x mx, S.y (my + 0.14)
-      , S.attr (AttrName "text-anchor") "middle"
-      , svgClasses [ ClassName "inner-box-text" ]
-      ] [ text name ]
+    { content
     , minWidth: 0.33
     , maxWidth: 0.5
     , minHeight: 0.5
     , maxHeight: 0.5
     , padding: 0.015
-    , className: "inner-box"
+    , center
+    , className: "inner-box "
     }
     Just
   ]
   where
     center = map toNumber (topLeft + bottomRight) / pure 2.0
-    mx = _x center
-    my = _y center
+
+defaultRenderBoxContent :: String -> String -> BoxContent
+defaultRenderBoxContent name bid =
+  { content: S.text
+      [ S.attr (AttrName "text-anchor") "middle"
+      , svgClasses [ ClassName "inner-box-text" ]
+      ] [ text name ]
+  , className: ""
+  }
 
 renderNode :: ∀ m. Brick String -> Color -> Array (H.ComponentHTML Action ChildSlots m)
 renderNode { bid, box: { topLeft, bottomRight } } color =

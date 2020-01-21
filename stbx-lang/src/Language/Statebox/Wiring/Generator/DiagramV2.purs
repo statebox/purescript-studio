@@ -1,7 +1,7 @@
 module Language.Statebox.Wiring.Generator.DiagramV2 where
 
 import Prelude
-import Data.Array (zipWith, take, drop, concat, length, (..), (!!), uncons, elemIndex, filter)
+import Data.Array (zipWith, take, drop, concat, length, (..), (!!), uncons, elemIndex, filter, findIndex)
 import Data.Char (fromCharCode, toCharCode)
 import Data.Foldable (class Foldable, maximum, intercalate, foldMap, fold, notElem)
 import Data.FoldableWithIndex (foldMapWithIndex)
@@ -68,6 +68,10 @@ pixel2operator :: ∀ r. Array (Operator r) -> String -> Maybe (Operator r)
 pixel2operator ops pixelName = do
   pixelChar <- charAt 0 pixelName
   ops !! (toCharCode pixelChar - toCharCode 'a')
+
+operator2pixel :: ∀ r. Array (Operator r) -> (Operator r -> Boolean) -> Maybe String
+operator2pixel ops test =
+  findIndex test ops <#> nextChar 'a'
 
 fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
 fromEdges fromEnum name edges = { pixels, context }

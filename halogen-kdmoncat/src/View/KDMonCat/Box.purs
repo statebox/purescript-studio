@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Bifunctor (bimap)
 import Data.Maybe
+import Data.Vec3 (Vec2, _x, _y)
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen as H
@@ -17,9 +18,9 @@ import Web.DOM.Element (Element, setAttribute)
 import View.ReactiveInput as ReactiveInput
 import KDMonCat.Common (VoidF)
 
-
 type Input a c m =
   { content   :: H.ComponentHTML a c m
+  , center    :: Vec2 Number
   , minWidth  :: Number
   , maxWidth  :: Number
   , minHeight :: Number
@@ -53,12 +54,12 @@ parentRef = RefLabel "parent"
 render :: ∀ a c m. Input a c m -> State -> H.ComponentHTML (Action a) c m
 render { content, className } _ = S.g []
   [ S.rect [ ref boxRef, S.attr (AttrName "class") className ]
-  , S.g [ ref contentRef, S.attr (AttrName "style") "transform: scale(1.0); transform-origin: 0px 0px" ]
+  , S.g [ ref contentRef ]
         [ mapAction ContentAction content ]
   ]
 
 handleInput :: ∀ a c m. MonadEffect m => Input a c m -> H.HalogenM State (Action a) c a m Unit
-handleInput { minWidth, maxWidth, minHeight, maxHeight, padding } = do
+handleInput { center, minWidth, maxWidth, minHeight, maxHeight, padding } = do
   mbox     <- H.getRef boxRef
   mcontent <- H.getRef contentRef
 
@@ -66,6 +67,9 @@ handleInput { minWidth, maxWidth, minHeight, maxHeight, padding } = do
 
     -- make the box content fit
     Just box, Just content -> do
+      liftEffect do
+        setAttribute "style" "transform: scale(1.0); transform-origin: 0px 0px" content
+
       svgrect <- content # getBBox # liftEffect
 
       let
@@ -74,8 +78,10 @@ handleInput { minWidth, maxWidth, minHeight, maxHeight, padding } = do
         scale  = min 1.0 (min (maxWidth / svgrect.width) (maxHeight / svgrect.height))
         width  = max minWidth  (svgrect.width  * scale) + padding * 2.0
         height = max minHeight (svgrect.height * scale) + padding * 2.0
-        x      = midX - width  / 2.0
-        y      = midY - height / 2.0
+        x      = _x center - width  / 2.0
+        y      = _y center - height / 2.0
+        dx     = _x center - midX
+        dy     = _y center - midY
 
       liftEffect do
         setAttribute "x"      (show x)      box
@@ -85,7 +91,7 @@ handleInput { minWidth, maxWidth, minHeight, maxHeight, padding } = do
 
       liftEffect do
         setAttribute "style" (
-          "transform: scale(" <> show scale <> ");" <>
+          "transform: translate(" <> show dx <> "px, " <> show dy <> "px) scale(" <> show scale <> ");" <>
           "transform-origin: " <> show midX <> "px " <> show midY <> "px") content
 
     _, _ -> pure unit
