@@ -14,8 +14,9 @@ import Halogen.HTML.Properties (href)
 import View.Studio.Model (Action(..))
 import View.Studio.Model.Route (WiringFiringInfo, ExecutionTrace)
 import Statebox.Client (txUrl)
-import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx, isExecution)
 import Statebox.Core.Lenses (_firingTx, _firing, _firingPath)
+import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx, isExecution)
+import Statebox.Core.Types (TID, GluedTransitionId(..))
 
 
 firingTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> String \/ ExecutionTrace -> ComponentHTML Action s m
@@ -24,9 +25,12 @@ firingTxView wfi tx executionTrace =
       [ p     [] [ text $ if isExecution tx.firing then "Execution" else "Firing" ]
       , table [] $ txWrapperRows wfi tx <>
                    firingTxBodyRows wfi tx <>
-                   [ row "trace" $ text $ show $ map (mapMaybe (preview (second <<< _Just <<< _firingTx <<< _firing <<< _firingPath))) executionTrace ] <>
+                   [ row "trace" $ text $ show $ firedTransitions ] <>
                    [ row "trace raw" $ text (show executionTrace) ]
       ]
+  where
+    firedTransitions :: String \/ Array GluedTransitionId
+    firedTransitions = map (mapMaybe (preview (second <<< _Just <<< _firingTx <<< _firing <<< _firingPath))) executionTrace
 
 wiringTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> WiringTx -> ComponentHTML Action s m
 wiringTxView wfi tx =
