@@ -2,7 +2,10 @@ module Statebox.Protocol where
 
 import Prelude
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
+import Data.Lens ((^?))
+import Data.Maybe (Maybe(..), maybe)
+
+import Statebox.Core.Lenses (_firingExecution)
 
 import Statebox.Core.Transaction (FiringTx, HashStr, HashTx, InitialTx, TxId, TxSum(..), WiringTx, evalTxSum, isInitialTx, isUberRootHash)
 import Statebox.Protocol.Fire (fire)
@@ -23,13 +26,13 @@ data ProcessError
 processTxSum :: HashTx -> StoreActions (Either ProcessError Unit)
 processTxSum hashTx = case hashTx.tx of
   UberRootTxInj           -> pure $ Left NoUberRoot
-  InitialTxInj  initialTx -> processInitialTx hash.id initialTx
-  WiringTxInj   wiringTx  -> processWiringTx  hash.id wiringTx
-  FiringTxInj   firingTx  -> processFiringTx  hash.id firingTx
+  InitialTxInj  initialTx -> processInitialTx hashTx.id initialTx
+  WiringTxInj   wiringTx  -> processWiringTx  hashTx.id wiringTx
+  FiringTxInj   firingTx  -> processFiringTx  hashTx.id firingTx
 
 processInitialTx :: HashStr -> InitialTx -> StoreActions (Either ProcessError Unit)
 processInitialTx hash initialTx =
-  if (isUberRootHash initialTx.previous)
+  if isUberRootHash initialTx.previous
   then map Right $ putTransaction hash $ InitialTxInj initialTx
   else pure $ Left $ InitialPreviousNoUberRoot initialTx.previous
 
@@ -53,11 +56,12 @@ processWiringTx hash wiringTx =
 processFiringTx :: HashStr -> FiringTx -> StoreActions (Either ProcessError Unit)
 processFiringTx hash firingTx =
   -- check if the firing is initial
-  case firingTx.firing.execution of
+  maybe
     -- it does not have an execution, hence it is initial
-    Nothing        -> processInitialFiringTx hash firingTx
+    (processInitialFiringTx hash firingTx)
     -- it does have an execution, hence it is a normal firing
-    Just execution -> processNormalFiringTx hash firingTx execution
+    (processNormalFiringTx hash firingTx)
+    (firingTx ^? _firingExecution)
 
 processInitialFiringTx :: HashStr -> FiringTx -> StoreActions (Either ProcessError Unit)
 processInitialFiringTx hash firingTx = do
@@ -83,9 +87,9 @@ processInitialFiringTx hash firingTx = do
                 firedTransition = fire firingTx
               in map Right $ do
                 putTransaction       hash $ FiringTxInj firingTx
-                updateExecutionState hash $ Execution { lastFiring : hash
-                                                      , wiring         : firingTx.previous
-                                                      }
+                updateExecutionState hash $ { lastFiring : hash
+                                            , wiring         : firingTx.previous
+                                            }
             )
             (const $ pure $ Left $ FiringInitialPreviousNotWiring hash)
             previous
