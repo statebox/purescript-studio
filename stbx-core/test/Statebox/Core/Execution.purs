@@ -54,7 +54,7 @@ suite = do
         { nets: [ { name: "a"
                   , partition: [0,1,0,1,0,0]
                   , names: ["t","u"]
-                  -- , placeNames: Nothing
+                  , placeNames: Nothing
                   }
                 ]
         , diagrams: [ { name: "z"
@@ -144,7 +144,7 @@ suite = do
         { nets: [ { name: "a"
                   , partition: [0,1,0,1,0,2,0,2,0,0]
                   , names: ["t","u","v"]
-                  -- , placeNames: Nothing
+                  , placeNames: Nothing
                   }
                 ]
         , diagrams: [ { name: "z"
@@ -282,14 +282,17 @@ suite = do
         { nets: [ { name: "a"
                   , partition: [0,1,0,1,0,0]
                   , names: ["u","v"]
+                  , placeNames: Nothing
                   }
                 , { name: "b"
                   , partition: [0,1,1,0,1,0,2,0,1,2,0,3,3,0,3,0,0]
                   , names: ["f","g","h","i"]
+                  , placeNames: Nothing
                   }
                 , { name: "c"
                   , partition: [0,1,0,0,1,0,1,0,0]
                   , names: ["l", "m", "n"]
+                  , placeNames: Nothing
                   }
                 ]
         , diagrams: [ { name: "y"
