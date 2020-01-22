@@ -5,11 +5,13 @@
     , "debug"
     , "effect"
     , "halogen-petrinet-editor"
+    , "memoize"
     , "parsing"
     , "psci-support"
     , "spec"
     , "stbx-core"
     , "studio-common"
+    , "vec"
     ]
 , packages =
     ./../packages.dhall

@@ -8,7 +8,6 @@ import Debug.Trace (spy)
 import Test.Spec (Spec, pending, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
-import Test.Spec.Runner (run)
 
 import Statebox.Core.Execution
 import Statebox.Core.Execution as Stbx

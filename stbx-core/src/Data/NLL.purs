@@ -3,7 +3,7 @@ module Data.NLL where
 
 import Prelude
 import Data.Array (uncons, snoc, take, drop)
-import Data.Foldable (foldl, foldMap, null)
+import Data.Foldable (foldl, null)
 import Data.Maybe (Maybe(..), maybe)
 
 -- | Example:

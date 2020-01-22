@@ -368,6 +368,6 @@ diagrams2 :: Array DiagramInfo
 diagrams2 =
   [ { name: "La la la"
     , ops: [ { identifier: "a", pos: vec3 1 1 4, label: "la la"   }
-           , { identifier: "c", pos: vec3 5 1 4, label: "loo loo" }
+           , { identifier: "c", pos: vec3 3 2 4, label: "loo loo" }
            ]
    } ]

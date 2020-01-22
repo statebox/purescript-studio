@@ -12,17 +12,21 @@
     , "group"
     , "halogen"
     , "halogen-svg"
+    , "halogen-diagram-editor"
+    , "halogen-kdmoncat"
     , "halogen-petrinet-editor"
     , "halogen-tree-menu"
     , "pnpro"
     , "prelude"
     , "psci-support"
     , "stbx-core"
+    , "stbx-lang"
     , "stbx-client-rest"
     , "spec"
     , "strings"
     , "studio-common"
     , "web-uievents"
+    , "vec"
     ]
 , packages =
     ../packages.dhall

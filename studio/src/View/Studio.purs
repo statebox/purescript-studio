@@ -7,7 +7,8 @@ import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, con
 import Data.Array (cons)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), maybe, fromMaybe)
+import Data.Set as Set
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
@@ -17,14 +18,17 @@ import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
+import Language.Statebox.Wiring.Generator.DiagramV2 as DiagramV2
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
 import Statebox.Core.Transaction (HashTx)
-import Statebox.Core.Transaction.Codec (DecodingError(..))
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
-import View.Studio.Model (Action(..), State, fromPNPROProject)
+import View.KDMonCat.App as KDMonCat.Bricks
+import View.KDMonCat.Bricks as KDMonCat.Bricks
+import View.Model (Project)
+import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo)
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
@@ -64,10 +68,11 @@ ui =
         H.liftEffect $ log $ "LoadTransaction: requesting transaction " <> hash <> " from " <> endpointUrl
         res <- H.liftAff $ Stbx.requestTransaction endpointUrl hash
         res # evalTransactionResponse
-          (\err                 -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
-          (\(DecodingError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
-          (\{id, tx}            -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
-                                      H.liftEffect $ log $ show tx)
+          (\err                        -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printError err)
+          (\(Stbx.JsonDecodeError err) -> H.liftEffect $ log $ "Expected to decode a valid Statebox transaction: " <> show err)
+          (\txError                    -> H.liftEffect $ log $ "Handling error of received data: " <> show txError)
+          (\{id, tx}                   -> do H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
+                                             H.liftEffect $ log $ show tx)
 
       LoadTransactions endpointUrl startHash -> do
         H.liftEffect $ log $ "LoadTransactions: requesting transactions up to root, starting at " <> startHash <> " from " <> endpointUrl
@@ -91,11 +96,11 @@ ui =
 
       LoadPNPRO url -> do
         H.liftEffect $ log $ "LoadPNPRO: requesting PNPRO file from " <> url
-        res <- H.liftAff $ Affjax.request $ Affjax.defaultRequest { url = url, responseFormat = ResponseFormat.string }
-        res.body # either
-          (\err -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printResponseFormatError err)
-          (\body -> do
-               pnproDocumentE <- H.liftEffect $ try $ PNPRO.fromString body
+        resE <- H.liftAff $ Affjax.request $ Affjax.defaultRequest { url = url, responseFormat = ResponseFormat.string }
+        resE # either
+          (\err -> H.liftEffect $ log $ "failed to decode HTTP response into JSON: " <> Affjax.printError err)
+          (\res -> do
+               pnproDocumentE <- H.liftEffect $ try $ PNPRO.fromString res.body
                pnproDocumentE # either
                  (\err      -> H.liftEffect $ log $ "Error decoding PNPRO document: " <> show err)
                  (\pnproDoc -> H.modify_ $ \state -> state { projects = fromPNPROProject pnproDoc.project `cons` state.projects })
@@ -112,8 +117,24 @@ ui =
             _                     -> Nothing
         maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
-      HandleDiagramEditorMsg (DiagramEditor.CursorMoved) -> do
-        pure unit
+      HandleDiagramEditorMsg (DiagramEditor.OperatorsChanged ops) -> do
+        state <- H.get
+        let
+          projectsUpdatedMaybe :: Maybe (Array Project)
+          projectsUpdatedMaybe = case state.route of
+            Diagram pname dname _ ->
+              modifyProject pname (\p ->
+                  p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (_ {ops = ops}) p.diagrams) }
+                ) state.projects
+            _ -> Nothing
+        maybe (pure unit) (\projects -> H.modify_ (_ { projects = projects }) ) projectsUpdatedMaybe
+
+      HandleKDMonCatMsg diagramInfo (KDMonCat.Bricks.SelectionChanged selBox) -> do
+        let boxes = (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) selBox).selectedBoxes
+        maybe (pure unit) (handleAction <<< HandleDiagramEditorMsg <<< DiagramEditor.OperatorClicked) $ do
+          box <- Set.findMin boxes
+          op <- DiagramV2.pixel2operator diagramInfo.ops box.bid
+          pure op.identifier
 
       HandlePetrinetEditorMsg NetUpdated -> do
         pure unit

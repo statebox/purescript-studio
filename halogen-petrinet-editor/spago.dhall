@@ -9,6 +9,7 @@
     , "halogen-svg"
     , "psci-support"
     , "studio-common"
+    , "vec"
     ]
 , packages =
     ../packages.dhall
