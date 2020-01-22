@@ -211,7 +211,7 @@ renderBox content { topLeft, bottomRight } =
 defaultRenderBoxContent :: String -> String -> BoxContent
 defaultRenderBoxContent name bid =
   { content: S.text
-      [ S.attr (AttrName "text-anchor") "middle"
+      [ S.text_anchor S.AnchorMiddle
       , svgClasses [ ClassName "inner-box-text" ]
       ] [ text name ]
   , className: ""
@@ -268,7 +268,7 @@ renderObject :: ∀ m. Side -> Number -> Match String -> Array (H.ComponentHTML 
 renderObject Input x m =
   [ S.text
     [ S.x x, S.y m.y
-    , S.attr (AttrName "text-anchor") "start"
+    , S.text_anchor S.Start
     , svgClasses (objectClassNames m)
     ] [ text (typeName m) ]
   ] <> if m.center then []
@@ -276,7 +276,7 @@ renderObject Input x m =
 renderObject Output x m =
   [ S.text
     [ S.x x, S.y m.y
-    , S.attr (AttrName "text-anchor") "end"
+    , S.text_anchor S.End
     , svgClasses (objectClassNames m)
     ] [ text (typeName m) ]
   ] <> if m.center then []
@@ -387,7 +387,7 @@ viewBox { topLeft: p0, bottomRight: p1 } = let dp = p1 - p0 in
   S.viewBox (toNumber (_x p0) - 0.01) (toNumber (_y p0) - 0.01) (toNumber (_x dp) + 0.02) (toNumber (_y dp) + 0.02)
 
 svgClasses :: ∀ r i. Array (ClassName) -> IProp r i
-svgClasses arr = S.attr (AttrName "class") $ intercalate " " $ map (\(ClassName s) -> s) arr
+svgClasses arr = S.class_ $ intercalate " " $ map (\(ClassName s) -> s) arr
 
 
 matchesToIO :: Array (Matches (VarWithBox String)) -> InputOutput String

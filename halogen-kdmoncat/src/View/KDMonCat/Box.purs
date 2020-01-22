@@ -53,7 +53,7 @@ parentRef = RefLabel "parent"
 
 render :: ∀ a c m. Input a c m -> State -> H.ComponentHTML (Action a) c m
 render { content, className } _ = S.g []
-  [ S.rect [ ref boxRef, S.attr (AttrName "class") className ]
+  [ S.rect [ ref boxRef, S.class_ className ]
   , S.g [ ref contentRef ]
         [ mapAction ContentAction content ]
   ]

@@ -30,6 +30,6 @@ ui = ReactiveInput.mkComponent
 
 render :: ∀ m. Input -> {} -> H.ComponentHTML Void () m
 render { position, model2svg } _ =
-  S.circle [ S.attr (AttrName "class") "point", S.cx (_x center), S.cy (_y center), S.r 5.0 ]
+  S.circle [ S.class_ "point", S.cx (_x center), S.cy (_y center), S.r 5.0 ]
   where
     center = model2svg `transform` position
