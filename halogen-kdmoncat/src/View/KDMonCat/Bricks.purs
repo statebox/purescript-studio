@@ -386,7 +386,7 @@ viewBox :: ∀ r i. Box -> IProp (viewBox :: String | r) i
 viewBox { topLeft: p0, bottomRight: p1 } = let dp = p1 - p0 in
   S.viewBox (toNumber (_x p0) - 0.01) (toNumber (_y p0) - 0.01) (toNumber (_x dp) + 0.02) (toNumber (_y dp) + 0.02)
 
-svgClasses :: ∀ r i. Array (ClassName) -> IProp r i
+svgClasses :: ∀ r i. Array (ClassName) -> IProp (class :: String | r) i
 svgClasses arr = S.class_ $ intercalate " " $ map (\(ClassName s) -> s) arr
 
 
