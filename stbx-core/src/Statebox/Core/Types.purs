@@ -43,6 +43,8 @@ type Initial =
 -- |
 -- | 2) The elements of `labels: [0,0]` are the labels of this root diagram, and they are indices
 -- |    into the list `(nets <> diagrams)`.
+-- |
+-- | for a more detailed description, refer to https://hackmd.io/0CPzJ_V-Qkm0y40NLQRhWw?view#Representing-the-gluing
 type Wiring =
   { nets     :: Array Net
   , diagrams :: Array Diagram
@@ -51,15 +53,15 @@ type Wiring =
 
 type Net =
   { name       :: String
-  , partition  :: Array Int
+  , partition  :: Array Int             -- NLL encoding
   , names      :: Array String          -- ^ transition names
   , placeNames :: Maybe (Array String)
   }
 
 type Diagram =
   { name   :: String
-  , width  :: Int
-  , pixels :: Array Int
+  , width  :: Int          -- width of the brick diagram (see https://docs.statebox.org/spec/nlldiagrams/)
+  , pixels :: Array Int    -- actual brick diagram encoding
   , names  :: Array String
   }
 
