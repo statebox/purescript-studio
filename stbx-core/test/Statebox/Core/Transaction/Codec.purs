@@ -7,6 +7,7 @@ import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
 import Data.Either.Nested (type (\/))
 import Data.Either (Either(..), either)
+import Data.NonEmpty (singleton)
 import Debug.Trace (spy)
 import Test.Spec (Spec, pending, describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
@@ -64,7 +65,7 @@ suite = do
             { "firing": {
                 "execution": pure "a string",
                 "message": pure "camels are awesome",
-                "path": [4]
+                "path": singleton 4
               },
               "previous": "zFsGM26E6xAuYMXox2zMGUChk3HmbEAMGXBiWG3UL7KF5"
             }
