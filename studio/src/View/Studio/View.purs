@@ -21,7 +21,7 @@ import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, src, href, placeholder, value)
 
-import Language.Statebox.Wiring.Generator.DiagramV2 (fromOperators, operator2pixel) as DiagramV2
+import Language.Statebox.Wiring.Generator.DiagramV2.Operators (fromOperators, operator2pixel) as DiagramV2
 import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree, Item)
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)

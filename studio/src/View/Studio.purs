@@ -18,7 +18,7 @@ import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import Language.Statebox.Wiring.Generator.DiagramV2 as DiagramV2
+import Language.Statebox.Wiring.Generator.DiagramV2.Operators as DiagramV2
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
