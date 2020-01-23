@@ -3,30 +3,39 @@ module View.Transaction where
 import Prelude hiding (div)
 import Affjax (URL) -- TODO eliminate
 import Data.Array (mapMaybe)
-import Data.Lens (over, preview, _Just, second)
+import Data.String.CodePoints (take)
+import Data.Lens (over, preview, _Just, second, view)
 import Data.Maybe (Maybe, maybe)
+import Data.Newtype (un)
+import Data.Either (either)
 import Data.Either.Nested (type (\/))
+import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, slot, div, table, tr, td, a, text, p, br, pre)
-import Halogen.HTML.Properties (href)
+import Halogen.HTML (HTML, slot, div, table, tr, th, td, a, text, p, br, pre)
+import Halogen.HTML.Core (ClassName(..))
+import Halogen.HTML.Properties (classes, href)
 
 import View.Studio.Model (Action(..))
 import View.Studio.Model.Route (WiringFiringInfo, ExecutionTrace)
 import Statebox.Client (txUrl)
-import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx, isExecution)
-import Statebox.Core.Lenses (_firingTx, _firing, _firingPath)
+import Statebox.Core.Lenses (_firingTx, _firing, _firingPath, _GluedTransitionId)
+import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, TxId, WiringTx, evalTxSum, isExecution)
+import Statebox.Core.Types (TID, GluedTransitionId(..))
 
 
 firingTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> String \/ ExecutionTrace -> ComponentHTML Action s m
-firingTxView wfi tx executionTrace =
+firingTxView wfi tx executionTraceE =
   div []
       [ p     [] [ text $ if isExecution tx.firing then "Execution" else "Firing" ]
       , table [] $ txWrapperRows wfi tx <>
                    firingTxBodyRows wfi tx <>
-                   [ row "trace" $ text $ show $ map (mapMaybe (preview (second <<< _Just <<< _firingTx <<< _firing <<< _firingPath))) executionTrace ] <>
-                   [ row "trace raw" $ text (show executionTrace) ]
+                   [ row "trace"     $ text $ either (const "no") (show <<< map (un GluedTransitionId)) firedTransitionsE ] <>
+                   [ row "history"   $ either (const $ text "no execution trace") (firingTxHistoryTable wfi.hash) executionTraceE ]
       ]
+  where
+    firedTransitionsE :: String \/ Array GluedTransitionId
+    firedTransitionsE = map (mapMaybe (preview (second <<< _Just <<< _firingTx <<< _firing <<< _firingPath))) executionTraceE
 
 wiringTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> WiringTx -> ComponentHTML Action s m
 wiringTxView wfi tx =
@@ -53,6 +62,30 @@ txWrapperRows wfi tx =
 
 --------------------------------------------------------------------------------
 
+firingTxHistoryTable :: ∀ s m. MonadAff m => TxId -> ExecutionTrace -> ComponentHTML Action s m
+firingTxHistoryTable currentHash et =
+  div [] (headerRows <> (historyRow <$> et))
+  where
+    headerRows = [ tr [] [ th [] [ text "hash" ], th [] [ text "transition" ], th [] [ text "message" ] ] ]
+
+    historyRow (hash /\ txMaybe) =
+      tr [ classes $ if hash == currentHash then [ ClassName "css-tx-current" ] else [] ] $
+         maybe [ td [] [ text $ shortHash hash ], td [] [], td [] [ text $ "transaction not loaded." ] ]
+               (evalTxSum (\x ->        [ td [] [ text $ shortHash hash ], td [] [], td [] [ text $ "unexpected non-firing transaction" ] ])
+                          (\x ->        [ td [] [ text $ shortHash hash ], td [] [], td [] [ text $ "unexpected non-firing transaction" ] ])
+                          (\x ->        [ td [] [ text $ shortHash hash ], td [] [], td [] [ text $ "unexpected non-firing transaction" ] ])
+                          (\firingTx -> [ td [] [ text $ shortHash hash ]
+                                        , td [] [ text $ show $ view (_GluedTransitionId >>> _firingPath >>> _firing) firingTx ]
+                                        , td [] [ maybe (text "no message")
+                                                        (\msg -> pre [] [ text $ "\"" <> msg <> "\"" ])
+                                                        firingTx.firing.message
+                                                ]
+                                        ])
+                         )
+                         txMaybe
+
+--------------------------------------------------------------------------------
+
 wiringTxBodyRows :: ∀ s m. MonadAff m => WiringFiringInfo -> WiringTx -> Array (ComponentHTML Action s m)
 wiringTxBodyRows wfi tx =
   [ row "diagrams"  $ text $ show (tx.wiring.diagrams <#> _.name)
@@ -74,3 +107,7 @@ row caption content =
   tr [] [ td [] [ text caption ]
         , td [] [ content ]
         ]
+
+-- TODO dedupe
+shortHash :: HashStr -> String
+shortHash = take 8
