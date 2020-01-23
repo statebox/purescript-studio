@@ -39,7 +39,7 @@ import ExampleData as Ex
 
 type Input = Unit
 
-data Query a = TxHashToVisit URL TxId a
+data Query a = LoadTransactionsThenView URL TxId a
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Input Void m
 ui =
@@ -60,7 +60,7 @@ ui =
 
     handleQuery :: ∀ a. Query a -> H.HalogenM State Action ChildSlots Void m (Maybe a)
     handleQuery = case _ of
-      TxHashToVisit endpointUrl hash next -> do
+      LoadTransactionsThenView endpointUrl hash next -> do
         handleAction (LoadTransactions endpointUrl hash)
 
         -- after the transaction and its history have been loaded, display it
