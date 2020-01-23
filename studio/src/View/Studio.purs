@@ -10,6 +10,7 @@ import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Set as Set
+import Data.Traversable (for_)
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
@@ -30,6 +31,7 @@ import View.KDMonCat.App as KDMonCat.Bricks
 import View.KDMonCat.Bricks as KDMonCat.Bricks
 import View.Model (Project)
 import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo)
+import View.Studio.Model.Route as Route
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
@@ -60,6 +62,12 @@ ui =
     handleQuery = case _ of
       TxHashToVisit endpointUrl hash next -> do
         handleAction (LoadTransactions endpointUrl hash)
+
+        -- after the transaction and its history have been loaded, display it
+        state <- H.get
+        let txSumMaybe = AdjacencySpace.lookup hash state.hashSpace
+        for_ txSumMaybe $ handleAction <<< SelectRoute <<< Route.fromTxSum endpointUrl hash
+
         pure (Just next)
 
     handleAction :: Action -> HalogenM State Action ChildSlots Void m Unit
