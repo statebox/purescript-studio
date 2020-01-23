@@ -2,6 +2,7 @@ module View.Studio where
 
 import Prelude hiding (div)
 import Affjax as Affjax
+import Affjax (URL)
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
 import Data.Array (cons)
@@ -9,6 +10,7 @@ import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Set as Set
+import Data.Traversable (for_)
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
@@ -22,23 +24,28 @@ import Language.Statebox.Wiring.Generator.DiagramV2 as DiagramV2
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
-import Statebox.Core.Transaction (HashTx)
+import Statebox.Core.Transaction (HashTx, TxId)
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
 import View.KDMonCat.App as KDMonCat.Bricks
 import View.KDMonCat.Bricks as KDMonCat.Bricks
 import View.Model (Project)
 import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo)
+import View.Studio.Model.Route as Route
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
 import ExampleData as Ex
 
-ui :: ∀ m q. MonadAff m => H.Component HTML q Unit Void m
+type Input = Unit
+
+data Query a = LoadTransactionsThenView URL TxId a
+
+ui :: ∀ m. MonadAff m => H.Component HTML Query Input Void m
 ui =
   H.mkComponent
     { initialState: const initialState
-    , eval:         mkEval $ defaultEval { handleAction = handleAction }
+    , eval:         mkEval $ defaultEval { handleAction = handleAction, handleQuery = handleQuery }
     , render:       render
     }
   where
@@ -50,6 +57,18 @@ ui =
       , apiUrl:      Ex.endpointUrl
       , route:       Home
       }
+
+    handleQuery :: ∀ a. Query a -> H.HalogenM State Action ChildSlots Void m (Maybe a)
+    handleQuery = case _ of
+      LoadTransactionsThenView endpointUrl hash next -> do
+        handleAction (LoadTransactions endpointUrl hash)
+
+        -- after the transaction and its history have been loaded, display it
+        state <- H.get
+        let txSumMaybe = AdjacencySpace.lookup hash state.hashSpace
+        for_ txSumMaybe $ handleAction <<< SelectRoute <<< Route.fromTxSum endpointUrl hash
+
+        pure (Just next)
 
     handleAction :: Action -> HalogenM State Action ChildSlots Void m Unit
     handleAction = case _ of
