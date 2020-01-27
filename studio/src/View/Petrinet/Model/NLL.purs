@@ -5,6 +5,7 @@ import Prelude
 
 import Data.Auth (Roles)
 import Data.Array ((..), length, zip)
+import Data.ArrayMultiset as ArrayMultiset
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Maybe (Maybe(..))
 import Data.Set as Set
@@ -60,8 +61,8 @@ toNetRep net placeNames transitionNames typedefs roles =
 
     mkTransition :: ArrayMultiset PID /\ ArrayMultiset PID -> Transition
     mkTransition (pre /\ post) =
-      { pre:  { place: _, tokens: zero } <$> pre
-      , post: { place: _, tokens: zero } <$> post
+      { pre:  (\(place /\ tokens) -> { place, tokens }) <$> ArrayMultiset.count pre
+      , post: (\(place /\ tokens) -> { place, tokens }) <$> ArrayMultiset.count post
       }
 
 --------------------------------------------------------------------------------

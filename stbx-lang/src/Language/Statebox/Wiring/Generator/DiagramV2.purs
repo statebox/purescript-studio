@@ -1,7 +1,7 @@
 module Language.Statebox.Wiring.Generator.DiagramV2 where
 
 import Prelude
-import Data.Array (zipWith, take, drop, concat, length, (..), (!!), uncons, elemIndex, filter)
+import Data.Array (zipWith, take, drop, concat, length, (..), (!!), uncons, elemIndex, filter, findIndex)
 import Data.Char (fromCharCode, toCharCode)
 import Data.Foldable (class Foldable, maximum, intercalate, foldMap, fold, notElem)
 import Data.FoldableWithIndex (foldMapWithIndex)
@@ -9,8 +9,8 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List)
 import Data.Map (Map, fromFoldableWith, lookup, union, toUnfoldable)
 import Data.Map.Internal (keys)
-import Data.Maybe (maybe, fromMaybe)
-import Data.String.CodeUnits (singleton)
+import Data.Maybe (Maybe, maybe, fromMaybe)
+import Data.String.CodeUnits (singleton, charAt)
 import Data.TraversableWithIndex (mapAccumLWithIndex)
 import Data.Tuple (snd)
 import Data.Tuple.Nested ((/\), type (/\))
@@ -63,6 +63,15 @@ fromOperators ops = fromEdges identity ((ops !! _) >>> maybe "" _.label) edges
       ops # foldMapWithIndex \src { pos : srcPos } ->
         ops # foldMapWithIndex \tgt { pos : tgtPos } ->
           if isConnected srcPos tgtPos then [{ src, tgt }] else []
+
+pixel2operator :: ∀ r. Array (Operator r) -> String -> Maybe (Operator r)
+pixel2operator ops pixelName = do
+  pixelChar <- charAt 0 pixelName
+  ops !! (toCharCode pixelChar - toCharCode 'a')
+
+operator2pixel :: ∀ r. Array (Operator r) -> (Operator r -> Boolean) -> Maybe String
+operator2pixel ops test =
+  findIndex test ops <#> nextChar 'a'
 
 fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
 fromEdges fromEnum name edges = { pixels, context }

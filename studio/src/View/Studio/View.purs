@@ -21,7 +21,7 @@ import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, src, href, placeholder, value)
 
-import Language.Statebox.Wiring.Generator.DiagramV2 (fromOperators) as DiagramV2
+import Language.Statebox.Wiring.Generator.DiagramV2 (fromOperators, operator2pixel) as DiagramV2
 import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree, Item)
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
@@ -91,7 +91,7 @@ contentView apiUrl route = case route of
         [ div [ classes [ ClassName "w-1/2" ] ]
               [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
         , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
-              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (\_ -> Nothing)
+              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (Just <<< HandleKDMonCatMsg diagramInfo)
               , case nodeMaybe of
                   Just (NetNode netInfo)          -> slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
                   Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
@@ -99,7 +99,15 @@ contentView apiUrl route = case route of
               ]
         ]
     where
-      bricksInput = KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) zero
+      bricksInput =
+        (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) zero)
+        { renderBoxContent = \name bid ->
+            (KDMonCat.Bricks.defaultRenderBoxContent name bid)
+            { className = if maybeSelectedBid == Just bid then "selected" else "" } }
+      maybeSelectedBid = case nodeMaybe of
+        Just (NetNode netInfo) -> DiagramV2.operator2pixel diagramInfo.ops (\{ identifier } -> netInfo.name == identifier)
+        _ -> Nothing
+
 
   ResolvedUberRoot url ->
     text $ "Service über-root " <> url

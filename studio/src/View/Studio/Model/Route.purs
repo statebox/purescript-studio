@@ -7,7 +7,7 @@ import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
 import View.Model (ProjectName)
 import Statebox.Core.Execution (PathElem)
-import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx)
+import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
 
 type Route = RouteF ProjectName DiagramName NetName
 
@@ -54,6 +54,15 @@ data ResolvedRouteF p d n
   | ResolvedNamespace HashStr
   | ResolvedWiring    WiringFiringInfo WiringTx
   | ResolvedFiring    WiringFiringInfo FiringTx (String \/ ExecutionTrace)
+
+--------------------------------------------------------------------------------
+
+fromTxSum :: ∀ p d n. URL -> HashStr -> TxSum -> RouteF p d n
+fromTxSum endpointUrl hash tx = tx # evalTxSum
+  (\x -> UberRootR endpointUrl)
+  (\x -> NamespaceR x.root.message)
+  (\w -> WiringR { name: hash, endpointUrl, hash })
+  (\f -> FiringR { name: hash, endpointUrl, hash })
 
 --------------------------------------------------------------------------------
 

@@ -1,6 +1,7 @@
 module Test.Statebox.Core where
 
 import Prelude
+import Data.Either (Either(..))
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 
@@ -18,9 +19,8 @@ suite :: Spec Unit
 suite = do
   describe "Stbx" do
     it "should decode a wiring transaction from hex correctly" do
-      decodedStbxObj <- liftEffect $ Stbx.decode "0a04deadbeef1a2c0a150a01611000100110001001100010001a01781a0179120f0a017a10011801180222017322017418001800"
-      let decodedJsonString = Stbx.stbxObjToJsonString decodedStbxObj
-      decodedJsonString `shouldEqual` """{"wiring":{"nets":[{"name":"a","partition":[0,1,0,1,0,0],"names":["x","y"]}],"diagrams":[{"name":"z","width":1,"pixels":[1,2],"names":["s","t"]}],"labels":[0,0]},"previous":"z6h8cQN"}"""
+      let eitherDecodedString = Stbx.decodeToJsonString "0a04deadbeef1a2c0a150a01611000100110001001100010001a01781a0179120f0a017a10011801180222017322017418001800"
+      eitherDecodedString `shouldEqual` Right """{"wiring":{"nets":[{"name":"a","partition":[0,1,0,1,0,0],"names":["x","y"]}],"diagrams":[{"name":"z","width":1,"pixels":[1,2],"names":["s","t"]}],"labels":[0,0]},"previous":"z6h8cQN"}"""
 
     it "should compute a hash from a hex string correctly" do
       let hash = Stbx.hash "0a04deadbeef1a2c0a150a01611000100110001001100010001a01781a0179120f0a017a10011801180222017322017418001800"

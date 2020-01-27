@@ -1,6 +1,12 @@
 module Statebox.Core.Lenses where
 
 import Prelude
+import Data.Lens (Prism', Iso', Lens', lens, prism', re)
+import Data.Lens.Iso.Newtype (_Newtype)
+import Data.Maybe (Maybe(..))
+import Data.NonEmpty (singleton, head)
+import Statebox.Core.Transaction (TxSum(..), WiringTx, FiringTx, isExecutionTx)
+import Statebox.Core.Types (Firing, Wiring, GluedTransitionId(..), GluedTransitionIdRaw)
 import Data.Lens (Lens', Prism', Traversal', lens, prism', _Just)
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty (singleton, head)
@@ -29,11 +35,21 @@ _wiring = lens (_.wiring) (_ { wiring = _ })
 _firing :: Lens' FiringTx Firing
 _firing = lens (_.firing) (_ { firing = _ })
 
-_execution :: Lens' Firing (Maybe TxId)
-_execution = lens (_.execution) (_ {  execution = _ })
+--------------------------------------------------------------------------------
 
 _firingExecution :: Traversal' FiringTx TxId
 _firingExecution = _firing <<< _execution <<< _Just
 
-_firingPath :: Lens' Firing GluedTransitionIdRaw
-_firingPath = lens (_.path >>> head) (\r x -> r { path = singleton x })
+_execution :: Lens' Firing (Maybe TxId)
+_execution = lens (_.execution) (_ {  execution = _ })
+
+--------------------------------------------------------------------------------
+
+_firingPath :: Lens' Firing GluedTransitionId
+_firingPath = _firingPathRaw <<< re _GluedTransitionId
+
+_firingPathRaw :: Lens' Firing GluedTransitionIdRaw
+_firingPathRaw = lens (_.path >>> head) (\r x -> r { path = singleton x })
+
+_GluedTransitionId :: Iso' GluedTransitionId GluedTransitionIdRaw
+_GluedTransitionId = _Newtype

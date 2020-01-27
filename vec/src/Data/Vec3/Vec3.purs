@@ -10,19 +10,25 @@ module Data.Vec3.Vec3
   , minMax
   , minMaxVecs
   , minMaxZero
+  , inproduct
+  , vec3ApproxEqual
 
-  , Vec2()
+  , Vec2
   , vec2
-  , Vec2D()
+  , Vec2D
+  , Point2
+  , point2
+  , origin2
   ) where
 
 import Prelude
-import Data.Foldable (class Foldable, foldl)
+import Data.Foldable (class Foldable, foldl, sum, foldrDefault, foldlDefault)
 import Data.Monoid.Additive (Additive)
 import Data.Monoid.Multiplicative (Multiplicative)
 import Data.Newtype (class Newtype)
 import Data.Ord.Max (Max)
 import Data.Ord.Min (Min)
+import Math (abs)
 
 newtype Vec3 a = Vec3 (Vec3Rec a)
 
@@ -33,7 +39,7 @@ derive instance newtypeVec3 :: Newtype (Vec3 a)  _
 type Vec3Rec a = { x :: a, y :: a, z :: a }
 
 -- | 'Smart' constructor.
-vec3 :: forall a. a -> a -> a -> Vec3 a
+vec3 :: ∀ a. a -> a -> a -> Vec3 a
 vec3 x y z = Vec3 { x: x, y: y, z: z }
 
 -- projections -----------------------------------------------------------------
@@ -62,6 +68,11 @@ instance showVec3 :: Show a => Show (Vec3 a) where
   show (Vec3 {x, y, z}) = "(" <> show x <> "," <> show y <> "," <> show z <> ")"
 
 derive instance functorVec3 :: Functor Vec3
+
+instance foldableVec3 :: Foldable Vec3 where
+  foldMap f (Vec3 {x, y, z}) = f x <> f y <> f z
+  foldr f z = foldrDefault f z
+  foldl f z = foldlDefault f z
 
 instance applyVec3 :: Apply Vec3 where
   apply (Vec3 {x: fx, y: fy, z: fz}) (Vec3 {x,y,z}) = Vec3 {x: fx x, y: fy y, z: fz z}
@@ -135,15 +146,31 @@ minMax m n =
   , max: binOp max m.max n.max
   }
 
-toArray :: forall a. Vec3 a -> Array a
+toArray :: ∀ a. Vec3 a -> Array a
 toArray v = [_x v, _y v, _z v]
+
+inproduct :: ∀ a. Semiring a => Vec3 a -> Vec3 a -> a
+inproduct l r = sum (l * r)
+
+vec3ApproxEqual :: Vec3 Number -> Vec3 Number -> Boolean
+vec3ApproxEqual (Vec3 v) (Vec3 w) = cmp v.x w.x && cmp v.y w.y && cmp v.z w.z
+  where
+    cmp a b = abs (a - b) < 1e-10
+
 
 -- Legacy Vec2 interface--------------------------------------------------------
 
 type Vec2 a = Vec3 a
+type Point2 a = Vec3 a
 
 type Vec2D = Vec3 Number
 
 -- | 'Smart' constructor.
-vec2 :: ∀ a. Semiring a => a -> a -> Vec3 a
+vec2 :: ∀ a. Semiring a => a -> a -> Vec2 a
 vec2 x y = vec3 x y zero
+
+point2 :: ∀ a. Semiring a => a -> a -> Point2 a
+point2 x y = vec3 x y one
+
+origin2 :: ∀ a. Semiring a => Point2 a
+origin2 = point2 zero zero
