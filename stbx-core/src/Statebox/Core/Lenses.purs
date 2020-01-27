@@ -5,7 +5,7 @@ import Data.Lens (Lens', Prism', Traversal', lens, prism', _Just)
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty (singleton, head)
 import Statebox.Core.Transaction (TxId, TxSum(..), WiringTx, FiringTx, isExecutionTx)
-import Statebox.Core.Types (Firing, GluedTransitionIdRaw)
+import Statebox.Core.Types (Firing, Wiring, GluedTransitionIdRaw)
 
 --------------------------------------------------------------------------------
 
@@ -22,6 +22,9 @@ _executionTx = prism' FiringTxInj $ case _ of FiringTxInj x | isExecutionTx x ->
                                               _                               -> Nothing
 
 --------------------------------------------------------------------------------
+
+_wiring :: Lens' WiringTx Wiring
+_wiring = lens (_.wiring) (_ { wiring = _ })
 
 _firing :: Lens' FiringTx Firing
 _firing = lens (_.firing) (_ { firing = _ })

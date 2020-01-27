@@ -1,8 +1,8 @@
-module Statebox.Protocol.Execution where
+module Statebox.Protocol.ExecutionState where
 
 import Statebox.Core.Transaction (TxId)
 
-type Execution =
+type ExecutionState =
   { lastFiring :: TxId
   , wiring     :: TxId
   }

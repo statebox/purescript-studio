@@ -20,8 +20,8 @@ type Tx a =
 mapTx :: ∀ a b. (a -> b) -> Tx a -> Tx b
 mapTx f x = x { decoded = f x.decoded }
 
--- | the Hash and the TxSum are two representations of the same transaction
--- | which could turn out to be useful in different places
+-- | The `TxId` and the `TxSum` are two representations of the same transaction
+-- | which could turn out to be useful in different places.
 type HashTx = { id :: TxId, tx :: TxSum }
 
 attachTxId :: TxId -> TxSum -> HashTx

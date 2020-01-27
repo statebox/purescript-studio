@@ -1,6 +1,7 @@
 module Statebox.Core.Types where
 
 import Prelude
+import Data.ArrayMultiset
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.NonEmpty (NonEmpty(..))
@@ -45,6 +46,7 @@ type Initial =
 -- |    into the list `(nets <> diagrams)`.
 -- |
 -- | for a more detailed description, refer to https://hackmd.io/0CPzJ_V-Qkm0y40NLQRhWw?view#Representing-the-gluing
+-- TODO: replace link with link to docs site
 type Wiring =
   { nets     :: Array Net
   , diagrams :: Array Diagram
@@ -53,15 +55,16 @@ type Wiring =
 
 type Net =
   { name       :: String
-  , partition  :: Array Int             -- NLL encoding
+  , partition  :: ArrayMultiset PID     -- ^ NLL encoding
   , names      :: Array String          -- ^ transition names
   , placeNames :: Maybe (Array String)
   }
 
+-- | See https://docs.statebox.org/spec/nlldiagrams.
 type Diagram =
   { name   :: String
-  , width  :: Int          -- width of the brick diagram (see https://docs.statebox.org/spec/nlldiagrams/)
-  , pixels :: Array Int    -- actual brick diagram encoding
+  , width  :: Int          -- ^ width of the brick diagram
+  , pixels :: Array Int    -- ^ actual brick diagram encoding
   , names  :: Array String
   }
 
