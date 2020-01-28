@@ -2,16 +2,14 @@ module Test.Statebox.Core.Execution where
 
 import Prelude
 
-import Data.Array (length, (..))
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Debug.Trace (spy)
-import Test.Spec (Spec, pending, describe, it)
+import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-import Test.Spec.Reporter.Console (consoleReporter)
 
-import Statebox.Core.Execution
+import Statebox.Core.Execution (TransitionSort(..), fromGluedTransition2JS, fromTransitionSortString)
 import Statebox.Core.Execution as Stbx
-import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionId(..))
+import Statebox.Core.Types (Wiring, GluedTransitionId(..))
 
 -- | We define this FFI value in order to load the FFI module, which imports (requires) stbx.js.
 foreign import requireStbxJs_HACK :: String
