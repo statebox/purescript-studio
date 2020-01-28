@@ -9,10 +9,10 @@ import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
-import Halogen.HTML (HTML, div)
-import Halogen.HTML.Core (ClassName(..))
+import Halogen.HTML (HTML, div, text, p)
+import Halogen.HTML.Core (ClassName(..), AttrName(..))
 import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties (classes, tabIndex)
+import Halogen.HTML.Properties (attr, classes, tabIndex)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Element)
 import Web.Event.Event (preventDefault)
@@ -54,6 +54,8 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
           ]
           [ div [ classes [] ]
                 [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
+                , div [ attr (AttrName "style") "text-align: center"]
+                      [ p [] [ text "↑↓"] ]
                 , div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
                       [ Inspector.view state ]
                 ]
