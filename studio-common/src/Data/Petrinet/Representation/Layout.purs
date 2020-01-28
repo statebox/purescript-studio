@@ -3,7 +3,7 @@ module Data.Petrinet.Representation.Layout where
 import Prelude
 import Data.Map as Map
 import Data.Map (Map)
-import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested (type (/\))
 import Data.Vec3 as Vec3
 import Data.Vec3 (Vec3)
 
@@ -12,12 +12,12 @@ type NetLayoutF pid tid = Record (NetLayoutFRow pid tid ())
 type NetLayoutFRow pid tid r =
   ( placePointsDict      :: Map pid (Vec3 Number)
   , transitionPointsDict :: Map tid (Vec3 Number)
-  , edgeWaypointsDict    :: Map (Tuple tid pid) (Array (Vec3 Number))
+  , edgeWaypointsDict    :: Map (pid /\ tid) (Array (Vec3 Number))
   | r
   )
 
 mapVec2D
-  :: forall pid tid
+  :: ∀ pid tid
    . (Vec3 Number -> Vec3 Number)
   -> NetLayoutF pid tid
   -> NetLayoutF pid tid

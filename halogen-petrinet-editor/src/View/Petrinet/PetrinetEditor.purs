@@ -11,7 +11,8 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Set as Set
-import Data.Tuple (uncurry, Tuple(..))
+import Data.Tuple (uncurry)
+import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.Vec3 (Vec2D, vec2, _x, _y)
 import Effect.Aff (delay, Milliseconds(..))
@@ -33,7 +34,6 @@ import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
 import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, preMarking, mkNetApiF)
-import Data.Petrinet.Representation.Layout.Bipartite as Bipartite
 import Data.Petrinet.Representation.Layout.Dagre as Dagre
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
@@ -278,7 +278,7 @@ ui htmlIdPrefixMaybe =
               , dest: _
               , label: arcLabel tp.tokens
               , htmlId: postArcId tid tp.place
-              , waypoints: Map.lookup (Tuple tid tp.place) layout.edgeWaypointsDict # fromMaybe []
+              , waypoints: Map.lookup (tp.place /\ tid) layout.edgeWaypointsDict # fromMaybe []
               } <$> Map.lookup tp.place layout.placePointsDict
 
             mkPreArc :: Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
@@ -289,7 +289,7 @@ ui htmlIdPrefixMaybe =
               , dest: dest
               , label: arcLabel tp.tokens
               , htmlId: preArcId tid tp.place
-              , waypoints: Map.lookup (Tuple tid tp.place) layout.edgeWaypointsDict # fromMaybe []
+              , waypoints: Map.lookup (tp.place /\ tid) layout.edgeWaypointsDict # fromMaybe []
               } <$> Map.lookup tp.place layout.placePointsDict
 
             arcLabel :: Tokens -> String

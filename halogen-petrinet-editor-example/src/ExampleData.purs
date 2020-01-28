@@ -116,7 +116,7 @@ layout1 =
       , 8 /\ vec2 70.0 20.0
       , 9 /\ vec2 70.0 40.0
       ]
-  , edgeWaypointsDict: Map.empty
+  , edgeWaypointsDict: mempty
   }
 
 textBoxes1 :: Array TextBox
@@ -210,7 +210,7 @@ layout2 =
       , 8 /\ vec2   70.0  mid2
       , 9 /\ vec2  110.0  mid2
       ]
-  , edgeWaypointsDict: Map.empty
+  , edgeWaypointsDict: mempty
   }
   where
     top2 = 10.0
