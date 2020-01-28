@@ -163,6 +163,7 @@ mkLayout
 mkLayout firstTransitionIndex placePoints transitionPoints =
    { placePointsDict:      Map.fromFoldable placePoints
    , transitionPointsDict: Map.fromFoldable $ zipWithIndexFrom firstTransitionIndex transitionPoints
+   , edgeWaypointsDict:    Map.empty
    }
 
 mkNetApi :: NetRep -> NetApi
@@ -178,7 +179,7 @@ mkNetInfo net name textBoxes =
 
 --------------------------------------------------------------------------------
 
-type Visuals pid tid = 
+type Visuals pid tid =
   { layout    :: NetLayoutF pid tid
   , textBoxes :: Array TextBox
   }

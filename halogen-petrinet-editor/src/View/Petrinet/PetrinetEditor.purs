@@ -11,7 +11,7 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Set as Set
-import Data.Tuple (uncurry)
+import Data.Tuple (uncurry, Tuple(..))
 import Data.Traversable (traverse)
 import Data.Vec3 (Vec2D, vec2, _x, _y)
 import Effect.Aff (delay, Milliseconds(..))
@@ -87,12 +87,13 @@ type TransitionModelF tid label pt =
   }
 
 type ArcModelF tid label pt =
-  { src    :: pt
-  , dest   :: pt
-  , label  :: label -- TODO String?
-  , tid    :: tid
-  , isPost :: Boolean
-  , htmlId :: HtmlId
+  { src       :: pt
+  , dest      :: pt
+  , waypoints :: Array pt
+  , label     :: label -- TODO String?
+  , tid       :: tid
+  , isPost    :: Boolean
+  , htmlId    :: HtmlId
   }
 
 -- TODO drat, we didn't want type parameters here
@@ -167,7 +168,7 @@ ui htmlIdPrefixMaybe =
         marking = state.overrideMarking # fromMaybe state.netInfo.net.marking
         { layout, textBoxes } = NetInfo.translateAndScale Config.netScale { layout, textBoxes: state.netInfo.textBoxes }
           where
-            layout = fromMaybe autoLayout state.netInfo.net.layout
+            layout = autoLayout -- fromMaybe autoLayout state.netInfo.net.layout
               where
                 -- autoLayout = Bipartite.layout Config.bipartiteLayoutScale state.netInfo.net
                 autoLayout = Dagre.layout state.netInfo.net
@@ -270,10 +271,26 @@ ui htmlIdPrefixMaybe =
                }
           where
             mkPostArc :: Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPostArc src tp = { isPost: true, tid: tid, src: src, dest: _, label: arcLabel tp.tokens, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+            mkPostArc src tp =
+              { isPost: true
+              , tid: tid
+              , src: src
+              , dest: _
+              , label: arcLabel tp.tokens
+              , htmlId: postArcId tid tp.place
+              , waypoints: Map.lookup (Tuple tid tp.place) layout.edgeWaypointsDict # fromMaybe []
+              } <$> Map.lookup tp.place layout.placePointsDict
 
             mkPreArc :: Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPreArc dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: arcLabel tp.tokens, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+            mkPreArc dest tp =
+              { isPost: false
+              , tid: tid
+              , src: _
+              , dest: dest
+              , label: arcLabel tp.tokens
+              , htmlId: preArcId tid tp.place
+              , waypoints: Map.lookup (Tuple tid tp.place) layout.edgeWaypointsDict # fromMaybe []
+              } <$> Map.lookup tp.place layout.placePointsDict
 
             arcLabel :: Tokens -> String
             arcLabel 1 = ""
@@ -317,18 +334,18 @@ ui htmlIdPrefixMaybe =
            [ SE.path
                [ SA.class_ $ "css-arc " <> if arc.isPost then "css-post-arc" else "css-pre-arc"
                , SA.id arc.htmlId -- we refer to this as the path of our animation and label, among others
-               , SA.d (svgPath arc.src arc.dest)
+               , SA.d (svgPath arc.src arc.waypoints arc.dest)
                ]
-           , svgArrow arc.src arc.dest arc.isPost
+           , svgArrow arc.src arc.dest arc.waypoints arc.isPost
            , SE.text
               [ SA.class_ "css-arc-name-label"
               , SA.attr (AttrName "dy") "-0.3em"
               , SA.font_size (FontSizeLength $ Em fontSize)
               ]
-              [ SE.element (ElemName "textPath") 
+              [ SE.element (ElemName "textPath")
                 [ SA.attr (AttrName "href") ("#" <> arc.htmlId)
                 , SA.attr (AttrName "startOffset") "50%"
-                ] [ HH.text arc.label ] 
+                ] [ HH.text arc.label ]
               ]
            , svgTokenAnimated arc
            ]
@@ -415,7 +432,7 @@ ui htmlIdPrefixMaybe =
               , SA.class_ "css-token-in-place"
               ]
           else
-            SE.g [] $ (1..tokens) <#> \i -> 
+            SE.g [] $ (1..tokens) <#> \i ->
               SE.circle
               [ SA.r      tokenRadius
               , SA.cx     (_x point + cos (toNumber i / toNumber tokens * 2.0 * pi) * placeRadius * r tokens)
@@ -532,8 +549,8 @@ labelVisibilityButtons =
 
 --------------------------------------------------------------------------------
 
-svgPath :: Vec2D -> Vec2D -> Array SA.D
-svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
+svgPath :: Vec2D -> Array Vec2D -> Vec2D -> Array SA.D
+svgPath p qs r = SA.Abs <$> [ SA.M (_x p) (_y p) ] <> ((\q -> SA.L (_x q) (_y q)) <$> qs) <> [ SA.L (_x r) (_y r) ]
 
 toggleMaybe :: ∀ a b. b -> Maybe a -> Maybe b
 toggleMaybe z mx = case mx of

@@ -7,31 +7,32 @@ import Halogen.HTML (HTML)
 import Svg.Elements as SE
 import Svg.Attributes as SA
 import Math (atan2, cos, sin, sqrt)
-import Data.Maybe (Maybe(..))
+import Data.Array (head, last)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Ord (abs)
 
 import View.Petrinet.Config
 
 -- | This refers to an `arrowheadMarkerId`, for which a marker must be defined in the `<defs>`.
 -- | Such a marker is defined provided here as `svgArrowheadMarker`.
-svgArrow :: forall p i. Vec2D -> Vec2D -> Boolean -> HTML p i
-svgArrow src dest isPost =
+svgArrow :: forall p i. Vec2D -> Vec2D -> Array Vec2D -> Boolean -> HTML p i
+svgArrow src dest waypoints isPost =
   case isPost of
-    true  -> let src'  = transitionLinePoint dest src
-                 dest' = placeLinePoint      dest src
-             in  svgArrowLine src' dest'
-    false -> let src'  = placeLinePoint      src dest
-                 dest' = transitionLinePoint src dest
-             in  svgArrowLine src' dest'
+    true  -> let src'  = transitionLinePoint toSrc  src
+                 dest' = placeLinePoint      dest   toDest
+             in  svgArrowLine src' dest' waypoints
+    false -> let src'  = placeLinePoint      src    toSrc
+                 dest' = transitionLinePoint toDest dest
+             in  svgArrowLine src' dest' waypoints
+  where
+    toSrc = fromMaybe dest (head waypoints)
+    toDest = fromMaybe src (last waypoints)
 
-svgArrowLine :: forall p i. Vec2D -> Vec2D -> HTML p i
-svgArrowLine src dest =
-  SE.line
+svgArrowLine :: forall p i. Vec2D -> Vec2D -> Array Vec2D -> HTML p i
+svgArrowLine src dest waypoints =
+  SE.path
     [ SA.class_ "css-arrow"
-    , SA.x1 $ _x src
-    , SA.y1 $ _y src
-    , SA.x2 $ _x dest
-    , SA.y2 $ _y dest
+    , SA.d $ SA.Abs <$> [ SA.M (_x src) (_y src) ] <> ((\p -> SA.L (_x p) (_y p)) <$> waypoints) <> [ SA.L (_x dest) (_y dest) ]
     , SA.markerEnd $ "url(#" <> arrowheadMarkerId <> ")"
     ]
 
