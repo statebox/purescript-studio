@@ -44,8 +44,8 @@ layout net =
       { places: net.places <#> show
       , transitions: tids <#> show
       , edges: net.transitionsDict # foldMapWithIndex \tid { pre, post } ->
-          map (\{ place } -> { source: show place, target: show tid   , tid, place }) pre <>
-          map (\{ place } -> { source: show tid  , target: show place , tid, place }) post
+          map (\{ place } -> { source: show place, target: show tid  , tid, place }) pre <>
+          map (\{ place } -> { source: show tid  , target: show place, tid, place }) post
       }
     tids = computeTransitionIds net
     toMap :: ∀ id. Show id => Ord id => Array id -> Object { x :: Number, y :: Number } -> Map.Map id (Vec3 Number)

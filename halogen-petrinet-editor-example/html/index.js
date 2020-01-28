@@ -1,4 +1,3 @@
-var dagre = require("dagre")
-window.dagre = dagre;
+window.dagre = require("dagre")
 var Main = require("../output/Main")
 Main.main()

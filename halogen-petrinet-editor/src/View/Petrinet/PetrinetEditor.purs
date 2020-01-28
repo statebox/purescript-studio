@@ -168,7 +168,7 @@ ui htmlIdPrefixMaybe =
         marking = state.overrideMarking # fromMaybe state.netInfo.net.marking
         { layout, textBoxes } = NetInfo.translateAndScale Config.netScale { layout, textBoxes: state.netInfo.textBoxes }
           where
-            layout = autoLayout -- fromMaybe autoLayout state.netInfo.net.layout
+            layout = fromMaybe autoLayout state.netInfo.net.layout
               where
                 -- autoLayout = Bipartite.layout Config.bipartiteLayoutScale state.netInfo.net
                 autoLayout = Dagre.layout state.netInfo.net
