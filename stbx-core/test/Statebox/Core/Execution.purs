@@ -10,6 +10,8 @@ import Test.Spec.Assertions (shouldEqual)
 import Statebox.Core.Execution (TransitionSort(..), fromGluedTransition2JS, fromTransitionSortString)
 import Statebox.Core.Execution as Stbx
 import Statebox.Core.Types (Wiring, GluedTransitionId(..))
+import Statebox.Core.Wiring as Wiring
+import Statebox.Core.Wiring (NetsAndDiagramsIndex(..))
 
 -- | We define this FFI value in order to load the FFI module, which imports (requires) stbx.js.
 foreign import requireStbxJs_HACK :: String
@@ -47,7 +49,7 @@ suite = do
       -- |     m.t m.1     u&t     n.1 n.u
       -- | ```
       wiring :: Wiring
-      wiring =
+      wiring = Wiring.fromWiringRaw
         { nets: [ { name: "a"
                   , partition: [0,1,0,1,0,0]
                   , names: ["t","u"]
@@ -137,7 +139,7 @@ suite = do
       -- |         t    u    v
       -- | ```
       wiring :: Wiring
-      wiring =
+      wiring = Wiring.fromWiringRaw
         { nets: [ { name: "a"
                   , partition: [0,1,0,1,0,2,0,2,0,0]
                   , names: ["t","u","v"]
@@ -275,7 +277,7 @@ suite = do
       -- |              4
       -- | ```
       wiring :: Wiring
-      wiring =
+      wiring = Wiring.fromWiringRaw
         { nets: [ { name: "a"
                   , partition: [0,1,0,1,0,0]
                   , names: ["u","v"]

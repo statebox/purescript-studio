@@ -30,7 +30,9 @@ _executionTx = prism' FiringTxInj $ case _ of FiringTxInj x | isExecutionTx x ->
 --------------------------------------------------------------------------------
 
 _wiring :: Lens' WiringTx Wiring
-_wiring = lens (_.wiring) (_ { wiring = _ })
+_wiring = _wiring'
+
+_wiring' = lens (_.wiring) (_ { wiring = _ })
 
 _firing :: Lens' FiringTx Firing
 _firing = lens (_.firing) (_ { firing = _ })
