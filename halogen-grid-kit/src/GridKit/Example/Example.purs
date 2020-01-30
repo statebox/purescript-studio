@@ -68,8 +68,8 @@ ui = ReactiveInput.mkComponent
   , handleInput: \_ -> pure unit
   }
 
-handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots Void m Unit
-handleAction (ChangeState f) = H.modify_ f
+handleAction :: ∀ m. MonadEffect m => Input -> Action -> H.HalogenM State Action ChildSlots Void m Unit
+handleAction _ (ChangeState f) = H.modify_ f
 
 render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
 render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = div

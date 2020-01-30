@@ -22,7 +22,7 @@ type ComponentSpec surface state action slots input output m =
   { initialState :: state
   , render :: input -> state -> surface (H.ComponentSlot surface slots m action) action
   , handleInput :: input -> H.HalogenM state action slots output m Unit
-  , handleAction :: action -> H.HalogenM state action slots output m Unit
+  , handleAction :: input -> action -> H.HalogenM state action slots output m Unit
   }
 
 mkComponent
@@ -59,8 +59,9 @@ handle { handleInput, handleAction } = case _ of
     H.modify_ _ { input = newInput }
     mapHalogenM $ handleInput newInput
 
-  Rest action ->
-    mapHalogenM $ handleAction action
+  Rest action -> do
+    { input } <- H.get
+    mapHalogenM $ handleAction input action
 
 
 mapHalogenM
