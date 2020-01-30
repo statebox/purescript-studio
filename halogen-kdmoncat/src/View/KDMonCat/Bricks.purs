@@ -139,16 +139,11 @@ render { bricks: { width, height, boxes }, matches, context, selectedBoxes, rend
   where
     altKey = keyHandler
       [ Char "Alt" ]
-      (text "Toggle between bricks and wires")
+      (Just $ text "Toggle between bricks and wires")
       (ChangeState $ _showWires %~ not)
-    cursorKeys =
-      [ { key: "ArrowLeft",  dx: -1, dy:  0 }
-      , { key: "ArrowUp",    dx:  0, dy: -1 }
-      , { key: "ArrowRight", dx:  1, dy:  0 }
-      , { key: "ArrowDown",  dx:  0, dy:  1 }
-      ] # foldMap \{ key, dx, dy } ->
-        keyHandlerNoHelp [ Shortcut noMods   key ] (MoveCursorStart (vec2 dx dy))
-        <> keyHandlerNoHelp [ Shortcut shiftKey key ] (MoveCursorEnd (vec2 dx dy))
+    cursorKeys
+       = cursorKeyHandler noMods   MoveCursorStart
+      <> cursorKeyHandler shiftKey MoveCursorEnd
     keys = keysWithHelpPopup
       { keys: altKey <> cursorKeys
       , popupAction: ChangeState $ _keyHelpVisible %~ not

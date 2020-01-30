@@ -2,12 +2,13 @@ module GridKit.KeyHandler where
 
 import Prelude hiding (div)
 
-import Data.Foldable (any, intercalate)
+import Data.Foldable (any, intercalate, foldMap)
 import Data.HeytingAlgebra
 import Data.Maybe
 import Data.Maybe.First
 import Data.Monoid (guard)
 import Data.Newtype (unwrap)
+import Data.Vec3 (Vec3, vec2)
 import Effect.Class (class MonadEffect)
 import Effect.Unsafe (unsafePerformEffect)
 import Halogen.HTML hiding (prop, map)
@@ -18,15 +19,18 @@ import Web.UIEvent.KeyboardEvent as K
 
 import Debug.Trace
 
+type KeysWithHelpPopup action =
+  { onKeyDown :: ∀ r. IProp (onKeyDown :: K.KeyboardEvent | r) action
+  , helpPopup :: ∀ m c. MonadEffect m => Boolean -> ComponentHTML action c m
+  }
+
 keysWithHelpPopup
   :: ∀ action
    . { keys :: KeyHandler action
      , popupAction :: action }
-  -> { onKeyDown :: ∀ r. IProp (onKeyDown :: K.KeyboardEvent | r) action
-     , helpPopup :: ∀ m c. MonadEffect m => Boolean -> ComponentHTML action c m
-     }
+  -> KeysWithHelpPopup action
 keysWithHelpPopup { keys, popupAction } =
-  { onKeyDown: handleKeyDown (keys <> keyHandler [ Char "?" ] (text "") popupAction)
+  { onKeyDown: handleKeyDown (keys <> keyHandler [ Char "?" ] Nothing popupAction)
   , helpPopup: renderKeyHelpPopup keys popupAction
   }
 
@@ -76,15 +80,23 @@ type KeyHandler action =
   , documentation :: KeyDocumentation
   }
 
-keyHandler :: ∀ action. Array Key -> PlainHTML -> action -> KeyHandler action
-keyHandler keys description action = { handler, documentation: [{ keys, description }] }
+keyHandler :: ∀ action. Array Key -> Maybe PlainHTML -> action -> KeyHandler action
+keyHandler keys mDescription action = { handler, documentation: mDescription # foldMap \description -> [{ keys, description }] }
   where
     handler keyEvent = guard (any (matches keyEvent) keys) (pure action)
 
-keyHandlerNoHelp :: ∀ action. Array Key -> action -> KeyHandler action
-keyHandlerNoHelp keys action = { handler, documentation: [] }
-  where
-    handler keyEvent = guard (any (matches keyEvent) keys) (pure action)
+cursorKeyHandler :: ∀ action. Modifiers -> (Vec3 Int -> action) -> KeyHandler action
+cursorKeyHandler mods mkAction
+   = keyHandler [ Shortcut mods "ArrowLeft"  ] Nothing (mkAction (vec2 (-1)  0 ))
+  <> keyHandler [ Shortcut mods "ArrowUp"    ] Nothing (mkAction (vec2   0 (-1)))
+  <> keyHandler [ Shortcut mods "ArrowRight" ] Nothing (mkAction (vec2   1   0 ))
+  <> keyHandler [ Shortcut mods "ArrowDown"  ] Nothing (mkAction (vec2   0   1 ))
+
+debugKeyCodes :: ∀ action. DebugWarning => KeyHandler action
+debugKeyCodes =
+  { handler: \keyEvent -> trace { key: K.key keyEvent, code: K.code keyEvent } mempty
+  , documentation: []
+  }
 
 handleKeyDown :: ∀ action r. KeyHandler action -> IProp (onKeyDown :: K.KeyboardEvent | r) action
 handleKeyDown { handler } = onKeyDown \keyEvent -> unwrap (handler keyEvent) <#> prevent keyEvent
@@ -93,12 +105,6 @@ handleKeyDown { handler } = onKeyDown \keyEvent -> unwrap (handler keyEvent) <#>
       stopPropagation (K.toEvent keyEvent)
       preventDefault (K.toEvent keyEvent)
       pure action
-
-debugKeyCodes :: ∀ action. DebugWarning => KeyHandler action
-debugKeyCodes =
-  { handler: \keyEvent -> trace { key: K.key keyEvent, code: K.code keyEvent } mempty
-  , documentation: []
-  }
 
 displayKeyCode :: String -> String
 displayKeyCode "Minus" = "-"
