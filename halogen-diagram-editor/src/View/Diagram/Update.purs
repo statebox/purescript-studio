@@ -14,16 +14,17 @@ import View.Diagram.Common (snap)
 type State =
   { model              :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified
   , msg                :: String
+  , keyHelpVisible     :: Boolean
   , componentElemMaybe :: Maybe HTMLElement
   }
 
 data Action
   = Initialize
   | MouseAction MouseMsg
-  | KeyboardAction KeyboardEvent
   | UpdateDiagram Operators
   | MoveCursor (Vec3 Int)
   | CreateOp
+  | ToggleKeyHelp
 
 data MouseMsg
   = MouseIsOver Operator OperatorHandle

@@ -7,17 +7,15 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested ((/\))
 import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
+import GridKit.KeyHandler
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
-import Halogen.HTML (HTML, div)
+import Halogen.HTML (HTML, div, text)
 import Halogen.HTML.Core (ClassName(..))
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (classes, tabIndex)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Element)
-import Web.Event.Event (preventDefault)
 import Web.HTML.HTMLElement (HTMLElement)
-import Web.UIEvent.KeyboardEvent (code, toEvent)
 
 import View.Diagram.Common (classesWithNames)
 import View.Diagram.Model (DragStart(..), Operators)
@@ -38,6 +36,7 @@ initialState ops =
     , dragStart:     DragNotStarted
     }
   , msg:                ""
+  , keyHelpVisible:     false
   , componentElemMaybe: Nothing
   }
 
@@ -46,17 +45,26 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
     handleAction = handleAction, receive = Just <<< UpdateDiagram, initialize = Just Initialize
   }}
   where
+    keys :: KeysWithHelpPopup Action
+    keys = keysWithHelpPopup
+      { keys:
+          keyHandler [ Shortcut noMods "Space" ] (Just $ text "Insert a new operator") CreateOp
+          <> cursorKeyHandler noMods MoveCursor
+      , popupAction: ToggleKeyHelp
+      }
+
     render :: State -> ComponentHTML Action () m
     render state =
       div [ classes [ ClassName "css-diagram-editor" ]
           , tabIndex 0
-          , HE.onKeyDown $ Just <<< KeyboardAction
+          , keys.onKeyDown
           ]
           [ div [ classes [] ]
                 [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
                 , div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
                       [ Inspector.view state ]
                 ]
+          , keys.helpPopup state.keyHelpVisible
           ]
 
     handleAction :: Action -> HalogenM State Action () Msg m Unit
@@ -75,18 +83,6 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
         let { cursorPos, config: { scale, width, height } } = m
         let cursorPos' = clamp2d (width/scale+1) (height/scale+1) (cursorPos + delta)
         H.modify_ \st -> st { model = m { cursorPos = cursorPos' } }
-
-      KeyboardAction k -> do
-        H.liftEffect $ preventDefault $ toEvent k
-        case code k of
-          "ArrowLeft"  -> move (-1)  0
-          "ArrowUp"    -> move   0 (-1)
-          "ArrowRight" -> move   1   0
-          "ArrowDown"  -> move   0   1
-          "Space"      -> handleAction CreateOp
-          _            -> pure unit
-        where
-          move dx dy = handleAction $ MoveCursor (vec3 dx dy zero)
 
       MouseAction msg -> do
         state <- H.get
@@ -114,6 +110,9 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
       UpdateDiagram ops -> do
         H.modify_ \state -> state { model = state.model { ops = ops } }
+
+      ToggleKeyHelp -> do
+        H.modify_ $ \st -> st { keyHelpVisible = not st.keyHelpVisible }
 
       Initialize -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
