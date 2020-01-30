@@ -9,14 +9,14 @@ import Halogen.HTML as HH
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Properties (classes)
 
-import View.Diagram.Model (dragDelta, isValidDrag)
+import View.Diagram.Model (dragDelta, isValidDrag, Operators)
 import View.Diagram.Update (Action, State)
 import View.Diagram.Common (snap)
 
-view :: ∀ m. State -> ComponentHTML Action () m
-view state@{model} =
+view :: ∀ m. Operators -> State -> ComponentHTML Action () m
+view ops state@{model} =
   HH.pre [ classes [ ClassName "css-diagram-editor-properties-view" ] ]
-         [ prop "ops"         $ show $ map (_.identifier) model.ops
+         [ prop "ops"         $ show $ map (_.identifier) ops
          , prop "over"        $ show model.mouseOver
          , prop "pos"         $ show model.mousePos
          , prop "pressed"     $ show model.mousePressed

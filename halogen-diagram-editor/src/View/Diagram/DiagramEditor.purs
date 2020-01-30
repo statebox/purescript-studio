@@ -17,17 +17,17 @@ import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Element)
 import Web.HTML.HTMLElement (HTMLElement)
 
+import View.ReactiveInput as ReactiveInput
 import View.Diagram.Common (classesWithNames)
 import View.Diagram.Model (DragStart(..), Operators)
-import View.Diagram.Update (Action(..), MouseMsg(..), Msg(..), DirtyState(Clean, Dirty), State, evalModel)
+import View.Diagram.Update (Action(..), MouseMsg(..), Msg(..), State, evalModel)
 import View.Diagram.View as View
 import View.Diagram.Inspector as Inspector
 
-initialState :: Operators -> State
-initialState ops =
+initialState :: State
+initialState =
   { model:
     { config:        { scale: 24, width: 550, height: 450 }
-    , ops:           ops
     , selectedOpId:  Nothing
     , mouseOver:     Nothing
     , mousePos:      vec3 0 0 0
@@ -41,9 +41,7 @@ initialState ops =
   }
 
 ui :: ∀ m q. MonadAff m => H.Component HTML q Operators Msg m
-ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
-    handleAction = handleAction, receive = Just <<< UpdateDiagram, initialize = Just Initialize
-  }}
+ui = ReactiveInput.mkComponent { initialState, render, handleInput, handleAction }
   where
     keys :: KeysWithHelpPopup Action
     keys = keysWithHelpPopup
@@ -53,26 +51,30 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
       , popupAction: ToggleKeyHelp
       }
 
-    render :: State -> ComponentHTML Action () m
-    render state =
+    render :: Operators -> State -> ComponentHTML Action () m
+    render ops state =
       div [ classes [ ClassName "css-diagram-editor" ]
           , tabIndex 0
           , keys.onKeyDown
           ]
           [ div [ classes [] ]
-                [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
+                [ View.diagramEditorSVG state.componentElemMaybe ops state.model <#> MouseAction
                 , div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
-                      [ Inspector.view state ]
+                      [ Inspector.view ops state ]
                 ]
           , keys.helpPopup state.keyHelpVisible
           ]
 
-    handleAction :: Action -> HalogenM State Action () Msg m Unit
-    handleAction = case _ of
+    handleInput :: Operators -> HalogenM State Action () Msg m Unit
+    handleInput _ = do
+      componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
+      H.modify_ \state -> state { componentElemMaybe = componentElemMaybe }
+
+    handleAction :: Operators -> Action -> HalogenM State Action () Msg m Unit
+    handleAction ops = case _ of
 
       CreateOp -> do
         m <- H.get <#> _.model
-        let ops = m.ops
         let id = length ops
         let newOp = { identifier: "new" <> show id, pos: m.cursorPos + vec3 1 0 7, label: "new" <> show id }
         H.modify_ \st -> st { model = m { cursorPos = m.cursorPos + vec3 0 1 0 } }
@@ -86,12 +88,12 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
       MouseAction msg -> do
         state <- H.get
-        let (opsChanged /\ model') = evalModel msg state.model
+        let (opsChanged /\ model') = evalModel msg ops state.model
             state' = state { model = model' }
 
         case opsChanged of
-          Dirty -> H.raise (OperatorsChanged model'.ops)
-          Clean -> pure unit
+          Just ops' -> H.raise (OperatorsChanged ops')
+          Nothing -> pure unit
 
         let isOperatorClicked = case msg of
               MouseUp _ -> true
@@ -108,15 +110,8 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
 
         maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
 
-      UpdateDiagram ops -> do
-        H.modify_ \state -> state { model = state.model { ops = ops } }
-
       ToggleKeyHelp -> do
         H.modify_ $ \st -> st { keyHelpVisible = not st.keyHelpVisible }
-
-      Initialize -> do
-        componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
-        H.modify_ \state -> state { componentElemMaybe = componentElemMaybe }
 
 --------------------------------------------------------------------------------
 
