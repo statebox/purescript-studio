@@ -1,4 +1,3 @@
--- TODO reorder this file for clarity
 module Statebox.Core.Wiring where
 
 import Prelude
@@ -43,3 +42,19 @@ derive instance newtypeNetsAndDiagramsIndex :: Newtype NetsAndDiagramsIndex _
 
 instance showNetsAndDiagramsIndex :: Show NetsAndDiagramsIndex where
   show (NetsAndDiagramsIndex x) = show x
+
+--------------------------------------------------------------------------------
+
+-- TODO Occurrences of this outside of internal implementation should be the newtype GluedTransitionId instead.
+type GluedTransitionIdRaw = Int
+
+--------------------------------------------------------------------------------
+
+newtype GluedTransitionId = GluedTransitionId GluedTransitionIdRaw
+
+derive instance newtypeGluedTransitionId :: Newtype GluedTransitionId _
+
+derive instance eqGluedTransitionId :: Eq GluedTransitionId
+
+instance showGluedTransitionId :: Show GluedTransitionId where
+  show (GluedTransitionId i) = "(GluedTransitionId " <> show i <> ")"

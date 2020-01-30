@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionId(..))
+import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionIdRaw, GluedTransitionId(..))
 
 
 -- | ReasonML-encoded representation of a marked net.
@@ -111,9 +111,9 @@ foreign import placeCount       :: StbxObj -> Int
 --------------------------------------------------------------------------------
 
 -- TODO StbxObj and Marked are distinguished here, which makes things seem less simple and chainable than they are.
-foreign import fireOrDefault :: forall a. (Unit -> a) -> (Marked -> a) -> StbxObj -> TID -> a
+foreign import fireOrDefault :: forall a. (Unit -> a) -> (Marked -> a) -> StbxObj -> GluedTransitionIdRaw -> a
 
-fire :: StbxObj -> TID -> Maybe Marked
+fire :: StbxObj -> GluedTransitionIdRaw -> Maybe Marked
 fire = fireOrDefault (const Nothing) Just
 
 --------------------------------------------------------------------------------
@@ -122,20 +122,19 @@ fire = fireOrDefault (const Nothing) Just
 
 -- TODO TID or GluedTransitionId?
 
-enabledMaybe :: StbxObj -> TID -> Maybe Boolean
+enabledMaybe :: StbxObj -> GluedTransitionIdRaw -> Maybe Boolean
 enabledMaybe = enabledOrDefault (const Nothing) Just
 
-enabled :: StbxObj -> TID -> Boolean
+enabled :: StbxObj -> GluedTransitionIdRaw -> Boolean
 enabled = enabledOrDefault (const false) identity
 
--- TODO eliminate; should take either a GluedTransitionId *or* TID, but not both
 enabledMaybe_glued :: StbxObj -> GluedTransitionId -> Maybe Boolean
 enabledMaybe_glued s (GluedTransitionId i) = enabledMaybe s i
 
--- enabled_glued :: StbxObj -> TID -> Boolean
+-- enabled_glued :: StbxObj -> GluedTransitionIdRaw -> Boolean
 -- enabled_glued = enabledOrDefault (const false) identity
 
-foreign import enabledOrDefault :: forall a. (Unit -> a) -> (Boolean -> a) -> StbxObj -> TID -> a
+foreign import enabledOrDefault :: forall a. (Unit -> a) -> (Boolean -> a) -> StbxObj -> GluedTransitionIdRaw -> a
 
 --------------------------------------------------------------------------------
 

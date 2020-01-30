@@ -5,13 +5,12 @@ import Data.Lens (Prism', Iso', Lens', lens, prism', re)
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty (singleton, head)
-import Statebox.Core.Transaction (TxSum(..), WiringTx, FiringTx, isExecutionTx)
-import Statebox.Core.Types (Firing, Wiring, GluedTransitionId(..), GluedTransitionIdRaw)
 import Data.Lens (Lens', Prism', Traversal', lens, prism', _Just)
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty (singleton, head)
-import Statebox.Core.Transaction (TxId, TxSum(..), WiringTx, FiringTx, isExecutionTx)
-import Statebox.Core.Types (Firing, Wiring, GluedTransitionIdRaw)
+
+import Statebox.Core.Transaction (TxSum(..), WiringTx, FiringTx, isExecutionTx)
+import Statebox.Core.Types (Firing, Wiring, GluedTransitionId(..), GluedTransitionIdRaw, TxId)
 
 --------------------------------------------------------------------------------
 
