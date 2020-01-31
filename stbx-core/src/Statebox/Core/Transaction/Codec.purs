@@ -7,6 +7,7 @@ import Data.Argonaut.Encode.Combinators ((:=), (~>))
 import Data.Argonaut.Encode.Class (encodeJson)
 import Data.Argonaut.Decode (decodeJson, (.:), (.:?))
 import Data.Argonaut.Decode.Class (decodeJArray)
+import Data.Lens (over)
 import Data.Profunctor.Choice (left)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
@@ -15,8 +16,11 @@ import Data.NonEmpty (singleton)
 import Data.Traversable (traverse)
 import Foreign.Object (Object, lookup)
 
+import Statebox.Core.Lenses (_wiring')
 import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), mapTx, evalTxSum)
 import Statebox.Core.Types (Net, Wiring, Firing)
+import Statebox.Core.Wiring as Wiring
+import Statebox.Core.Wiring (WiringRaw)
 
 decodeTxTxSum :: Json -> String \/ Tx TxSum
 decodeTxTxSum json =
@@ -90,7 +94,10 @@ decodeFiring = decodeJson >=> \x -> do
 --------------------------------------------------------------------------------
 
 decodeWiring :: Object Json -> String \/ Wiring
-decodeWiring x = do
+decodeWiring = map Wiring.fromWiringRaw <<< decodeWiringRaw
+
+decodeWiringRaw :: Object Json -> String \/ WiringRaw
+decodeWiringRaw x = do
   nets     <- getFieldWith (netsDecoder) x "nets"
   diagrams <- x .: "diagrams"
   labels   <- x .: "labels"
@@ -131,7 +138,7 @@ encodeTxSum :: TxSum -> Json
 encodeTxSum = evalTxSum
   (\_ -> jsonEmptyObject) -- TODO do we want to encode/decode this?
   (\i -> encodeJson i)
-  (\w -> encodeJson w)
+  (\w -> encodeJson <<< over _wiring' Wiring.toWiringRaw $ w)
   (\f -> encodeJson f)
 
 encodeTxWith :: forall a. (a -> Json) -> Tx a -> Json

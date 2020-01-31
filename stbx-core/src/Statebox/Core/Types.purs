@@ -1,87 +1,15 @@
-module Statebox.Core.Types where
+module Statebox.Core.Types
+  ( module Statebox.Core.Net
+  , module Statebox.Core.Diagram
+  , module Statebox.Core.Wiring
+  , module Statebox.Core.Firing
+  , module Statebox.Core.Initial
+  , module Statebox.Core.Common
+  ) where
 
-import Prelude
-import Data.ArrayMultiset
-import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype)
-import Data.NonEmpty (NonEmpty)
-
--- | Place id.
-type PID = Int
-
--- TODO newtype
--- | Transition id.
-type TID = Int
-
-unTID :: TID -> Int
-unTID i = i
-
--- | Some transaction types have a 'message' field, and they have this type.
-type Message = String
-
---------------------------------------------------------------------------------
-
-newtype GluedTransitionId = GluedTransitionId TID
-
-derive instance newtypeGluedTransitionId :: Newtype GluedTransitionId _
-
-derive instance eqGluedTransitionId :: Eq GluedTransitionId
-
-instance showGluedTransitionId :: Show GluedTransitionId where
-  show (GluedTransitionId i) = "(GluedTransitionId " <> show i <> ")"
-
---------------------------------------------------------------------------------
-
-type Initial =
-  { message :: Message
-  }
-
---------------------------------------------------------------------------------
-
--- | About how wirings are encoded:
--- |
--- | 1) The root (top-level) diagram is always `diagrams[0]`.
--- |
--- | 2) The elements of `labels: [0,0]` are the labels of this root diagram, and they are indices
--- |    into the list `(nets <> diagrams)`.
--- |
--- | for a more detailed description, refer to https://hackmd.io/0CPzJ_V-Qkm0y40NLQRhWw?view#Representing-the-gluing
--- TODO: replace link with link to docs site
-type Wiring =
-  { nets     :: Array Net
-  , diagrams :: Array Diagram
-  , labels   :: Array Int
-  }
-
-type Net =
-  { name       :: String
-  , partition  :: ArrayMultiset PID     -- ^ NLL encoding
-  , names      :: Array String          -- ^ transition names
-  , placeNames :: Maybe (Array String)
-  }
-
--- | See https://docs.statebox.org/spec/nlldiagrams.
-type Diagram =
-  { name   :: String
-  , width  :: Int          -- ^ width of the brick diagram
-  , pixels :: Array Int    -- ^ actual brick diagram encoding
-  , names  :: Array String
-  }
-
---------------------------------------------------------------------------------
-
-type Firing =
-  { message   :: Maybe Message
-  , execution :: Maybe TxId                     -- ^ The execution that this firing is a descendent of.
-  , path      :: Singleton GluedTransitionIdRaw -- ^ The net and transition to fire.
-  }
-
--- TODO This should be the newtype GluedTransitionId.
-type GluedTransitionIdRaw = Int
-
-type HexStr = String
-
--- | This tags an Array that is expected (but not guaranteed) to have exactly one element. (TODO: newtype.)
-type Singleton = NonEmpty Array
-
-type TxId = String
+import Statebox.Core.Net
+import Statebox.Core.Diagram
+import Statebox.Core.Wiring
+import Statebox.Core.Firing
+import Statebox.Core.Initial
+import Statebox.Core.Common
