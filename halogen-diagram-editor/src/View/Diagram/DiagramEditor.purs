@@ -9,7 +9,7 @@ import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
-import Halogen.HTML (HTML, div, text, p, button)
+import Halogen.HTML (HTML, div, text, button)
 import Halogen.HTML.Core (ClassName(..), AttrName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (attr, classes, tabIndex)
