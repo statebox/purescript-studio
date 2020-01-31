@@ -9,7 +9,7 @@ import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
-import Halogen.HTML (HTML, div, text, p)
+import Halogen.HTML (HTML, div, text, p, button)
 import Halogen.HTML.Core (ClassName(..), AttrName(..))
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (attr, classes, tabIndex)
@@ -39,6 +39,7 @@ initialState ops =
     }
   , msg:                ""
   , componentElemMaybe: Nothing
+  , inspectorVisible: false
   }
 
 ui :: ∀ m q. MonadAff m => H.Component HTML q Operators Msg m
@@ -53,12 +54,26 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
           , HE.onKeyDown $ Just <<< KeyboardAction
           ]
           [ div [ classes [] ]
-                [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
-                , div [ attr (AttrName "style") "text-align: center"]
-                      [ p [] [ text "↑↓"] ]
-                , div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
-                      [ Inspector.view state ]
-                ]
+                if state.inspectorVisible
+                  then
+                    [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
+                    , div [ attr (AttrName "style") "text-align: center"]
+                          [ button
+                              [ HE.onClick \_ -> Just ToggleInspector ]
+                              [ text "Close inspector" ]
+                          ]
+                    , div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
+                          [ Inspector.view state ]
+                    ]
+                  else
+                    [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
+                    , div [ attr (AttrName "style") "text-align: center"]
+                          [ button
+                              [ HE.onClick \_ -> Just ToggleInspector ]
+                              [ text "Open inspector" ]
+                          ]
+                    ]
+
           ]
 
     handleAction :: Action -> HalogenM State Action () Msg m Unit
@@ -120,6 +135,9 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
       Initialize -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         H.modify_ \state -> state { componentElemMaybe = componentElemMaybe }
+
+      ToggleInspector -> do
+        H.modify_ \state -> state { inspectorVisible = not state.inspectorVisible }
 
 --------------------------------------------------------------------------------
 

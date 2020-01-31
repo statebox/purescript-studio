@@ -15,6 +15,7 @@ type State =
   { model              :: Model -- TODO should perhaps be flattened into this record, ie State and Model should be unified
   , msg                :: String
   , componentElemMaybe :: Maybe HTMLElement
+  , inspectorVisible   :: Boolean
   }
 
 data Action
@@ -24,6 +25,7 @@ data Action
   | UpdateDiagram Operators
   | MoveCursor (Vec3 Int)
   | CreateOp
+  | ToggleInspector
 
 data MouseMsg
   = MouseIsOver Operator OperatorHandle
