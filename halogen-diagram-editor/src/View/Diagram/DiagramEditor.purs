@@ -54,26 +54,18 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
           , HE.onKeyDown $ Just <<< KeyboardAction
           ]
           [ div [ classes [] ]
-                if state.inspectorVisible
-                  then
-                    [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
-                    , div [ attr (AttrName "style") "text-align: center"]
-                          [ button
-                              [ HE.onClick \_ -> Just ToggleInspector ]
-                              [ text "Close inspector" ]
-                          ]
-                    , div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
-                          [ Inspector.view state ]
-                    ]
-                  else
-                    [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
-                    , div [ attr (AttrName "style") "text-align: center"]
-                          [ button
-                              [ HE.onClick \_ -> Just ToggleInspector ]
-                              [ text "Open inspector" ]
-                          ]
-                    ]
-
+                [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
+                , div [ classes [ ClassName "css-diagram-editor-inspector-container" ] ]
+                      [ div [ classes [ ClassName "css-diagram-editor-inspector-link-container" ] ]
+                            [ button [ HE.onClick \_ -> Just ToggleInspector ]
+                                     [ text $ (if state.inspectorVisible then "Hide" else "Show") <> " inspector" ]
+                            ]
+                      , if state.inspectorVisible
+                           then div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
+                                    [ Inspector.view state ]
+                           else div [] []
+                      ]
+                ]
           ]
 
     handleAction :: Action -> HalogenM State Action () Msg m Unit
