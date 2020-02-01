@@ -10,8 +10,9 @@ import Effect.Aff.Class (class MonadAff)
 import GridKit.KeyHandler
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
-import Halogen.HTML (HTML, div, text)
+import Halogen.HTML (HTML, div, text, button)
 import Halogen.HTML.Core (ClassName(..))
+import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, tabIndex)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Element)
@@ -38,6 +39,7 @@ initialState =
   , msg:                ""
   , keyHelpVisible:     false
   , componentElemMaybe: Nothing
+  , inspectorVisible: false
   }
 
 ui :: ∀ m q. MonadAff m => H.Component HTML q Operators Msg m
@@ -58,8 +60,16 @@ ui = ReactiveInput.mkComponent { initialState, render, handleInput, handleAction
           ]
           [ div [ classes [] ]
                 [ View.diagramEditorSVG state.componentElemMaybe ops state.model <#> MouseAction
-                , div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
-                      [ Inspector.view ops state ]
+                , div [ classes [ ClassName "css-diagram-editor-inspector-container" ] ]
+                      [ div [ classes [ ClassName "css-diagram-editor-inspector-link-container" ] ]
+                            [ button [ onClick \_ -> Just ToggleInspector ]
+                                     [ text $ (if state.inspectorVisible then "Hide" else "Show") <> " inspector" ]
+                            ]
+                      , if state.inspectorVisible
+                           then div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
+                                    [ Inspector.view ops state ]
+                           else div [] []
+                      ]
                 ]
           , keys.helpPopup state.keyHelpVisible
           ]
@@ -111,6 +121,9 @@ ui = ReactiveInput.mkComponent { initialState, render, handleInput, handleAction
 
       ToggleKeyHelp -> do
         H.modify_ $ \state -> state { keyHelpVisible = not state.keyHelpVisible }
+
+      ToggleInspector -> do
+        H.modify_ \state -> state { inspectorVisible = not state.inspectorVisible }
 
 --------------------------------------------------------------------------------
 

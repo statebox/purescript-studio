@@ -16,6 +16,7 @@ type State =
   , msg                :: String
   , keyHelpVisible     :: Boolean
   , componentElemMaybe :: Maybe HTMLElement
+  , inspectorVisible   :: Boolean
   }
 
 data Action
@@ -23,6 +24,7 @@ data Action
   | MoveCursor (Vec3 Int)
   | CreateOp
   | ToggleKeyHelp
+  | ToggleInspector
 
 data MouseMsg
   = MouseIsOver Operator OperatorHandle
