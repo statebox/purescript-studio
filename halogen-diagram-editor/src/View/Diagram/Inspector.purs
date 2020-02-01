@@ -14,7 +14,7 @@ import View.Diagram.Update (Action, State)
 import View.Diagram.Common (snap)
 
 view :: ∀ m. State -> ComponentHTML Action () m
-view state@{model} =
+view {model} =
   HH.pre [ classes [ ClassName "css-diagram-editor-properties-view" ] ]
          [ prop "ops"         $ show $ map (_.identifier) model.ops
          , prop "over"        $ show model.mouseOver
@@ -38,6 +38,3 @@ view state@{model} =
       dxdydw   = dragDelta model
       sdxdydw  = map (snap model.config.scale) dxdydw
       mdxdydw  = map (\x -> x / model.config.scale) sdxdydw
-
-viewRect :: forall r. { top :: Number, left :: Number | r } -> String
-viewRect { top, left } = show $ vec2 top left

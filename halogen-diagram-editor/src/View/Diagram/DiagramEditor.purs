@@ -9,10 +9,10 @@ import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
-import Halogen.HTML (HTML, div)
-import Halogen.HTML.Core (ClassName(..))
+import Halogen.HTML (HTML, div, text, button)
+import Halogen.HTML.Core (ClassName(..), AttrName(..))
 import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties (classes, tabIndex)
+import Halogen.HTML.Properties (attr, classes, tabIndex)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Element)
 import Web.Event.Event (preventDefault)
@@ -39,6 +39,7 @@ initialState ops =
     }
   , msg:                ""
   , componentElemMaybe: Nothing
+  , inspectorVisible: false
   }
 
 ui :: ∀ m q. MonadAff m => H.Component HTML q Operators Msg m
@@ -54,8 +55,16 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
           ]
           [ div [ classes [] ]
                 [ View.diagramEditorSVG state.componentElemMaybe state.model <#> MouseAction
-                , div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
-                      [ Inspector.view state ]
+                , div [ classes [ ClassName "css-diagram-editor-inspector-container" ] ]
+                      [ div [ classes [ ClassName "css-diagram-editor-inspector-link-container" ] ]
+                            [ button [ HE.onClick \_ -> Just ToggleInspector ]
+                                     [ text $ (if state.inspectorVisible then "Hide" else "Show") <> " inspector" ]
+                            ]
+                      , if state.inspectorVisible
+                           then div [ classesWithNames [ "mt-4", "rb-2", "p-4", "bg-grey-lightest", "text-grey-dark", "rounded", "text-sm" ] ]
+                                    [ Inspector.view state ]
+                           else div [] []
+                      ]
                 ]
           ]
 
@@ -118,6 +127,9 @@ ui = H.mkComponent { initialState, render, eval: mkEval $ defaultEval {
       Initialize -> do
         componentElemMaybe <- getHTMLElementRef' View.componentRefLabel
         H.modify_ \state -> state { componentElemMaybe = componentElemMaybe }
+
+      ToggleInspector -> do
+        H.modify_ \state -> state { inspectorVisible = not state.inspectorVisible }
 
 --------------------------------------------------------------------------------
 
