@@ -81,7 +81,7 @@ type KeyHandler action =
   }
 
 keyHandler :: ∀ action. Array Key -> Maybe PlainHTML -> action -> KeyHandler action
-keyHandler keys mDescription action = { handler, documentation: mDescription # foldMap \description -> [{ keys, description }] }
+keyHandler keys descriptionM action = { handler, documentation: descriptionM # foldMap \description -> [{ keys, description }] }
   where
     handler keyEvent = guard (any (matches keyEvent) keys) (pure action)
 

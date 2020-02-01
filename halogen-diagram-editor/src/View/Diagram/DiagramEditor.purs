@@ -45,9 +45,8 @@ ui = ReactiveInput.mkComponent { initialState, render, handleInput, handleAction
   where
     keys :: KeysWithHelpPopup Action
     keys = keysWithHelpPopup
-      { keys:
-          keyHandler [ Shortcut noMods "Space" ] (Just $ text "Insert a new operator") CreateOp
-          <> cursorKeyHandler noMods MoveCursor
+      { keys:        keyHandler [ Shortcut noMods "Space" ] (Just $ text "Insert a new operator") CreateOp <>
+                     cursorKeyHandler noMods MoveCursor
       , popupAction: ToggleKeyHelp
       }
 
@@ -111,7 +110,7 @@ ui = ReactiveInput.mkComponent { initialState, render, handleInput, handleAction
         maybe (pure unit) (H.raise <<< OperatorClicked) clickedOperatorId
 
       ToggleKeyHelp -> do
-        H.modify_ $ \st -> st { keyHelpVisible = not st.keyHelpVisible }
+        H.modify_ $ \state -> state { keyHelpVisible = not state.keyHelpVisible }
 
 --------------------------------------------------------------------------------
 
