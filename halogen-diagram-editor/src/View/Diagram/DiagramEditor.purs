@@ -9,7 +9,7 @@ import Data.Vec3 (Vec3, vec3, _x, _y, _z)
 import Effect.Aff.Class (class MonadAff)
 import GridKit.KeyHandler
 import Halogen as H
-import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
+import Halogen (ComponentHTML, HalogenM)
 import Halogen.HTML (HTML, div, text, button)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick)

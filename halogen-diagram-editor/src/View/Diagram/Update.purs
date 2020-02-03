@@ -6,7 +6,6 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (Vec3, _x, _y, _z, vec3)
 import Web.HTML (HTMLElement)
-import Web.UIEvent.KeyboardEvent (KeyboardEvent)
 
 import View.Diagram.Model
 import View.Diagram.Common (snap)

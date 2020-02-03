@@ -2,7 +2,6 @@ module View.KDMonCat.Box where
 
 import Prelude
 
-import Data.Bifunctor (bimap)
 import Data.Maybe
 import Data.Vec3 (Vec2, _x, _y)
 import Effect (Effect)

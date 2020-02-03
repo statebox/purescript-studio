@@ -2,8 +2,6 @@ module View.Diagram.Inspector where
 
 import Prelude hiding (div)
 
-import Data.Vec3 (vec2)
-
 import Halogen (ComponentHTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Core (ClassName(..))
