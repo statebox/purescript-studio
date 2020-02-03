@@ -1,16 +1,13 @@
 module Statebox.Core.Lenses where
 
 import Prelude
-import Data.Lens (Prism', Iso', Lens', lens, prism', re)
+import Data.Lens (Iso', Lens, Lens', Prism', Traversal', lens, prism', re, _Just)
 import Data.Lens.Iso.Newtype (_Newtype)
-import Data.Maybe (Maybe(..))
-import Data.NonEmpty (singleton, head)
-import Data.Lens (Lens', Prism', Traversal', lens, prism', _Just)
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty (singleton, head)
 
 import Statebox.Core.Transaction (TxSum(..), WiringTx, FiringTx, isExecutionTx)
-import Statebox.Core.Types (Firing, Wiring, GluedTransitionId(..), GluedTransitionIdRaw, TxId)
+import Statebox.Core.Types (Firing, Wiring, GluedTransitionId, GluedTransitionIdRaw, TxId)
 
 --------------------------------------------------------------------------------
 
@@ -31,6 +28,7 @@ _executionTx = prism' FiringTxInj $ case _ of FiringTxInj x | isExecutionTx x ->
 _wiring :: Lens' WiringTx Wiring
 _wiring = _wiring'
 
+_wiring' :: ∀ a b r. Lens { wiring :: a | r } { wiring :: b | r } a b
 _wiring' = lens (_.wiring) (_ { wiring = _ })
 
 _firing :: Lens' FiringTx Firing
