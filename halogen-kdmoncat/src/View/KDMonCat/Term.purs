@@ -31,7 +31,7 @@ termView =
   ReactiveInput.mkComponent
     { render
     , initialState : {}
-    , handleAction : \_ -> pure unit
+    , handleAction : \_ _ -> pure unit
     , handleInput  : \_ -> pure unit
     }
 

@@ -2,7 +2,6 @@ module View.KDMonCat.Box where
 
 import Prelude
 
-import Data.Bifunctor (bimap)
 import Data.Maybe
 import Data.Vec3 (Vec2, _x, _y)
 import Effect (Effect)
@@ -31,13 +30,11 @@ type Input a c m =
 
 type State = { box :: Maybe Element }
 
-data Action a = ContentAction a
-
 -- the output is the type of actions in the content
 type Slot contentAction = H.Slot VoidF contentAction
 
 boxView :: ∀ q a c m. MonadEffect m => H.Component HTML q (Input a c m) a m
-boxView = ReactiveInput.mkComponent { initialState, render, handleInput, handleAction }
+boxView = ReactiveInput.mkComponent { initialState, render, handleInput, handleAction: \_ -> H.raise }
 
 initialState :: State
 initialState = { box: Nothing }
@@ -51,14 +48,14 @@ contentRef = RefLabel "content"
 parentRef :: RefLabel
 parentRef = RefLabel "parent"
 
-render :: ∀ a c m. Input a c m -> State -> H.ComponentHTML (Action a) c m
+render :: ∀ a c m. Input a c m -> State -> H.ComponentHTML a c m
 render { content, className } _ = S.g []
   [ S.rect [ ref boxRef, S.class_ className ]
   , S.g [ ref contentRef ]
-        [ mapAction ContentAction content ]
+        [ content ]
   ]
 
-handleInput :: ∀ a c m. MonadEffect m => Input a c m -> H.HalogenM State (Action a) c a m Unit
+handleInput :: ∀ a c m. MonadEffect m => Input a c m -> H.HalogenM State a c a m Unit
 handleInput { center, minWidth, maxWidth, minHeight, maxHeight, padding } = do
   mbox     <- H.getRef boxRef
   mcontent <- H.getRef contentRef
@@ -95,12 +92,6 @@ handleInput { center, minWidth, maxWidth, minHeight, maxHeight, padding } = do
           "transform-origin: " <> show midX <> "px " <> show midY <> "px") content
 
     _, _ -> pure unit
-
-handleAction :: ∀ a c m. MonadEffect m => Action a -> H.HalogenM State (Action a) c a m Unit
-handleAction (ContentAction a) = H.raise a
-
-mapAction :: ∀ m c a b. (a -> b) -> H.ComponentHTML a c m -> H.ComponentHTML b c m
-mapAction f = bimap (map f) f
 
 --------------------------------------------------------------------------------
 
