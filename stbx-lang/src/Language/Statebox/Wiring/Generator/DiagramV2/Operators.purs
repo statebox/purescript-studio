@@ -14,6 +14,7 @@ import Data.Vec3 (Vec3, _x, _y, _z)
 
 import Language.Statebox.Wiring.Generator.DiagramV2
 
+-- TODO: merge with Operator in View.Diagram.Model
 type Operator r =
   { label :: String
   , pos :: Vec3 Int
