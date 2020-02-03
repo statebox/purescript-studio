@@ -23,8 +23,8 @@ type Operator r =
 
 fromOperators :: ∀ r. Array (Operator r) -> DiagramV2
 fromOperators ops =
-  { pixels : if null unconnected then pixels else unconnectedPixels <> "\n" <> pixels -- drawPixels ops
-  , context : context <> "\n" <> unconnectedContext }
+  { pixels: if null unconnected then pixels else unconnectedPixels <> "\n" <> pixels -- drawPixels ops
+  , context: context <> "\n" <> unconnectedContext }
   where
     name i = (ops !! i) # maybe "" _.label
     isConnected srcPos tgtPos
@@ -37,21 +37,21 @@ fromOperators ops =
         srcEnd = srcStart + _z srcPos
         tgtEnd = tgtStart + _z tgtPos
     edges =
-      ops # foldMapWithIndex \src { pos : srcPos } ->
-        ops # foldMapWithIndex \tgt { pos : tgtPos } ->
+      ops # foldMapWithIndex \src { pos: srcPos } ->
+        ops # foldMapWithIndex \tgt { pos: tgtPos } ->
           if isConnected srcPos tgtPos then [{ src, tgt }] else []
     { pixels, context } = fromEdges identity name edges
     unconnected = ops # foldMapWithIndex \i _ -> [i] # guard (edges # all (\{ src, tgt } -> src /= i && tgt /= i))
     unconnectedPixels = unconnected <#> nextChar 'a' # fold
     unconnectedContext = unconnected <#> (\i -> name i <> "@" <> nextChar 'a' i <> ": ->") # intercalate "\n"
 
-pixel2operator :: ∀ r. Array (Operator r) -> String -> Maybe (Operator r)
-pixel2operator ops pixelName = do
+fromPixel :: ∀ r. Array (Operator r) -> String -> Maybe (Operator r)
+fromPixel ops pixelName = do
   pixelChar <- charAt 0 pixelName
   ops !! (toCharCode pixelChar - toCharCode 'a')
 
-operator2pixel :: ∀ r. Array (Operator r) -> (Operator r -> Boolean) -> Maybe String
-operator2pixel ops test =
+toPixel :: ∀ r. Array (Operator r) -> (Operator r -> Boolean) -> Maybe String
+toPixel ops test =
   findIndex test ops <#> nextChar 'a'
 
 drawPixels :: ∀ r. Array (Operator r) -> String
@@ -69,7 +69,9 @@ drawPixels ops = drawPixels' ops 0 [] # intercalate "\n"
             pad 0 = ""
             pad n = " " <> pad (n - 1)
             addPixel l = let s = splitAt y l in s.before <> pad (max 0 (y - S.length l)) <> pixel <> s.after
+
             pixels'' :: Array String
             pixels'' = pixels' <> replicate (max 0 (xe - length pixels')) ""
+
             pixels :: Array String
             pixels = pixels'' # mapWithIndex \x l -> if x >= xs && x < xe then addPixel l else l
