@@ -10,7 +10,7 @@ import Data.Tuple.Nested ((/\))
 
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Petrinet.Representation.NLL (ErrNetEncoding, TransitionF', fromNLL)
-import Statebox.Core.Execution (Path)
+import Statebox.Core.Transition (Glued(..), Transition, buildTokens, isInitial, isFinal)
 import Statebox.Core.Types (Diagram, Net, PID, TID, Wiring)
 
 data WiringTree
@@ -21,28 +21,6 @@ data WiringTree
 -- | For the moment, we forget about diagrams and gluings and we consider only simple nets.
 fromWiring :: Wiring -> Maybe WiringTree
 fromWiring wiring = Net <$> head wiring.nets
-
-type Transition =
-  { path       :: Path
-  , transition :: TID
-  , name       :: String
-  }
-
-data Glued a
-  = Untouched a
-  | Initial a
-  | Final a
-  | Glued a a
-
-isInitial :: ∀ a. Glued a -> Boolean
-isInitial = case _ of
-  Initial a -> true
-  _         -> false
-
-isFinal :: ∀ a. Glued a -> Boolean
-isFinal = case _ of
-  Final a -> true
-  _       -> false
 
 data LinearizationError
   = DiagramNotYetAllowed
@@ -65,11 +43,11 @@ linearizeTransitionsAndNames transitions names =
   sortInitialFinal $ lift3 buildGluedTransition (range 0 (length transitions - 1)) transitions names
 
 buildGluedTransition :: TID -> TransitionF' PID -> String -> Glued Transition
-buildGluedTransition tId (inputs /\ outputs) name =
-  case (inputs /\ outputs) of
-    ([]  /\ _  ) -> Initial   { name: name, path: [0, 0, 0], transition: tId } -- the path is [0, 0, 0] because we consider a trivial diagram to be there
-    (_   /\ [] ) -> Final     { name: name, path: [0, 0, 0], transition: tId }
-    (inp /\ out) -> Untouched { name: name, path: [0, 0, 0], transition: tId }
+buildGluedTransition tId (pre /\ post) name =
+  case (pre /\ post) of
+    ([]  /\ _  ) -> Initial   { name: name, path: [0, 0, 0], transition: tId, tokens: buildTokens pre post } -- the path is [0, 0, 0] because we consider a trivial diagram to be there
+    (_   /\ [] ) -> Final     { name: name, path: [0, 0, 0], transition: tId, tokens: buildTokens pre post }
+    (inp /\ out) -> Untouched { name: name, path: [0, 0, 0], transition: tId, tokens: buildTokens pre post }
 
 -- | We use this custom function instead of `sortBy` because that does not guarantee
 -- | the order of equal elements to be preserved.
