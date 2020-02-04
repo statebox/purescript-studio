@@ -3,8 +3,10 @@
 , name =
     "stbx-protocol"
 , dependencies =
-    [ "stbx-core"
+    [ "halogen-petrinet-editor"
+    , "stbx-core"
     , "stbx-tx-store"
+    , "studio-common"
     ]
 , packages =
     ./../packages.dhall
