@@ -27,11 +27,7 @@ import Data.Foldable (all)
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Monoid.Additive (Additive(..))
-import Data.Newtype (class Newtype, un, unwrap)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec3 (Vec2D, Vec2)
-import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
 import Data.Set as Set
 import Data.Group (class Group, ginverse)
 
@@ -39,7 +35,7 @@ import Data.Group (class Group, ginverse)
 import Data.Auth as Auth
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.Marking (MarkingF, tokensAt)
-import Data.Petrinet.Representation.Layout
+import Data.Petrinet.Representation.Layout (NetLayoutF, NetLayoutFRow, bounds, mapVec2D)
 
 -- | A representation of a Petri net with some additional labelings and metadata.
 type NetRepF pid tid tok typ r =
@@ -114,8 +110,8 @@ type PlaceMarkingF p tok =
 fromPlaceMarking :: ∀ a b. PlaceMarkingF a b -> a /\ b
 fromPlaceMarking pm = pm.place /\ pm.tokens
 
-preMarking :: ∀ p tok. Ord p => Group (MarkingF p tok) => TransitionF p tok -> MarkingF p tok
-preMarking tr = ginverse (trMarking tr.pre)
+preMarking :: ∀ p tok. Ord p => TransitionF p tok -> MarkingF p tok
+preMarking tr = trMarking tr.pre
 
 postMarking :: ∀ p tok. Ord p => TransitionF p tok -> MarkingF p tok
 postMarking tr = trMarking tr.post
@@ -144,7 +140,7 @@ fireAtMarking
   -> TransitionF p tok
   -> MarkingF p tok
 fireAtMarking marking t =
-  preMarking t <> marking <> postMarking t
+  (ginverse $ preMarking t) <> marking <> postMarking t
 
 --------------------------------------------------------------------------------
 
