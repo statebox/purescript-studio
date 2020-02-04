@@ -6,6 +6,7 @@ module Data.Petrinet.Representation.Marking
   , toUnfoldable
   , tokensAt
   , findTokens
+  , emptyMarking
   ) where
 
 import Prelude hiding ((-))
@@ -38,6 +39,9 @@ toMap (BagF dict) = dict
 
 tokensAt :: forall a n. Ord a => BagF a n -> a -> Maybe n
 tokensAt = Bag.lookup'
+
+emptyMarking :: ∀ a n. BagF a n
+emptyMarking = BagF Map.empty
 
 --------------------------------------------------------------------------------
 
