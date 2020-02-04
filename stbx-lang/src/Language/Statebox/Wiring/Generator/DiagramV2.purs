@@ -1,7 +1,7 @@
 module Language.Statebox.Wiring.Generator.DiagramV2 where
 
 import Prelude
-import Data.Array (zipWith, take, drop, concat, length, (..), (!!), uncons, elemIndex, filter, findIndex)
+import Data.Array (zipWith, take, drop, concat, length, (..), (!!), uncons, elemIndex, filter)
 import Data.Char (fromCharCode, toCharCode)
 import Data.Foldable (class Foldable, maximum, intercalate, foldMap, fold, notElem)
 import Data.FoldableWithIndex (foldMapWithIndex)
@@ -9,13 +9,12 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List)
 import Data.Map (Map, fromFoldableWith, lookup, union, toUnfoldable)
 import Data.Map.Internal (keys)
-import Data.Maybe (Maybe, maybe, fromMaybe)
-import Data.String.CodeUnits (singleton, charAt)
+import Data.Maybe (maybe, fromMaybe)
+import Data.String.CodeUnits (singleton)
 import Data.TraversableWithIndex (mapAccumLWithIndex)
 import Data.Tuple (snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Function.Memoize (memoize, class Tabulate)
-import Data.Vec3 (Vec3, _x, _y, _z)
 import Statebox.Core.Types (Diagram)
 
 import Language.Statebox.Wiring.Generator (Edges, toIndexedGraph, getEdges)
@@ -40,38 +39,6 @@ fromDiagram { width, pixels, names } = fromEdges (_ - 1) name edges
     rows = chunks width pixels
     edges = concat $ zipWith (zipWith (\src tgt -> { src, tgt })) rows (drop 1 rows)
     name id = names !! (id - 1) # fromMaybe "?"
-
-type Operator r =
-  { label :: String
-  , pos :: Vec3 Int
-  | r
-  }
-
-fromOperators :: ∀ r. Array (Operator r) -> DiagramV2
-fromOperators ops = fromEdges identity ((ops !! _) >>> maybe "" _.label) edges
-  where
-    isConnected srcPos tgtPos
-         = _y tgtPos == _y srcPos + 1
-        && srcStart < tgtEnd
-        && tgtStart < srcEnd
-      where
-        srcStart = _x srcPos
-        tgtStart = _x tgtPos
-        srcEnd = srcStart + _z srcPos
-        tgtEnd = tgtStart + _z tgtPos
-    edges =
-      ops # foldMapWithIndex \src { pos : srcPos } ->
-        ops # foldMapWithIndex \tgt { pos : tgtPos } ->
-          if isConnected srcPos tgtPos then [{ src, tgt }] else []
-
-pixel2operator :: ∀ r. Array (Operator r) -> String -> Maybe (Operator r)
-pixel2operator ops pixelName = do
-  pixelChar <- charAt 0 pixelName
-  ops !! (toCharCode pixelChar - toCharCode 'a')
-
-operator2pixel :: ∀ r. Array (Operator r) -> (Operator r -> Boolean) -> Maybe String
-operator2pixel ops test =
-  findIndex test ops <#> nextChar 'a'
 
 fromEdges :: ∀ a. Ord a => Tabulate a => (a -> Int) -> (a -> String) -> Edges a -> DiagramV2
 fromEdges fromEnum name edges = { pixels, context }

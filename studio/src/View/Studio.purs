@@ -20,7 +20,7 @@ import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import Language.Statebox.Wiring.Generator.DiagramV2 as DiagramV2
+import Language.Statebox.Wiring.Generator.DiagramV2.Operators as DiagramV2
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
@@ -152,7 +152,7 @@ ui =
         let boxes = (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) selBox).selectedBoxes
         maybe (pure unit) (handleAction <<< HandleDiagramEditorMsg <<< DiagramEditor.OperatorClicked) $ do
           box <- Set.findMin boxes
-          op <- DiagramV2.pixel2operator diagramInfo.ops box.bid
+          op <- DiagramV2.fromPixel diagramInfo.ops box.bid
           pure op.identifier
 
       HandlePetrinetEditorMsg NetUpdated -> do
