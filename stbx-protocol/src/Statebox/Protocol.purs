@@ -6,7 +6,6 @@ import Data.Either.Nested (type (\/))
 import Data.Lens ((^?))
 import Data.Maybe (Maybe(..), maybe)
 
-import Data.Petrinet.Representation.Marking (emptyMarking)
 import Statebox.Core.Lenses (_firingExecution)
 import Statebox.Core.Transaction (FiringTx, HashStr, HashTx, InitialTx, TxId, TxSum(..), WiringTx, evalTxSum, isInitialTx, isUberRootHash)
 import Statebox.Protocol.Fire (fire)
@@ -119,7 +118,7 @@ processInitialFiringTx hash firingTx = do
                                                   , wiring: firingTx.previous
                                                   , marking: newMarking
                                                   })
-              (fire wiringTx.wiring firingTx.firing emptyMarking)
+              (fire wiringTx.wiring firingTx.firing mempty)
             )
             (const $ pure $ Left $ FiringInitialPreviousShouldBeWiring hash)
             previous
@@ -147,9 +146,9 @@ processNormalFiringTx hash firingTx executionHash = do
                 (\newMarking -> map Right $ do
                   Store.putTransaction hash $ FiringTxInj firingTx
                   Store.updateExecutionState executionHash { lastFiring: hash
-                                                          , wiring: execution.wiring
-                                                          , marking: newMarking
-                                                          })
+                                                           , wiring: execution.wiring
+                                                           , marking: newMarking
+                                                           })
                 (fire wiringTx.wiring firingTx.firing execution.marking))
               (const $ pure $ Left $ FiringNormalExecutionWiringShouldBeAWiring hash executionHash)
               transaction
