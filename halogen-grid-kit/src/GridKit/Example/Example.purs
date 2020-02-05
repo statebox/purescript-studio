@@ -8,7 +8,7 @@ import Data.Lens (Lens', (+~), (-~), (%~))
 import Data.Lens.Record (prop)
 import Data.Maybe
 import Data.Number (fromString)
-import Data.Symbol (SProxy(..))
+import Data.Variant
 import Data.Vec3 (Vec2, vec2, point2, _x, _y, Box(..), boxSize, boxCenter)
 import Data.Vec3.AffineTransform
 import Effect.Class (class MonadEffect)
@@ -60,20 +60,14 @@ initialState =
   , keyHelpVisible: false
   }
 
+type Thing = Variant (point :: Point, rect :: Rect)
+_point = SProxy :: SProxy "point"
+_rect = SProxy :: SProxy "rect"
 
-data Thing = PointThing Point | RectThing Rect
-
-instance uiComponentThing :: UIComponent Thing where
-  toSVG transform (PointThing p) = toSVG transform p
-  toSVG transform (RectThing  r) = toSVG transform r
-
-newtype Model = Model
+type Model =
   { grid   :: Grid
   , things :: Array Thing
   }
-
-instance uiComponentModel :: UIComponent Model where
-  toSVG transform (Model { grid, things }) = toSVG transform grid <> toSVG transform things
 
 
 ui :: ∀ q m. MonadEffect m => H.Component HTML q Input Void m
@@ -141,12 +135,13 @@ render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = d
                 , bottomRight: pure ( 0.5 * scaling) - pos
                 }
 
-    model = Model { grid:   Grid { gridSpacing: pow 10.0 logSpacing, size }
-                  , things: (1 .. floor count) <#> \n ->
-                      let center = rotate (toNumber n * 2.0 * pi / count) `transform` point2 radius 0.0 in
-                      if even n then RectThing $ Rect { topLeft: center - vec2 0.05 0.05, size: vec2 0.1 0.1 }
-                                else PointThing $ Point center
-                  }
+    model :: Model
+    model = { grid:   Grid { gridSpacing: pow 10.0 logSpacing, size }
+            , things: (1 .. floor count) <#> \n ->
+                let center = rotate (toNumber n * 2.0 * pi / count) `transform` point2 radius 0.0 in
+                if even n then inj _rect $ Rect $ Box { topLeft: center - vec2 0.1 0.1, bottomRight: center + vec2 0.1 0.1 }
+                          else inj _point $ Point center
+            }
 
     zoomInKey = keyHandler
       [ Shortcut metaKey "Equal", Shortcut ctrlKey "Equal"]

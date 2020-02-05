@@ -20,6 +20,7 @@ newtype Grid = Grid
 
 instance uiComponentGrid :: UIComponent Grid where
   toSVG = render
+  distance _ _ = 0.0
 
 render :: AffineTransform Number -> Grid -> Array PlainHTML
 render model2svg (Grid { gridSpacing, size }) =

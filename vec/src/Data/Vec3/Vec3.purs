@@ -19,6 +19,8 @@ module Data.Vec3.Vec3
   , Point2
   , point2
   , origin2
+  , vectorLength
+  , distance
   ) where
 
 import Prelude
@@ -28,7 +30,7 @@ import Data.Monoid.Multiplicative (Multiplicative)
 import Data.Newtype (class Newtype)
 import Data.Ord.Max (Max)
 import Data.Ord.Min (Min)
-import Math (abs)
+import Math (abs, sqrt)
 
 newtype Vec3 a = Vec3 (Vec3Rec a)
 
@@ -131,13 +133,12 @@ minMaxZero :: ∀ a. Bounded a => { min :: Vec3 a, max :: Vec3 a }
 minMaxZero = { min: pure top, max: pure bottom }
 
 minMaxVecs :: ∀ a. Bounded a => Ord a => { min :: Vec3 a, max :: Vec3 a } -> Vec3 a -> { min :: Vec3 a, max :: Vec3 a }
-minMaxVecs { min: vMin, max: vMax } v = { min: min <$> vMin <*> v, max: max <$> vMax <*> v }
+minMaxVecs mm v = minMax mm { min: v, max: v }
 
 -- this would be something like the monoidal (append) operation on the {min, max} record of (Vec3 a) type
 minMax
   :: ∀ a
-   . Bounded a
-  => Ord a
+   . Ord a
   => { min :: Vec3 a, max :: Vec3 a }
   -> { min :: Vec3 a, max :: Vec3 a }
   -> { min :: Vec3 a, max :: Vec3 a }
@@ -174,3 +175,9 @@ point2 x y = vec3 x y one
 
 origin2 :: ∀ a. Semiring a => Point2 a
 origin2 = point2 zero zero
+
+vectorLength :: Vec2 Number -> Number
+vectorLength (Vec3 {x, y}) = sqrt (x * x + y * y)
+
+distance :: Point2 Number -> Point2 Number -> Number
+distance p q = vectorLength (p - q)
