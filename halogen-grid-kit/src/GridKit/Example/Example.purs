@@ -3,8 +3,8 @@ module GridKit.Example.Example where
 import Prelude hiding (div)
 
 import Data.Array ((..))
-import Data.Int (toNumber, floor)
-import Data.Lens (Lens, (+~), (-~), (%~))
+import Data.Int (toNumber, floor, even)
+import Data.Lens (Lens', (+~), (-~), (%~))
 import Data.Lens.Record (prop)
 import Data.Maybe
 import Data.Number (fromString)
@@ -22,9 +22,12 @@ import Svg.Elements as S
 import Svg.Attributes as S
 
 import GridKit.KeyHandler
+import GridKit.UIComponent
 import View.ReactiveInput as ReactiveInput
-import View.GridKit.Grid as Grid
-import View.GridKit.Point as Point
+import View.GridKit.Grid (Grid(..))
+import View.GridKit.Point (Point(..))
+import View.GridKit.Rect (Rect(..))
+
 
 type Input = {}
 
@@ -40,44 +43,54 @@ type State =
   , keyHelpVisible :: Boolean
   }
 
-_logScale :: ∀ a b r. Lens { logScale :: a | r } { logScale :: b | r } a b
+_logScale :: Lens' State Number
 _logScale = prop (SProxy :: SProxy "logScale")
 
-_keyHelpVisible :: ∀ a b r. Lens { keyHelpVisible :: a | r } { keyHelpVisible :: b | r } a b
+_keyHelpVisible :: Lens' State Boolean
 _keyHelpVisible = prop (SProxy :: SProxy "keyHelpVisible")
 
-type ChildSlots =
-  ( grid :: Grid.Slot Unit
-  , point :: Point.Slot Int
-  )
+initialState :: State
+initialState =
+  { logSpacing: 1.0
+  , logScale: 0.0
+  , posX: 0.0
+  , posY: 0.0
+  , radius: 0.5
+  , count: 10.0
+  , keyHelpVisible: false
+  }
+
+
+data Thing = PointThing Point | RectThing Rect
+
+instance uiComponentThing :: UIComponent Thing where
+  toSVG transform (PointThing p) = toSVG transform p
+  toSVG transform (RectThing  r) = toSVG transform r
+
+newtype Model = Model
+  { grid   :: Grid
+  , things :: Array Thing
+  }
+
+instance uiComponentModel :: UIComponent Model where
+  toSVG transform (Model { grid, things }) = toSVG transform grid <> toSVG transform things
+
 
 ui :: ∀ q m. MonadEffect m => H.Component HTML q Input Void m
-
 ui = ReactiveInput.mkComponent
-  { initialState:
-    { logSpacing: 1.0
-    , logScale: 0.0
-    , posX: 0.0
-    , posY: 0.0
-    , radius: 0.5
-    , count: 10.0
-    , keyHelpVisible: false
-    }
+  { initialState
   , render
   , handleAction
   , handleInput: \_ -> pure unit
   }
 
-handleAction :: ∀ m. MonadEffect m => Input -> Action -> H.HalogenM State Action ChildSlots Void m Unit
+handleAction :: ∀ m. MonadEffect m => Input -> Action -> H.HalogenM State Action () Void m Unit
 handleAction _ (ChangeState f) = H.modify_ f
 
-render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
+render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action () m
 render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = div
   [ tabIndex 0, keys.onKeyDown ]
-  [ S.svg [ S.width (_x size), S.height (_y size) ] $
-          [ grid gridInput ] <>
-          ((1 .. floor count) <#> \n ->
-            point n { position: rotate (toNumber n * 2.0 * pi / count) `transform` point2 radius 0.0, model2svg })
+  [ S.svg [ S.width (_x size), S.height (_y size) ] $ toSVG model2svg model <#> fromPlainHTML
   , p_ [ input [ type_ InputRange, H.min 0.0, H.max 2.0, step Any, value (show logSpacing)
                , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { logSpacing = v })
                ]
@@ -124,9 +137,16 @@ render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = d
 
     model2svg = range `containedIn` size
 
-    range = Box { topLeft:     (vec2 (-0.5) (-0.5) - pos) * pure scaling
-                , bottomRight: (vec2   0.5    0.5  - pos) * pure scaling
+    range = Box { topLeft:     pure (-0.5 * scaling) - pos
+                , bottomRight: pure ( 0.5 * scaling) - pos
                 }
+
+    model = Model { grid:   Grid { gridSpacing: pow 10.0 logSpacing, size }
+                  , things: (1 .. floor count) <#> \n ->
+                      let center = rotate (toNumber n * 2.0 * pi / count) `transform` point2 radius 0.0 in
+                      if even n then RectThing $ Rect { topLeft: center - vec2 0.05 0.05, size: vec2 0.1 0.1 }
+                                else PointThing $ Point center
+                  }
 
     zoomInKey = keyHandler
       [ Shortcut metaKey "Equal", Shortcut ctrlKey "Equal"]
@@ -141,12 +161,6 @@ render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = d
       { keys: zoomInKey <> zoomOutKey <> debugKeyCodes
       , popupAction: ChangeState $ _keyHelpVisible %~ not
       }
-
-grid :: ∀ m. MonadEffect m => Grid.Input -> H.ComponentHTML Action ChildSlots m
-grid input = slot (SProxy :: SProxy "grid") unit Grid.ui input (const Nothing)
-
-point :: ∀ m. MonadEffect m => Int -> Point.Input -> H.ComponentHTML Action ChildSlots m
-point id input = slot (SProxy :: SProxy "point") id Point.ui input (const Nothing)
 
 
 containedIn :: Box Number -> Vec2 Number -> AffineTransform Number

@@ -6,43 +6,30 @@ import Data.Array ((..), filter)
 import Data.Int (floor, ceil, toNumber)
 import Data.Vec3 (Vec2, vec2, _x, _y, origin2, point2)
 import Data.Vec3.AffineTransform
-import Effect.Class (class MonadEffect)
-import Halogen as H
 import Halogen.HTML hiding (code, head, prop, map, div)
 import Math (log, pow, ln10, round, sqrt)
 import Svg.Elements as S
 import Svg.Attributes as S
 
-import View.ReactiveInput as ReactiveInput
+import GridKit.UIComponent
 
-
-type Input =
+newtype Grid = Grid
   { gridSpacing :: Number
-  , model2svg :: AffineTransform Number
   , size :: Vec2 Number
   }
 
-data VoidF a
-type Slot = H.Slot VoidF Void
+instance uiComponentGrid :: UIComponent Grid where
+  toSVG = render
 
-ui :: ∀ q m. MonadEffect m => H.Component HTML q Input Void m
-ui = ReactiveInput.mkComponent
-  { initialState: {}
-  , render
-  , handleAction: \_ _ -> pure unit
-  , handleInput: \_ -> pure unit
-  }
-
-render :: ∀ m. Input -> {} -> H.ComponentHTML Void () m
-render { gridSpacing, model2svg, size } _ =
-  S.g []
-      [ S.g [ S.class_ "grid grid-v" ] $
-          gridLines spacing (_x topLeft) (_x bottomRight)
-            # map \{ width, pos } -> let x = m2s_x pos in S.line [ S.strokeWidth width, S.x1 x, S.y1 0.0, S.x2 x, S.y2 (_y size) ]
-      , S.g [ S.class_ "grid grid-h" ] $
-          gridLines spacing (_y topLeft) (_y bottomRight)
-            # map \{ width, pos } -> let y = m2s_y pos in S.line [ S.strokeWidth width, S.x1 0.0, S.y1 y, S.x2 (_x size), S.y2 y ]
-      ]
+render :: AffineTransform Number -> Grid -> Array PlainHTML
+render model2svg (Grid { gridSpacing, size }) =
+  [ S.g [ S.class_ "grid grid-v" ] $
+      gridLines spacing (_x topLeft) (_x bottomRight)
+        # map \{ width, pos } -> let x = m2s_x pos in S.line [ S.strokeWidth width, S.x1 x, S.y1 0.0, S.x2 x, S.y2 (_y size) ]
+  , S.g [ S.class_ "grid grid-h" ] $
+      gridLines spacing (_y topLeft) (_y bottomRight)
+        # map \{ width, pos } -> let y = m2s_y pos in S.line [ S.strokeWidth width, S.x1 0.0, S.y1 y, S.x2 (_x size), S.y2 y ]
+  ]
   where
     svg2model = inverse model2svg
     spacing = _x (svg2model `transform` vec2 gridSpacing gridSpacing)
