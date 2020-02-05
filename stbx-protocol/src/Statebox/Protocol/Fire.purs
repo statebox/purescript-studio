@@ -18,8 +18,8 @@ data FiringError
   -- | The wiring does not describe a valid wiring tree.
   = FireInvalidWiringTree
 
-  -- | The linerization of the wiring tree failed with a LinerizationError
-  | FireLinerizationError LinearizationError
+  -- | The linearization of the wiring tree failed with a LinearizationError
+  | FireLinearizationError LinearizationError
 
   -- | The path of the firing describing
   | FireTransitionIndexOutOfBounds
@@ -32,7 +32,7 @@ fire wiring firing marking = maybe
   (Left FireInvalidWiringTree)
   (\wiringTree ->
     either
-      (Left <<< FireLinerizationError)
+      (Left <<< FireLinearizationError)
       (\gluedTransitions ->
         let transitionIndex = head firing.path
         in maybe

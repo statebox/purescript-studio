@@ -37,22 +37,28 @@ linearizePartitionsAndNames :: ArrayMultiset PID -> Array String -> Linearizatio
 linearizePartitionsAndNames partition names =
   either (NLLDecodingFailed >>> Left) (Right <<< flip linearizeTransitionsAndNames names) $ fromNLL 0 partition
 
--- the use of `lift3` does not consider the fact that the arrays could in principle have different lengths
+-- TODO `lift3` does not consider the case where the arrays have different lengths; so add check and error
 linearizeTransitionsAndNames :: Array (TransitionF' PID) -> Array String -> Array (Glued Transition)
 linearizeTransitionsAndNames transitions names =
-  sortInitialFinal $ lift3 buildGluedTransition (range 0 (length transitions - 1)) transitions names
+  sortInitialInteriorFinal $ lift3 buildGluedTransition (range 0 (length transitions - 1)) transitions names
 
 buildGluedTransition :: TID -> TransitionF' PID -> String -> Glued Transition
 buildGluedTransition tid (pre /\ post) name =
   case pre, post of
-    [], _  -> Initial   { name: name, path: [0, 0, 0], transition: tid, tokens: buildTokens pre post } -- the path is [0, 0, 0] because we consider a trivial diagram to be there
-    _ , [] -> Final     { name: name, path: [0, 0, 0], transition: tid, tokens: buildTokens pre post }
-    _ , _  -> Untouched { name: name, path: [0, 0, 0], transition: tid, tokens: buildTokens pre post }
+    [], _  -> Initial   gluedTransition
+    _ , [] -> Final     gluedTransition
+    _ , _  -> Untouched gluedTransition
+  where
+    gluedTransition = { name, path, transition: tid, tokens: buildTokens pre post }
+    path = [netIndex, diagramIndex, 0] -- path to trivial diagram that is assumed to exist
+    diagramIndex = 0
+    netIndex = 0
 
 -- | We use this custom function instead of `sortBy` because that does not guarantee
--- | the order of equal elements to be preserved.
-sortInitialFinal :: ∀ a. Array (Glued a) -> Array (Glued a)
-sortInitialFinal gluedItems =
-  let { no: notInitial        , yes: initial } = partition isInitial gluedItems
-      { no: notInitialAndFinal, yes: final   } = partition isFinal   notInitial
-  in initial <> notInitialAndFinal <> final
+-- | the order of equal elements (wrt the initial/interior/final ordering) to be preserved.
+sortInitialInteriorFinal :: ∀ a. Array (Glued a) -> Array (Glued a)
+sortInitialInteriorFinal gluedItems =
+  initial <> interior <> final
+  where
+    { no: notInitial, yes: initial } = partition isInitial gluedItems
+    { no: interior  , yes: final   } = partition isFinal   notInitial
