@@ -8,10 +8,10 @@ import Data.Maybe (maybe)
 import Data.NonEmpty (head)
 
 import Data.Petrinet.Representation.Dict (fireAtMarking)
+import Data.Petrinet.Representation.Marking (MarkingF)
 import Statebox.Core.Transition (gluedTokens)
-import Statebox.Core.Types (Firing, Wiring)
+import Statebox.Core.Types (Firing, Wiring, PID)
 import Statebox.Core.WiringTree (LinearizationError, fromWiring, linearize)
-import View.Petrinet.Model (Marking)
 
 data FiringError
 
@@ -42,3 +42,7 @@ fire wiring firing marking = maybe
           (index gluedTransitions transitionIndex))
       (linearize wiringTree))
   (fromWiring wiring)
+
+-- TODO dedupe
+type Marking = MarkingF PID Tokens
+type Tokens = Int
