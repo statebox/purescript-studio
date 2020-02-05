@@ -43,11 +43,11 @@ linearizeTransitionsAndNames transitions names =
   sortInitialFinal $ lift3 buildGluedTransition (range 0 (length transitions - 1)) transitions names
 
 buildGluedTransition :: TID -> TransitionF' PID -> String -> Glued Transition
-buildGluedTransition tId (pre /\ post) name =
-  case (pre /\ post) of
-    ([]  /\ _  ) -> Initial   { name: name, path: [0, 0, 0], transition: tId, tokens: buildTokens pre post } -- the path is [0, 0, 0] because we consider a trivial diagram to be there
-    (_   /\ [] ) -> Final     { name: name, path: [0, 0, 0], transition: tId, tokens: buildTokens pre post }
-    (inp /\ out) -> Untouched { name: name, path: [0, 0, 0], transition: tId, tokens: buildTokens pre post }
+buildGluedTransition tid (pre /\ post) name =
+  case pre, post of
+    [], _  -> Initial   { name: name, path: [0, 0, 0], transition: tid, tokens: buildTokens pre post } -- the path is [0, 0, 0] because we consider a trivial diagram to be there
+    _ , [] -> Final     { name: name, path: [0, 0, 0], transition: tid, tokens: buildTokens pre post }
+    _ , _  -> Untouched { name: name, path: [0, 0, 0], transition: tid, tokens: buildTokens pre post }
 
 -- | We use this custom function instead of `sortBy` because that does not guarantee
 -- | the order of equal elements to be preserved.
