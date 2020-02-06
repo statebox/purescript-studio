@@ -30,8 +30,8 @@ type Tokens = Int
 
 --------------------------------------------------------------------------------
 
-buildTokens :: ∀ a. Ord a => ArrayMultiset a -> ArrayMultiset a -> TransitionF a Tokens
-buildTokens pre post =
+buildTransitionMarking :: ∀ a. Ord a => ArrayMultiset a -> ArrayMultiset a -> TransitionF a Tokens
+buildTransitionMarking pre post =
   { pre:  buildPlaceMarkings pre
   , post: buildPlaceMarkings post
   }
