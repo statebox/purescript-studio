@@ -17,6 +17,14 @@ data Glued a
   | Final a
   | Glued a a
 
+derive instance genericGlued :: Generic (Glued a) _
+
+instance eqGlued :: Eq a => Eq (Glued a) where
+  eq = genericEq
+
+instance showGlued :: Show a => Show (Glued a) where
+  show = genericShow
+
 isInitial :: ∀ a. Glued a -> Boolean
 isInitial = case _ of
   Initial a -> true

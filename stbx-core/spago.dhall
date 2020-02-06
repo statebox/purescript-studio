@@ -15,6 +15,7 @@
     , "debug"
     , "psci-support"
     , "spec"
+    , "generics-rep"
     ]
 , packages =
     ../packages.dhall
