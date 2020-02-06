@@ -1,11 +1,13 @@
 module Statebox.Core.WiringTree where
 
 import Prelude
-import Control.Apply (lift3)
-import Data.Array (head, length, partition, range)
+import Data.Array ((:), head, length, partition, range, tail)
 import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
-import Data.Maybe (Maybe)
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Eq (genericEq)
+import Data.Generic.Rep.Show (genericShow)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple.Nested ((/\))
 
 import Data.ArrayMultiset (ArrayMultiset)
@@ -26,6 +28,15 @@ fromWiring wiring = Net <$> head wiring.nets
 data LinearizationError
   = DiagramNotYetAllowed
   | NLLDecodingFailed ErrNetEncoding
+  | LenghtMismatchBetweenTransitionsAndNames
+
+derive instance genericLinearizationError :: Generic LinearizationError _
+
+instance eqLinearizationError :: Eq LinearizationError where
+  eq = genericEq
+
+instance showLinerizationError :: Show LinearizationError where
+  show = genericShow
 
 linearize :: WiringTree -> LinearizationError \/ Array (Glued Transition)
 linearize (Net net)                  = linearizeNet net
@@ -36,12 +47,25 @@ linearizeNet net = linearizePartitionsAndNames net.partition net.names
 
 linearizePartitionsAndNames :: ArrayMultiset PID -> Array String -> LinearizationError \/ Array (Glued Transition)
 linearizePartitionsAndNames partition names =
-  either (NLLDecodingFailed >>> Left) (Right <<< flip linearizeTransitionsAndNames names) $ fromNLL 0 partition
+  either (NLLDecodingFailed >>> Left) (flip linearizeTransitionsAndNames names) $ fromNLL 0 partition
 
--- TODO `lift3` does not consider the case where the arrays have different lengths; so add check and error
-linearizeTransitionsAndNames :: Array (TransitionF' PID) -> Array String -> Array (Glued Transition)
+-- | this differs from the standard implementation of zipWith by the fact that it fails if the inputs are of different
+-- | length
+zip3With :: forall a b c d. (a -> b -> c -> d) -> Array a -> Array b -> Array c -> Maybe (Array d)
+zip3With f as bs cs = case head as, head bs, head cs of
+  Nothing , Nothing , Nothing  -> Just []
+  (Just x), (Just y), (Just z) -> (f x y z : _) <$> zip3With f (tailSafe as) (tailSafe bs) (tailSafe cs)
+    where
+      tailSafe :: forall e. Array e -> Array e
+      tailSafe = (fromMaybe []) <<< tail
+  _       , _       , _        -> Nothing
+
+linearizeTransitionsAndNames :: Array (TransitionF' PID) -> Array String -> LinearizationError \/ Array (Glued Transition)
 linearizeTransitionsAndNames transitions names =
-  sortInitialInteriorFinal $ lift3 buildGluedTransition (range 0 (length transitions - 1)) transitions names
+  maybe
+    (Left LenghtMismatchBetweenTransitionsAndNames)
+    (Right <<< sortInitialInteriorFinal)
+    (zip3With buildGluedTransition (range 0 (length transitions - 1)) transitions names)
 
 buildGluedTransition :: TID -> TransitionF' PID -> String -> Glued Transition
 buildGluedTransition tid (pre /\ post) name =
