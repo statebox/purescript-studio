@@ -11,29 +11,38 @@ import Data.ArrayMultiset (ArrayMultiset)
 import Statebox.Core.Execution (Path)
 import Statebox.Core.Types (PID, TID)
 
--- TODO: these types are currently duplicated from Data.Petrinet.Representation.Dict
+--------------------------------------------------------------------------------
+
+-- | TODO Duplicated from `Data.Petrinet.Representation.Dict` in #328.
 type TransitionF p tok =
   { pre  :: Array (PlaceMarkingF p tok)
   , post :: Array (PlaceMarkingF p tok)
   }
 
+-- | TODO Duplicated from `Data.Petrinet.Representation.Dict` in #328.
 type PlaceMarkingF p tok =
   { place  :: p
   , tokens :: tok
   }
 
-buildTokens :: ∀ a. Ord a => ArrayMultiset a -> ArrayMultiset a -> TransitionF a Int
+-- | TODO Duplicated from `Data.Petrinet.Representation.Dict` in #328.
+type Tokens = Int
+
+--------------------------------------------------------------------------------
+
+buildTokens :: ∀ a. Ord a => ArrayMultiset a -> ArrayMultiset a -> TransitionF a Tokens
 buildTokens pre post =
-  { pre  : buildPlaceMarkings pre
-  , post : buildPlaceMarkings post
+  { pre:  buildPlaceMarkings pre
+  , post: buildPlaceMarkings post
   }
 
-buildPlaceMarkings :: ∀ a. Ord a => ArrayMultiset a -> Array (PlaceMarkingF a Int)
-buildPlaceMarkings multiset =
-  let map = foldr (Map.update (Just <<< (_ + 1))) Map.empty multiset
-  in foldrWithIndex (\place count -> (:) { place: place, tokens: count }) [] map
+buildPlaceMarkings :: ∀ a. Ord a => ArrayMultiset a -> Array (PlaceMarkingF a Tokens)
+buildPlaceMarkings netMarking =
+  foldrWithIndex (\place tokens -> (:) { place, tokens }) [] netMarkingDict
+  where
+    netMarkingDict = netMarking # foldr (Map.update (Just <<< (_ + 1))) mempty
 
-type Tokens = Int
+--------------------------------------------------------------------------------
 
 type Transition =
   { path       :: Path
@@ -60,9 +69,9 @@ isFinal = case _ of
 
 gluedTokens :: Glued Transition -> TransitionF PID Tokens
 gluedTokens = case _ of
-  Untouched transition -> transition.tokens
-  Initial   transition -> transition.tokens
-  Final     transition -> transition.tokens
-  Glued transition1 transition2 -> { pre : transition1.tokens.pre
-                                   , post: transition2.tokens.post
-                                   }
+  Untouched transition              -> transition.tokens
+  Initial   transition              -> transition.tokens
+  Final     transition              -> transition.tokens
+  Glued     transition1 transition2 -> { pre:  transition1.tokens.pre
+                                       , post: transition2.tokens.post
+                                       }
