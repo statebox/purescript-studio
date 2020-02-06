@@ -7,7 +7,7 @@ import Data.Either.Nested (type (\/))
 import Data.Maybe (maybe)
 import Data.NonEmpty (head)
 
-import Data.Petrinet.Representation.Dict (fireAtMarking)
+import Data.Petrinet.Representation.Dict (fireEnabledAtMarking)
 import Statebox.Core.Transition (gluedTokens)
 import Statebox.Core.Types (Firing, Wiring)
 import Statebox.Core.WiringTree (LinearizationError, fromWiring, linearize)
@@ -38,7 +38,10 @@ fire wiring firing marking = maybe
         in maybe
           (Left FireTransitionIndexOutOfBounds)
           (\gluedTransition ->
-            Right $ fireAtMarking marking $ gluedTokens gluedTransition)
+            maybe
+              (Left FireTransitionNotEnabled)
+              Right
+              (fireEnabledAtMarking marking $ gluedTokens gluedTransition))
           (index gluedTransitions transitionIndex))
       (linearize wiringTree))
   (fromWiring wiring)

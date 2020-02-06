@@ -13,6 +13,7 @@ module Data.Petrinet.Representation.Dict
   , fire
   , fireAtMarking
   , isTransitionEnabled
+  , fireEnabledAtMarking
 
   , preMarking
   , postMarking
@@ -149,3 +150,17 @@ isTransitionEnabled marking t = isPlaceEnabled `all` t.pre
   where
     isPlaceEnabled :: PlaceMarkingF pid tok -> Boolean
     isPlaceEnabled tp = fromMaybe false $ (>=) <$> marking `tokensAt` tp.place <*> Just tp.tokens
+
+fireEnabledAtMarking
+    :: ∀ p tok
+   . Ord p
+  => Ord tok
+  => Semiring tok
+  => Group (MarkingF p tok)
+  => MarkingF p tok
+  -> TransitionF p tok
+  -> Maybe (MarkingF p tok)
+fireEnabledAtMarking marking t =
+  if isTransitionEnabled marking t
+  then Just $ fireAtMarking marking t
+  else Nothing
