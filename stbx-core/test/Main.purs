@@ -17,6 +17,8 @@ import Data.Petrinet.Representation.NLL (ErrNetEncoding(..))
 import Test.Statebox.Core as Core
 import Test.Statebox.Core.Execution as Execution
 import Test.Statebox.Core.Transaction.Codec as Transaction.Codec
+import Test.Statebox.Core.Transition as Transition
+import Test.Statebox.Core.WiringTree as WiringTree
 
 main :: Effect (Fiber Unit)
 main = launchAff $ runSpec [consoleReporter] do
@@ -29,4 +31,6 @@ main = launchAff $ runSpec [consoleReporter] do
 
   Core.suite
   Execution.suite
+  Transition.suite
   Transaction.Codec.suite
+  WiringTree.suite
