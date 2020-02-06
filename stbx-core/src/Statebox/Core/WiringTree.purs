@@ -10,7 +10,7 @@ import Data.Tuple.Nested ((/\))
 
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Petrinet.Representation.NLL (ErrNetEncoding, TransitionF', fromNLL)
-import Statebox.Core.Transition (Glued(..), Transition, buildTokens, isInitial, isFinal)
+import Statebox.Core.Transition (Glued(..), Transition, buildTransitionMarking, isInitial, isFinal)
 import Statebox.Core.Types (Diagram, Net, PID, TID, Wiring)
 
 data WiringTree
@@ -49,7 +49,7 @@ buildGluedTransition tid (pre /\ post) name =
     _ , [] -> Final     gluedTransition
     _ , _  -> Untouched gluedTransition
   where
-    gluedTransition = { name, path, transition: tid, tokens: buildTokens pre post }
+    gluedTransition = { name, path, transition: tid, tokens: buildTransitionMarking pre post }
     path = [netIndex, diagramIndex, 0] -- path to trivial diagram that is assumed to exist
     diagramIndex = 0
     netIndex = 0
