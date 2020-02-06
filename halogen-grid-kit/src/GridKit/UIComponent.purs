@@ -12,7 +12,7 @@ import Data.Vec3.AffineTransform
 import Halogen.HTML (PlainHTML)
 import Prim.Row as Row
 import Prim.RowList as RL
-import Record.Unsafe (unsafeGet)
+import Record (get)
 import Type.RowList
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -48,11 +48,12 @@ instance allUIComponentsNil :: AllUIComponents RL.Nil () where
   foldVariant _ _ = case_
 
 instance allUiComponentsCons ::
-  (AllUIComponents list tailRow, Row.Cons key value tailRow row, IsSymbol key, UIComponent value) =>
-  AllUIComponents (RL.Cons key value list) row where
-  foldRecord _ f r = f (get r) <> foldRecord (RLProxy :: RLProxy list) f (tail r)
+  ( AllUIComponents list tailRow
+  , Row.Cons key value tailRow row
+  , IsSymbol key
+  , UIComponent value
+  ) => AllUIComponents (RL.Cons key value list) row where
+  foldRecord _ f r = f (get (SProxy :: SProxy key) r) <> foldRecord (RLProxy :: RLProxy list) f (tail r)
     where
-      key = reflectSymbol (SProxy :: SProxy key)
-      get = unsafeGet key :: Record row -> value
       tail = unsafeCoerce :: Record row -> Record tailRow
   foldVariant _ f = on (SProxy :: SProxy key) f $ foldVariant (RLProxy :: RLProxy list) f

@@ -6,6 +6,7 @@ import Data.Array ((..), filter)
 import Data.Int (floor, ceil, toNumber)
 import Data.Vec3 (Vec2, vec2, _x, _y, origin2, point2)
 import Data.Vec3.AffineTransform
+import Global (infinity)
 import Halogen.HTML hiding (code, head, prop, map, div)
 import Math (log, pow, ln10, round, sqrt)
 import Svg.Elements as S
@@ -20,7 +21,7 @@ newtype Grid = Grid
 
 instance uiComponentGrid :: UIComponent Grid where
   toSVG = render
-  distance _ _ = 0.0
+  distance _ _ = infinity
 
 render :: AffineTransform Number -> Grid -> Array PlainHTML
 render model2svg (Grid { gridSpacing, size }) =

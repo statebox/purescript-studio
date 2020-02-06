@@ -84,7 +84,7 @@ handleAction _ (ChangeState f) = H.modify_ f
 render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action () m
 render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = div
   [ tabIndex 0, keys.onKeyDown ]
-  [ S.svg [ S.width (_x size), S.height (_y size) ] $ toSVG model2svg model <#> fromPlainHTML
+  [ S.svg [ S.width (_x size), S.height (_y size) ] $ toSVG model2svg orderedModel <#> fromPlainHTML
   , p_ [ input [ type_ InputRange, H.min 0.0, H.max 2.0, step Any, value (show logSpacing)
                , onValueInput $ \s -> s # fromString <#> \v -> ChangeState (_ { logSpacing = v })
                ]
@@ -142,6 +142,11 @@ render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = d
                 if even n then inj _rect $ Rect $ Box { topLeft: center - vec2 0.1 0.1, bottomRight: center + vec2 0.1 0.1 }
                           else inj _point $ Point center
             }
+
+    orderedModel =
+      { _1: model.grid
+      , _2: model.things
+      }
 
     zoomInKey = keyHandler
       [ Shortcut metaKey "Equal", Shortcut ctrlKey "Equal"]
