@@ -10,7 +10,7 @@ import Data.Lens.Record (prop)
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
-import Data.String (replaceAll, split, Pattern(..), Replacement(..))
+import Data.String (replaceAll, Pattern(..), Replacement(..))
 import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURIComponent)
@@ -26,6 +26,7 @@ import KDMonCat.Bricks as Bricks
 import KDMonCat.InferType
 import KDMonCat.Model
 
+import KDMoncat.Input.String (parsePixels, parseContext)
 import KDMonCat.Output.Haskell (haskellCode)
 import KDMonCat.Output.JSON (json)
 
@@ -170,6 +171,3 @@ escape :: String -> Maybe String
 escape s = encodeURIComponent s
   <#> replaceAll (Pattern "(") (Replacement "%28")
   <#> replaceAll (Pattern ")") (Replacement "%29")
-
-parsePixels :: String -> Array (Array String)
-parsePixels = map (split (Pattern "")) <<< split (Pattern "\n")

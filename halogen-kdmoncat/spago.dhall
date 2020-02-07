@@ -10,6 +10,7 @@
     , "halogen"
     , "halogen-grid-kit"
     , "halogen-svg"
+    , "kdmoncat-core"
     , "ordered-collections"
     , "profunctor-lenses"
     , "psci-support"
