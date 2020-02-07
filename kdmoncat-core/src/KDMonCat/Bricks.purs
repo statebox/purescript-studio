@@ -8,15 +8,11 @@ import Data.List (snoc) as L
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (alaF)
 import Data.Ord.Max (Max(..))
-import Data.String (split, Pattern(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec3 (vec2, _x, _y)
 
 import KDMonCat.Model
 import KDMonCat.Common ((..<), Fix(..), Ann(..), Disc2)
-
-parsePixels :: String -> Array (Array String)
-parsePixels = map (split (Pattern "")) <<< split (Pattern "\n")
 
 fromPixels :: ∀ bid. Ord bid => Array (Array bid) -> (bid -> Boolean) -> Bricks bid
 fromPixels inp isHole = let term /\ boxes = findCuts false false 0 0 width height in { width, height, boxes, term }
