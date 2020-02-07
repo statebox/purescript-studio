@@ -10,7 +10,8 @@ import Data.Tuple.Nested ((/\))
 
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Petrinet.Representation.NLL (ErrNetEncoding, TransitionF', fromNLL)
-import Statebox.Core.Transition (Glued(..), Transition, buildTransitionMarking, isInitial, isFinal)
+import Statebox.Core.Marking (buildTransitionMarking)
+import Statebox.Core.Transition (Glued(..), Transition, isInitial, isFinal)
 import Statebox.Core.Types (Diagram, Net, PID, TID, Wiring)
 
 data WiringTree
