@@ -8,6 +8,7 @@
     , "integers"
     , "ordered-collections"
     , "psci-support"
+    , "stbx-core"
     , "vec"
     ]
 , packages =
