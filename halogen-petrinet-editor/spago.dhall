@@ -5,7 +5,6 @@
 , dependencies =
     [ "console"
     , "effect"
-    , "group"
     , "halogen-svg"
     , "psci-support"
     , "studio-common"

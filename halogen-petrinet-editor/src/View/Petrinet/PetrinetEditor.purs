@@ -20,12 +20,12 @@ import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML as HH
-import Halogen.HTML (HTML, div)
+import Halogen.HTML (HTML, div, br, span, table, tbody, thead, tr, th, td)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Core (ClassName(..), ElemName(..), AttrName(..))
 import Halogen.HTML.Core as Core
-import Halogen.HTML.Events as HE
+import Halogen.HTML.Events (onClick, onDoubleClick)
 import Math (sin, cos, pi)
 import Svg.Elements as SE
 import Svg.Attributes as SA
@@ -142,7 +142,7 @@ ui htmlIdPrefixMaybe =
                       ]
                       [ SE.svg [ SA.viewBox (_x sceneTopLeft) (_y sceneTopLeft) (_x sceneSize) (_y sceneSize) ]
                                (netToSVG netInfo layout state.focusedPlace state.focusedTransition)
-                      , HH.br []
+                      , br []
                       , HH.text state.msg
                       ]
                 , div [ classes [ ClassName "w-1/6" ] ] $
@@ -302,8 +302,8 @@ ui htmlIdPrefixMaybe =
     svgTransitionAndArcs t =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
-           , HE.onClick (\_ -> Just $ FocusTransition t.id)
-           , HE.onDoubleClick (\_ -> Just $ if t.isEnabled then FireTransition t.id else FocusTransition t.id)
+           , onClick (\_ -> Just $ FocusTransition t.id)
+           , onDoubleClick (\_ -> Just $ if t.isEnabled then FireTransition t.id else FocusTransition t.id)
            ]
            ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t] <> [svgTransitionLabel t])
            where
@@ -398,7 +398,7 @@ ui htmlIdPrefixMaybe =
     svgPlace :: PlaceModelF pid Tokens String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
       SE.g [ SA.id (mkPlaceIdStr id)
-           , HE.onClick (\_ -> Just $ FocusPlace id)
+           , onClick (\_ -> Just $ FocusPlace id)
            ]
            [ SE.title [] [ Core.text label ]
            , SE.circle
@@ -511,18 +511,18 @@ ui htmlIdPrefixMaybe =
 
 htmlMarking :: ∀ a n pid tid ty2 m. Show a => Show n => BagF a n -> ComponentHTML (Action pid tid ty2) () m
 htmlMarking bag =
-  HH.table [ classes [ ClassName "table", ClassName "is-striped", ClassName "is-narrow", ClassName "is-hoverable" ] ]
-           [ HH.thead []
-                      [ HH.tr [] [ HH.th [] [ HH.text "place" ]
-                                 , HH.th [] [ HH.text "tokens" ]
-                                 ]
-                      ]
-           , HH.tbody [] rows
-           ]
+  table [ classes [ ClassName "table", ClassName "is-striped", ClassName "is-narrow", ClassName "is-hoverable" ] ]
+        [ thead []
+                [ tr [] [ th [] [ HH.text "place" ]
+                        , th [] [ HH.text "tokens" ]
+                        ]
+                ]
+        , tbody [] rows
+        ]
   where
-    rows = map (uncurry tr) <<< Marking.toUnfoldable $ bag
-    tr k v = HH.tr [] [ HH.td [] [ HH.text $ show k ]
-                      , HH.td [] [ HH.text $ show v ]
+    rows = map (uncurry mkRow) <<< Marking.toUnfoldable $ bag
+    mkRow k v = tr [] [ td [] [ HH.text $ show k ]
+                      , td [] [ HH.text $ show v ]
                       ]
 
 --------------------------------------------------------------------------------
@@ -532,18 +532,18 @@ labelVisibilityButtons =
   div [ classes [ ClassName "field has-addons" ] ]
       [ HH.p [ classes [ ClassName "control" ] ]
              [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
-                    , HE.onClick $ \_ -> Just $ ToggleLabelVisibility Place ]
-                    [ HH.span [] [ HH.text "Place labels" ] ]
+                    , onClick $ \_ -> Just $ ToggleLabelVisibility Place ]
+                    [ span [] [ HH.text "Place labels" ] ]
              ]
       , HH.p [ classes [ ClassName "control" ] ]
              [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
-                    , HE.onClick $ \_ -> Just $ ToggleLabelVisibility Transition ]
-                    [ HH.span [] [ HH.text "Transition labels" ] ]
+                    , onClick $ \_ -> Just $ ToggleLabelVisibility Transition ]
+                    [ span [] [ HH.text "Transition labels" ] ]
              ]
       , HH.p [ classes [ ClassName "control" ] ]
              [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
-                    , HE.onClick $ \_ -> Just $ ToggleLabelVisibility Arc ]
-                    [ HH.span [] [ HH.text "Arc labels" ] ]
+                    , onClick $ \_ -> Just $ ToggleLabelVisibility Arc ]
+                    [ span [] [ HH.text "Arc labels" ] ]
              ]
       ]
 
