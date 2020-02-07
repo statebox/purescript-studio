@@ -1,5 +1,6 @@
 module Statebox.Core.Types
   ( module Statebox.Core.Net
+  , module Statebox.Core.Marking
   , module Statebox.Core.Diagram
   , module Statebox.Core.Wiring
   , module Statebox.Core.Firing
@@ -8,6 +9,7 @@ module Statebox.Core.Types
   ) where
 
 import Statebox.Core.Net
+import Statebox.Core.Marking
 import Statebox.Core.Diagram
 import Statebox.Core.Wiring
 import Statebox.Core.Firing

@@ -26,6 +26,8 @@ import Data.Vec3 (Vec2D, Box, Vec3, minMax)
 import Data.Vec3 (bounds, minMaxZero) as Vec2D
 import Data.Vec3.Box as Box
 
+import Statebox.Core.Types (PID, TID, Tokens) as Core
+
 data Action pid tid ty2
   = LoadNet (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ())
   | FireTransition tid
@@ -88,9 +90,9 @@ type NetInfoWithTypesAndRolesF pid tid ty ty2 r = Record (NetInfoWithTypesAndRol
 
 -- types specialised to Int index ----------------------------------------------
 
-type PID          = Int
-type TID          = Int
-type Tokens       = Int
+type PID          = Core.PID    -- TODO remove this redirect; clients should import this directly
+type TID          = Core.TID    -- TODO remove this redirect; clients should import this directly
+type Tokens       = Core.Tokens -- TODO remove this redirect; clients should import this directly
 
 type Transition   = TransitionF   PID Tokens
 type Marking      = MarkingF      PID Tokens
