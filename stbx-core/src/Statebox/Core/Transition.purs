@@ -2,11 +2,10 @@ module Statebox.Core.Transition where
 
 import Prelude
 import Data.Array ((:))
-import Data.Foldable (foldr)
 import Data.FoldableWithIndex (foldrWithIndex)
-import Data.Map as Map
-import Data.Maybe (Maybe(..))
+import Data.Map (Map)
 
+import Data.ArrayMultiset as ArrayMultiset
 import Data.ArrayMultiset (ArrayMultiset)
 import Statebox.Core.Execution (Path)
 import Statebox.Core.Types (PID, TID)
@@ -40,7 +39,8 @@ buildPlaceMarkings :: ∀ a. Ord a => ArrayMultiset a -> Array (PlaceMarkingF a 
 buildPlaceMarkings netMarking =
   foldrWithIndex (\place tokens -> (:) { place, tokens }) [] netMarkingDict
   where
-    netMarkingDict = netMarking # foldr (Map.update (Just <<< (_ + 1))) mempty
+    netMarkingDict :: Map a Tokens
+    netMarkingDict = ArrayMultiset.countMap netMarking
 
 --------------------------------------------------------------------------------
 
