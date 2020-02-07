@@ -13,5 +13,6 @@ count = Map.toUnfoldable <<< countMap
 
 -- TODO This produces a BagF data structure, pretty much.
 -- TODO slow, may be worth optimising.
+-- | Create a histogram.
 countMap :: ∀ a. Ord a => ArrayMultiset a -> Map a Int
 countMap = Map.fromFoldableWith (+) <<< map (_ /\ 1)
