@@ -33,6 +33,7 @@ parseContext = spl "\n" >>> alaF App foldMap toEntry
     parseName nameBid = case nameBid # spl "@" of
       [name, bids] -> { name, bids: toCharArray bids <#> singleton }
       _ -> { name: nameBid, bids: toCharArray nameBid <#> singleton }
+      
     toEntry :: String -> Either String (Context String String)
     toEntry line = case spl ":" line of
       [nameBid, typ] -> let { name, bids } = parseName nameBid in
