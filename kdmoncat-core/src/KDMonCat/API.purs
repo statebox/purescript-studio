@@ -11,6 +11,7 @@ import KDMoncat.Input.String
 import KDMonCat.Output.JSON
 
 type Error = String
+
 type JSON = String
 
 type Input =
