@@ -28,6 +28,7 @@ parseContext = spl "\n" >>> alaF App foldMap toEntry
   where
     spl :: String -> String -> Array String
     spl p = trim >>> split (Pattern p) >>> map trim
+    
     parseName :: String -> { name :: String, bids :: Array String }
     parseName nameBid = case nameBid # spl "@" of
       [name, bids] -> { name, bids: toCharArray bids <#> singleton }
