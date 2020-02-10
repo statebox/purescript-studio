@@ -20,6 +20,11 @@ import Global (readInt)
 
 import KDMonCat.Model
 
+type Input =
+  { pixels :: String
+  , context :: String
+  }
+
 parsePixels :: String -> Array (Array String)
 parsePixels = map (split (Pattern "")) <<< split (Pattern "\n")
 
@@ -28,12 +33,12 @@ parseContext = spl "\n" >>> alaF App foldMap toEntry
   where
     spl :: String -> String -> Array String
     spl p = trim >>> split (Pattern p) >>> map trim
-    
+
     parseName :: String -> { name :: String, bids :: Array String }
     parseName nameBid = case nameBid # spl "@" of
       [name, bids] -> { name, bids: toCharArray bids <#> singleton }
       _ -> { name: nameBid, bids: toCharArray nameBid <#> singleton }
-      
+
     toEntry :: String -> Either String (Context String String)
     toEntry line = case spl ":" line of
       [nameBid, typ] -> let { name, bids } = parseName nameBid in

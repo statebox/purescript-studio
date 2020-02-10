@@ -1,5 +1,5 @@
 { name =
-    "kdmoncat-core"
+    "kdmoncat"
 , dependencies =
     [ "argonaut-core"
     , "argonaut-codecs"

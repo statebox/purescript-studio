@@ -5,7 +5,7 @@
   "scripts": {
     "postinstall": "spago install",
     "build": "spago bundle-module --main KDMonCat.API --to output/index.js --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago build --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago bundle-module --main KDMonCat.API --to output/index.js --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "parcel-build": "parcel build html/index.html --public-url .",
     "bundle": "npm run build && npm run parcel-build"
   },
