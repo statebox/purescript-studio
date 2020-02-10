@@ -12,3 +12,10 @@ npm i
 npm run bundle
 ```
 Then open `dist/index.html` in your browser.
+
+Or while developing:
+```
+npm i
+npm start
+```
+Then open `http://localhost:1234` in your browser.
