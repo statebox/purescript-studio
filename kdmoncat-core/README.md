@@ -1,4 +1,4 @@
-# Statebox Monoidal Category Logic
+# Statebox Monoidal Category library
 
 ## setup
 
