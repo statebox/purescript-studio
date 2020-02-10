@@ -10,7 +10,7 @@ import Data.Lens.Record (prop)
 import Data.List (List(Nil))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
-import Data.String (replaceAll, split, Pattern(..), Replacement(..))
+import Data.String (replaceAll, Pattern(..), Replacement(..))
 import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURIComponent)
@@ -26,12 +26,15 @@ import KDMonCat.Bricks as Bricks
 import KDMonCat.InferType
 import KDMonCat.Model
 
+import KDMoncat.Input.String as String
 import KDMonCat.Output.Haskell (haskellCode)
 import KDMonCat.Output.JSON (json)
 
 import View.KDMonCat.Bricks as Bricks
 import View.KDMonCat.Term as Term
 import View.KDMonCat.CopyToClipboard (copyToClipboard)
+
+type Input = String.Input
 
 type State =
   { input :: Input
@@ -49,11 +52,6 @@ _context = prop (SProxy :: SProxy "context")
 
 _selectionBox :: ∀ a b r. Lens { selectionBox :: a | r } { selectionBox :: b | r } a b
 _selectionBox = prop (SProxy :: SProxy "selectionBox")
-
-type Input =
-  { pixels :: String
-  , context :: String
-  }
 
 
 data Action
@@ -116,7 +114,7 @@ render st = div [ classes [ ClassName "app" ] ]
     bricksInput = toBricksInput st.input st.selectionBox
 
     envE :: String \/ Context String String
-    envE = (<>) <$> parseContext st.input.context <*> pure defaultEnv
+    envE = (<>) <$> String.parseContext st.input.context <*> pure defaultEnv
 
     inferredType = envE <#> \env -> inferType env bricksInput.bricks.term
     termTypeStr = inferredType # either identity showInferred
@@ -127,10 +125,10 @@ toBricksInput :: Input -> Box -> Bricks.Input
 toBricksInput input selectionBox =
   { bricks, matches, context, selectedBoxes, renderBoxContent: Bricks.defaultRenderBoxContent }
   where
-    bricks = Bricks.fromPixels (parsePixels input.pixels) (\s -> s == " " || s == "-" || s == "=")
+    bricks = Bricks.fromPixels (String.parsePixels input.pixels) (\s -> s == " " || s == "-" || s == "=")
 
     context = envE # either (const defaultEnv) identity
-    envE = (<>) <$> parseContext input.context <*> pure defaultEnv
+    envE = (<>) <$> String.parseContext input.context <*> pure defaultEnv
 
     inferredType = envE <#> \env -> inferType env bricks.term
     matches = inferredType # either (\envError -> []) _.matches
@@ -170,6 +168,3 @@ escape :: String -> Maybe String
 escape s = encodeURIComponent s
   <#> replaceAll (Pattern "(") (Replacement "%28")
   <#> replaceAll (Pattern ")") (Replacement "%29")
-
-parsePixels :: String -> Array (Array String)
-parsePixels = map (split (Pattern "")) <<< split (Pattern "\n")

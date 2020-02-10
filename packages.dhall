@@ -15,6 +15,7 @@ let additions =
       , halogen-diagram-editor = ./halogen-diagram-editor/spago.dhall as Location
       , halogen-grid-kit = ./halogen-grid-kit/spago.dhall as Location
       , halogen-kdmoncat = ./halogen-kdmoncat/spago.dhall as Location
+      , kdmoncat = ./kdmoncat/spago.dhall as Location
       , halogen-petrinet-editor = ./halogen-petrinet-editor/spago.dhall as Location
       , halogen-tree-menu = ./halogen-tree-menu/spago.dhall as Location
       , pnpro = ./pnpro/spago.dhall as Location
