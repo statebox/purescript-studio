@@ -1,4 +1,4 @@
-module Main where
+module Statebox.Browser.Main where
 
 import Prelude
 import Effect (Effect)
@@ -26,9 +26,9 @@ main = runHalogenAff do
   where
     initialState :: Studio.Input
     initialState =
-      { title:       "Statebox Studio"
-      , msg:         "Welcome to Statebox Studio!"
-      , projects:    Ex.projects
+      { title:       "Statebox Transaction Browser"
+      , msg:         "Welcome to the Statebox Transaction Browser!"
+      , projects:    mempty
       , hashSpace:   mempty
       , apiUrl:      Ex.endpointUrl
       , route:       Home

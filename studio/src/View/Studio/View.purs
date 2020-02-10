@@ -60,7 +60,7 @@ data VoidF a
 render :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 render state =
   div []
-    [ navBar
+    [ navBar state.title
     , div [ classes [ ClassName "flex" ] ]
           [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
                 [ slot _objectTree unit (TreeMenu.menuComponent (_ == state.route)) (stateMenu state) ((\(TreeMenu.Clicked menuNodeId route) -> ShowDiagramNodeContent route) >>> Just) ]
@@ -141,13 +141,14 @@ routeBreadcrumbs route =
   where
     crumb str = li [] [ a [ href "#" ] [ text str ] ]
 
-navBar :: ∀ m. ComponentHTML Action ChildSlots m
-navBar =
+navBar :: ∀ m. String -> ComponentHTML Action ChildSlots m
+navBar title =
   nav [ classes $ ClassName <$> [ "css-navbar", "flex", "items-center", "justify-between", "flex-wrap", "bg-purple-darker", "p-6" ] ]
-  [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
-            [ span [ classes [ ClassName "css-logo-statebox" ] ] []
+      [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
+            [ span [ classes [ ClassName "css-logo-statebox" ] ]
+                   []
             , span [ classes $ ClassName <$> [ "navbar-item", "ml-4", "font-semibold", "text-xl" ] ]
-                   [ text "Statebox Studio" ]
+                   [ text title ]
             ]
       , menu [ "Home"    /\ Just Home
              , "Project" /\ Nothing
