@@ -1,0 +1,36 @@
+@import "tailwindcss/dist/utilities.min.css";
+@import "tailwindcss/dist/preflight.min.css";
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+
+@import "../../studio/html/petrinet.css";
+@import "../../studio/html/diagram.css";
+@import "../../studio/html/typedefs.css";
+@import "../../studio/html/auths.css";
+@import "../../studio/html/kdmoncat-bricks.css";
+@import "../../halogen-grid-kit/src/GridKit/KeyHandler.css";
+@import "./tx-browser.css";
+
+svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+a {
+  text-decoration: none;
+}
+.css-navbar .css-logo-statebox {
+  display: inline-block;
+  width: 32px;
+  height: 37px;
+  background-image: url(../../studio/html/logo-statebox-white.svg);
+}
+.css-route-breadcrumbs li+li::before {
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  color: #b5b5b5;
+  content: "\02192";
+}

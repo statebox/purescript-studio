@@ -35,28 +35,20 @@ import View.Studio.Model.Route as Route
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
-import ExampleData as Ex
-
-type Input = Unit
+type Input = State
 
 data Query a = LoadTransactionsThenView URL TxId a
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Input Void m
 ui =
   H.mkComponent
-    { initialState: const initialState
+    { initialState: mkInitialState
     , eval:         mkEval $ defaultEval { handleAction = handleAction, handleQuery = handleQuery }
     , render:       render
     }
   where
-    initialState :: State
-    initialState =
-      { msg:         "Welcome to Statebox Studio!"
-      , projects:    Ex.projects
-      , hashSpace:   AdjacencySpace.empty
-      , apiUrl:      Ex.endpointUrl
-      , route:       Home
-      }
+    mkInitialState :: Input -> State
+    mkInitialState input = input
 
     handleQuery :: ∀ a. Query a -> H.HalogenM State Action ChildSlots Void m (Maybe a)
     handleQuery = case _ of
