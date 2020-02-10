@@ -1,9 +1,8 @@
-.spago
+/.cache
+/.spago
 /node_modules/
 /output/
-/dist/app.js
-/dist/dagre.min.js
-/dist/stbx.min.js
+/dist/
 /generated-docs/
 /.psc-package/
 /.psc*

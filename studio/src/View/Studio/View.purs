@@ -145,9 +145,7 @@ navBar :: ∀ m. ComponentHTML Action ChildSlots m
 navBar =
   nav [ classes $ ClassName <$> [ "css-navbar", "flex", "items-center", "justify-between", "flex-wrap", "bg-purple-darker", "p-6" ] ]
   [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
-            [ img [ src "logo-statebox-white.svg"
-                  , classes [ ClassName "css-logo-statebox" ]
-                  ]
+            [ span [ classes [ ClassName "css-logo-statebox" ] ] []
             , span [ classes $ ClassName <$> [ "navbar-item", "ml-4", "font-semibold", "text-xl" ] ]
                    [ text "Statebox Studio" ]
             ]
