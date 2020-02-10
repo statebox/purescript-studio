@@ -18,7 +18,7 @@ import ExampleData as Ex
 main :: Effect Unit
 main = runHalogenAff do
   urlHash <- liftEffect Routing.getHash
-  liftEffect $ log $ "tx browser: transaction hash to be visited: " <> urlHash
+  liftEffect $ log $ "studio: transaction hash to be visited: " <> urlHash
   body <- awaitBody
   io <- runUI Studio.ui initialState body
   _ <- io.query $ H.tell (LoadTransactionsThenView Ex.endpointUrl urlHash)
