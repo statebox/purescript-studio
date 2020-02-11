@@ -2,12 +2,12 @@
 @import "tailwindcss/dist/preflight.min.css";
 @import "@fortawesome/fontawesome-free/css/all.min.css";
 
-@import "../../studio/html/petrinet.css";
-@import "../../studio/html/diagram.css";
-@import "../../studio/html/typedefs.css";
-@import "../../studio/html/auths.css";
-@import "../../studio/html/kdmoncat-bricks.css";
-@import "../../halogen-grid-kit/src/GridKit/KeyHandler.css";
+@import "./petrinet.css";
+@import "./diagram.css";
+@import "./typedefs.css";
+@import "./auths.css";
+@import "./kdmoncat-bricks.css";
+@import "./KeyHandler.css";
 @import "./tx-browser.css";
 
 svg {
@@ -26,7 +26,7 @@ a {
   display: inline-block;
   width: 32px;
   height: 37px;
-  background-image: url(../../studio/html/logo-statebox-white.svg);
+  background-image: url(logo-statebox-white.svg);
 }
 .css-route-breadcrumbs li+li::before {
   margin-left: 0.5em;
