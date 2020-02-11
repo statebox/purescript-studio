@@ -156,6 +156,9 @@ type VarWithBox bv = { box :: Box, var :: Var bv }
 data Side = Input | Output
 derive instance eqSide :: Eq Side
 derive instance ordSide :: Ord Side
+instance showSide :: Show Side where
+  show Input = "input"
+  show Output = "output"
 
 data Validity = Valid | Invalid
 derive instance eqValidity :: Eq Validity
