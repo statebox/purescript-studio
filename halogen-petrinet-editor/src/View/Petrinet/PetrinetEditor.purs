@@ -59,10 +59,11 @@ type StateF pid tid ty2 =
   , msg                     :: String
   , focusedPlace            :: Maybe pid
   , focusedTransition       :: Maybe tid
+  , firingTransition        :: Maybe tid
+  , overrideMarking         :: Maybe (Marking.MarkingF pid Tokens)
   , arcLabelsVisible        :: Boolean
   , placeLabelsVisible      :: Boolean
   , transitionLabelsVisible :: Boolean
-  , overrideMarking         :: Maybe (Marking.MarkingF pid Tokens)
   }
 
 type PlaceModelF pid tok label pt =
@@ -79,6 +80,7 @@ type TransitionModelF tid label pt =
   , preArcs   :: Array (ArcModelF tid label pt)
   , postArcs  :: Array (ArcModelF tid label pt)
   , isEnabled :: Boolean
+  , isFiring  :: Boolean
   , label     :: label
   , htmlId    :: HtmlId
   , isFocused :: Boolean
@@ -127,10 +129,11 @@ ui htmlIdPrefixMaybe =
       , msg:                     ""
       , focusedPlace:            empty
       , focusedTransition:       empty
+      , firingTransition:        empty
+      , overrideMarking:         empty
       , placeLabelsVisible:      true
       , transitionLabelsVisible: true
       , arcLabelsVisible:        true
-      , overrideMarking:         Nothing
       }
 
     render :: StateF pid tid ty2 -> ComponentHTML (Action pid tid ty2) () m
@@ -141,7 +144,7 @@ ui htmlIdPrefixMaybe =
                       , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
                       ]
                       [ SE.svg [ SA.viewBox (_x sceneTopLeft) (_y sceneTopLeft) (_x sceneSize) (_y sceneSize) ]
-                               (netToSVG netInfo layout state.focusedPlace state.focusedTransition)
+                               (netToSVG netInfo layout state)
                       , br []
                       , HH.text state.msg
                       ]
@@ -173,7 +176,7 @@ ui htmlIdPrefixMaybe =
                 -- autoLayout = Bipartite.layout Config.bipartiteLayoutScale state.netInfo.net
                 autoLayout = Dagre.layout state.netInfo.net
 
-        netInfo = state.netInfo { textBoxes = textBoxes, net { layout = Just layout }}
+        netInfo = state.netInfo { textBoxes = textBoxes, net { layout = Just layout, marking = marking }}
         sceneSize                       = bounds.max - bounds.min + padding
         sceneTopLeft                    = bounds.min - (padding / pure 2.0)
         bounds                          = NetInfo.boundingBox { layout, textBoxes }
@@ -219,6 +222,7 @@ ui htmlIdPrefixMaybe =
           let net' = fire state.netInfo.net t
           H.put $ state { netInfo = state.netInfo { net = net' }
                         , overrideMarking = Just marking'
+                        , firingTransition = Just tid
                         , msg = "Firing transition " <> show tid
                         }
           preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
@@ -230,6 +234,7 @@ ui htmlIdPrefixMaybe =
           H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
           state' <- H.get
           H.put $ state' { overrideMarking = Nothing
+                         , firingTransition = Nothing
                          , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
                          }
       ToggleLabelVisibility obj -> do
@@ -239,8 +244,8 @@ ui htmlIdPrefixMaybe =
           Place ->      state { placeLabelsVisible      = not state.placeLabelsVisible }
           Transition -> state { transitionLabelsVisible = not state.transitionLabelsVisible }
 
-    netToSVG :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> NetLayoutF pid tid -> Maybe pid -> Maybe tid -> Array (ComponentHTML (Action pid tid ty2) () m)
-    netToSVG netInfo@{net, netApi} layout focusedPlace focusedTransition =
+    netToSVG :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> NetLayoutF pid tid -> StateF pid tid ty2 -> Array (ComponentHTML (Action pid tid ty2) () m)
+    netToSVG netInfo@{net, netApi} layout { focusedPlace, focusedTransition, firingTransition } =
       svgDefs <> svgTextBoxes <> svgTransitions <> svgPlaces
       where
         svgDefs        = [ SE.defs [] [ svgArrowheadMarker ] ]
@@ -271,6 +276,7 @@ ui htmlIdPrefixMaybe =
                , htmlId    : mkTransitionIdStr tid
                , point     : trPoint
                , isFocused : focusedTransition == Just tid
+               , isFiring  : firingTransition == Just tid
                }
           where
             mkPostArc :: Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
@@ -315,7 +321,7 @@ ui htmlIdPrefixMaybe =
 
     svgTransitionRect :: TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgTransitionRect t =
-      SE.rect [ SA.class_  ("css-transition-rect" <> guard t.isFocused " focused")
+      SE.rect [ SA.class_  ("css-transition-rect" <> guard t.isFocused " focused" <> guard t.isFiring " firing")
               , SA.width   transitionWidth
               , SA.height  transitionHeight
               , SA.x       (_x t.point - transitionWidth / 2.0)

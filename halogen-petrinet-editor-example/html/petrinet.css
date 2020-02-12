@@ -26,6 +26,13 @@
 .css-transition-rect.focused {
     fill: lightblue;
 }
+.css-transition-rect.firing {
+    animation: 0.3s linear infinite alternate firing-transition;
+}
+@keyframes firing-transition {
+  from { fill: rgb(220, 240, 220); }
+  to   { fill: rgb(148, 204, 148); }
+}
 .css-place-name-label, .css-transition-name-label, .css-arc-name-label {
     fill: rgb(100,100,100);
     text-anchor: middle;
