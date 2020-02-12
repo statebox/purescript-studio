@@ -33,7 +33,7 @@ import Svg.Attributes (CSSLength(..), FillState(..), FontSize(..))
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
-import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, preMarking)
+import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, preMarking, mkNetApiF)
 import Data.Petrinet.Representation.Layout.Dagre as Dagre
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
