@@ -43,7 +43,7 @@ import View.Typedefs.TypedefsEditor as TypedefsEditor
 
 type ChildSlots =
   ( objectTree     :: H.Slot VoidF (TreeMenu.Msg Route) Unit
-  , petrinetEditor :: H.Slot VoidF (PetrinetEditor.Msg Int) Unit
+  , petrinetEditor :: H.Slot VoidF PetrinetEditor.Msg Unit
   , diagramEditor  :: H.Slot VoidF DiagramEditor.Msg Unit
   , kdmoncatBricks :: KDMonCat.Bricks.Slot Unit
   )
