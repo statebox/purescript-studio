@@ -43,7 +43,7 @@ import View.Petrinet.Arrow (svgArrow, svgArrowheadMarker)
 import View.Petrinet.Config as Config
 import View.Petrinet.Config (placeRadius, transitionWidth, transitionHeight, tokenRadius, tokenPadding, fontSize, arcAnimationDuration, arcAnimationDurationSec)
 import View.Petrinet.Model as NetInfo -- TODO move the NetInfo stuff out of Model into its own module
-import View.Petrinet.Model (Msg, NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceAction(..), Action(..), Tokens, TransitionAction(..), TextBox)
+import View.Petrinet.Model (Msg(..), NetElemKind(..), NetInfoWithTypesAndRolesF, PlaceAction(..), Action(..), Tokens, TransitionAction(..), TextBox)
 import View.Petrinet.PlaceEditor as PlaceEditor
 import View.Petrinet.TransitionEditor as TransitionEditor
 
@@ -117,7 +117,7 @@ ui ::
    => Ord tid
    => Show tid
    => Maybe HtmlId
-   -> H.Component HTML q (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ()) Msg m
+   -> H.Component HTML q (NetInfoWithTypesAndRolesF pid tid Typedef ty2 ()) (Msg tid) m
 ui htmlIdPrefixMaybe =
   H.mkComponent { eval: mkEval $ defaultEval { receive = Just <<< LoadNet, handleAction = handleAction }, initialState, render }
   where
@@ -183,7 +183,7 @@ ui htmlIdPrefixMaybe =
         placeLabelsVisibilityClass      = guard (not state.placeLabelsVisible)      "css-hide-place-labels"
         transitionLabelsVisibilityClass = guard (not state.transitionLabelsVisible) "css-hide-transition-labels"
 
-    handleAction :: Action pid tid ty2 -> HalogenM (StateF pid tid ty2) (Action pid tid ty2) () Msg m Unit
+    handleAction :: Action pid tid ty2 -> HalogenM (StateF pid tid ty2) (Action pid tid ty2) () (Msg tid) m Unit
     handleAction = case _ of
       LoadNet newNetInfo -> do
         let netInfo = newNetInfo { netApi = mkNetApiF newNetInfo.net }
@@ -223,6 +223,9 @@ ui htmlIdPrefixMaybe =
                         }
           preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
           H.liftAff $ guard (preCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+
+          H.raise (FireTransitionMsg tid)
+
           postCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid true)
           H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
           state' <- H.get

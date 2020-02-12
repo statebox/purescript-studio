@@ -44,7 +44,7 @@ data Action
   | LoadTransaction HashStr
   | LoadTransactions URL HashStr
   | ShowDiagramNodeContent Route
-  | HandlePetrinetEditorMsg PetrinetEditor.Msg
+  | HandlePetrinetEditorMsg (PetrinetEditor.Msg Int)
   | HandleDiagramEditorMsg DiagramEditor.Msg
   | HandleKDMonCatMsg DiagramInfo KDMonCat.Bricks.Output
 

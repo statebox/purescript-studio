@@ -62,7 +62,7 @@ mapTextBoxF f b = b { box = Box.mapVec3s f b.box }
 
 -- | Messages sent to the outside world (i.e. parent components).
 --   TODO This is a dummy placeholder for now.
-data Msg = NetUpdated
+data Msg tid = FireTransitionMsg tid
 
 --------------------------------------------------------------------------------
 

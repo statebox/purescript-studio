@@ -10,9 +10,11 @@ import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Set as Set
+import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for_)
 import Effect.Exception (try)
-import Effect.Aff.Class (class MonadAff)
+import Effect.Aff (delay)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (mkEval, defaultEval)
@@ -26,7 +28,7 @@ import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
 import Statebox.Core.Transaction (HashTx, TxId)
 import View.Diagram.Update as DiagramEditor
-import View.Petrinet.Model (Msg(NetUpdated))
+import View.Petrinet.Model (Msg(..))
 import View.KDMonCat.App as KDMonCat.Bricks
 import View.KDMonCat.Bricks as KDMonCat.Bricks
 import View.Model (Project)
@@ -147,5 +149,5 @@ ui =
           op <- DiagramV2.fromPixel diagramInfo.ops box.bid
           pure op.identifier
 
-      HandlePetrinetEditorMsg NetUpdated -> do
-        pure unit
+      HandlePetrinetEditorMsg (FireTransitionMsg tid) -> do
+        liftAff $ delay (Milliseconds 2000.0)
