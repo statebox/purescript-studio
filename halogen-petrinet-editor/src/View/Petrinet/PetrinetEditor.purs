@@ -33,7 +33,7 @@ import Svg.Attributes (CSSLength(..), FillState(..), FontSize(..))
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
-import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, preMarking, mkNetApiF)
+import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, preMarking)
 import Data.Petrinet.Representation.Layout.Dagre as Dagre
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
@@ -219,20 +219,22 @@ ui htmlIdPrefixMaybe =
         state <- H.get
         state.netInfo.netApi.transition tid # maybe (pure unit) \t -> do
           let marking' = preMarking t <> state.netInfo.net.marking
-          let net' = fire state.netInfo.net t
-          H.put $ state { netInfo = state.netInfo { net = net' }
-                        , overrideMarking = Just marking'
+          H.put $ state { overrideMarking = Just marking'
                         , firingTransition = Just tid
                         , msg = "Firing transition " <> show tid
                         }
           preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
           H.liftAff $ guard (preCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+
+          marking'' <- H.liftAff $ state.netInfo.netApi.fire state.netInfo.net.marking t
+
           postCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid true)
           H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
           state' <- H.get
-          H.put $ state' { overrideMarking = Nothing
+          H.put $ state' { netInfo { net { marking = marking'' } }
+                         , overrideMarking = Nothing
                          , firingTransition = Nothing
-                         , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
+                         , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid state'.netInfo.net.transitionLabelsDict) <> ")."
                          }
       ToggleLabelVisibility obj -> do
         state <- H.get
