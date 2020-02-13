@@ -88,7 +88,7 @@ mkNetApiF rep =
   { transition: \tid -> Map.lookup tid rep.transitionsDict
   , placeLabel: \pid -> Map.lookup pid rep.placeLabelsDict
   , findTokens: Marking.findTokens rep.marking
-  , fire: \marking t -> do delay (Milliseconds 2000.0)
+  , fire: \marking t -> do delay (Milliseconds 500.0)
                            pure $ fireAtMarking marking t
   }
 
