@@ -8,7 +8,7 @@ import Data.Newtype (unwrap)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionIdRaw, GluedTransitionId(..))
-import Statebox.Core.Wiring.Tree as Wiring.Tree
+import Statebox.Core.Wiring.Tree (Path, PathElem)
 
 
 -- | ReasonML-encoded representation of a marked net.
@@ -81,12 +81,6 @@ pretty = case _ of
     Normal  -> "normal"
     Glued   -> "glued"
     Final   -> "final"
-
--- | TODO remove this redirect. #331
-type PathElem = Wiring.Tree.PathElem
-
--- | TODO remove this redirect. #331
-type Path = Wiring.Tree.Path
 
 -- TODO Since we already have Path as an isolated type, this PathIndexed may not add much value
 type PathIndexed r = (path :: Path | r)
