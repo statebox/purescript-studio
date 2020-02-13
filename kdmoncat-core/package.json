@@ -7,7 +7,8 @@
     "build": "spago bundle-module --main KDMonCat.API --to output/index.js --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "watch": "spago build --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "parcel-build": "parcel build html/index.html --public-url .",
-    "bundle": "npm run build && npm run parcel-build"
+    "bundle": "npm run build && npm run parcel-build",
+    "rollup-bundle": "rollup -c js-bundle/rollup.config.js"
   },
   "keywords": [
     "statebox",
@@ -16,9 +17,12 @@
   ],
   "license": "Commercial",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^11.0.2",
     "parcel-bundler": "^1.12.4",
     "purescript": "^0.13.5",
     "purescript-psa": "^0.7.3",
+    "rollup-plugin-terser": "^5.2.0",
+    "rollup": "^1.31.0",
     "spago": "^0.13"
   }
 }

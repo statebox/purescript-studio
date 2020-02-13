@@ -10,3 +10,4 @@
 /.spago
 /.cache
 /dist
+/js-bundle/kdmoncat-bundle.min.js
