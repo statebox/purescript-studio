@@ -51,6 +51,7 @@ type State =
   { route       :: Route
   , projects    :: Array Project
   , hashSpace   :: AdjacencySpace HashStr TxSum -- ^ Hashes and their (tree of) links.
+  , title       :: String
   , msg         :: String
   , apiUrl      :: URL
   }

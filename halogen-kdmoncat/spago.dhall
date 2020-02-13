@@ -1,5 +1,5 @@
 { name =
-    "statebox-kdmoncat"
+    "halogen-kdmoncat"
 , dependencies =
     [ "argonaut-core"
     , "argonaut-codecs"
@@ -10,6 +10,7 @@
     , "halogen"
     , "halogen-grid-kit"
     , "halogen-svg"
+    , "kdmoncat"
     , "ordered-collections"
     , "profunctor-lenses"
     , "psci-support"

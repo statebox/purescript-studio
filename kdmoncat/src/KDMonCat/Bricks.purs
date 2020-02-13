@@ -14,7 +14,6 @@ import Data.Vec3 (vec2, _x, _y)
 import KDMonCat.Model
 import KDMonCat.Common ((..<), Fix(..), Ann(..), Disc2)
 
-
 fromPixels :: ∀ bid. Ord bid => Array (Array bid) -> (bid -> Boolean) -> Bricks bid
 fromPixels inp isHole = let term /\ boxes = findCuts false false 0 0 width height in { width, height, boxes, term }
   where

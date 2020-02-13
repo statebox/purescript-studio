@@ -34,6 +34,7 @@ import Data.Vec3 (Vec2D, Vec2)
 import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
 import Data.Set as Set
 import Data.Group (class Group, ginverse)
+import Effect.Aff (Aff, delay, Milliseconds(..))
 
 -- TODO this dependency should probably be eliminated in favour of a type parameter
 import Data.Auth as Auth
@@ -72,6 +73,7 @@ type NetApiF pid tid tok =
 
   -- net state and execution
   , findTokens :: pid -> tok
+  , fire       :: MarkingF pid tok -> TransitionF pid tok -> Aff (MarkingF pid tok)
   }
 
 mkNetApiF
@@ -79,12 +81,15 @@ mkNetApiF
    . Ord pid
   => Ord tid
   => Semiring tok
+  => Group (MarkingF pid tok)
   => NetRepF pid tid tok typ r
   -> NetApiF pid tid tok
 mkNetApiF rep =
   { transition: \tid -> Map.lookup tid rep.transitionsDict
   , placeLabel: \pid -> Map.lookup pid rep.placeLabelsDict
   , findTokens: Marking.findTokens rep.marking
+  , fire: \marking t -> do delay (Milliseconds 500.0)
+                           pure $ fireAtMarking marking t
   }
 
 --------------------------------------------------------------------------------

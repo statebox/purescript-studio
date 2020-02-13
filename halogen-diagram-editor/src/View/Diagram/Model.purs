@@ -16,6 +16,7 @@ type DiagramInfo =
 -- must be unique; problematic, want to use lenses instead
 type OperatorId = String
 
+-- TODO: merge with Operator in Language.Statebox.Wiring.Generator.DiagramV2.Operators
 type Operator =
   { identifier :: OperatorId
   , pos        :: Vec3 Int
@@ -56,8 +57,7 @@ instance showDragStart :: Show DragStart where
     DragStartedOnOperator   xy o oh -> "DragStartedOnOperator "   <> show xy  <> " " <> show o <> " " <> show oh
 
 type Model =
-  { ops           :: Array Operator
-  , selectedOpId  :: Maybe OperatorId
+  { selectedOpId  :: Maybe OperatorId
     -- this String id is somewhat problematic; it's an id into a "Array/Set" of operators; rather have a Lens here
   , mouseOver     :: Maybe (Operator /\ OperatorHandle)
   , mousePos      :: Vec3 Int

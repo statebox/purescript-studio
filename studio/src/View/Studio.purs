@@ -20,7 +20,7 @@ import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
-import Language.Statebox.Wiring.Generator.DiagramV2 as DiagramV2
+import Language.Statebox.Wiring.Generator.DiagramV2.Operators as DiagramV2
 import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
@@ -35,28 +35,20 @@ import View.Studio.Model.Route as Route
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
-import ExampleData as Ex
-
-type Input = Unit
+type Input = State
 
 data Query a = LoadTransactionsThenView URL TxId a
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Input Void m
 ui =
   H.mkComponent
-    { initialState: const initialState
+    { initialState: mkInitialState
     , eval:         mkEval $ defaultEval { handleAction = handleAction, handleQuery = handleQuery }
     , render:       render
     }
   where
-    initialState :: State
-    initialState =
-      { msg:         "Welcome to Statebox Studio!"
-      , projects:    Ex.projects
-      , hashSpace:   AdjacencySpace.empty
-      , apiUrl:      Ex.endpointUrl
-      , route:       Home
-      }
+    mkInitialState :: Input -> State
+    mkInitialState input = input
 
     handleQuery :: ∀ a. Query a -> H.HalogenM State Action ChildSlots Void m (Maybe a)
     handleQuery = case _ of
@@ -152,7 +144,7 @@ ui =
         let boxes = (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) selBox).selectedBoxes
         maybe (pure unit) (handleAction <<< HandleDiagramEditorMsg <<< DiagramEditor.OperatorClicked) $ do
           box <- Set.findMin boxes
-          op <- DiagramV2.pixel2operator diagramInfo.ops box.bid
+          op <- DiagramV2.fromPixel diagramInfo.ops box.bid
           pure op.identifier
 
       HandlePetrinetEditorMsg NetUpdated -> do

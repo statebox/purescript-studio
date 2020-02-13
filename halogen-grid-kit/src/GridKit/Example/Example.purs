@@ -68,8 +68,8 @@ ui = ReactiveInput.mkComponent
   , handleInput: \_ -> pure unit
   }
 
-handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots Void m Unit
-handleAction (ChangeState f) = H.modify_ f
+handleAction :: ∀ m. MonadEffect m => Input -> Action -> H.HalogenM State Action ChildSlots Void m Unit
+handleAction _ (ChangeState f) = H.modify_ f
 
 render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
 render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = div
@@ -130,11 +130,11 @@ render _ { logSpacing, logScale, posX, posY, radius, count, keyHelpVisible } = d
 
     zoomInKey = keyHandler
       [ Shortcut metaKey "Equal", Shortcut ctrlKey "Equal"]
-      (text "Zoom in")
+      (Just $ text "Zoom in")
       (ChangeState $ _logScale +~ 0.1)
     zoomOutKey = keyHandler
       [ Shortcut metaKey "Minus", Shortcut ctrlKey "Minus"]
-      (text "Zoom out")
+      (Just $ text "Zoom out")
       (ChangeState $ _logScale -~ 0.1)
 
     keys = keysWithHelpPopup

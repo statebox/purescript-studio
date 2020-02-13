@@ -29,7 +29,7 @@ ui :: ∀ q m. MonadEffect m => H.Component HTML q Input Void m
 ui = ReactiveInput.mkComponent
   { initialState: {}
   , render
-  , handleAction: \_ -> pure unit
+  , handleAction: \_ _ -> pure unit
   , handleInput: \_ -> pure unit
   }
 

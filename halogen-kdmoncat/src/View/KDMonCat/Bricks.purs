@@ -46,8 +46,6 @@ type State =
   , mouseDownFrom :: Maybe Box
   , showWires :: Boolean
   , keyHelpVisible :: Boolean
-  , width :: Int
-  , height :: Int
   }
 
 _selection :: ∀ a b r. Lens { selection :: a | r } { selection :: b | r } a b
@@ -106,8 +104,6 @@ initialState  =
   , mouseDownFrom: Nothing
   , showWires: true
   , keyHelpVisible: false
-  , width: 0
-  , height: 0
   }
 
 render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
@@ -139,16 +135,11 @@ render { bricks: { width, height, boxes }, matches, context, selectedBoxes, rend
   where
     altKey = keyHandler
       [ Char "Alt" ]
-      (text "Toggle between bricks and wires")
+      (Just $ text "Toggle between bricks and wires")
       (ChangeState $ _showWires %~ not)
-    cursorKeys =
-      [ { key: "ArrowLeft",  dx: -1, dy:  0 }
-      , { key: "ArrowUp",    dx:  0, dy: -1 }
-      , { key: "ArrowRight", dx:  1, dy:  0 }
-      , { key: "ArrowDown",  dx:  0, dy:  1 }
-      ] # foldMap \{ key, dx, dy } ->
-        keyHandlerNoHelp [ Shortcut noMods   key ] (MoveCursorStart (vec2 dx dy))
-        <> keyHandlerNoHelp [ Shortcut shiftKey key ] (MoveCursorEnd (vec2 dx dy))
+    cursorKeys
+       = cursorKeyHandler noMods   MoveCursorStart
+      <> cursorKeyHandler shiftKey MoveCursorEnd
     keys = keysWithHelpPopup
       { keys: altKey <> cursorKeys
       , popupAction: ChangeState $ _keyHelpVisible %~ not
@@ -322,38 +313,37 @@ selectionBox { topLeft, bottomRight } =
 
 handleInput :: ∀ m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots Output m Unit
 handleInput { bricks: { width, height } } = do
-  H.modify_ _ { width = width, height = height }
-  updateSelection identity
+  updateSelection { width, height } identity
 
-handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots Output m Unit
-handleAction = case _ of
+handleAction :: ∀ m. MonadEffect m => Input -> Action -> H.HalogenM State Action ChildSlots Output m Unit
+handleAction { bricks: { width, height } } = case _ of
   GetFocus -> do
     mb <- H.getRef (RefLabel "bricks")
     mb # maybe (pure unit) (toHTMLElement >>> focus >>> liftEffect)
   ChangeState f -> H.modify_ f
-  MoveCursorStart d -> updateSelection \sel ->
+  MoveCursorStart d -> updateSelection { width, height } \sel ->
     { topLeft: moveCursor d sel.topLeft sel.bottomRight
     , bottomRight: moveCursor d sel.bottomRight sel.topLeft
     }
-  MoveCursorEnd d -> updateSelection (_bottomRight +~ d)
+  MoveCursorEnd d -> updateSelection { width, height } (_bottomRight +~ d)
   OnMouseDown b@{ topLeft, bottomRight } -> do
     H.modify_ _ { mouseDownFrom = Just b }
-    updateSelection \_ -> { topLeft, bottomRight: bottomRight - vec2 1 1 }
+    updateSelection { width, height } \_ -> { topLeft, bottomRight: bottomRight - vec2 1 1 }
   OnMouseMove b1 -> do
     mb0 <- H.gets _.mouseDownFrom
     case mb0 of
       Nothing -> pure unit
       Just b0 -> do
-        updateSelection \_ ->
+        updateSelection { width, height } \_ ->
           { topLeft: binOp min b0.topLeft b1.topLeft
           , bottomRight: binOp max b0.bottomRight b1.bottomRight - vec2 1 1
           }
   OnMouseUp ->
     H.modify_ $ \st -> st { mouseDownFrom = Nothing }
 
-updateSelection :: ∀ m. (Box -> Box) -> H.HalogenM State Action ChildSlots Output m Unit
-updateSelection f = do
-  { selection, width, height } <- H.get
+updateSelection :: ∀ m. { width :: Int, height :: Int } -> (Box -> Box) -> H.HalogenM State Action ChildSlots Output m Unit
+updateSelection { width, height } f = do
+  { selection } <- H.get
   let { topLeft, bottomRight } = f selection
   let selection' = { topLeft: clamp2d width height topLeft, bottomRight: clamp2d width height bottomRight }
   if selection.topLeft /= selection'.topLeft || selection.bottomRight /= selection'.bottomRight then do

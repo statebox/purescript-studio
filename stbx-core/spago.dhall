@@ -1,7 +1,7 @@
 { sources =
     [ "src/**/*.purs", "test/**/*.purs" ]
 , name =
-    "purescript-stbx"
+    "stbx-core"
 , dependencies =
     [ "prelude"
     , "arrays"

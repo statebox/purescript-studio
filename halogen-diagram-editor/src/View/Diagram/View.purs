@@ -25,8 +25,8 @@ import Web.HTML (HTMLElement)
 import Web.UIEvent.MouseEvent (clientX, clientY)
 
 -- TODO: if there is no HTMLElement it does not make sense to draw anything
-diagramEditorSVG :: ∀ a. Maybe HTMLElement -> Model -> HTML a MouseMsg
-diagramEditorSVG maybeElement model =
+diagramEditorSVG :: ∀ a. Maybe HTMLElement -> Operators -> Model -> HTML a MouseMsg
+diagramEditorSVG maybeElement ops model =
   SE.svg [ SA.viewBox sceneLeft sceneTop w h
          , HP.ref componentRefLabel
          , HE.onMouseMove $ \e -> Just $ MousePos  (svg e maybeElement)
@@ -35,7 +35,7 @@ diagramEditorSVG maybeElement model =
          ]
          (ghosts <> operators `snoc` cursor)
   where
-    operators = operator (_ `elem` model.selectedOpId) s <$> model.ops
+    operators = operator (_ `elem` model.selectedOpId) s <$> ops
     ghosts    = operatorGhosts s model
     cursor    = renderCursor s model.cursorPos
     w         = toNumber model.config.width
