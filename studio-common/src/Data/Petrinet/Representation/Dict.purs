@@ -73,7 +73,7 @@ type NetApiF pid tid tok =
 
   -- net state and execution
   , findTokens :: pid -> tok
-  , fire :: MarkingF pid tok -> TransitionF pid tok -> Aff (MarkingF pid tok)
+  , fire       :: MarkingF pid tok -> TransitionF pid tok -> Aff (MarkingF pid tok)
   }
 
 mkNetApiF
