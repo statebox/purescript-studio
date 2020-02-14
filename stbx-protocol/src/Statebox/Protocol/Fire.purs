@@ -4,6 +4,9 @@ import Prelude
 import Data.Array (index)
 import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Eq (genericEq)
+import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (maybe)
 import Data.NonEmpty (head)
 
@@ -26,6 +29,14 @@ data FiringError
 
   -- | The selected transition is not enabled
   | FireTransitionNotEnabled
+
+derive instance genericFiringError :: Generic FiringError _
+
+instance eqFiringError :: Eq FiringError where
+  eq = genericEq
+
+instance showFiringError :: Show FiringError where
+  show = genericShow
 
 fire :: Wiring -> Firing -> Marking -> FiringError \/ Marking
 fire wiring firing marking = maybe

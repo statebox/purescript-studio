@@ -32,6 +32,9 @@ instance groupBagF :: (Monoid (BagF a n), Group (Additive n)) => Group (BagF a n
 instance showBagF :: (Show a, Show n) => Show (BagF a n) where
   show (BagF x) = "(BagF " <> show x <> ")"
 
+instance eqBagF :: (Eq a, Eq n) => Eq (BagF a n) where
+  eq (BagF x) (BagF y) = eq x y
+
 --------------------------------------------------------------------------------
 
 fromMap :: ∀ a n. Map a n -> BagF a n
