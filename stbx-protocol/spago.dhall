@@ -1,5 +1,5 @@
 { sources =
-    [ "src/**/*.purs" ]
+    [ "src/**/*.purs", "test/**/*.purs" ]
 , name =
     "stbx-protocol"
 , dependencies =
