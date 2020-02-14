@@ -5,7 +5,7 @@ import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 
 import Data.ArrayMultiset (ArrayMultiset)
-import Statebox.Core.Transition (buildPlaceMarkings)
+import Statebox.Core.Marking (buildPlaceMarkings)
 
 suite :: Spec Unit
 suite = do

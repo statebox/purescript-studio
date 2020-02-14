@@ -1,5 +1,11 @@
 module Statebox.Core.Transition where
 
+import Data.Eq (class Eq)
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Eq (genericEq)
+import Data.Generic.Rep.Show (genericShow)
+import Data.Show (class Show)
+
 import Statebox.Core.Execution (Path)
 import Statebox.Core.Types (PID, TID)
 import Statebox.Core.Marking (Tokens, TransitionF)
