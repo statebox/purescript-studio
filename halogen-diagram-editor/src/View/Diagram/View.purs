@@ -60,9 +60,9 @@ renderCursor s cxy =
     cx = _x cxy
     cy = _y cxy
     p x u = toNumber $ (s / 2) * x + s * u
-    pts = [ SA.Abs $ SA.M (p 0 cx) (p 0 cy)
-          , SA.Abs $ SA.L (p 1 cx) (p 1 cy)
-          , SA.Abs $ SA.L (p 0 cx) (p 2 cy)
+    pts = [ SA.Abs $ SA.M (p 1 cx) (p 0 cy)
+          , SA.Abs $ SA.L (p 2 cx) (p 1 cy)
+          , SA.Abs $ SA.L (p 1 cx) (p 2 cy)
           , SA.Abs SA.Z
           ]
     color  = SA.RGB  90 99 120
