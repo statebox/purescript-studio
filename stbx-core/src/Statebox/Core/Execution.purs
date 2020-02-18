@@ -8,6 +8,7 @@ import Data.Newtype (unwrap)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionIdRaw, GluedTransitionId(..))
+import Statebox.Core.Wiring.Tree (Path, PathElem)
 
 
 -- | ReasonML-encoded representation of a marked net.
@@ -80,11 +81,6 @@ pretty = case _ of
     Normal  -> "normal"
     Glued   -> "glued"
     Final   -> "final"
-
-type PathElem = Int
-
--- | A path to a leaf (i.e. a net) in the diagram tree.
-type Path = Array PathElem
 
 -- TODO Since we already have Path as an isolated type, this PathIndexed may not add much value
 type PathIndexed r = (path :: Path | r)
