@@ -9,6 +9,8 @@ import View.Model (ProjectName)
 import Statebox.Core.Types (NetsAndDiagramsIndex)
 import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
 
+import View.Studio.Model.TxCache (ExecutionTrace)
+
 type Route = RouteF ProjectName DiagramName NetName
 
 -- | This can:
@@ -92,6 +94,3 @@ type NamespaceInfo =
   { name :: String
   , hash :: HashStr
   }
-
--- TODO we may want to change the name and the exact type a bit; this is a 1st version to get things going
-type ExecutionTrace = Array (HashStr /\ Maybe TxSum)
