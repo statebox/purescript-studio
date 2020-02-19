@@ -26,19 +26,28 @@ data RouteF p d n
   | Diagram    p d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
 
   -- Statebox API-related constructors
-  | UberRootR  URL
+  | ApiThing ApiRoute
+
+derive instance eqRouteF :: (Eq p, Eq d, Eq n) => Eq (RouteF p d n)
+derive instance ordRouteF :: (Ord p, Ord d, Ord n) => Ord (RouteF p d n)
+
+-- | Statebox Core/API-related routes
+data ApiRoute
+  = UberRootR  URL
   | NamespaceR HashStr
   | WiringR    WiringFiringInfo
   | FiringR    WiringFiringInfo
   | DiagramR   HashStr PathElem String
   | NetR       HashStr PathElem String
 
-derive instance eqRouteF :: (Eq p, Eq d, Eq n) => Eq (RouteF p d n)
-derive instance ordRouteF :: (Ord p, Ord d, Ord n) => Ord (RouteF p d n)
+derive instance eqApiRoute :: Eq ApiRoute
+derive instance ordApiRoute :: Ord ApiRoute
 
 type DiagramName = String
 
 type NetName = String
+
+--------------------------------------------------------------------------------
 
 data ResolvedRouteF p d n
   = ResolvedHome
@@ -58,7 +67,7 @@ data ResolvedRouteF p d n
 --------------------------------------------------------------------------------
 
 fromTxSum :: ∀ p d n. URL -> HashStr -> TxSum -> RouteF p d n
-fromTxSum endpointUrl hash tx = tx # evalTxSum
+fromTxSum endpointUrl hash tx = tx # ApiThing <<< evalTxSum
   (\x -> UberRootR endpointUrl)
   (\x -> NamespaceR x.root.message)
   (\w -> WiringR { name: hash, endpointUrl, hash })

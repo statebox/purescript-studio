@@ -27,7 +27,7 @@ import View.Diagram.Model (DiagramInfo)
 import View.Model (Project, ProjectName, NetInfoWithTypesAndRoles)
 import View.Petrinet.Model (NetInfo)
 import View.Petrinet.Model.NLL as NLL
-import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..), ExecutionTrace)
+import View.Studio.Model.Route (ApiRoute(..), Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..), ExecutionTrace)
 
 -- deps needed for Action, for now
 import View.Petrinet.Model as PetrinetEditor
@@ -59,19 +59,23 @@ type State =
 --------------------------------------------------------------------------------
 
 resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
-resolveRoute route {projects, hashSpace} = case route of
+resolveRoute route state = case route of
   Home                              -> pure ResolvedHome
-  Types     projectName             -> ResolvedTypes <$> findProject projects projectName
-  Auths     projectName             -> ResolvedAuths <$> findProject projects projectName
-  Net       projectName name        -> do project <- findProject projects projectName
+  Types     projectName             -> ResolvedTypes <$> findProject state.projects projectName
+  Auths     projectName             -> ResolvedAuths <$> findProject state.projects projectName
+  Net       projectName name        -> do project <- findProject state.projects projectName
                                           net     <- findNetInfoWithTypesAndRoles project name
                                           pure $ ResolvedNet net
-  Diagram   projectName name nodeId -> do project <- findProject projects projectName
+  Diagram   projectName name nodeId -> do project <- findProject state.projects projectName
                                           diagram <- findDiagramInfo project name
                                           let node = nodeId >>= case _ of
                                                        DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
                                                        NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                                           pure $ ResolvedDiagram diagram node
+  ApiThing x -> resolveApiRoute x state.hashSpace
+
+resolveApiRoute :: ApiRoute -> AdjacencySpace HashStr TxSum -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveApiRoute route hashSpace = case route of
   UberRootR  url                    -> pure $ ResolvedUberRoot url
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
   WiringR    x                      -> ResolvedWiring x <$> findWiringTx hashSpace x.hash
