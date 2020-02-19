@@ -43,6 +43,10 @@ derive instance newtypeNetsAndDiagramsIndex :: Newtype NetsAndDiagramsIndex _
 instance showNetsAndDiagramsIndex :: Show NetsAndDiagramsIndex where
   show (NetsAndDiagramsIndex x) = show x
 
+derive instance eqNetsAndDiagramsIndex :: Eq NetsAndDiagramsIndex
+
+derive instance ordNetsAndDiagramsIndex :: Ord NetsAndDiagramsIndex
+
 --------------------------------------------------------------------------------
 
 -- TODO Occurrences of this outside of internal implementation should be the newtype GluedTransitionId instead.

@@ -11,6 +11,7 @@ import Data.Either.Nested (type (\/))
 import Data.Foldable (find)
 import Data.Lens (preview)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Newtype (un)
 import Data.Tuple.Nested (type (/\), (/\))
 import Debug.Trace (spy)
 import Record as Record
@@ -20,7 +21,7 @@ import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
-import Statebox.Core.Types (Diagram, PathElem)
+import Statebox.Core.Types (Diagram, NetsAndDiagramsIndex(..))
 import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx)
 import Statebox.Core.Lenses (_wiringTx, _firingTx)
 import View.Diagram.Model (DiagramInfo)
@@ -116,17 +117,17 @@ findWiringTx hashSpace wiringHash = preview _wiringTx =<< AdjacencySpace.lookup 
 findFiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe FiringTx
 findFiringTx hashSpace firingHash = preview _firingTx =<< AdjacencySpace.lookup firingHash hashSpace
 
-findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe NetInfoWithTypesAndRoles
+findNetInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> NetsAndDiagramsIndex -> Maybe NetInfoWithTypesAndRoles
 findNetInfoInWirings hashSpace wiringHash ix = do
   wiring      <- findWiringTx hashSpace wiringHash
-  netW        <- spy "findNetInfoInWirings: netW"    $ wiring.wiring.nets `index` ix
+  netW        <- spy "findNetInfoInWirings: netW"    $ wiring.wiring.nets `index` (un NetsAndDiagramsIndex ix)
   netTopo     <- spy "findNetInfoInWirings: netTopo" $ Net.fromNLLMaybe 0 netW.partition
   let
     placeNames = NLL.defaultPlaceNames netTopo
     netInfo    = spy "findNetInfoInWirings: netInfo" $ NLL.toNetInfoWithDefaults netTopo netW.name placeNames netW.names
   pure $ Record.merge { types: [], roleInfos: [] } netInfo
 
-findDiagramInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> PathElem -> Maybe DiagramInfo
+findDiagramInfoInWirings :: AdjacencySpace HashStr TxSum -> HashStr -> NetsAndDiagramsIndex -> Maybe DiagramInfo
 findDiagramInfoInWirings hashSpace wiringHash ix =
   hush =<< diagramEitherMaybe
   where
@@ -134,7 +135,7 @@ findDiagramInfoInWirings hashSpace wiringHash ix =
     diagramEitherMaybe = (\d -> FromNLL.fromNLL d.name (toNLL d)) <$> diagramMaybe
 
     diagramMaybe :: Maybe Diagram
-    diagramMaybe = (flip index ix <<< _.wiring.diagrams) =<< findWiringTx hashSpace wiringHash
+    diagramMaybe = (flip index (un NetsAndDiagramsIndex ix) <<< _.wiring.diagrams) =<< findWiringTx hashSpace wiringHash
 
     toNLL d = [d.width] <> d.pixels
 

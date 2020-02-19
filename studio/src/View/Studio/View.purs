@@ -25,6 +25,7 @@ import Language.Statebox.Wiring.Generator.DiagramV2.Operators (fromOperators, to
 import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree, Item)
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
+import Statebox.Core.Types (NetsAndDiagramsIndex(..))
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -223,8 +224,8 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
       )
       tx
       where
-        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ ApiThing $ NetR     hash ix n.name) :< []) nets
-        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ ApiThing $ DiagramR hash ix d.name) :< []) diags
+        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ ApiThing $ NetR     hash (NetsAndDiagramsIndex ix) n.name) :< []) nets
+        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ ApiThing $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) :< []) diags
 
         flattenTree :: MenuTree Route -> Array (MenuTree Route)
         flattenTree = treeifyElems <<< flattenTree'

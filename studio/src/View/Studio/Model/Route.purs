@@ -6,7 +6,7 @@ import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
 import View.Model (ProjectName)
-import Statebox.Core.Types (PathElem)
+import Statebox.Core.Types (NetsAndDiagramsIndex)
 import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
 
 type Route = RouteF ProjectName DiagramName NetName
@@ -37,8 +37,8 @@ data ApiRoute
   | NamespaceR HashStr
   | WiringR    WiringFiringInfo
   | FiringR    WiringFiringInfo
-  | DiagramR   HashStr PathElem String
-  | NetR       HashStr PathElem String
+  | DiagramR   HashStr NetsAndDiagramsIndex String
+  | NetR       HashStr NetsAndDiagramsIndex String
 
 derive instance eqApiRoute :: Eq ApiRoute
 derive instance ordApiRoute :: Ord ApiRoute
