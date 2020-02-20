@@ -1,4 +1,4 @@
-module Test.Statebox.Core.Transition where
+module Test.Statebox.Core.Marking where
 
 import Prelude
 import Test.Spec (Spec, describe, it)
