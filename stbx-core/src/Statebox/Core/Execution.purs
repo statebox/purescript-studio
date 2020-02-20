@@ -8,7 +8,7 @@ import Data.Newtype (unwrap)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionIdRaw, GluedTransitionId(..))
-import Statebox.Core.Wiring.Tree (Path, PathElem)
+import Statebox.Core.Wiring.Tree (Path)
 
 
 -- | ReasonML-encoded representation of a marked net.

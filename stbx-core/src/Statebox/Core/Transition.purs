@@ -6,9 +6,9 @@ import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Show (class Show)
 
-import Statebox.Core.Execution (Path)
-import Statebox.Core.Types (PID, TID)
 import Statebox.Core.Marking (Tokens, TransitionF)
+import Statebox.Core.Types (PID, TID)
+import Statebox.Core.Wiring.Tree (Path)
 
 type Transition =
   { path       :: Path
