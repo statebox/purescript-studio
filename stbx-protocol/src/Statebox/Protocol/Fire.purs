@@ -4,6 +4,7 @@ import Prelude
 import Data.Array (index)
 import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
+import Data.Foldable (foldM)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Eq (genericEq)
 import Data.Generic.Rep.Show (genericShow)
@@ -38,8 +39,8 @@ instance eqFiringError :: Eq FiringError where
 instance showFiringError :: Show FiringError where
   show = genericShow
 
-fire :: Wiring -> Firing -> Marking -> FiringError \/ Marking
-fire wiring firing marking = maybe
+fire :: Wiring -> Marking -> Firing -> FiringError \/ Marking
+fire wiring marking firing = maybe
   (Left FireInvalidWiringTree)
   (\wiringTree ->
     either
@@ -56,6 +57,9 @@ fire wiring firing marking = maybe
           (index gluedTransitions transitionIndex))
       (linearize wiringTree))
   (fromWiring wiring)
+
+fireMultiple :: Wiring -> Marking -> Array Firing -> FiringError \/ Marking
+fireMultiple wiring = foldM (fire wiring)
 
 -- TODO dedupe
 type Marking = MarkingF PID Tokens

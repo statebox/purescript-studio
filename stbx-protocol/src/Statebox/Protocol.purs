@@ -118,7 +118,7 @@ processInitialFiringTx hash firingTx = do
                                                   , wiring: firingTx.previous
                                                   , marking: newMarking
                                                   })
-              (fire wiringTx.wiring firingTx.firing mempty)
+              (fire wiringTx.wiring mempty firingTx.firing)
             )
             (const $ pure $ Left $ FiringInitialPreviousShouldBeWiring hash)
             previous
@@ -149,7 +149,7 @@ processNormalFiringTx hash firingTx executionHash = do
                                                            , wiring: execution.wiring
                                                            , marking: newMarking
                                                            })
-                (fire wiringTx.wiring firingTx.firing execution.marking))
+                (fire wiringTx.wiring execution.marking firingTx.firing))
               (const $ pure $ Left $ FiringNormalExecutionWiringShouldBeAWiring hash executionHash)
               transaction
       else pure $ Left $ FiringNormalPreviousShouldMatchCurrentState hash executionHash
