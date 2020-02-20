@@ -25,7 +25,7 @@ data FiringError
   -- | The linearization of the wiring tree failed with a LinearizationError
   | FireLinearizationError LinearizationError
 
-  -- | The path of the firing describing
+  -- | The path of the firing does not lead to a transition
   | FireTransitionIndexOutOfBounds
 
   -- | The selected transition is not enabled

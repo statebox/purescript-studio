@@ -6,6 +6,7 @@ import Data.Array (catMaybes, (..))
 import Data.Newtype (un, unwrap)
 import Data.Bag (BagF)
 import Data.Foldable (fold, foldMap, elem, intercalate)
+import Data.Group (ginverse)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
@@ -222,7 +223,7 @@ ui htmlIdPrefixMaybe =
       FireTransition tid -> do
         state <- H.get
         state.netInfo.netApi.transition tid # maybe (pure unit) \t -> do
-          let marking' = preMarking t <> state.netInfo.net.marking
+          let marking' = (ginverse $ preMarking t) <> state.netInfo.net.marking
           H.put $ state { overrideMarking = Just marking'
                         , netUIState { firingTransition = Just tid }
                         , msg = "Firing transition " <> show tid

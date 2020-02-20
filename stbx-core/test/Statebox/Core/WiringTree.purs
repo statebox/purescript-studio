@@ -21,7 +21,7 @@ suite = do
                     }
           wiringTree = Diagram diagram []
 
-      linearize wiringTree `shouldEqual` Left DiagramNotYetAllowed
+      linearize wiringTree `shouldEqual` Left DiagramNotYetSupported
     it "should fails is the Net contains an invalid NLL representation" do
       let net = { name: "net"
                 , names: ["a"]

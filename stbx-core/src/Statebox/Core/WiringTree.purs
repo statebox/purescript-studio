@@ -26,7 +26,7 @@ fromWiring :: Wiring -> Maybe WiringTree
 fromWiring wiring = Net <$> head wiring.nets
 
 data LinearizationError
-  = DiagramNotYetAllowed
+  = DiagramNotYetSupported
   | NLLDecodingFailed ErrNetEncoding
   | LenghtMismatchBetweenTransitionsAndNames
 
@@ -40,7 +40,7 @@ instance showLinerizationError :: Show LinearizationError where
 
 linearize :: WiringTree -> LinearizationError \/ Array (Glued Transition)
 linearize (Net net)                  = linearizeNet net
-linearize (Diagram diagram branches) = Left DiagramNotYetAllowed
+linearize (Diagram diagram branches) = Left DiagramNotYetSupported
 
 linearizeNet :: Net -> LinearizationError \/ Array (Glued Transition)
 linearizeNet net = linearizePartitionsAndNames net.partition net.names
