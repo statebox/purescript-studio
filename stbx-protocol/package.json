@@ -7,6 +7,7 @@
     "init": "spago init",
     "build": "spago build",
     "test": "spago test",
+    "testwatch": "spago test --watch",
     "repl": "spago repl",
     "docs": "spago docs",
     "watch": "spago build --watch"
