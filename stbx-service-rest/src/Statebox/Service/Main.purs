@@ -34,9 +34,8 @@ import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
 import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
 import Statebox.Service.Error (ResponseError, TxError(..), responseErrorToTxError, toTxErrorResponseBody)
 import Statebox.Service.Status (Status(..))
-import Statebox.TransactionStore (get, put) as TransactionStore
-import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
--- import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
+import Statebox.Store (get, put) as Store
+import Statebox.Store.Memory (eval) as Store.Memory
 
 foreign import stringBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
@@ -112,7 +111,7 @@ getTransactionHandler state = do
     Nothing   -> nextThrow $ error "Hash is required"
     Just hash -> do
       transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
-      maybeTransaction <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.get hash) transactionDictionary
+      maybeTransaction <- liftAff $ runStateT (Store.Memory.eval $ Store.get hash) transactionDictionary
       case maybeTransaction of
         Just transaction /\ _ -> sendTxTxSum
           { status: show Ok
@@ -146,7 +145,7 @@ postTransactionHandler state = do
     storeAndSendTx (txHex /\ txSum) = do
       let hash = Stbx.hash txHex
       transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
-      updatedTransactionDictionary <- liftAff $ runStateT (TransactionStore.Memory.eval $ TransactionStore.put hash txSum) transactionDictionary
+      updatedTransactionDictionary <- liftAff $ runStateT (Store.Memory.eval $ Store.put hash txSum) transactionDictionary
       liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
       sendTxTxSum { status: show Ok
                   , hash: hash

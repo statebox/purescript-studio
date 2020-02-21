@@ -1,4 +1,4 @@
-module Statebox.TransactionStore.Types where
+module Statebox.Store.Types where
 
 import Prelude
 
@@ -21,7 +21,7 @@ derive instance functorActionF :: Functor (ActionF k v)
 type Actions k v = Free (ActionF k v)
 
 get :: forall k v. k -> Actions k v (Maybe v)
-get txHash = liftF $ Get txHash identity
+get key = liftF $ Get key identity
 
 put :: forall k v. k -> v -> Actions k v Unit
-put id tx = liftF $ Put id tx unit
+put key value = liftF $ Put key value unit

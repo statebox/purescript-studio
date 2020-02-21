@@ -3,7 +3,7 @@
 , name =
     "stbx-protocol"
 , dependencies =
-    [ "stbx-core", "studio-common", "stbx-tx-store" ]
+    [ "stbx-core", "studio-common", "stbx-store" ]
 , packages =
     ./../packages.dhall
 }
