@@ -24,11 +24,18 @@ hoistToMultipleStores = hoistFree (case _ of
   GetExecutionState    key       next -> ExecutionState (next <$> get key)
   UpdateExecutionState key value next -> ExecutionState (next <$ put key value))
 
-eval
+evalMultipleStoresActions
   :: forall a m. MonadRec m
   => (forall b. Actions TxId TxSum b          -> m b)
   -> (forall c. Actions TxId ExecutionState c -> m c)
   -> MultipleStoresActions a        -> m a
-eval evalTransactions evalExecutionStates = runFreeM $ case _ of
+evalMultipleStoresActions evalTransactions evalExecutionStates = runFreeM $ case _ of
   Transaction    transactionActions    -> evalTransactions    transactionActions
   ExecutionState executionStateActions -> evalExecutionStates executionStateActions
+
+eval
+  :: forall a m. MonadRec m
+  => (forall b. Actions TxId TxSum b          -> m b)
+  -> (forall c. Actions TxId ExecutionState c -> m c)
+  -> StoreActions a                           -> m a
+eval evalTransactions evalExecutionStates = hoistToMultipleStores >>> evalMultipleStoresActions evalTransactions evalExecutionStates
