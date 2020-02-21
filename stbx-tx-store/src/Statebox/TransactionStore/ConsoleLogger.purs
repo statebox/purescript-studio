@@ -11,11 +11,11 @@ import Effect.Class.Console (log)
 import Statebox.TransactionStore.Types (ActionF(Get, Put), Actions)
 
 -- | Interpreter transaction storage actions as console 'log's.
-eval :: forall a m. MonadEffect m => MonadRec m => Actions a -> m a
+eval :: forall k v a m. Show k => Show v => MonadEffect m => MonadRec m => Actions k v a -> m a
 eval = runFreeM $ \action -> case action of
   Get txHash next -> do
-    log $ "get transaction " <> txHash
+    log $ "get transaction " <> show txHash
     pure $ next Nothing
   Put hash transaction next -> do
-    log $ "put transaction " <> show transaction <> " at hash " <> hash
+    log $ "put transaction " <> show transaction <> " at hash " <> show hash
     pure next

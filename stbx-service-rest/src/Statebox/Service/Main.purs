@@ -3,9 +3,12 @@ module Statebox.Service.Main where
 import Prelude
 
 import Control.Monad.State.Trans (runStateT)
+import Data.Argonaut.Core (Json, fromObject)
 import Data.Either (either)
 import Data.Either.Nested (type (\/))
+import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Function.Uncurried (Fn3)
+import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (snd)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -16,6 +19,7 @@ import Effect.Console (log)
 import Effect.Ref (new, read, write) as Ref
 import Effect.Ref (Ref)
 import Effect.Exception (Error, error, message)
+import Foreign.Object (Object, empty, insert)
 import Node.Express.App (App, listenHttp, get, post, use, useExternal, useOnError)
 import Node.Express.Handler (Handler, next, nextThrow)
 import Node.Express.Request (getBody', getRouteParam, getOriginalUrl)
@@ -32,7 +36,7 @@ import Statebox.Service.Error (ResponseError, TxError(..), responseErrorToTxErro
 import Statebox.Service.Status (Status(..))
 import Statebox.TransactionStore (get, put) as TransactionStore
 import Statebox.TransactionStore.Memory (eval) as TransactionStore.Memory
-import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
+-- import Statebox.TransactionStore.Memory (TransactionDictionary, encodeTransactionDictionary)
 
 foreign import stringBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
@@ -40,6 +44,17 @@ stbxPort :: Int
 stbxPort = 8080
 
 -- application state
+
+-- TODO #237 Discuss whether this should be `TxSum` or `Tx TxSum`, then eliminate this alias.
+type TransactionDictionaryValue = TxSum
+
+type TransactionDictionary = Map TxId TransactionDictionaryValue
+
+encodeTransactionDictionary :: TransactionDictionary -> Json
+encodeTransactionDictionary = fromObject <<< (foldrWithIndex addIndex empty)
+  where
+    addIndex :: TxId -> TxSum -> Object Json -> Object Json
+    addIndex id transaction = insert id (encodeTxSum transaction)
 
 type AppState =
   { transactionDictionaryRef :: Ref TransactionDictionary }
