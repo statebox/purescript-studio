@@ -1,0 +1,10 @@
+/.cache
+/.spago
+/node_modules/
+/output/
+/dist/
+/generated-docs/
+/.psc-package/
+/.psc*
+/.purs*
+/.psa*

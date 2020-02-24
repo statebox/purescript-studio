@@ -6,7 +6,7 @@ import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
 import View.Model (ProjectName)
-import Statebox.Core.Execution (PathElem)
+import Statebox.Core.Types (PathElem)
 import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
 
 type Route = RouteF ProjectName DiagramName NetName

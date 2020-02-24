@@ -3,10 +3,12 @@ module Statebox.Core.Transaction where
 import Prelude
 import Data.Maybe (Maybe(..), isNothing)
 import Statebox.Core.Types (Initial, Firing, Wiring, HexStr)
+import Statebox.Core.Types (TxId) as Core
 
 type HashStr = HexStr
 
-type TxId = HexStr
+-- | TODO We'll probably want to remove this redirect. #331
+type TxId = Core.TxId
 
 type StatusStr = String
 

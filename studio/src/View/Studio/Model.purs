@@ -20,8 +20,7 @@ import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
-import Statebox.Core.Execution (PathElem)
-import Statebox.Core.Types (Diagram)
+import Statebox.Core.Types (Diagram, PathElem)
 import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx)
 import Statebox.Core.Lenses (_wiringTx, _firingTx)
 import View.Diagram.Model (DiagramInfo)
