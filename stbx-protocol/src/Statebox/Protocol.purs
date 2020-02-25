@@ -52,6 +52,21 @@ data ProcessError
   -- | The fired transition should be enabled.
   | FiringNormalTransitionShouldBeEnabled            TxId ExecutionId
 
+instance showProcessError :: Show ProcessError where
+  show = case _ of
+    NoUberRoot                                                        -> "NoUberRoot"
+    InitialPreviousShouldBeUberRoot                  txId             -> "InitialPreviousShouldBeUberRoot "                  <> show txId
+    WiringPreviousShouldBeInitial                    txId             -> "WiringPreviousShouldBeInitial "                    <> show txId
+    FiringInitialShouldBeCreatedOnlyOnce             txId             -> "FiringInitialShouldBeCreatedOnlyOnce "             <> show txId
+    FiringInitialShouldHavePrevious                  txId             -> "FiringInitialShouldHavePrevious "                  <> show txId
+    FiringInitialPreviousShouldBeWiring              txId             -> "FiringInitialPreviousShouldBeWiring "              <> show txId
+    FiringInitialTransitionShouldBeInitial           txId             -> "FiringInitialTransitionShouldBeInitial"            <> show txId
+    FiringNormalShouldHaveExistingExecution          txId executionId -> "FiringNormalShouldHaveExistingExecution "          <> show txId <> " " <> show executionId
+    FiringNormalPreviousShouldMatchCurrentState      txId executionId -> "FiringNormalPreviousShouldMatchCurrentState "      <> show txId <> " " <> show executionId
+    FiringNormalExecutionShouldPointToExistingWiring txId executionId -> "FiringNormalExecutionShouldPointToExistingWiring " <> show txId <> " " <> show executionId
+    FiringNormalExecutionWiringShouldBeAWiring       txId executionId -> "FiringNormalExecutionWiringShouldBeAWiring "       <> show txId <> " " <> show executionId
+    FiringNormalTransitionShouldBeEnabled            txId executionId -> "FiringNormalTransitionShouldBeEnabled "            <> show txId <> " " <> show executionId
+
 processTxSum :: HashTx -> StoreActions (ProcessError \/ Unit)
 processTxSum hashTx = case hashTx.tx of
   UberRootTxInj           -> pure $ Left NoUberRoot
