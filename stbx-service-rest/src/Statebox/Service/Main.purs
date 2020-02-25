@@ -37,7 +37,7 @@ import Statebox.Protocol (processTxSum)
 import Statebox.Protocol.ExecutionState (ExecutionState)
 import Statebox.Protocol.Store.Handler (eval) as Store
 import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
-import Statebox.Service.Error (ResponseError, TxError(..), responseErrorToTxError, toTxErrorResponseBody)
+import Statebox.Service.Error (ResponseError, TxError(..), processErrorToTxError, responseErrorToTxError, toTxErrorResponseBody)
 import Statebox.Service.Status (Status(..))
 import Statebox.Store (get) as Single.Store
 import Statebox.Store.Memory (eval) as Store.Memory
@@ -168,13 +168,15 @@ postTransactionHandler state = do
         (Store.Memory.eval :: forall b. Actions TxId TxSum          b -> StateT (Map String TxSum         ) Aff b)
         (Store.Memory.eval :: forall c. Actions TxId ExecutionState c -> StateT (Map String ExecutionState) Aff c)
         (processTxSum { id: txHex, tx: txSum })) (Tuple transactionDictionary executionStateDictionary)
-      liftEffect $ Ref.write (fst $ snd updatedDictionaries) (fst state)
-      liftEffect $ Ref.write (snd $ snd updatedDictionaries) (snd state)
-      sendTxTxSum { status: show Ok
-                  , hash: hash
-                  , hex: txHex
-                  , decoded: txSum
-                  }
+      fst updatedDictionaries # either
+        (sendTxError <<< processErrorToTxError)
+        (const (do liftEffect $ Ref.write (fst $ snd updatedDictionaries) (fst state)
+                   liftEffect $ Ref.write (snd $ snd updatedDictionaries) (snd state)
+                   sendTxTxSum { status: show Ok
+                               , hash: hash
+                               , hex: txHex
+                               , decoded: txSum
+                               }))
 
 sendTxTxSum :: Tx TxSum -> Handler
 sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum
