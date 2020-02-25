@@ -8,6 +8,7 @@ let additions =
       , stbx-client-rest = ./stbx-client-rest/spago.dhall as Location
       , stbx-example-data = ./stbx-example-data/spago.dhall as Location
       , stbx-lang = ./stbx-lang/spago.dhall as Location
+      , stbx-protocol = ./stbx-protocol/spago.dhall as Location
       , stbx-service-rest = ./stbx-service-rest/spago.dhall as Location
       , stbx-store = ./stbx-store/spago.dhall as Location
       , studio = ./studio/spago.dhall as Location

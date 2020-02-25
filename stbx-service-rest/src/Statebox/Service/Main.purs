@@ -2,17 +2,19 @@ module Statebox.Service.Main where
 
 import Prelude
 
-import Control.Monad.State.Trans (runStateT)
+import Control.Monad.State.Trans (StateT, runStateT)
 import Data.Argonaut.Core (Json, fromObject)
 import Data.Either (either)
 import Data.Either.Nested (type (\/))
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Function.Uncurried (Fn3)
+import Data.Lens (Lens', view, _1, _2)
 import Data.Map (Map)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (snd)
+import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
+import Effect.Aff (Aff)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
@@ -31,11 +33,15 @@ import Unsafe.Coerce (unsafeCoerce)
 import Statebox.Core (hash) as Stbx
 import Statebox.Core.Transaction (TxId, Tx, TxSum)
 import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
+import Statebox.Protocol (processTxSum)
+import Statebox.Protocol.ExecutionState (ExecutionState)
+import Statebox.Protocol.Store.Handler (eval) as Store
 import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
 import Statebox.Service.Error (ResponseError, TxError(..), responseErrorToTxError, toTxErrorResponseBody)
 import Statebox.Service.Status (Status(..))
-import Statebox.Store (get, put) as Store
+import Statebox.Store (get) as Single.Store
 import Statebox.Store.Memory (eval) as Store.Memory
+import Statebox.Store.Types (Actions)
 
 foreign import stringBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
@@ -55,13 +61,25 @@ encodeTransactionDictionary = fromObject <<< (foldrWithIndex addIndex empty)
     addIndex :: TxId -> TxSum -> Object Json -> Object Json
     addIndex id transaction = insert id (encodeTxSum transaction)
 
-type AppState =
-  { transactionDictionaryRef :: Ref TransactionDictionary }
+type ExecutionStateDictionaryValue = ExecutionState
+
+type ExecutionStateDictionary = Map TxId ExecutionStateDictionaryValue
+
+type AppState = Tuple (Ref TransactionDictionary) (Ref ExecutionStateDictionary)
+
+transactionDictionaryRef :: Lens' AppState (Ref TransactionDictionary)
+transactionDictionaryRef = _1
+
+executionStateDictionaryRef :: Lens' AppState (Ref ExecutionStateDictionary)
+executionStateDictionaryRef = _2
 
 initialState :: Effect AppState
-initialState = map { transactionDictionaryRef: _ } <$> Ref.new $ initialTransactionDictionary
+initialState = Tuple
+  <$> Ref.new initialTransactionDictionary
+  <*> Ref.new initialExecutionStateDictionary
   where
     initialTransactionDictionary = mempty
+    initialExecutionStateDictionary = mempty
 
 -- middleware
 
@@ -96,7 +114,7 @@ healthcheck = sendJson { health: "I'm fine" }
 getTransactionsHandler :: AppState -> Handler
 getTransactionsHandler state = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
-  transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
+  transactionDictionary <- liftEffect $ Ref.read (view transactionDictionaryRef state)
   sendJson { status: show Ok
            , transactions: encodeTransactionDictionary transactionDictionary
            }
@@ -110,8 +128,8 @@ getTransactionHandler state = do
   case maybeHash of
     Nothing   -> nextThrow $ error "Hash is required"
     Just hash -> do
-      transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
-      maybeTransaction <- liftAff $ runStateT (Store.Memory.eval $ Store.get hash) transactionDictionary
+      transactionDictionary <- liftEffect $ Ref.read (view transactionDictionaryRef state)
+      maybeTransaction <- liftAff $ runStateT (Store.Memory.eval $ Single.Store.get hash) transactionDictionary
       case maybeTransaction of
         Just transaction /\ _ -> sendTxTxSum
           { status: show Ok
@@ -144,9 +162,14 @@ postTransactionHandler state = do
     storeAndSendTx :: TxId /\ TxSum -> Handler
     storeAndSendTx (txHex /\ txSum) = do
       let hash = Stbx.hash txHex
-      transactionDictionary <- liftEffect $ Ref.read state.transactionDictionaryRef
-      updatedTransactionDictionary <- liftAff $ runStateT (Store.Memory.eval $ Store.put hash txSum) transactionDictionary
-      liftEffect $ Ref.write (snd updatedTransactionDictionary) state.transactionDictionaryRef
+      transactionDictionary <- liftEffect $ Ref.read (view transactionDictionaryRef state)
+      executionStateDictionary <- liftEffect $ Ref.read (view executionStateDictionaryRef state)
+      updatedDictionaries <- liftAff $ runStateT (Store.eval
+        (Store.Memory.eval :: forall b. Actions TxId TxSum          b -> StateT (Map String TxSum         ) Aff b)
+        (Store.Memory.eval :: forall c. Actions TxId ExecutionState c -> StateT (Map String ExecutionState) Aff c)
+        (processTxSum { id: txHex, tx: txSum })) (Tuple transactionDictionary executionStateDictionary)
+      liftEffect $ Ref.write (fst $ snd updatedDictionaries) (fst state)
+      liftEffect $ Ref.write (snd $ snd updatedDictionaries) (snd state)
       sendTxTxSum { status: show Ok
                   , hash: hash
                   , hex: txHex

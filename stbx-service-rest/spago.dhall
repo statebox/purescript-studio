@@ -9,6 +9,7 @@
     , "express"
     , "psci-support"
     , "stbx-core"
+    , "stbx-protocol"
     , "stbx-store"
     ]
 , packages =
