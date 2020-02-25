@@ -24,6 +24,7 @@ toJSON input =
     envE = String.parseContext input.context
     bricks = Bricks.fromPixels (String.parsePixels input.pixels) (\s -> s == " " || s == "-" || s == "=")
 
+inferJSON :: Context String String -> Term AnnPos (Brick String) -> Effect JSON
 inferJSON env untypedTerm = if null matchErrors
     then pure $ json term
     else matchErrors # intercalate "\n" >>> error >>> throwException

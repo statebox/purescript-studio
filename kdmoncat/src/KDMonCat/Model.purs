@@ -87,6 +87,7 @@ data Ty bid = Ty (Array bid) (Array bid)
 
 derive instance eqTy :: (Eq bv) => Eq (Ty bv)
 derive instance functorTy :: Functor Ty
+
 instance foldableTy :: Foldable Ty where
   foldMap f (Ty l r) = foldMap f l <> foldMap f r
   foldr f z = foldrDefault f z
@@ -124,9 +125,11 @@ varsToString = mapAccumL replFv
 
 
 data Color = White | Black
+
 instance showColor :: Show Color where
   show White = "white"
   show Black = "black"
+
 
 data TypeDecl bv
   = Perm (Array Int)
@@ -153,15 +156,21 @@ instance showVarString :: Show (Var String) where
 
 type VarWithBox bv = { box :: Box, var :: Var bv }
 
+
 data Side = Input | Output
+
 derive instance eqSide :: Eq Side
 derive instance ordSide :: Ord Side
+
 instance showSide :: Show Side where
   show Input = "input"
   show Output = "output"
 
+
 data Validity = Valid | Invalid
+
 derive instance eqValidity :: Eq Validity
+
 
 data Matches a = Matched (Array (Validity /\ a /\ a)) | Unmatched Validity Side (Array a)
 
