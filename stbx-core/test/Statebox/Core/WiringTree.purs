@@ -22,7 +22,7 @@ suite = do
           wiringTree = Diagram diagram []
 
       linearize wiringTree `shouldEqual` Left DiagramNotYetSupported
-    it "should fails is the Net contains an invalid NLL representation" do
+    it "should fail if the NLL representation of a net is invalid" do
       let net = { name: "net"
                 , names: ["a"]
                 , partition: [0]
@@ -31,7 +31,7 @@ suite = do
           wiringTree = Net net
 
       linearize wiringTree `shouldEqual` Left (NLLDecodingFailed ErrOddLength)
-    it "should linearize correctly a net with a single untouched transition" do
+    it "should correctly linearize a net with a single untouched transition" do
       let net = { name: "net"
                 , names: ["a"]
                 -- 1 -> 2
