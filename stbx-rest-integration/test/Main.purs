@@ -70,8 +70,7 @@ postExampleTransactionsSpec =
 getExampleTransactionsSpec :: Spec Unit
 getExampleTransactionsSpec =
   describe "Statebox transaction API HTTP service" do
-    pending "TODO: GETting root transaction fails"
-    -- requestTransactionSpec "root"                 "zFsGM27VMNWZne1SSkWnDQTzr6TdjmsKpbxGkJKKaEC8e"
+    requestTransactionSpec "root"                 "zFsGM27VMNWZne1SSkWnDQTzr6TdjmsKpbxGkJKKaEC8e"
     requestTransactionSpec "wiring"               "zFsGM27o59f9Lu8bWjNHBG7Wbq5iftQA6uDt14zRdjCrH"
     requestTransactionSpec "firing 0 (execution)" "zFsGM26E6xAuYMXox2zMGUChk3HmbEAMGXBiWG3UL7KF5"
     requestTransactionSpec "firing 1"             "zFsGM28DqZKjjGbfCEsjsXTj8xJAqWaBXpDSc1CqR6ihi"
