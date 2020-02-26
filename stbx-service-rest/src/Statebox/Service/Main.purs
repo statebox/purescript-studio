@@ -9,7 +9,7 @@ import Data.Either.Nested (type (\/))
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Function.Uncurried (Fn3)
 import Data.Lens (Lens', view, _1, _2)
-import Data.Map (Map)
+import Data.Map (Map, singleton)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -31,7 +31,7 @@ import Node.HTTP (Server)
 import Unsafe.Coerce (unsafeCoerce)
 
 import Statebox.Core (hash) as Stbx
-import Statebox.Core.Transaction (TxId, Tx, TxSum)
+import Statebox.Core.Transaction (TxId, Tx, TxSum(..), uberRootHash)
 import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
 import Statebox.Protocol (processTxSum)
 import Statebox.Protocol.ExecutionState (ExecutionState)
@@ -78,7 +78,7 @@ initialState = Tuple
   <$> Ref.new initialTransactionDictionary
   <*> Ref.new initialExecutionStateDictionary
   where
-    initialTransactionDictionary = mempty
+    initialTransactionDictionary = singleton uberRootHash UberRootTxInj
     initialExecutionStateDictionary = mempty
 
 -- middleware
