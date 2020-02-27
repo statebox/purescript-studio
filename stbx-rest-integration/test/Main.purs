@@ -8,7 +8,7 @@ import Debug.Trace (spy)
 import Effect.Aff (Fiber, launchAff)
 import Effect (Effect)
 import Effect.Exception (Error)
-import Test.Spec (Spec, describe, it, pending)
+import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail)
 import Test.Spec.Runner (runSpec)
 import Test.Spec.Reporter.Console (consoleReporter)
@@ -18,7 +18,7 @@ import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse, evalPostTransaction)
 import Statebox.Service.Error (TxError(..))
 
-import Test.Common
+import Test.Common (succeed)
 
 endpointUrl :: URL
 endpointUrl = "http://127.0.0.1:8080"
