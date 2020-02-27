@@ -2,15 +2,11 @@ module Test.Statebox.Core where
 
 import Prelude
 import Data.Either (Either(..))
-import Effect.Class (liftEffect)
-import Effect.Console (log)
 
 import Statebox.Core as Stbx
 
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-
-import Debug.Trace (spy)
 
 -- | We define this FFI value in order to load the FFI module, which imports (requires) stbx.js.
 foreign import requireStbxJs_HACK :: String
