@@ -167,7 +167,7 @@ postTransactionHandler state = do
       updatedDictionaries <- liftAff $ runStateT (Store.eval
         (Store.Memory.eval :: forall b. Actions TxId TxSum          b -> StateT (Map String TxSum         ) Aff b)
         (Store.Memory.eval :: forall c. Actions TxId ExecutionState c -> StateT (Map String ExecutionState) Aff c)
-        (processTxSum { id: txHex, tx: txSum })) (Tuple transactionDictionary executionStateDictionary)
+        (processTxSum { id: hash, tx: txSum })) (Tuple transactionDictionary executionStateDictionary)
       fst updatedDictionaries # either
         (sendTxError <<< processErrorToTxError)
         (const (do liftEffect $ Ref.write (fst $ snd updatedDictionaries) (fst state)
