@@ -1,6 +1,8 @@
 <meta charset="UTF-8">
 <link rel="stylesheet" href="../../halogen-grid-kit/src/GridKit/KeyHandler.css">
 <style>
+@import "../node_modules/firebaseui/dist/firebaseui.css";
+
 * { box-sizing: border-box; }
 *:focus {
   outline: none;
@@ -242,6 +244,33 @@ textarea {
 .term div {
   margin: 5px 1px 0 1px;
 }
+
+.dialog {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,.8);
+    display: flex;
+    align-items: center;
+}
+
+.firebaseui-auth-container {
+  min-width: 22%;
+}
+
+#user {
+  position: absolute;
+  right: 0;
+}
+#sign-out {
+  margin: 3px;
+}
 </style>
-<body></body>
+<body>
+  <div id="user"><span id="email"></span><button id="sign-out">Sign Out</button></div>
+  <div id="firebaseui-auth-container" class="dialog"></div>
+</body>
 <script src="index.js"></script>
