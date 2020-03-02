@@ -22,10 +22,10 @@ type MultipleStoresActions = Free MultipleStoresActionF
 
 hoistToMultipleStores :: ∀ a. StoreActions a -> MultipleStoresActions a
 hoistToMultipleStores = hoistFree (case _ of
-  GetTransaction       key       next -> Transaction (next <$> get key)
-  PutTransaction       key value next -> Transaction (next <$ put key value)
+  GetTransaction       key       next -> Transaction    (next <$> get key)
+  PutTransaction       key value next -> Transaction    (next <$  put key value)
   GetExecutionState    key       next -> ExecutionState (next <$> get key)
-  UpdateExecutionState key value next -> ExecutionState (next <$ put key value))
+  UpdateExecutionState key value next -> ExecutionState (next <$  put key value))
 
 class Embeddable ma m where
   embed :: ∀ a. ma a -> m a

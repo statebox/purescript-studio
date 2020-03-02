@@ -170,13 +170,13 @@ postTransactionHandler state = do
         (processTxSum { id: hash, tx: txSum })) (Tuple transactionDictionary executionStateDictionary)
       fst updatedDictionaries # either
         (sendTxError <<< processErrorToTxError)
-        (const (do liftEffect $ Ref.write (fst $ snd updatedDictionaries) (fst state)
-                   liftEffect $ Ref.write (snd $ snd updatedDictionaries) (snd state)
-                   sendTxTxSum { status: show Ok
-                               , hash: hash
-                               , hex: txHex
-                               , decoded: txSum
-                               }))
+        (const do liftEffect $ Ref.write (fst $ snd updatedDictionaries) (fst state)
+                  liftEffect $ Ref.write (snd $ snd updatedDictionaries) (snd state)
+                  sendTxTxSum { status: show Ok
+                              , hash: hash
+                              , hex: txHex
+                              , decoded: txSum
+                              })
 
 sendTxTxSum :: Tx TxSum -> Handler
 sendTxTxSum = sendJson <<< encodeTxWith encodeTxSum
