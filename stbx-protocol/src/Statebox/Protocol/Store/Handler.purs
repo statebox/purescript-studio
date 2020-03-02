@@ -5,7 +5,7 @@ import Control.Monad.Free (Free, hoistFree, runFreeM)
 import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.State.Trans (StateT(..))
 import Data.Map (Map)
-import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested (type (/\), (/\))
 
 import Statebox.Core.Transaction (TxSum, TxId)
 import Statebox.Protocol.ExecutionState (ExecutionState)
@@ -30,13 +30,13 @@ hoistToMultipleStores = hoistFree (case _ of
 class Embeddable m' m where
   embed :: forall a. m' a -> m a
 
-instance txSumEmbeddable :: Functor m => Embeddable (StateT (Map String TxSum) m)
-                                                    (StateT (Tuple (Map String TxSum) e) m) where
-  embed (StateT f) = StateT (\(Tuple mapTxSum e) -> (((\m -> Tuple m e) <$> _) <$> _) $ f mapTxSum)
+instance txSumEmbeddable :: Functor m => Embeddable (StateT (Map String TxSum     ) m)
+                                                    (StateT (Map String TxSum /\ e) m) where
+  embed (StateT f) = StateT (\(mapTxSum /\ e) -> (((\m -> m /\ e) <$> _) <$> _) $ f mapTxSum)
 
-instance executionStateEmbeddable :: Functor m => Embeddable (StateT (Map String ExecutionState) m)
-                                                             (StateT (Tuple e (Map String ExecutionState)) m) where
-  embed (StateT f) = StateT (\(Tuple e mapTxSum) -> (((\m -> Tuple e m) <$> _) <$> _) $ f mapTxSum)
+instance executionStateEmbeddable :: Functor m => Embeddable (StateT (     Map String ExecutionState) m)
+                                                             (StateT (e /\ Map String ExecutionState) m) where
+  embed (StateT f) = StateT (\(e /\ mapTxSum) -> (((\m -> e /\ m) <$> _) <$> _) $ f mapTxSum)
 
 evalMultipleStoresActions
   :: forall a m m' m''. MonadRec m
