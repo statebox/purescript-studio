@@ -9,9 +9,9 @@ import Data.Either.Nested (type (\/))
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Function.Uncurried (Fn3)
 import Data.Lens (Lens', view, _1, _2)
-import Data.Map (Map, singleton)
+import Data.Map as Map
+import Data.Map (Map)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff (Aff)
@@ -33,7 +33,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import Statebox.Core (hash) as Stbx
 import Statebox.Core.Transaction (TxId, Tx, TxSum(..), uberRootHash)
 import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
-import Statebox.Protocol (processTxSum)
+import Statebox.Protocol (ProcessError, processTxSum)
 import Statebox.Protocol.ExecutionState (ExecutionState)
 import Statebox.Protocol.Store.Handler (eval) as Store
 import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
@@ -41,7 +41,7 @@ import Statebox.Service.Error (ResponseError, TxError(..), processErrorToTxError
 import Statebox.Service.Status (Status(..))
 import Statebox.Store (get) as Single.Store
 import Statebox.Store.Memory (eval) as Store.Memory
-import Statebox.Store.Types (Actions)
+import Statebox.Store.Types (Actions) as Store
 
 foreign import stringBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
@@ -65,20 +65,20 @@ type ExecutionStateDictionaryValue = ExecutionState
 
 type ExecutionStateDictionary = Map TxId ExecutionStateDictionaryValue
 
-type AppState = Tuple (Ref TransactionDictionary) (Ref ExecutionStateDictionary)
+type AppState = Ref TransactionDictionary /\ Ref ExecutionStateDictionary
 
-transactionDictionaryRef :: Lens' AppState (Ref TransactionDictionary)
-transactionDictionaryRef = _1
+_transactionDictionaryRef :: Lens' AppState (Ref TransactionDictionary)
+_transactionDictionaryRef = _1
 
-executionStateDictionaryRef :: Lens' AppState (Ref ExecutionStateDictionary)
-executionStateDictionaryRef = _2
+_executionStateDictionaryRef :: Lens' AppState (Ref ExecutionStateDictionary)
+_executionStateDictionaryRef = _2
 
 initialState :: Effect AppState
-initialState = Tuple
-  <$> Ref.new initialTransactionDictionary
-  <*> Ref.new initialExecutionStateDictionary
+initialState =
+  (/\) <$> Ref.new initialTransactionDictionary
+       <*> Ref.new initialExecutionStateDictionary
   where
-    initialTransactionDictionary = singleton uberRootHash UberRootTxInj
+    initialTransactionDictionary = Map.singleton uberRootHash UberRootTxInj
     initialExecutionStateDictionary = mempty
 
 -- middleware
@@ -114,7 +114,7 @@ healthcheck = sendJson { health: "I'm fine" }
 getTransactionsHandler :: AppState -> Handler
 getTransactionsHandler state = do
   setResponseHeader "Access-Control-Allow-Origin" "*"
-  transactionDictionary <- liftEffect $ Ref.read (view transactionDictionaryRef state)
+  transactionDictionary <- liftEffect $ Ref.read (view _transactionDictionaryRef state)
   sendJson { status: show Ok
            , transactions: encodeTransactionDictionary transactionDictionary
            }
@@ -128,7 +128,7 @@ getTransactionHandler state = do
   case maybeHash of
     Nothing   -> nextThrow $ error "Hash is required"
     Just hash -> do
-      transactionDictionary <- liftEffect $ Ref.read (view transactionDictionaryRef state)
+      transactionDictionary <- liftEffect $ Ref.read (view _transactionDictionaryRef state)
       maybeTransaction <- liftAff $ runStateT (Store.Memory.eval $ Single.Store.get hash) transactionDictionary
       case maybeTransaction of
         Just transaction /\ _ -> sendTxTxSum
@@ -162,16 +162,19 @@ postTransactionHandler state = do
     storeAndSendTx :: TxId /\ TxSum -> Handler
     storeAndSendTx (txHex /\ txSum) = do
       let hash = Stbx.hash txHex
-      transactionDictionary <- liftEffect $ Ref.read (view transactionDictionaryRef state)
-      executionStateDictionary <- liftEffect $ Ref.read (view executionStateDictionaryRef state)
-      updatedDictionaries <- liftAff $ runStateT (Store.eval
-        (Store.Memory.eval :: forall b. Actions TxId TxSum          b -> StateT (Map String TxSum         ) Aff b)
-        (Store.Memory.eval :: forall c. Actions TxId ExecutionState c -> StateT (Map String ExecutionState) Aff c)
-        (processTxSum { id: hash, tx: txSum })) (Tuple transactionDictionary executionStateDictionary)
-      fst updatedDictionaries # either
+      transactionDictionary    <- liftEffect $ Ref.read (view _transactionDictionaryRef    state)
+      executionStateDictionary <- liftEffect $ Ref.read (view _executionStateDictionaryRef state)
+
+      (processingResult :: ProcessError \/ Unit) /\ (transactionDictionaryUpdated /\ executionStateDictionaryUpdated) <- liftAff $
+        runStateT (Store.eval (Store.Memory.eval :: ∀ b. Store.Actions TxId TxSum          b -> StateT TransactionDictionary    Aff b)
+                              (Store.Memory.eval :: ∀ c. Store.Actions TxId ExecutionState c -> StateT ExecutionStateDictionary Aff c)
+                              (processTxSum { id: hash, tx: txSum }))
+                  (transactionDictionary /\ executionStateDictionary)
+
+      processingResult # either
         (sendTxError <<< processErrorToTxError)
-        (const do liftEffect $ Ref.write (fst $ snd updatedDictionaries) (fst state)
-                  liftEffect $ Ref.write (snd $ snd updatedDictionaries) (snd state)
+        (const do liftEffect $ Ref.write transactionDictionaryUpdated    (_transactionDictionaryRef    `view` state)
+                  liftEffect $ Ref.write executionStateDictionaryUpdated (_executionStateDictionaryRef `view` state)
                   sendTxTxSum { status: show Ok
                               , hash: hash
                               , hex: txHex
