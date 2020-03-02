@@ -1,9 +1,14 @@
 { sources =
-    [ "src/**/*.purs" ]
+    [ "src/**/*.purs", "test/**/*.purs" ]
 , name =
     "purescript-firestore"
 , dependencies =
-    [ "functions"
+    [ "aff-promise"
+    , "bytestrings"
+    , "functions"
+    , "maybe"
+    , "precise-datetime"
+    , "spec"
     ]
 , packages =
     ./../packages.dhall

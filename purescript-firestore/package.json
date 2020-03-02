@@ -8,7 +8,9 @@
     "build": "spago build",
     "repl": "spago repl",
     "docs": "spago docs",
-    "watch": "spago build --watch"
+    "watch": "spago build --watch",
+    "test": "spago test",
+    "testwatch": "spago test --watch"
   },
   "author": "Marco Perone <pasafama@gmail.com>",
   "devDependencies": {
