@@ -30,13 +30,19 @@ hoistToMultipleStores = hoistFree (case _ of
 class Embeddable m' m where
   embed :: forall a. m' a -> m a
 
-instance txSumEmbeddable :: Functor m => Embeddable (StateT (Map String TxSum     ) m)
-                                                    (StateT (Map String TxSum /\ e) m) where
-  embed (StateT f) = StateT (\(mapTxSum /\ e) -> (((\m -> m /\ e) <$> _) <$> _) $ f mapTxSum)
+instance embeddableTxSum
+  :: Functor m
+  => Embeddable (StateT (Map String TxSum     ) m)
+                (StateT (Map String TxSum /\ e) m)
+  where
+    embed (StateT f) = StateT (\(mapTxSum /\ e) -> (((\m -> m /\ e) <$> _) <$> _) $ f mapTxSum)
 
-instance executionStateEmbeddable :: Functor m => Embeddable (StateT (     Map String ExecutionState) m)
-                                                             (StateT (e /\ Map String ExecutionState) m) where
-  embed (StateT f) = StateT (\(e /\ mapTxSum) -> (((\m -> e /\ m) <$> _) <$> _) $ f mapTxSum)
+instance embeddableExecutionState
+  :: Functor m
+  => Embeddable (StateT (     Map String ExecutionState) m)
+                (StateT (e /\ Map String ExecutionState) m)
+ where
+    embed (StateT f) = StateT (\(e /\ mapTxSum) -> (((\m -> e /\ m) <$> _) <$> _) $ f mapTxSum)
 
 evalMultipleStoresActions
   :: forall a m m' m''. MonadRec m
