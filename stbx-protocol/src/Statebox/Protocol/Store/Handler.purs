@@ -35,14 +35,14 @@ instance embeddableTxSum
   => Embeddable (StateT (Map String TxSum     ) m)
                 (StateT (Map String TxSum /\ e) m)
   where
-    embed (StateT f) = StateT (\(mapTxSum /\ e) -> (((\m -> m /\ e) <$> _) <$> _) $ f mapTxSum)
+    embed (StateT f) = StateT (\(transactionDictionary /\ e) -> (((\m -> m /\ e) <$> _) <$> _) $ f transactionDictionary)
 
 instance embeddableExecutionState
   :: Functor m
   => Embeddable (StateT (     Map String ExecutionState) m)
-                (StateT (e /\ Map String ExecutionState) m)
+                (StateT (t /\ Map String ExecutionState) m)
  where
-    embed (StateT f) = StateT (\(e /\ mapTxSum) -> (((\m -> e /\ m) <$> _) <$> _) $ f mapTxSum)
+    embed (StateT f) = StateT (\(t /\ executionStateDictionary) -> (((\m -> t /\ m) <$> _) <$> _) $ f executionStateDictionary)
 
 evalMultipleStoresActions
   :: ∀ m mb mc a
