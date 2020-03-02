@@ -20,15 +20,15 @@ derive instance multipleStoresActionFunctor :: Functor MultipleStoresActionF
 
 type MultipleStoresActions = Free MultipleStoresActionF
 
-hoistToMultipleStores :: forall a. StoreActions a -> MultipleStoresActions a
+hoistToMultipleStores :: ∀ a. StoreActions a -> MultipleStoresActions a
 hoistToMultipleStores = hoistFree (case _ of
   GetTransaction       key       next -> Transaction (next <$> get key)
   PutTransaction       key value next -> Transaction (next <$ put key value)
   GetExecutionState    key       next -> ExecutionState (next <$> get key)
   UpdateExecutionState key value next -> ExecutionState (next <$ put key value))
 
-class Embeddable m' m where
-  embed :: forall a. m' a -> m a
+class Embeddable ma m where
+  embed :: ∀ a. ma a -> m a
 
 instance embeddableTxSum
   :: Functor m
@@ -45,21 +45,23 @@ instance embeddableExecutionState
     embed (StateT f) = StateT (\(e /\ mapTxSum) -> (((\m -> e /\ m) <$> _) <$> _) $ f mapTxSum)
 
 evalMultipleStoresActions
-  :: forall a m m' m''. MonadRec m
-  => Embeddable m'  m
-  => Embeddable m'' m
-  => (forall b. Actions TxId TxSum b          -> m' b)
-  -> (forall c. Actions TxId ExecutionState c -> m'' c)
-  -> MultipleStoresActions a                  -> m a
-evalMultipleStoresActions evalTransactions evalExecutionStates = runFreeM $ case _ of
+  :: ∀ m mb mc a
+   . MonadRec      m
+  => Embeddable mb m
+  => Embeddable mc m
+  => (∀ b. Actions TxId TxSum          b -> mb b)
+  -> (∀ c. Actions TxId ExecutionState c -> mc c)
+  -> MultipleStoresActions             a -> m  a
+evalMultipleStoresActions evalTransactions evalExecutionStates = runFreeM case _ of
   Transaction    transactionActions    -> embed $ evalTransactions    transactionActions
   ExecutionState executionStateActions -> embed $ evalExecutionStates executionStateActions
 
 eval
-  :: forall a m m' m''. MonadRec m
-  => Embeddable m'  m
-  => Embeddable m'' m
-  => (forall b. Actions TxId TxSum b          -> m' b)
-  -> (forall c. Actions TxId ExecutionState c -> m'' c)
-  -> StoreActions a                           -> m a
+  :: ∀ m mb mc a
+   . MonadRec      m
+  => Embeddable mb m
+  => Embeddable mc m
+  => (∀ b. Actions TxId TxSum          b -> mb b)
+  -> (∀ c. Actions TxId ExecutionState c -> mc c)
+  -> StoreActions                      a -> m  a
 eval evalTransactions evalExecutionStates = hoistToMultipleStores >>> evalMultipleStoresActions evalTransactions evalExecutionStates
