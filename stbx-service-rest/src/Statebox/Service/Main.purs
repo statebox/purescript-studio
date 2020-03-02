@@ -3,7 +3,8 @@ module Statebox.Service.Main where
 import Prelude
 
 import Control.Monad.State.Trans (StateT, runStateT)
-import Data.Argonaut.Core (Json, fromObject)
+import Data.Argonaut.Core (Json)
+import Data.Argonaut.Core (fromObject) as Json
 import Data.Either (either)
 import Data.Either.Nested (type (\/))
 import Data.FoldableWithIndex (foldrWithIndex)
@@ -56,7 +57,7 @@ type TransactionDictionaryValue = TxSum
 type TransactionDictionary = Map TxId TransactionDictionaryValue
 
 encodeTransactionDictionary :: TransactionDictionary -> Json
-encodeTransactionDictionary = fromObject <<< (foldrWithIndex addIndex empty)
+encodeTransactionDictionary = Json.fromObject <<< foldrWithIndex addIndex empty
   where
     addIndex :: TxId -> TxSum -> Object Json -> Object Json
     addIndex id transaction = insert id (encodeTxSum transaction)
