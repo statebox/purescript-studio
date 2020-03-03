@@ -1,4 +1,4 @@
-module Main where
+module View.Studio.Main where
 
 import Prelude
 import Effect (Effect)

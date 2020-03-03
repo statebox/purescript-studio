@@ -9,8 +9,8 @@
   "scripts": {
     "postinstall": "spago install",
     "start": "npm run build && concurrently --kill-others --handle-input npm:watch npm:serve",
-    "build": "spago bundle-module --to output/index.js --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago bundle-module --to output/index.js --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "build": "spago bundle-module --main View.Studio.Main --to output/index.js --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago bundle-module --main View.Studio.Main --to output/index.js --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "test": "spago test",
     "docs": "spago docs",
     "repl": "spago repl",
