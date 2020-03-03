@@ -36,7 +36,7 @@ import Statebox.Core.Transaction (TxId, Tx, TxSum(..), uberRootHash)
 import Statebox.Core.Transaction.Codec (encodeTxWith, encodeTxSum)
 import Statebox.Protocol (ProcessError, processTxSum)
 import Statebox.Protocol.ExecutionState (ExecutionState)
-import Statebox.Protocol.Store.Handler (eval) as Store
+import Statebox.Protocol.Store.TransactionExecutionStateHandler (eval) as Store
 import Statebox.Service.Codec (parseBodyToJson, jsonBodyToTxString, txStringToTxJsonString', txJsonStringToTxData', txDataToTxSum')
 import Statebox.Service.Error (ResponseError, TxError(..), processErrorToTxError, responseErrorToTxError, toTxErrorResponseBody)
 import Statebox.Service.Status (Status(..))

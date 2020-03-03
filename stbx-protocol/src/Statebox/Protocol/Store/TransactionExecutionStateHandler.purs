@@ -1,4 +1,4 @@
-module Statebox.Protocol.Store.Handler where
+module Statebox.Protocol.Store.TransactionExecutionStateHandler where
 
 import Prelude
 import Control.Monad.Free (Free, hoistFree, runFreeM)
@@ -27,6 +27,8 @@ hoistToMultipleStores = hoistFree (case _ of
   GetExecutionState    key       next -> ExecutionState (next <$> Store.get key)
   UpdateExecutionState key value next -> ExecutionState (next <$  Store.put key value))
 
+-- | This typeclass describes a natural transformation between `ma` and `m` (if they are functors).
+-- | It allows us to transform naturally instances of `ma` to instances of `m`
 class Embeddable ma m where
   embed :: ∀ a. ma a -> m a
 

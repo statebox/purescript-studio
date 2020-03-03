@@ -168,17 +168,17 @@ instance decodeJsonTxError :: DecodeJson TxError where
 
 processErrorToTxError :: ProcessError -> TxError
 processErrorToTxError = case _ of
-  NoUberRoot                                                        -> TxNoTxField -- TODO: wrong!
+  NoUberRoot                                                        -> TxNoTxField -- TODO: wrong, not the correct error message!
   InitialPreviousShouldBeUberRoot                  txId             -> RootNonexistPrev {previous: txId}
-  WiringPreviousShouldBeInitial                    txId             -> TxNoTxField -- TODO: wrong!
+  WiringPreviousShouldBeInitial                    txId             -> TxNoTxField -- TODO: wrong, not the correct error message!
   FiringInitialShouldBeCreatedOnlyOnce             txId             -> InitExecExists
   FiringInitialShouldHavePrevious                  txId             -> InitNonexistPrev {previous: txId}
-  FiringInitialPreviousShouldBeWiring              txId             -> InitNonexistPrev {previous: txId} -- TODO: wrong!
-  FiringInitialTransitionShouldBeInitial           txId             -> InitNonexistPrev {previous: txId} -- TODO: wrong!
-  FiringNormalShouldHaveExistingExecution          txId executionId -> InvalidState -- TODO: wrong!
+  FiringInitialPreviousShouldBeWiring              txId             -> InitNonexistPrev {previous: txId} -- TODO: wrong, not the correct error message!
+  FiringInitialTransitionShouldBeInitial           txId             -> InitNonexistPrev {previous: txId} -- TODO: wrong, not the correct error message!
+  FiringNormalShouldHaveExistingExecution          txId executionId -> InvalidState -- TODO: wrong, not the correct error message!
   FiringNormalPreviousShouldMatchCurrentState      txId executionId -> InvalidState
-  FiringNormalExecutionShouldPointToExistingWiring txId executionId -> InvalidState -- TODO: wrong!
-  FiringNormalExecutionWiringShouldBeAWiring       txId executionId -> InvalidState -- TODO: wrong!
+  FiringNormalExecutionShouldPointToExistingWiring txId executionId -> InvalidState -- TODO: wrong, not the correct error message!
+  FiringNormalExecutionWiringShouldBeAWiring       txId executionId -> InvalidState -- TODO: wrong, not the correct error message!
   FiringNormalTransitionShouldBeEnabled            txId executionId -> TxNotEnabled
 
 
