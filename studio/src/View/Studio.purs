@@ -90,16 +90,16 @@ handleAction = case _ of
     runProcess txIngester
     where
       -- | This ingests transactions produced from the HTTP API into our transaction storage.
-      txIngester :: Process (HalogenM State Action _ Void m) Unit
+      txIngester :: Process (HalogenM State Action ChildSlots Void m) Unit
       txIngester = txProducer `connect` txConsumer
 
-      txProducer :: Producer HashTx (HalogenM State Action _ Void m) Unit
+      txProducer :: Producer HashTx (HalogenM State Action ChildSlots Void m) Unit
       txProducer = Stbx.requestTransactionsToRootM endpointUrl startHash
 
-      txConsumer :: Consumer HashTx (HalogenM State Action _ Void m) Unit
+      txConsumer :: Consumer HashTx (HalogenM State Action ChildSlots Void m) Unit
       txConsumer = consumer txStorer
         where
-          txStorer :: HashTx -> (HalogenM State Action _ Void m) (Maybe _)
+          txStorer :: HashTx -> (HalogenM State Action ChildSlots Void m) (Maybe Unit)
           txStorer itx@{id, tx} = do
             H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
             H.liftEffect $ log $ show itx
