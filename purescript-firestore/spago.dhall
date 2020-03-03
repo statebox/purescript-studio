@@ -5,6 +5,7 @@
 , dependencies =
     [ "aff-promise"
     , "bytestrings"
+    , "foreign-object"
     , "functions"
     , "maybe"
     , "precise-datetime"

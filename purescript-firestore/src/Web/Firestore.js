@@ -6,8 +6,25 @@ exports.initializeAppImpl = firebase.initializeApp
 
 exports.firestoreImpl = firebase.firestore
 
-exports.docImpl = firebase.firestore.Firestore.doc
+exports.docImpl = function (firestore, documentPath) {
+  return firestore.doc(documentPath)
+}
 
-exports.getImpl = firebase.firestore.DocumentSnapshot.get
+exports.setImpl = function (documentReference, data, setOptions) {
+  ret = documentReference.set(data, setOptions)
 
-exports.dataImpl = firebase.firestore.DocumentSnapshot.data
+  console.log('ret', ret)
+  return ret
+}
+
+exports.getImpl = function (documentReference) {
+  return function (getOptions) {
+    return documentReference.get(getOptions)
+  }
+}
+
+exports.dataImpl = function (documentSnapshot) {
+  return function (snapshotOptions) {
+    return documentSnapshot.data(snapshotOptions)
+  }
+}

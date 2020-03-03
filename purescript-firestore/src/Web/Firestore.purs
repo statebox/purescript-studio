@@ -3,12 +3,14 @@ module Web.Firestore where
 import Control.Promise (Promise)
 import Data.ByteString (ByteString)
 import Data.Either.Nested (type (\/))
-import Data.Function.Uncurried (Fn1, Fn2, runFn1, runFn2)
+import Data.Function.Uncurried (Fn1, Fn2, Fn3, runFn1, runFn2, runFn3)
 import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Data.PreciseDateTime (PreciseDateTime)
+import Data.Unit (Unit)
+import Foreign.Object (Object)
 
-data Options = Options
+type Options =
   { apiKey :: Maybe String
   , appId :: Maybe String
   , authDomain :: Maybe String
@@ -52,7 +54,7 @@ data PrimitiveValue
   | PVReference String
   | PVText String
 
-data MapValue = MapValue (Map String (PrimitiveValue \/ ArrayValue \/ MapValue))
+data MapValue = MapValue (Object DocumentValue)
 
 data ArrayEntry
   = PrimitiveArrayValue PrimitiveValue
@@ -60,10 +62,12 @@ data ArrayEntry
 
 data ArrayValue = ArrayValue (Array ArrayEntry)
 
-data DocumentData
+data DocumentValue
   = PrimitiveDocument PrimitiveValue
   | MapDocument MapValue
   | ArrayDocument ArrayValue
+
+newtype DocumentData = DocumentData (Object DocumentValue)
 
 newtype DocumentReference a = DocumentReference a
 
@@ -71,6 +75,19 @@ foreign import docImpl :: Fn2 Firestore String (DocumentReference DocumentData)
 
 doc :: Firestore -> String -> DocumentReference DocumentData
 doc = runFn2 docImpl
+
+type Merge = Boolean
+
+newtype FieldPath = FieldPath (Array String)
+
+newtype MergeFields = MergeFields (String \/ FieldPath)
+
+data SetOptions = SetOptions Merge MergeFields
+
+foreign import setImpl :: forall a. Fn3 (DocumentReference a) a (Maybe SetOptions) (Promise Unit)
+
+set :: forall a. DocumentReference a -> a -> Maybe SetOptions -> Promise Unit
+set = runFn3 setImpl
 
 data SourceOption
   = Default
