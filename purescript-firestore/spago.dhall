@@ -4,6 +4,7 @@
     "purescript-firestore"
 , dependencies =
     [ "aff-promise"
+    , "argonaut"
     , "bytestrings"
     , "foreign-object"
     , "functions"

@@ -11,10 +11,7 @@ exports.docImpl = function (firestore, documentPath) {
 }
 
 exports.setImpl = function (documentReference, data, setOptions) {
-  ret = documentReference.set(data, setOptions)
-
-  console.log('ret', ret)
-  return ret
+  return documentReference.set(data, setOptions)
 }
 
 exports.getImpl = function (documentReference) {
