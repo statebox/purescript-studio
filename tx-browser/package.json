@@ -31,9 +31,8 @@
     "spago": "^0.13"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^5.6.3",
     "@statebox/stbx-js": "0.0.31",
-    "dagre": "^0.8.4",
-    "tailwindcss": "^0.7.3"
+    "@statebox/style": "0.0.4",
+    "dagre": "^0.8.4"
   }
 }
