@@ -1,10 +1,11 @@
 module Web.Firestore where
 
 import Prelude
+import Control.Alt ((<|>))
 import Control.Promise (Promise)
-import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, fromString, jsonNull)
+import Data.Argonaut (class DecodeJson, class EncodeJson, Json, caseJsonNull, decodeJson, encodeJson, fromString, jsonNull)
 import Data.ByteString (ByteString)
-import Data.Either (either)
+import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
 import Data.Function.Uncurried (Fn1, Fn2, Fn3, runFn1, runFn2, runFn3)
 import Data.Maybe (Maybe(..))
@@ -44,6 +45,9 @@ newtype Lat = Lat Number
 instance encodeJsonLat :: EncodeJson Lat where
   encodeJson (Lat n) = encodeJson n
 
+instance decodeJsonLat :: DecodeJson Lat where
+  decodeJson json = Lat <$> decodeJson json
+
 instance showLat :: Show Lat where
   show (Lat n) = show n
 
@@ -51,6 +55,9 @@ newtype Lon = Lon Number
 
 instance encodeJsonLon :: EncodeJson Lon where
   encodeJson (Lon n) = encodeJson n
+
+instance decodeJsonLon :: DecodeJson Lon where
+  decodeJson json = Lon <$> decodeJson json
 
 instance showLon :: Show Lon where
   show (Lon n) = show n
@@ -95,6 +102,18 @@ instance encodeJsonPrimitiveValue :: EncodeJson PrimitiveValue where
     PVReference         s       -> encodeJson s
     PVText              s       -> encodeJson s
 
+instance decodeJsonPrimitiveValue :: DecodeJson PrimitiveValue where
+  decodeJson json
+    =   (PVBoolean           <$> decodeJson json)
+    -- <|> (PVBytes             <$> decodeJson json) -- TODO: how do I decode bytes?
+    -- <|> (PVDateTime          <$> decodeJson json) -- TODO: how doe we parse a DateTime? how is it represented in Firestore?
+    <|> (PVFloat             <$> decodeJson json)
+    <|> ((\({lat: lat, lon: lon} :: {lat:: Lat, lon:: Lon}) -> PVGeographicalPoint lat lon) <$> decodeJson json)
+    <|> (PVInteger           <$> decodeJson json)
+    <|> (caseJsonNull (Left "not null") (const $ Right PVNull) json)
+    <|> (PVReference         <$> decodeJson json) -- TODO: parse only strings with the correct format
+    <|> (PVText              <$> decodeJson json)
+
 instance showPrimitiveValue :: Show PrimitiveValue where
   show = case _ of
     PVBoolean           b       -> show b
@@ -111,6 +130,9 @@ newtype MapValue = MapValue (Object DocumentValue)
 
 instance encodeJsonMapValue :: EncodeJson MapValue where
   encodeJson (MapValue obj) = encodeJson obj
+
+instance decodeJsonMapValue :: DecodeJson MapValue where
+  decodeJson json = MapValue <$> decodeJson json
 
 instance showMapValue :: Show MapValue where
   show (MapValue obj) = show obj
@@ -129,7 +151,15 @@ instance showArrayEntry :: Show ArrayEntry where
     PrimitiveArrayValue pv -> show pv
     MapArrayValue       mv -> show mv
 
+instance decodeJsonArrayEntry :: DecodeJson ArrayEntry where
+  decodeJson json
+    =   (PrimitiveArrayValue <$> decodeJson json)
+    <|> (MapArrayValue       <$> decodeJson json)
+
 newtype ArrayValue = ArrayValue (Array ArrayEntry)
+
+instance decodeJsonArrayValue :: DecodeJson ArrayValue where
+  decodeJson json = ArrayValue <$> decodeJson json
 
 data DocumentValue
   = PrimitiveDocument PrimitiveValue
@@ -142,6 +172,12 @@ instance encodeJsonDocumentValue :: EncodeJson DocumentValue where
     MapDocument       (MapValue obj)     -> encodeJson obj
     ArrayDocument     (ArrayValue array) -> encodeJson array
 
+instance decodeJsonDocumentValue :: DecodeJson DocumentValue where
+  decodeJson json
+    =   (PrimitiveDocument <$> decodeJson json)
+    <|> (MapDocument       <$> decodeJson json)
+    <|> (ArrayDocument     <$> decodeJson json)
+
 instance showDocumentValue :: Show DocumentValue where
   show = case _ of
     PrimitiveDocument primitiveValue     -> show primitiveValue
@@ -152,6 +188,9 @@ newtype DocumentData = DocumentData (Object DocumentValue)
 
 instance encodeJsonDocumentData :: EncodeJson DocumentData where
   encodeJson (DocumentData obj) = encodeJson obj
+
+instance decodeJsonDocumentData :: DecodeJson DocumentData where
+  decodeJson = (DocumentData <$> _) <<< decodeJson
 
 instance showDocumentData :: Show DocumentData where
   show (DocumentData obj) = show obj
