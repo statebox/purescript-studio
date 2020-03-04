@@ -2,11 +2,12 @@ module Web.Firestore where
 
 import Prelude
 import Control.Promise (Promise)
-import Data.Argonaut (class EncodeJson, Json, encodeJson, jsonNull)
+import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, encodeJson, fromString, jsonNull)
 import Data.ByteString (ByteString)
+import Data.Either (either)
 import Data.Either.Nested (type (\/))
 import Data.Function.Uncurried (Fn1, Fn2, Fn3, runFn1, runFn2, runFn3)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.PreciseDateTime (PreciseDateTime)
 import Foreign.Object (Object)
 
@@ -43,20 +44,32 @@ newtype Lat = Lat Number
 instance encodeJsonLat :: EncodeJson Lat where
   encodeJson (Lat n) = encodeJson n
 
+instance showLat :: Show Lat where
+  show (Lat n) = show n
+
 newtype Lon = Lon Number
 
 instance encodeJsonLon :: EncodeJson Lon where
   encodeJson (Lon n) = encodeJson n
+
+instance showLon :: Show Lon where
+  show (Lon n) = show n
 
 newtype FSByteString = FSByteString ByteString
 
 instance encodeJsonFSByteString :: EncodeJson FSByteString where
   encodeJson (FSByteString bs) = encodeJson $ show bs
 
+instance showFSByteString :: Show FSByteString where
+  show (FSByteString bs) = show bs
+
 newtype FSPreciseDateTime = FSPreciseDateTime PreciseDateTime
 
 instance encodeJsonFSPreciseDateTime :: EncodeJson FSPreciseDateTime where
   encodeJson (FSPreciseDateTime dt) = encodeJson $ show dt
+
+instance showFSPreciseDateTime :: Show FSPreciseDateTime where
+  show (FSPreciseDateTime dt) = show dt
 
 data PrimitiveValue
   = PVBoolean Boolean
@@ -82,10 +95,25 @@ instance encodeJsonPrimitiveValue :: EncodeJson PrimitiveValue where
     PVReference         s       -> encodeJson s
     PVText              s       -> encodeJson s
 
+instance showPrimitiveValue :: Show PrimitiveValue where
+  show = case _ of
+    PVBoolean           b       -> show b
+    PVBytes             bs      -> show bs
+    PVDateTime          dt      -> show dt
+    PVFloat             n       -> show n
+    PVGeographicalPoint lat lon -> show { lat: lat, lon: lon }
+    PVInteger           i       -> show i
+    PVNull                      -> "null"
+    PVReference         s       -> show s
+    PVText              s       -> show s
+
 newtype MapValue = MapValue (Object DocumentValue)
 
 instance encodeJsonMapValue :: EncodeJson MapValue where
   encodeJson (MapValue obj) = encodeJson obj
+
+instance showMapValue :: Show MapValue where
+  show (MapValue obj) = show obj
 
 data ArrayEntry
   = PrimitiveArrayValue PrimitiveValue
@@ -95,6 +123,11 @@ instance encodeJsonArrayEntry :: EncodeJson ArrayEntry where
   encodeJson = case _ of
     PrimitiveArrayValue pv -> encodeJson pv
     MapArrayValue       mv -> encodeJson mv
+
+instance showArrayEntry :: Show ArrayEntry where
+  show = case _ of
+    PrimitiveArrayValue pv -> show pv
+    MapArrayValue       mv -> show mv
 
 newtype ArrayValue = ArrayValue (Array ArrayEntry)
 
@@ -109,10 +142,19 @@ instance encodeJsonDocumentValue :: EncodeJson DocumentValue where
     MapDocument       (MapValue obj)     -> encodeJson obj
     ArrayDocument     (ArrayValue array) -> encodeJson array
 
+instance showDocumentValue :: Show DocumentValue where
+  show = case _ of
+    PrimitiveDocument primitiveValue     -> show primitiveValue
+    MapDocument       (MapValue obj)     -> show obj
+    ArrayDocument     (ArrayValue array) -> show array
+
 newtype DocumentData = DocumentData (Object DocumentValue)
 
 instance encodeJsonDocumentData :: EncodeJson DocumentData where
   encodeJson (DocumentData obj) = encodeJson obj
+
+instance showDocumentData :: Show DocumentData where
+  show (DocumentData obj) = show obj
 
 newtype DocumentReference a = DocumentReference a
 
@@ -139,14 +181,23 @@ data SourceOption
   | Server
   | Cache
 
+instance encodeJsonSourceOption :: EncodeJson SourceOption where
+  encodeJson = case _ of
+    Default -> fromString "default"
+    Server  -> fromString "Server"
+    Cache   -> fromString "Cache"
+
 newtype GetOptions = GetOptions SourceOption
+
+instance encodeJsonGetOptions :: EncodeJson GetOptions where
+  encodeJson (GetOptions so) = encodeJson so
 
 newtype DocumentSnapshot a = DocumentSnapshot a
 
-foreign import getImpl :: forall a. Fn2 (DocumentReference a) (Maybe GetOptions) (Promise (DocumentSnapshot a))
+foreign import getImpl :: forall a. Fn2 (DocumentReference a) Json (Promise (DocumentSnapshot a))
 
 get :: forall a. DocumentReference a -> Maybe GetOptions -> Promise (DocumentSnapshot a)
-get = runFn2 getImpl
+get docRef options = (runFn2 getImpl) docRef (encodeJson options)
 
 data ServerTimestamps
   = Estimate
@@ -155,7 +206,7 @@ data ServerTimestamps
 
 data SnapshotOptions = SnapshotOptions ServerTimestamps
 
-foreign import dataImpl :: forall a. Fn2 (DocumentSnapshot a) (Maybe SnapshotOptions) (Maybe a)
+foreign import dataImpl :: forall a. Fn2 (DocumentSnapshot a) (Maybe SnapshotOptions) Json
 
-snapshotData :: forall a. DocumentSnapshot a -> Maybe SnapshotOptions -> Maybe a
-snapshotData = runFn2 dataImpl
+snapshotData :: forall a. DecodeJson a => DocumentSnapshot a -> Maybe SnapshotOptions -> Maybe a
+snapshotData docSnapshot options = either (const Nothing) identity (decodeJson $ runFn2 dataImpl docSnapshot options)

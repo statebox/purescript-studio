@@ -3,6 +3,8 @@ module Test.Web.Firestore where
 import Prelude
 import Control.Promise (toAff)
 import Data.Maybe (Maybe(..))
+import Effect.Class (liftEffect)
+import Effect.Console (log)
 import Foreign.Object (singleton)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
@@ -25,8 +27,13 @@ suite = do
           app = initializeApp options (Just "marcoshtest")
           firestoreInstance = firestore app
           documentReference = doc firestoreInstance "collection/test"
-          promise = set documentReference (DocumentData (singleton "foo" (PrimitiveDocument (PVText "bar")))) Nothing
-      toAff promise
+          document = DocumentData (singleton "foo" (PrimitiveDocument (PVText "bar")))
+          setPromise = set documentReference document Nothing
+          getPromise = get documentReference Nothing
+      toAff setPromise
+      snapshot <- toAff getPromise
+      let result = show $ snapshotData snapshot Nothing
+      liftEffect $ log $ show (snapshotData snapshot Nothing)
 
       1 `shouldEqual` 1
 
