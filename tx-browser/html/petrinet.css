@@ -4,6 +4,7 @@
     -webkit-user-select: none;
     user-select: none;
     font-family: serif;
+    background-color: #eee;
 }
 .css-petrinet-component.css-hide-arc-labels .css-arc-name-label,
 .css-petrinet-component.css-hide-place-labels .css-place-name-label,
