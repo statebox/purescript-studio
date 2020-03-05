@@ -26,7 +26,7 @@ import Statebox.Core.Types (TID, GluedTransitionId(..))
 
 firingTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> String \/ ExecutionTrace -> ComponentHTML Action s m
 firingTxView wfi tx executionTraceE =
-  div []
+  div [ classes [ ClassName "is-overflowing" ] ]
       [ h2    [] [ text $ if isExecution tx.firing then "Execution" else "Firing" ]
       , table [] $ txWrapperRows wfi tx <>
                    firingTxBodyRows wfi tx <>
@@ -39,7 +39,7 @@ firingTxView wfi tx executionTraceE =
 
 wiringTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> WiringTx -> ComponentHTML Action s m
 wiringTxView wfi tx =
-  div []
+  div [ classes [ ClassName "is-overflowing" ] ]
       [ h2    [] [ text $ "Wiring" ]
       , table [] $ txWrapperRows wfi tx <> wiringTxBodyRows wfi tx
       ]
