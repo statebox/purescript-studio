@@ -10,7 +10,9 @@
     "repl": "spago repl",
     "docs": "spago docs",
     "watch": "spago build --watch",
-    "serve": "node index.js"
+    "serve": "node index.js",
+    "start:gcloud": "node index.js",
+    "start": "npm run start:gcloud"
   },
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "ISC",
