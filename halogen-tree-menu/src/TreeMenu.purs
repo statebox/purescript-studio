@@ -13,7 +13,7 @@ import Data.Monoid (guard)
 import Data.Tuple.Nested (type (/\), (/\))
 import Halogen as H
 import Halogen (Component, ComponentHTML, HalogenM, mkEval, defaultEval)
-import Halogen.HTML (HTML, nav, div, p, a, text, ul, li, aside, span, i, b_, details, summary)
+import Halogen.HTML (HTML, nav, div, p, a, text, ul, li, aside, span, i, b, details, summary)
 import Halogen.HTML.Core (ClassName(..), AttrName(..))
 import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (classes, src, href, id_, attr, IProp)
@@ -96,20 +96,17 @@ menuComponent isSelected =
       where
         menuItemHtml :: (NodeId /\ Item r)  -> Array (ComponentHTML (Action r) () m) -> ComponentHTML (Action r) () m
         menuItemHtml (treeNodeId /\ treeNode) kids =
-          li [] $
-            if null kids then
-              leaf
-            else
-              [ details [ attr (AttrName "open") "true" ]
-                [ summary [] leaf
-                , ul [ classesWithNames [ "is-unstyled" ] ] kids
-                ]
-              ]
+          li [] if null kids then leaf
+                             else [ details [ attr (AttrName "open") "true" ]
+                                            [ summary [] leaf
+                                            , ul [ classesWithNames [ "is-unstyled" ] ] kids
+                                            ]
+                                  ]
           where
             leaf = [ a ([ href "#" ] <> onClickVisitRoute)
                        [ activated [ text treeNode.label ] ]
                    ]
-            activated = if state.activeItem == pure treeNodeId then b_ else span []
+            activated = if state.activeItem == pure treeNodeId then b [] else span []
             onClickVisitRoute = treeNode.route #
               maybe [] (\r -> pure <<< onClick $ Just <<< PreventDefault (VisitRoute treeNodeId r) <<< toEvent)
 

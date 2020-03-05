@@ -16,7 +16,7 @@ import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (a, br, div, fieldset_, h1, img, input, legend_, li, nav, ol, p_, slot, span, text, ul)
+import Halogen.HTML (a, br, div, fieldset, h1, img, input, legend, li, nav, ol, p, slot, span, text, ul)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, src, href, placeholder, value, tabIndex, type_, InputType(InputText))
@@ -68,7 +68,7 @@ render state =
                 [ div [ classes $ ClassName <$> [ "container", "is-fluid" ] ]
                       [ routeBreadcrumbs state.route
                       , resolveRoute state.route state # maybe (text "Couldn't find project/net/diagram.")
-                                                              (contentView state.apiUrl)
+                                                               (contentView state.apiUrl)
                       ]
                 ]
           ]
@@ -148,11 +148,11 @@ navBar title =
   nav [ classes [ ClassName "stbx-menu" ], tabIndex 0 ]
       [ span [ classes [ ClassName "stbx-menu-close" ], tabIndex 0 ] []
       , ul [] $
-        [ li [] [ h1 [] [ text title ] ] ]
-        <> (menuItem <$> [ "Home"    /\ Just Home
-                         , "Project" /\ Nothing
-                         , "Help"    /\ Nothing
-                         ])
+           [ li [] [ h1 [] [ text title ] ] ]
+           <> (menuItem <$> [ "Home"    /\ Just Home
+                            , "Project" /\ Nothing
+                            , "Help"    /\ Nothing
+                            ])
       , a [ href "https://statebox.org", classes [ ClassName "stbx-logo" ] ] []
       ]
   where
@@ -237,33 +237,33 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
 homeForm :: ∀ m. URL -> ComponentHTML Action ChildSlots m
 homeForm apiUrl =
   div []
-      [ fieldset_
-        [ legend_ [ text "Please select an object from the menu, or enter a transaction hash below." ]
-        , p_
-          [ input [ value ""
-                  , type_ InputText
-                  , placeholder "Enter Statebox Cloud transaction hash"
-                  , onValueInput $ Just <<< LoadTransactions apiUrl
-                  ]
-          ]
-        , p_
-          [ input [ value apiUrl
-                  , type_ InputText
-                  , placeholder "Statebox API URL"
-                  , onValueInput $ Just <<< SetApiUrl
-                  ]
-          ]
-        ]
-      , fieldset_
-        [ legend_ [ text "Alternatively, you can load a PNPRO file." ]
-        , p_
-          [ input [ value ""
-                  , type_ InputText
-                  , placeholder "Enter http URL to PNPRO file"
-                  , onValueInput $ Just <<< LoadPNPRO
-                  ]
-          ]
-        ]
+      [ fieldset []
+                 [ legend [] [ text "Please select an object from the menu, or enter a transaction hash below." ]
+                 , p []
+                     [ input [ value ""
+                             , type_ InputText
+                             , placeholder "Enter Statebox Cloud transaction hash"
+                             , onValueInput $ Just <<< LoadTransactions apiUrl
+                             ]
+                     ]
+                 , p []
+                     [ input [ value apiUrl
+                             , type_ InputText
+                             , placeholder "Statebox API URL"
+                             , onValueInput $ Just <<< SetApiUrl
+                             ]
+                     ]
+                 ]
+               , fieldset []
+                          [ legend [] [ text "Alternatively, you can load a PNPRO file." ]
+                          , p []
+                              [ input [ value ""
+                                      , type_ InputText
+                                      , placeholder "Enter http URL to PNPRO file"
+                                      , onValueInput $ Just <<< LoadPNPRO
+                                      ]
+                              ]
+                          ]
       ]
 
 --------------------------------------------------------------------------------
