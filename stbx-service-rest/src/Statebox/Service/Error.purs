@@ -16,6 +16,7 @@ import Foreign.Object (Object)
 import Statebox.Core (DecodeError(..)) as Stbx
 import Statebox.Core.Types (HexStr)
 import Statebox.Core.Transaction (HashStr)
+import Statebox.Protocol (ProcessError(..))
 import Statebox.Service.Status (Status(..), statusCode)
 
 -- | Based on the `StateboxException`s thrown in https://github.com/statebox/cloud/blob/73158c3a779cbc8a6348aac60e2d0b21e907b2c1/services/tx/process-tx.js.
@@ -162,6 +163,23 @@ decodeTxError json
 
 instance decodeJsonTxError :: DecodeJson TxError where
   decodeJson = decodeTxError
+
+--------------------------------------------------------------------------------
+
+processErrorToTxError :: ProcessError -> TxError
+processErrorToTxError = case _ of
+  NoUberRoot                                                        -> TxNoTxField -- TODO: wrong, not the correct error message!
+  InitialPreviousShouldBeUberRoot                  txId             -> RootNonexistPrev {previous: txId}
+  WiringPreviousShouldBeInitial                    txId             -> TxNoTxField -- TODO: wrong, not the correct error message!
+  FiringInitialShouldBeCreatedOnlyOnce             txId             -> InitExecExists
+  FiringInitialShouldHavePrevious                  txId             -> InitNonexistPrev {previous: txId}
+  FiringInitialPreviousShouldBeWiring              txId             -> InitNonexistPrev {previous: txId} -- TODO: wrong, not the correct error message!
+  FiringInitialTransitionShouldBeInitial           txId             -> InitNonexistPrev {previous: txId} -- TODO: wrong, not the correct error message!
+  FiringNormalShouldHaveExistingExecution          txId executionId -> InvalidState -- TODO: wrong, not the correct error message!
+  FiringNormalPreviousShouldMatchCurrentState      txId executionId -> InvalidState
+  FiringNormalExecutionShouldPointToExistingWiring txId executionId -> InvalidState -- TODO: wrong, not the correct error message!
+  FiringNormalExecutionWiringShouldBeAWiring       txId executionId -> InvalidState -- TODO: wrong, not the correct error message!
+  FiringNormalTransitionShouldBeEnabled            txId executionId -> TxNotEnabled
 
 
 --------------------------------------------------------------------------------

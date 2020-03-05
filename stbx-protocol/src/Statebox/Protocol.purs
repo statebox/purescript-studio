@@ -8,6 +8,7 @@ import Data.Maybe (Maybe(..), maybe)
 
 import Statebox.Core.Lenses (_firingExecution)
 import Statebox.Core.Transaction (FiringTx, HashStr, HashTx, InitialTx, TxId, TxSum(..), WiringTx, evalTxSum, isInitialTx, isUberRootHash)
+import Statebox.Protocol.ExecutionState (ExecutionState(..))
 import Statebox.Protocol.Fire (fire)
 import Statebox.Protocol.Store (getTransaction, putTransaction, getExecutionState, updateExecutionState) as Store
 import Statebox.Protocol.Store (StoreActions)
@@ -50,6 +51,21 @@ data ProcessError
 
   -- | The fired transition should be enabled.
   | FiringNormalTransitionShouldBeEnabled            TxId ExecutionId
+
+instance showProcessError :: Show ProcessError where
+  show = case _ of
+    NoUberRoot                                                        -> "NoUberRoot"
+    InitialPreviousShouldBeUberRoot                  txId             -> "InitialPreviousShouldBeUberRoot "                  <> show txId
+    WiringPreviousShouldBeInitial                    txId             -> "WiringPreviousShouldBeInitial "                    <> show txId
+    FiringInitialShouldBeCreatedOnlyOnce             txId             -> "FiringInitialShouldBeCreatedOnlyOnce "             <> show txId
+    FiringInitialShouldHavePrevious                  txId             -> "FiringInitialShouldHavePrevious "                  <> show txId
+    FiringInitialPreviousShouldBeWiring              txId             -> "FiringInitialPreviousShouldBeWiring "              <> show txId
+    FiringInitialTransitionShouldBeInitial           txId             -> "FiringInitialTransitionShouldBeInitial"            <> show txId
+    FiringNormalShouldHaveExistingExecution          txId executionId -> "FiringNormalShouldHaveExistingExecution "          <> show txId <> " " <> show executionId
+    FiringNormalPreviousShouldMatchCurrentState      txId executionId -> "FiringNormalPreviousShouldMatchCurrentState "      <> show txId <> " " <> show executionId
+    FiringNormalExecutionShouldPointToExistingWiring txId executionId -> "FiringNormalExecutionShouldPointToExistingWiring " <> show txId <> " " <> show executionId
+    FiringNormalExecutionWiringShouldBeAWiring       txId executionId -> "FiringNormalExecutionWiringShouldBeAWiring "       <> show txId <> " " <> show executionId
+    FiringNormalTransitionShouldBeEnabled            txId executionId -> "FiringNormalTransitionShouldBeEnabled "            <> show txId <> " " <> show executionId
 
 processTxSum :: HashTx -> StoreActions (ProcessError \/ Unit)
 processTxSum hashTx = case hashTx.tx of
@@ -114,10 +130,10 @@ processInitialFiringTx hash firingTx = do
               (const $ pure $ Left $ FiringInitialTransitionShouldBeInitial hash)
               (\newMarking -> map Right $ do
                 Store.putTransaction hash $ FiringTxInj firingTx
-                Store.updateExecutionState hash $ { lastFiring: hash
-                                                  , wiring: firingTx.previous
-                                                  , marking: newMarking
-                                                  })
+                Store.updateExecutionState hash $ ExecutionState { lastFiring: hash
+                                                                 , wiring: firingTx.previous
+                                                                 , marking: newMarking
+                                                                 })
               (fire wiringTx.wiring mempty firingTx.firing)
             )
             (const $ pure $ Left $ FiringInitialPreviousShouldBeWiring hash)
@@ -130,7 +146,7 @@ processNormalFiringTx hash firingTx executionHash = do
     -- execution does not exist
     Nothing        -> pure $ Left $ FiringNormalShouldHaveExistingExecution hash executionHash
     -- execution does exist
-    Just execution -> do
+    Just (ExecutionState execution) -> do
       -- check if the previous transaction corresponds to the current state of the execution
       if firingTx.previous == execution.lastFiring
       then do
@@ -145,10 +161,10 @@ processNormalFiringTx hash firingTx executionHash = do
                 (const $ pure $ Left $ FiringNormalTransitionShouldBeEnabled hash executionHash)
                 (\newMarking -> map Right $ do
                   Store.putTransaction hash $ FiringTxInj firingTx
-                  Store.updateExecutionState executionHash { lastFiring: hash
-                                                           , wiring: execution.wiring
-                                                           , marking: newMarking
-                                                           })
+                  Store.updateExecutionState executionHash $ ExecutionState { lastFiring: hash
+                                                                            , wiring: execution.wiring
+                                                                            , marking: newMarking
+                                                                            })
                 (fire wiringTx.wiring execution.marking firingTx.firing))
               (const $ pure $ Left $ FiringNormalExecutionWiringShouldBeAWiring hash executionHash)
               transaction

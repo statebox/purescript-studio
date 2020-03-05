@@ -1,7 +1,7 @@
 { sources =
     [ "src/**/*.purs", "test/**/*.purs" ]
 , name =
-    "stbx-tx-store"
+    "stbx-store"
 , dependencies =
     [ "argonaut"
     , "console"

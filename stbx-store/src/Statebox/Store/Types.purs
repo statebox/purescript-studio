@@ -1,11 +1,9 @@
-module Statebox.TransactionStore.Types where
+module Statebox.Store.Types where
 
 import Prelude
 
 import Control.Monad.Free (Free, liftF)
 import Data.Maybe (Maybe)
-
-import Statebox.Core.Transaction (TxSum, TxId)
 
 -- | Operations on a key/value store.
 data ActionF k v a
@@ -20,13 +18,10 @@ derive instance functorActionF :: Functor (ActionF k v)
 -- | abstract operations concrete by implementing them for a specific store,
 -- | such as Postgres, Firestore, or in-memory. Alternatively, we could process
 -- | them in some other way, such as by logging them.
-type Actions = Free (ActionF TxId TransactionDictionaryValue)
+type Actions k v = Free (ActionF k v)
 
--- TODO #237 Discuss whether this should be `TxSum` or `Tx TxSum`, then eliminate this alias.
-type TransactionDictionaryValue = TxSum
+get :: forall k v. k -> Actions k v (Maybe v)
+get key = liftF $ Get key identity
 
-get :: TxId -> Actions (Maybe TransactionDictionaryValue)
-get txHash = liftF $ Get txHash identity
-
-put :: TxId -> TransactionDictionaryValue -> Actions Unit
-put id tx = liftF $ Put id tx unit
+put :: forall k v. k -> v -> Actions k v Unit
+put key value = liftF $ Put key value unit

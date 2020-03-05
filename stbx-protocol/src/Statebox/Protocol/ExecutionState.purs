@@ -4,7 +4,7 @@ import Statebox.Core.Transaction (TxId)
 import Statebox.Core.Types (PID)
 import Data.Petrinet.Representation.Marking (MarkingF)
 
-type ExecutionState =
+newtype ExecutionState = ExecutionState
   { lastFiring :: TxId
   , wiring     :: TxId
   , marking    :: Marking
