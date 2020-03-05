@@ -9,7 +9,8 @@
     , "express"
     , "psci-support"
     , "stbx-core"
-    , "stbx-tx-store"
+    , "stbx-protocol"
+    , "stbx-store"
     ]
 , packages =
     ./../packages.dhall

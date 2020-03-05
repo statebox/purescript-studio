@@ -17,10 +17,10 @@ import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (a, br, div, img, input, li, nav, ol, slot, span, text)
+import Halogen.HTML (a, br, div, fieldset, h1, img, input, legend, li, nav, ol, p, slot, span, text, ul)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
-import Halogen.HTML.Properties (classes, src, href, placeholder, value)
+import Halogen.HTML.Properties (classes, src, href, placeholder, value, tabIndex, type_, InputType(InputText))
 
 import Language.Statebox.Wiring.Generator.DiagramV2.Operators (fromOperators, toPixel) as DiagramV2
 import TreeMenu as TreeMenu
@@ -63,13 +63,15 @@ render :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 render state =
   div []
     [ navBar state.title
-    , div [ classes [ ClassName "flex" ] ]
-          [ div [ classes [ ClassName "w-1/6", ClassName "h-12" ] ]
+    , div [ classes [ ClassName "has-columns" ] ]
+          [ nav [ classes [ ClassName "stbx-sidebar" ] ]
                 [ slot _objectTree unit (TreeMenu.menuComponent (_ == state.route)) (stateMenu state) ((\(TreeMenu.Clicked menuNodeId route) -> ShowDiagramNodeContent route) >>> Just) ]
-          , div [ classes [ ClassName "w-5/6", ClassName "h-12" ] ]
-                [ routeBreadcrumbs state.route
-                , resolveRoute state.route state # maybe (text "Couldn't find project/net/diagram.")
-                                                         (contentView state.apiUrl)
+          , div []
+                [ div [ classes $ ClassName <$> [ "container", "is-fluid" ] ]
+                      [ routeBreadcrumbs state.route
+                      , resolveRoute state.route state # maybe (text "Couldn't find project/net/diagram.")
+                                                               (contentView state.apiUrl)
+                      ]
                 ]
           ]
     ]
@@ -92,10 +94,10 @@ contentView apiUrl route = case route of
     slot _petrinetEditor unit (PetrinetEditor.ui (Just "main_net")) netInfo (Just <<< HandlePetrinetEditorMsg)
 
   ResolvedDiagram diagramInfo nodeMaybe ->
-    div [ classes [ ClassName "flex" ] ]
-        [ div [ classes [ ClassName "w-1/2" ] ]
+    div [ classes [ ClassName "has-columns" ] ]
+        [ div []
               [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
-        , div [ classes [ ClassName "w-1/2", ClassName "pl-4" ] ]
+        , div []
               [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (Just <<< HandleKDMonCatMsg diagramInfo)
               , case nodeMaybe of
                   Just (NetNode netInfo)          -> slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
@@ -136,8 +138,8 @@ contentView apiUrl route = case route of
 
 routeBreadcrumbs :: ∀ m. Route -> ComponentHTML Action ChildSlots m
 routeBreadcrumbs route =
-  nav [ classes $ ClassName <$> [ "css-route-breadcrumbs", "rounded", "font-sans", "w-full", "mt-4", "mb-4" ] ]
-      [ ol [ classes $ ClassName <$> [ "list-reset", "flex", "text-grey-dark" ] ] $
+  nav [ classes [ ClassName "stbx-breadcrumbs" ] ]
+      [ ol [] $
            crumb <$> case route of
                        Home                          -> [ "Home" ]
                        ProjectR   projectName        -> [ projectName ]
@@ -158,33 +160,25 @@ routeBreadcrumbs route =
 
 navBar :: ∀ m. String -> ComponentHTML Action ChildSlots m
 navBar title =
-  nav [ classes $ ClassName <$> [ "css-navbar", "flex", "items-center", "justify-between", "flex-wrap", "bg-purple-darker", "p-6" ] ]
-      [ div [ classes $ ClassName <$> [ "flex", "items-center", "flex-no-shrink", "text-white", "mr-6" ] ]
-            [ span [ classes [ ClassName "css-logo-statebox" ] ]
-                   []
-            , span [ classes $ ClassName <$> [ "navbar-item", "ml-4", "font-semibold", "text-xl" ] ]
-                   [ text title ]
-            ]
-      , menu [ "Home"    /\ Just Home
-             , "Project" /\ Nothing
-             , "Help"    /\ Nothing
-             ]
+  nav [ classes [ ClassName "stbx-menu" ], tabIndex 0 ]
+      [ span [ classes [ ClassName "stbx-menu-close" ], tabIndex 0 ] []
+      , ul [] $
+           [ li [] [ h1 [] [ text title ] ] ]
+           <> (menuItem <$> [ "Home"    /\ Just Home
+                            , "Project" /\ Nothing
+                            , "Help"    /\ Nothing
+                            ])
+      , a [ href "https://statebox.org", classes [ ClassName "stbx-logo" ] ] []
       ]
   where
-    menu items =
-      div [ classes $ ClassName <$> ["w-full", "block", "flex-grow", "lg:flex", "lg:items-center", "lg:w-auto" ] ]
-          [ div [ classes $ ClassName <$> ["text-sm", "lg:flex-grow" ] ]
-                (menuItem <$> items)
-          ]
-
     menuItem (label /\ routeMaybe) =
-      a (
-          [ classes $ ClassName <$> [ "block", "mt-4", "lg:inline-block", "lg:mt-0", "text-purple-lighter", "hover:text-white", "mr-4" ]
-          , href "#"
-          ]
-          <> ((\r -> [ onClick \_ -> Just (SelectRoute r) ]) `foldMap` routeMaybe)
-        )
-        [ text label ]
+      li []
+         [ a (
+               [ href "#" ]
+               <> ((\r -> [ onClick \_ -> Just (SelectRoute r) ]) `foldMap` routeMaybe)
+             )
+             [ text label ]
+         ]
 
 --------------------------------------------------------------------------------
 
@@ -260,31 +254,33 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
 homeForm :: ∀ m. URL -> ComponentHTML Action ChildSlots m
 homeForm apiUrl =
   div []
-      [ text "Please select an object from the menu, or enter a transaction hash below."
-      , br []
-      , br []
-      , input [ value ""
-              , placeholder "Enter Statebox Cloud transaction hash"
-              , onValueInput $ Just <<< LoadTransactions apiUrl
-              , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
-              ]
-      , br []
-      , br []
-      , input [ value apiUrl
-              , placeholder "Statebox API URL"
-              , onValueInput $ Just <<< SetApiUrl
-              , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
-              ]
-      , br []
-      , br []
-      , text "Alternatively, you can load a PNPRO file."
-      , br []
-      , br []
-      , input [ value ""
-              , placeholder "Enter http URL to PNPRO file"
-              , onValueInput $ Just <<< LoadPNPRO
-              , classes $ ClassName <$> [ "appearance-none", "w-1/2", "bg-grey-lightest", "text-grey-darker", "border", "border-grey-lighter", "rounded", "py-2", "px-3" ]
-              ]
+      [ fieldset []
+                 [ legend [] [ text "Please select an object from the menu, or enter a transaction hash below." ]
+                 , p []
+                     [ input [ value ""
+                             , type_ InputText
+                             , placeholder "Enter Statebox Cloud transaction hash"
+                             , onValueInput $ Just <<< LoadTransactions apiUrl
+                             ]
+                     ]
+                 , p []
+                     [ input [ value apiUrl
+                             , type_ InputText
+                             , placeholder "Statebox API URL"
+                             , onValueInput $ Just <<< SetApiUrl
+                             ]
+                     ]
+                 ]
+               , fieldset []
+                          [ legend [] [ text "Alternatively, you can load a PNPRO file." ]
+                          , p []
+                              [ input [ value ""
+                                      , type_ InputText
+                                      , placeholder "Enter http URL to PNPRO file"
+                                      , onValueInput $ Just <<< LoadPNPRO
+                                      ]
+                              ]
+                          ]
       ]
 
 --------------------------------------------------------------------------------

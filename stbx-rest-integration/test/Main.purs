@@ -8,7 +8,7 @@ import Debug.Trace (spy)
 import Effect.Aff (Fiber, launchAff)
 import Effect (Effect)
 import Effect.Exception (Error)
-import Test.Spec (Spec, describe, it, pending)
+import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail)
 import Test.Spec.Runner (runSpec)
 import Test.Spec.Reporter.Console (consoleReporter)
@@ -18,7 +18,7 @@ import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse, evalPostTransaction)
 import Statebox.Service.Error (TxError(..))
 
-import Test.Common
+import Test.Common (succeed)
 
 endpointUrl :: URL
 endpointUrl = "http://127.0.0.1:8080"
@@ -70,8 +70,7 @@ postExampleTransactionsSpec =
 getExampleTransactionsSpec :: Spec Unit
 getExampleTransactionsSpec =
   describe "Statebox transaction API HTTP service" do
-    pending "TODO: GETting root transaction fails"
-    -- requestTransactionSpec "root"                 "zFsGM27VMNWZne1SSkWnDQTzr6TdjmsKpbxGkJKKaEC8e"
+    requestTransactionSpec "root"                 "zFsGM27VMNWZne1SSkWnDQTzr6TdjmsKpbxGkJKKaEC8e"
     requestTransactionSpec "wiring"               "zFsGM27o59f9Lu8bWjNHBG7Wbq5iftQA6uDt14zRdjCrH"
     requestTransactionSpec "firing 0 (execution)" "zFsGM26E6xAuYMXox2zMGUChk3HmbEAMGXBiWG3UL7KF5"
     requestTransactionSpec "firing 1"             "zFsGM28DqZKjjGbfCEsjsXTj8xJAqWaBXpDSc1CqR6ihi"

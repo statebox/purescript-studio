@@ -12,7 +12,7 @@ import Data.Either.Nested (type (\/))
 import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, slot, div, table, tr, th, td, a, text, p, br, pre)
+import Halogen.HTML (HTML, slot, div, table, tr, th, td, a, text, h2, br, pre)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Properties (classes, href)
 
@@ -26,8 +26,8 @@ import Statebox.Core.Types (TID, GluedTransitionId(..))
 
 firingTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> String \/ ExecutionTrace -> ComponentHTML Action s m
 firingTxView wfi tx executionTraceE =
-  div []
-      [ p     [] [ text $ if isExecution tx.firing then "Execution" else "Firing" ]
+  div [ classes [ ClassName "is-overflowing" ] ]
+      [ h2    [] [ text $ if isExecution tx.firing then "Execution" else "Firing" ]
       , table [] $ txWrapperRows wfi tx <>
                    firingTxBodyRows wfi tx <>
                    [ row "trace"     $ text $ either (const "no") (show <<< map (un GluedTransitionId)) firedTransitionsE ] <>
@@ -39,8 +39,8 @@ firingTxView wfi tx executionTraceE =
 
 wiringTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> WiringTx -> ComponentHTML Action s m
 wiringTxView wfi tx =
-  div []
-      [ p     [] [ text $ "Wiring" ]
+  div [ classes [ ClassName "is-overflowing" ] ]
+      [ h2    [] [ text $ "Wiring" ]
       , table [] $ txWrapperRows wfi tx <> wiringTxBodyRows wfi tx
       ]
 

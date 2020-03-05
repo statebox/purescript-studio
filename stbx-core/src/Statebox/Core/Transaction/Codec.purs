@@ -5,19 +5,19 @@ import Control.Alt ((<|>))
 import Data.Argonaut.Core (Json, jsonEmptyObject)
 import Data.Argonaut.Encode.Combinators ((:=), (~>))
 import Data.Argonaut.Encode.Class (encodeJson)
-import Data.Argonaut.Decode (decodeJson, (.:), (.:?))
+import Data.Argonaut.Decode (decodeJson, (.:), (.:?), (.!=))
 import Data.Argonaut.Decode.Class (decodeJArray)
-import Data.Lens (over)
-import Data.Profunctor.Choice (left)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
+import Data.Lens (over)
 import Data.Maybe (maybe)
 import Data.NonEmpty (singleton)
+import Data.Profunctor.Choice (left)
 import Data.Traversable (traverse)
 import Foreign.Object (Object, lookup)
 
 import Statebox.Core.Lenses (_wiring')
-import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), mapTx, evalTxSum)
+import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), mapTx, evalTxSum, uberRootHash)
 import Statebox.Core.Types (Net, Wiring, Firing)
 import Statebox.Core.Wiring as Wiring
 import Statebox.Core.Wiring (WiringRaw)
@@ -46,8 +46,14 @@ decodeTxFiringTx = decodeTxWith decodeFiringTx <=< decodeJson
 
 --------------------------------------------------------------------------------
 
+-- | A handcrafted decoder that ensures a field "previous": "z" is present in the result, even if "previous" is missing
+-- | from the JSON input. The "z" value is the `uberRootHash`.
 decodeInitialTx :: Json -> String \/ InitialTx
-decodeInitialTx = decodeJson
+decodeInitialTx = decodeJson >=> \x -> do
+  root     <- x .: "root"
+  -- if we encounter JSON without a "previous" field in the root's "decoded" payload, insert it artificially
+  previous <- x .:? "previous" .!=  uberRootHash
+  pure { root, previous }
 
 decodeWiringTx :: Json -> String \/ WiringTx
 decodeWiringTx = decodeJson >=> \x -> do

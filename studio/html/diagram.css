@@ -1,52 +1,47 @@
+@import "@statebox/style/css/variables.css";
+
 .css-diagram-editor {
   outline: none !important;
+  margin-right: 0.5rem;
+  user-select: none;
 }
 .css-diagram-editor svg {
-  /* background: #eee; */
-  background-image:
-    linear-gradient(to top, pink, rgba(0,0,255,0.5)),
-    url(logo-statebox-white.svg);
-}
-.css-operator-container {
-}
-.css-operator-container rect {
-  box-shadow: 5px 10px rgba(0,0,0,,0.8);
+  background: var(--hiq-color-gray-7);
 }
 .css-operator-center {
-  fill: #eee;
-  stroke: #aaa;
+  fill: var(--hiq-color-gray-8);
+  stroke: var(--hiq-color-gray-5);
 }
 .css-operator-left,
 .css-operator-right {
-  fill: rgba(0,0,0,0.05);
-  fill: #ddd;
-  stroke: rgb(130,130,130);
-  stroke: #aaa;
+  fill: var(--hiq-color-gray-6);
+  stroke: var(--hiq-color-gray-5);
 }
 .css-operator-label {
   pointer-events: none; /* mouse should click through to the underlying rectangle */
   text-anchor: middle;
   dominant-baseline: middle;
-  fill: #777;
+  fill: var(--hiq-color-gray-4);
 }
 .css-operator-container.css-selected .css-operator-center {
-  fill:   rgba(240,200,220,0.6);
-  stroke: #eee;
-}
-.css-operator-container.css-selected .css-operator-label {
-  fill: #eee;
+  fill:   var(--stbx-color-primary);
+  stroke: var(--stbx-active-color-primary);
 }
 .css-operator-container.css-selected .css-operator-left,
 .css-operator-container.css-selected .css-operator-right {
-  fill:   rgba(240,200,220,0.1);
-  stroke: #eee;
+  fill:   var(--stbx-color-primary);
+  stroke: var(--stbx-active-color-primary);
+}
+.css-operator-container.css-selected .css-operator-label {
+  fill: white;
 }
 .css-ghost {
-  fill:   rgba(240,200,220,0.6);
-  stroke: rgba(240,200,220,0.6);
+  fill:   var(--stbx-color-primary);
+  stroke: var(--stbx-color-primary);
+  opacity: 0.5;
 }
 .css-ghost-snapped {
-  stroke: rgba(0,0,0,0.3);
+  stroke: var(--hiq-color-gray-4);
   stroke-dasharray: 5,5;
   fill: none;
 }
