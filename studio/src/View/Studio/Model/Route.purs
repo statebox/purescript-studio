@@ -6,6 +6,8 @@ import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
 import View.Model (ProjectName)
+
+import KDMoncat.Input.String (Input) as KDMoncat.Input.String
 import Statebox.Core.Types (PathElem)
 import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
 
@@ -24,6 +26,7 @@ data RouteF p d n
   -- Project-related constructors
   | Net        p n
   | Diagram    p d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
+  | KDMonCatR  p String
 
   -- Statebox API-related constructors
   | UberRootR  URL
@@ -48,6 +51,7 @@ data ResolvedRouteF p d n
   -- Project-related *and* Statebox API-related constructors
   | ResolvedNet       n
   | ResolvedDiagram   d (Maybe (NodeIdent d n))
+  | ResolvedKDMonCat  KDMoncat.Input.String.Input
 
   -- Statebox API transaction constructors
   | ResolvedUberRoot  URL

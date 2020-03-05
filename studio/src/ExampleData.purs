@@ -45,6 +45,7 @@ project1 =
   { name: "Statebox Examples"
   , nets: [ netInfo1, netInfo2 ]
   , diagrams: diagrams1
+  , kdmoncats: project1KDMonCats
   , roleInfos: project1Roles
   , types: project1Typedefs
   }
@@ -65,6 +66,11 @@ project1Typedefs =
   where
     person = TProd [TRef "String", TRef "Date"]
 
+project1KDMonCats = Map.fromFoldable
+  [ "beep" /\ { pixels: "pq", context: "p: -> a\nq: a ->" }
+  , "boop" /\ { pixels: "hij", context: "h: -> a\ni: a -> b\nj: b ->" }
+  ]
+
 --------------------------------------------------------------------------------
 
 project2 :: Project
@@ -72,6 +78,7 @@ project2 =
   { name: "Erik's examples"
   , nets: pnproNetInfos1
   , diagrams: diagrams2
+  , kdmoncats: mempty
   , roleInfos: project2Roles
   , types: project2Typedefs
   }

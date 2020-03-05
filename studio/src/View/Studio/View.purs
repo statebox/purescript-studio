@@ -8,6 +8,7 @@ import Data.AdjacencySpace (AdjacencySpace)
 import Data.Array (cons)
 import Data.Foldable (foldMap, foldr)
 import Data.FunctorWithIndex (mapWithIndex)
+import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
 import Data.String.CodePoints (take)
@@ -29,6 +30,7 @@ import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
+import View.KDMonCat.App as KDMonCat.App
 import View.KDMonCat.App as KDMonCat.Bricks
 import View.KDMonCat.Bricks as KDMonCat.Bricks
 import View.Model (Project, NetInfoWithTypesAndRoles)
@@ -108,6 +110,14 @@ contentView apiUrl route = case route of
         Just (NetNode netInfo) -> DiagramV2.toPixel diagramInfo.ops (\{ identifier } -> netInfo.name == identifier)
         _ -> Nothing
 
+  ResolvedKDMonCat kdmoncatInput ->
+    div [ classes [ ClassName "flex" ] ]
+        [ div [ classes [ ClassName "w-full", ClassName "pl-4" ] ]
+              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (const Nothing)
+              ]
+        ]
+    where
+      bricksInput = KDMonCat.Bricks.toBricksInput kdmoncatInput zero
 
   ResolvedUberRoot url ->
     text $ "Service über-root " <> url
@@ -131,6 +141,7 @@ routeBreadcrumbs route =
                        Auths      projectName        -> [ projectName, "Authorisation" ]
                        Net        projectName name   -> [ projectName, name ]
                        Diagram    projectName name _ -> [ projectName, name ]
+                       KDMonCatR  projectName name   -> [ projectName, name ]
                        UberRootR  url                -> [ "über-namespace", url ]
                        NamespaceR hash               -> [ "namespace", shortHash hash ]
                        WiringR    x                  -> [ x.endpointUrl, "wiring " <> shortHash x.hash ]
@@ -187,10 +198,12 @@ projectMenu p =
     , mkItem "Authorisations" (Just $ Auths p.name) :< []
     , mkItem "Nets"           (Nothing)             :< fromNets     p p.nets
     , mkItem "Diagrams"       (Nothing)             :< fromDiagrams p p.diagrams
+    , mkItem "KDMonCats"      (Nothing)             :< fromKDMonCats  (p.kdmoncats # Map.toUnfoldable)
     ]
   where
-    fromNets     p nets  = (\n -> mkItem n.name (Just $ Net     p.name n.name        ) :< []) <$> nets
-    fromDiagrams p diags = (\d -> mkItem d.name (Just $ Diagram p.name d.name Nothing) :< []) <$> diags
+    fromNets      p nets  = (\n            -> mkItem n.name (Just $ Net       p.name n.name        ) :< []) <$> nets
+    fromDiagrams  p diags = (\d            -> mkItem d.name (Just $ Diagram   p.name d.name Nothing) :< []) <$> diags
+    fromKDMonCats   diags = (\(dname /\ d) -> mkItem dname  (Just $ KDMonCatR p.name dname         ) :< []) <$> diags
 
 -- It's not terribly efficient to construct a Cofree (sub)tree first only to subsequently flatten it, as we do with firings.
 transactionMenu :: URL -> AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Route) -> MenuTree Route

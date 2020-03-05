@@ -10,6 +10,7 @@ import Data.Either (hush)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (find)
 import Data.Lens (preview)
+import Data.Map (lookup) as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested (type (/\), (/\))
 import Debug.Trace (spy)
@@ -20,6 +21,7 @@ import Data.Diagram.FromNLL (ErrDiagramEncoding)
 import Data.Petrinet.Representation.NLL as Net
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
+import KDMoncat.Input.String (Input) as KDMoncat.Input.String
 import Statebox.Core.Types (Diagram, PathElem)
 import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx)
 import Statebox.Core.Lenses (_wiringTx, _firingTx)
@@ -72,6 +74,10 @@ resolveRoute route {projects, hashSpace} = case route of
                                                        DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
                                                        NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                                           pure $ ResolvedDiagram diagram node
+  KDMonCatR  projectName str        -> do project <- findProject projects projectName
+                                          diagram <- findKDMonCat project str
+                                          pure $ ResolvedKDMonCat diagram
+
   UberRootR  url                    -> pure $ ResolvedUberRoot url
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
   WiringR    x                      -> ResolvedWiring x <$> findWiringTx hashSpace x.hash
@@ -82,6 +88,9 @@ resolveRoute route {projects, hashSpace} = case route of
       execHash  = firingTxM >>= _.firing.execution # fromMaybe x.hash
   DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> findDiagramInfoInWirings hashSpace wiringHash ix
   NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> findNetInfoInWirings     hashSpace wiringHash ix
+
+
+--------------------------------------------------------------------------------
 
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
@@ -105,6 +114,13 @@ modifyDiagramInfo :: DiagramName -> (DiagramInfo -> DiagramInfo) -> Array Diagra
 modifyDiagramInfo diagramName fn diagrams = do
   ix <- findIndex (\d -> d.name == diagramName) diagrams
   modifyAt ix fn diagrams
+
+--------------------------------------------------------------------------------
+
+findKDMonCat :: Project -> String -> Maybe KDMoncat.Input.String.Input
+findKDMonCat project diagramId = Map.lookup diagramId project.kdmoncats
+
+--------------------------------------------------------------------------------
 
 findWiringTx :: AdjacencySpace HashStr TxSum -> HashStr -> Maybe WiringTx
 findWiringTx hashSpace wiringHash = preview _wiringTx =<< AdjacencySpace.lookup wiringHash hashSpace
@@ -149,6 +165,7 @@ fromPNPROProject project =
   { name:      project.name
   , nets:      PNPRO.toNetInfo <$> project.gspn
   , diagrams:  mempty
+  , kdmoncats: mempty
   , roleInfos: mempty
   , types:     mempty
   }
