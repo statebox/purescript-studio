@@ -20,6 +20,8 @@ type Route = RouteF ProjectName DiagramName NetName
 -- | - be rendered into a menu entry
 data RouteF p d n
   = Home
+
+  | ProjectR   p
   | Types      p
   | Auths      p
 
@@ -45,6 +47,8 @@ type NetName = String
 
 data ResolvedRouteF p d n
   = ResolvedHome
+
+  | ResolvedProject   p
   | ResolvedTypes     p
   | ResolvedAuths     p
 

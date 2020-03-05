@@ -79,6 +79,9 @@ contentView apiUrl route = case route of
   ResolvedHome ->
     homeForm apiUrl
 
+  ResolvedProject project ->
+    text $ "Project '" <> project.name <> "'"
+
   ResolvedTypes project ->
     TypedefsEditor.typedefsTreeView project.types
 
@@ -137,6 +140,7 @@ routeBreadcrumbs route =
       [ ol [ classes $ ClassName <$> [ "list-reset", "flex", "text-grey-dark" ] ] $
            crumb <$> case route of
                        Home                          -> [ "Home" ]
+                       ProjectR   projectName        -> [ projectName ]
                        Types      projectName        -> [ projectName, "Types" ]
                        Auths      projectName        -> [ projectName, "Authorisation" ]
                        Net        projectName name   -> [ projectName, name ]
@@ -193,7 +197,7 @@ stateMenu { projects, apiUrl, hashSpace } =
 
 projectMenu :: Project -> MenuTree Route
 projectMenu p =
-  mkItem p.name Nothing :<
+  mkItem p.name (Just $ ProjectR p.name) :<
     [ mkItem "Types"          (Just $ Types p.name) :< []
     , mkItem "Authorisations" (Just $ Auths p.name) :< []
     , mkItem "Nets"           (Nothing)             :< fromNets     p p.nets

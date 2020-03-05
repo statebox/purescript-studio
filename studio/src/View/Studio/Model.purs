@@ -63,6 +63,7 @@ type State =
 resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveRoute route {projects, hashSpace} = case route of
   Home                              -> pure ResolvedHome
+  ProjectR  projectName             -> ResolvedProject <$> findProject projects projectName
   Types     projectName             -> ResolvedTypes <$> findProject projects projectName
   Auths     projectName             -> ResolvedAuths <$> findProject projects projectName
   Net       projectName name        -> do project <- findProject projects projectName
