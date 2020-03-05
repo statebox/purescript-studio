@@ -28,7 +28,7 @@ main = runHalogenAff do
     initialState =
       { title:       "Statebox Studio"
       , msg:         "Welcome to Statebox Studio!"
-      , projects:    Ex.projects
+      , projects:    mempty -- Ex.projects
       , hashSpace:   mempty
       , apiUrl:      Ex.endpointUrl
       , route:       Home
