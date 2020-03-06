@@ -17,7 +17,7 @@ import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (a, br, div, fieldset, h1, img, input, legend, li, nav, ol, p, slot, span, text, ul)
+import Halogen.HTML (a, br, div, fieldset, hr, h1, img, input, legend, li, nav, ol, p, slot, span, text, ul)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, src, href, placeholder, value, tabIndex, type_, InputType(InputText))
@@ -78,8 +78,12 @@ render state =
 
 contentView :: ∀ m. MonadAff m => URL -> ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ComponentHTML Action ChildSlots m
 contentView apiUrl route = case route of
-  ResolvedHome ->
-    homeForm apiUrl
+  ResolvedHome projects ->
+    div []
+        [ projectsDashboard projects
+        , hr []
+        , homeForm apiUrl
+        ]
 
   ResolvedProject project ->
     text $ "Project '" <> project.name <> "'"
@@ -116,11 +120,8 @@ contentView apiUrl route = case route of
         _ -> Nothing
 
   ResolvedKDMonCat kdmoncatInput ->
-    div [ classes [ ClassName "flex" ] ]
-        [ div [ classes [ ClassName "w-full", ClassName "pl-4" ] ]
-              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (const Nothing)
-              ]
-        ]
+     div [ classes [ ClassName "w-full", ClassName "pl-4" ] ]
+         [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (const Nothing) ]
     where
       bricksInput = KDMonCat.Bricks.toBricksInput kdmoncatInput zero
 
@@ -250,6 +251,24 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
         unloadedRoute = Nothing
 
 --------------------------------------------------------------------------------
+
+projectsDashboard :: ∀ m. Array Project -> ComponentHTML Action ChildSlots m
+projectsDashboard projects =
+  div []
+      [ ul [] $
+          li [] [ a [ href "#", onClick \_ -> Just CreateProject ]
+                    [ text "Create new project" ]
+                ]
+          `cons` (projects <#> mkProjectLink)
+        ]
+  where
+    mkProjectLink p =
+      li []
+         [ a [ href "#", onClick \_ -> Just (SelectRoute (ProjectR p.name)) ]
+             [ text p.name ]
+         , a [ href "#", onClick \_ -> Just (DeleteProject p.name) ]
+             [ text "☠" ]
+         ]
 
 homeForm :: ∀ m. URL -> ComponentHTML Action ChildSlots m
 homeForm apiUrl =

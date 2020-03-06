@@ -49,6 +49,9 @@ data Action
   | HandleDiagramEditorMsg DiagramEditor.Msg
   | HandleKDMonCatMsg DiagramInfo KDMonCat.Bricks.Output
 
+  | CreateProject
+  | DeleteProject ProjectName
+
 type State =
   { route       :: Route
   , projects    :: Array Project
@@ -62,7 +65,7 @@ type State =
 
 resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveRoute route {projects, hashSpace} = case route of
-  Home                              -> pure ResolvedHome
+  Home                              -> pure $ ResolvedHome projects
   ProjectR  projectName             -> ResolvedProject <$> findProject projects projectName
   Types     projectName             -> ResolvedTypes <$> findProject projects projectName
   Auths     projectName             -> ResolvedAuths <$> findProject projects projectName

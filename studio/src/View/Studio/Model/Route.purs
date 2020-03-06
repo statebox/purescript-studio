@@ -46,7 +46,7 @@ type DiagramName = String
 type NetName = String
 
 data ResolvedRouteF p d n
-  = ResolvedHome
+  = ResolvedHome      (Array p)
 
   | ResolvedProject   p
   | ResolvedTypes     p

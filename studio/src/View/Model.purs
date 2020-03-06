@@ -13,7 +13,7 @@ import View.Diagram.Model (DiagramInfo)
 import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRolesFRow)
 
 type Project =
-  { name         :: String
+  { name         :: ProjectName
   , nets         :: Array NetInfo
   , diagrams     :: Array DiagramInfo
   , kdmoncats    :: Map String KDMoncat.Input.String.Input
@@ -22,6 +22,16 @@ type Project =
   }
 
 type ProjectName = String
+
+emptyProject :: Project
+emptyProject =
+  { name:      mempty
+  , nets:      mempty
+  , diagrams:  mempty
+  , kdmoncats: mempty
+  , roleInfos: mempty
+  , types:     mempty
+  }
 
 --------------------------------------------------------------------------------
 

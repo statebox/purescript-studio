@@ -5,7 +5,7 @@ import Affjax as Affjax
 import Affjax (URL)
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
-import Data.Array (cons)
+import Data.Array (cons, filter)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
@@ -29,7 +29,7 @@ import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
 import View.KDMonCat.App as KDMonCat.Bricks
 import View.KDMonCat.Bricks as KDMonCat.Bricks
-import View.Model (Project)
+import View.Model (Project, emptyProject)
 import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo)
 import View.Studio.Model.Route as Route
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
@@ -116,6 +116,13 @@ handleAction = case _ of
              (\err      -> H.liftEffect $ log $ "Error decoding PNPRO document: " <> show err)
              (\pnproDoc -> H.modify_ $ \state -> state { projects = fromPNPROProject pnproDoc.project `cons` state.projects })
       )
+
+  CreateProject -> do
+    let newProject = emptyProject { name = "Untitled (TODO)" }
+    H.modify_ $ \state -> state { projects = newProject `cons` state.projects }
+
+  DeleteProject projectName ->
+    H.modify_ $ \state -> state { projects = filter (\p -> p.name /= projectName) state.projects }
 
   HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) -> do
     H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
