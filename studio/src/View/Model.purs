@@ -24,14 +24,7 @@ type Project =
 type ProjectName = String
 
 emptyProject :: Project
-emptyProject =
-  { name:      mempty
-  , nets:      mempty
-  , diagrams:  mempty
-  , kdmoncats: mempty
-  , roleInfos: mempty
-  , types:     mempty
-  }
+emptyProject = mempty
 
 --------------------------------------------------------------------------------
 
