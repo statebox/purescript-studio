@@ -25,6 +25,7 @@ import Language.Statebox.Wiring.Generator.DiagramV2.Operators (fromOperators, to
 import TreeMenu as TreeMenu
 import TreeMenu (mkItem, MenuTree, Item)
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
+import Statebox.Core.Types (NetsAndDiagramsIndex(..))
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
@@ -35,7 +36,7 @@ import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Studio.Model (Action(..), State, resolveRoute)
-import View.Studio.Model.Route (Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
+import View.Studio.Model.Route (ApiRoute(..), Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
 import View.Transaction (firingTxView, wiringTxView)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
@@ -133,15 +134,19 @@ routeBreadcrumbs route =
                        Auths      projectName        -> [ projectName, "Authorisation" ]
                        Net        projectName name   -> [ projectName, name ]
                        Diagram    projectName name _ -> [ projectName, name ]
-                       UberRootR  url                -> [ "über-namespace", url ]
-                       NamespaceR hash               -> [ "namespace", shortHash hash ]
-                       WiringR    x                  -> [ x.endpointUrl, "wiring " <> shortHash x.hash ]
-                       FiringR    x                  -> [ x.endpointUrl, shortHash x.hash ]
-                       DiagramR   hash ix name       -> [ shortHash hash, "diagram " <> show ix <> " " <> name ]
-                       NetR       hash ix name       -> [ shortHash hash, "net "     <> show ix <> " " <> name ]
+                       ApiThing   apiRoute           -> apiRouteBreadcrumbs apiRoute
       ]
   where
     crumb str = li [] [ a [ href "#" ] [ text str ] ]
+
+    apiRouteBreadcrumbs :: ∀ m. ApiRoute -> Array _
+    apiRouteBreadcrumbs = case _ of
+      UberRootR  url                -> [ "über-namespace", url ]
+      NamespaceR hash               -> [ "namespace", shortHash hash ]
+      WiringR    x                  -> [ x.endpointUrl, "wiring " <> shortHash x.hash ]
+      FiringR    x                  -> [ x.endpointUrl, shortHash x.hash ]
+      DiagramR   hash ix name       -> [ shortHash hash, "diagram " <> show ix <> " " <> name ]
+      NetR       hash ix name       -> [ shortHash hash, "net "     <> show ix <> " " <> name ]
 
 navBar :: ∀ m. String -> ComponentHTML Action ChildSlots m
 navBar title =
@@ -196,25 +201,25 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
     mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
     mkItem2 hash tx itemKids = evalTxSum
       (\x -> mkItem ("☁️ "  <> shortHash hash)
-                    (Just $ UberRootR apiUrl)
+                    (Just $ ApiThing $ UberRootR apiUrl)
                     :< itemKids
       )
       (\x -> mkItem ("🌐 "  <> shortHash hash)
-                    (Just $ NamespaceR x.root.message)
+                    (Just $ ApiThing $ NamespaceR x.root.message)
                     :< itemKids
       )
       (\w -> mkItem ("🥨 " <> shortHash hash)
-                    (Just $ WiringR { name: hash, endpointUrl: apiUrl, hash: hash })
+                    (Just $ ApiThing $ WiringR { name: hash, endpointUrl: apiUrl, hash: hash })
                     :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
       )
       (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash hash)
-                    (Just $ FiringR { name: hash, endpointUrl: apiUrl, hash: hash })
+                    (Just $ ApiThing $ FiringR { name: hash, endpointUrl: apiUrl, hash: hash })
                     :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
       )
       tx
       where
-        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash ix n.name) :< []) nets
-        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash ix d.name) :< []) diags
+        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ ApiThing $ NetR     hash (NetsAndDiagramsIndex ix) n.name) :< []) nets
+        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ ApiThing $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) :< []) diags
 
         flattenTree :: MenuTree Route -> Array (MenuTree Route)
         flattenTree = treeifyElems <<< flattenTree'
@@ -228,7 +233,7 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
     mkUnloadedItem :: Array (MenuTree Route) -> MenuTree Route
     mkUnloadedItem itemKids = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
       where
-        -- TODO we need to return a Route currently, but we may want to return a (LoadTransaction ... ::Query) instead,
+        -- TODO we need to return an ApiRoute currently, but we may want to return a (LoadTransaction ... :: Query) instead,
         -- so we could load unloaded hashes from the menu.
         unloadedRoute = Nothing
 

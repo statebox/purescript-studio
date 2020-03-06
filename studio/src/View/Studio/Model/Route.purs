@@ -6,8 +6,10 @@ import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
 import View.Model (ProjectName)
-import Statebox.Core.Types (PathElem)
+import Statebox.Core.Types (NetsAndDiagramsIndex)
 import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
+
+import View.Studio.Model.TxCache (ExecutionTrace)
 
 type Route = RouteF ProjectName DiagramName NetName
 
@@ -26,19 +28,28 @@ data RouteF p d n
   | Diagram    p d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
 
   -- Statebox API-related constructors
-  | UberRootR  URL
-  | NamespaceR HashStr
-  | WiringR    WiringFiringInfo
-  | FiringR    WiringFiringInfo
-  | DiagramR   HashStr PathElem String
-  | NetR       HashStr PathElem String
+  | ApiThing ApiRoute
 
 derive instance eqRouteF :: (Eq p, Eq d, Eq n) => Eq (RouteF p d n)
 derive instance ordRouteF :: (Ord p, Ord d, Ord n) => Ord (RouteF p d n)
 
+-- | Statebox Core/API-related routes
+data ApiRoute
+  = UberRootR  URL
+  | NamespaceR HashStr
+  | WiringR    WiringFiringInfo
+  | FiringR    WiringFiringInfo
+  | DiagramR   HashStr NetsAndDiagramsIndex String
+  | NetR       HashStr NetsAndDiagramsIndex String
+
+derive instance eqApiRoute :: Eq ApiRoute
+derive instance ordApiRoute :: Ord ApiRoute
+
 type DiagramName = String
 
 type NetName = String
+
+--------------------------------------------------------------------------------
 
 data ResolvedRouteF p d n
   = ResolvedHome
@@ -58,7 +69,7 @@ data ResolvedRouteF p d n
 --------------------------------------------------------------------------------
 
 fromTxSum :: ∀ p d n. URL -> HashStr -> TxSum -> RouteF p d n
-fromTxSum endpointUrl hash tx = tx # evalTxSum
+fromTxSum endpointUrl hash tx = tx # ApiThing <<< evalTxSum
   (\x -> UberRootR endpointUrl)
   (\x -> NamespaceR x.root.message)
   (\w -> WiringR { name: hash, endpointUrl, hash })
@@ -83,6 +94,3 @@ type NamespaceInfo =
   { name :: String
   , hash :: HashStr
   }
-
--- TODO we may want to change the name and the exact type a bit; this is a 1st version to get things going
-type ExecutionTrace = Array (HashStr /\ Maybe TxSum)
