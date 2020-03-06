@@ -10,6 +10,9 @@ import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 
 import Web.Firestore
+import Web.Firestore.DocumentData (DocumentData(..))
+import Web.Firestore.DocumentValue (DocumentValue(..))
+import Web.Firestore.PrimitiveValue (PrimitiveValue(..))
 
 suite :: Spec Unit
 suite = do
