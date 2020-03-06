@@ -18,6 +18,7 @@ import Halogen as H
 import Halogen.HTML hiding (map, head, i, prop)
 import Halogen.HTML.Properties (classes, value, readOnly, href)
 import Halogen.HTML.Events (onValueInput, onClick)
+import View.ReactiveInput as ReactiveInput
 import Web.HTML (window)
 import Web.HTML.Location (setHash)
 import Web.HTML.Window (location)
@@ -54,6 +55,8 @@ _selectionBox :: ∀ a b r. Lens { selectionBox :: a | r } { selectionBox :: b |
 _selectionBox = prop (SProxy :: SProxy "selectionBox")
 
 
+type Slot = H.Slot Query Void
+
 data Action
   = UpdatePixels String
   | UpdateContext String
@@ -74,17 +77,19 @@ _term = SProxy :: SProxy "term"
 
 appView :: ∀ o m. MonadEffect m => H.Component HTML Query Input o m
 appView =
-  H.mkComponent
+  ReactiveInput.mkComponentWithQuery
     { initialState
     , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction, handleQuery = handleQuery }
+    , handleAction: \_ -> handleAction
+    , handleQuery
+    , handleInput
     }
 
-initialState :: Input -> State
-initialState input = { input, selectionBox: { topLeft: zero, bottomRight: zero } }
+initialState :: State
+initialState = { input: mempty, selectionBox: { topLeft: zero, bottomRight: zero } }
 
-render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
-render st = div [ classes [ ClassName "app" ] ]
+render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
+render _ st = div [ classes [ ClassName "app" ] ]
   [ div [ classes [ ClassName "main"] ]
     [ slot _bricks unit Bricks.bricksView bricksInput (Just <<< BricksMessage)
     , aside []
@@ -136,6 +141,11 @@ toBricksInput input selectionBox =
     selectionPath = Bricks.toSelection selectionBox bricks.term Nil
     selectedBoxes = either (const Set.empty) (getSubTerm selectionPath >>> foldMap f) (inferredType <#> _.term) where
       f { box, bid } = Set.singleton { box, bid }
+
+handleInput :: ∀ o m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots o m Unit
+handleInput input = do
+  st <- H.modify $ set (_input) input
+  updateWindowLocation st.input
 
 handleAction :: ∀ o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit
 handleAction = case _ of

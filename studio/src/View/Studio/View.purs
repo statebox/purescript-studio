@@ -32,7 +32,6 @@ import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
 import View.KDMonCat.App as KDMonCat.App
-import View.KDMonCat.App as KDMonCat.Bricks
 import View.KDMonCat.Bricks as KDMonCat.Bricks
 import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
@@ -48,6 +47,7 @@ type ChildSlots =
   ( objectTree     :: H.Slot VoidF (TreeMenu.Msg Route) Unit
   , petrinetEditor :: H.Slot VoidF PetrinetEditor.Msg Unit
   , diagramEditor  :: H.Slot VoidF DiagramEditor.Msg Unit
+  , kdmoncatApp    :: KDMonCat.App.Slot Unit
   , kdmoncatBricks :: KDMonCat.Bricks.Slot Unit
   )
 
@@ -55,6 +55,7 @@ _objectTree     = SProxy :: SProxy "objectTree"
 _petrinetEditor = SProxy :: SProxy "petrinetEditor"
 _diagramEditor  = SProxy :: SProxy "diagramEditor"
 _kdmoncatBricks = SProxy :: SProxy "kdmoncatBricks"
+_kdmoncatApp    = SProxy :: SProxy "kdmoncatApp"
 
 data VoidF a
 
@@ -112,7 +113,7 @@ contentView apiUrl route = case route of
         ]
     where
       bricksInput =
-        (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) zero)
+        (KDMonCat.App.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) zero)
         { renderBoxContent = \name bid ->
             (KDMonCat.Bricks.defaultRenderBoxContent name bid)
             { className = if maybeSelectedBid == Just bid then "selected" else "" } }
@@ -122,9 +123,7 @@ contentView apiUrl route = case route of
 
   ResolvedKDMonCat kdmoncatInput ->
      div [ classes [ ClassName "w-full", ClassName "pl-4" ] ]
-         [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (const Nothing) ]
-    where
-      bricksInput = KDMonCat.Bricks.toBricksInput kdmoncatInput zero
+         [ slot _kdmoncatApp unit KDMonCat.App.appView kdmoncatInput (const Nothing) ]
 
   ResolvedUberRoot url ->
     text $ "Service über-root " <> url
