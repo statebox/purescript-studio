@@ -16,7 +16,7 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURIComponent)
 import Halogen as H
 import Halogen.HTML hiding (map, head, i, prop)
-import Halogen.HTML.Properties (classes, value, readOnly, href)
+import Halogen.HTML.Properties (classes, value, readOnly, href, type_, InputType(InputText))
 import Halogen.HTML.Events (onValueInput, onClick)
 import View.ReactiveInput as ReactiveInput
 import Web.HTML (window)
@@ -89,14 +89,14 @@ initialState :: State
 initialState = { input: mempty, selectionBox: { topLeft: zero, bottomRight: zero } }
 
 render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
-render _ st = div [ classes [ ClassName "app" ] ]
+render _ st = div [ classes [ ClassName "kdmoncat-app" ] ]
   [ div [ classes [ ClassName "main"] ]
     [ slot _bricks unit Bricks.bricksView bricksInput (Just <<< BricksMessage)
     , aside []
       [ h2_ [ text "Inferred type" ]
       , div [ classes [ ClassName "fieldset" ]] $
-        [ label_ [ text "Whole" ], input [ value termTypeStr, readOnly true ] ]
-        <> (selectionType # maybe [] \s -> [ label_ [ text "Selection" ], input [ value s, readOnly true ] ])
+        [ label_ [ text "Whole" ], input [ type_ InputText, value termTypeStr, readOnly true ] ]
+        <> (selectionType # maybe [] \s -> [ label_ [ text "Selection" ], input [ type_ InputText, value s, readOnly true ] ])
       , h2_ [ text "Pixels"]
       , textarea [ value st.input.pixels, onValueInput (Just <<< UpdatePixels) ]
       , h2_ [ text "Context"]

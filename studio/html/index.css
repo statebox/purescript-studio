@@ -4,6 +4,6 @@
 @import "./diagram.css";
 @import "./typedefs.css";
 @import "./auths.css";
-@import "./kdmoncat-bricks.css";
+@import "./kdmoncat.css";
 @import "../../halogen-grid-kit/src/GridKit/KeyHandler.css";
 @import "./studio.css";

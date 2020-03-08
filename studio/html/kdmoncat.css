@@ -1,6 +1,25 @@
 @import "@statebox/style/css/variables.css";
 
 /* studio specific bricks css */
+.kdmoncat-app .main {
+  flex: 1;
+  display: flex;
+}
+.kdmoncat-app aside {
+  display: flex;
+  flex-direction: column;
+  width: 25vw;
+  margin: -10px 0 0 20px;
+}
+.kdmoncat-app h2 {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+.kdmoncat-app textarea {
+  flex: 1;
+}
 .kdmoncat-bricks {
   outline: none;
   height: 50vh;
@@ -148,4 +167,46 @@
 .kdmoncat-bricks text.object.centered {
   text-anchor: middle !important;
   transform: translate(0, -0.07px);
+}
+
+.kdmoncat-term {
+  line-height: 20px;
+  margin-top: -10px;
+}
+.kdmoncat-term .tc, .kdmoncat-term .tt {
+  display: flex;
+  border-top: 20px solid var(--hiq-color-gray-6);
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+.kdmoncat-term .selected.tc,
+.kdmoncat-term .selected.tt,
+.kdmoncat-term .selected .tc,
+.kdmoncat-term .selected .tt {
+  border-top-color: var(--stbx-color-primary);
+}
+.kdmoncat-term > .tc, .kdmoncat-term > .tt {
+  border-top: none;
+}
+.kdmoncat-term span, .kdmoncat-term i {
+  display: inline-block;
+  background: var(--hiq-color-gray-5);
+  color: var(--hiq-color-gray-9);
+  min-width: 20px;
+  padding: 0 3px;
+  border-radius: 5px;
+  text-align: center;
+  font-family: 'Times New Roman', Times, serif;
+  transition: background-color 0.3s;
+}
+.kdmoncat-term .selected span, .kdmoncat-term .selected i {
+  background: var(--stbx-color-primary);
+  color: white;
+}
+.kdmoncat-term i {
+  background: var(--hiq-color-gray-6);
+  color: inherit;
+}
+.kdmoncat-term div {
+  margin: 5px 1px 0 1px;
 }
