@@ -8,7 +8,7 @@ import Data.Tuple.Nested (type (/\))
 import Data.Auth (RoleInfo)
 import Data.Typedef (Typedef)
 import Data.Typedef.Typedef2 (Typedef2)
-import KDMoncat.Input.String (Input) as KDMoncat.Input.String
+import View.KDMonCat.App (Input) as KDMonCat.App
 import View.Diagram.Model (DiagramInfo)
 import View.Petrinet.Model (PID, TID, NetInfo, NetInfoWithTypesAndRolesFRow)
 
@@ -16,7 +16,7 @@ type Project =
   { name         :: ProjectName
   , nets         :: Array NetInfo
   , diagrams     :: Array DiagramInfo
-  , kdmoncats    :: Map String KDMoncat.Input.String.Input
+  , kdmoncats    :: Map String KDMonCat.App.Input
   , roleInfos    :: Array RoleInfo
   , types        :: Array (String /\ Typedef2)
   }

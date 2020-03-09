@@ -10,7 +10,8 @@ import Data.Either (hush)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (find)
 import Data.Lens (preview)
-import Data.Map (lookup) as Map
+import Data.Map as Map
+import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested (type (/\), (/\))
 import Debug.Trace (spy)
@@ -18,7 +19,6 @@ import Record as Record
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
-import KDMoncat.Input.String (Input) as KDMoncat.Input.String
 import Statebox.Core.Types (Diagram)
 import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx)
 import Statebox.Core.Lenses (_wiringTx, _firingTx)
@@ -32,6 +32,7 @@ import View.Studio.Model.TxCache (ExecutionTrace)
 -- deps needed for Action, for now
 import View.Petrinet.Model as PetrinetEditor
 import View.Diagram.Update as DiagramEditor
+import View.KDMonCat.App as KDMonCat.App
 import View.KDMonCat.Bricks as KDMonCat.Bricks
 
 --------------------------------------------------------------------------------
@@ -45,7 +46,8 @@ data Action
   | ShowDiagramNodeContent Route
   | HandlePetrinetEditorMsg PetrinetEditor.Msg
   | HandleDiagramEditorMsg DiagramEditor.Msg
-  | HandleKDMonCatMsg DiagramInfo KDMonCat.Bricks.Output
+  | HandleKDMonCatBricksMsg DiagramInfo KDMonCat.Bricks.Output
+  | HandleKDMonCatAppMsg KDMonCat.App.Output
 
   | CreateProject
   | DeleteProject ProjectName
@@ -122,8 +124,11 @@ modifyDiagramInfo diagramName fn diagrams = do
 
 --------------------------------------------------------------------------------
 
-findKDMonCat :: Project -> String -> Maybe KDMoncat.Input.String.Input
+findKDMonCat :: Project -> String -> Maybe KDMonCat.App.Input
 findKDMonCat project diagramId = Map.lookup diagramId project.kdmoncats
+
+modifyKDMonCat :: String -> (KDMonCat.App.Input -> KDMonCat.App.Input) -> Map String KDMonCat.App.Input -> Map String KDMonCat.App.Input
+modifyKDMonCat diagramId f = spy "kdmoncat" <<< Map.alter (map f) diagramId
 
 --------------------------------------------------------------------------------
 

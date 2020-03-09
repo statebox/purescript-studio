@@ -104,7 +104,7 @@ contentView apiUrl route = case route of
         [ div []
               [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
         , div []
-              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (Just <<< HandleKDMonCatMsg diagramInfo)
+              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (Just <<< HandleKDMonCatBricksMsg diagramInfo)
               , case nodeMaybe of
                   Just (NetNode netInfo)          -> slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
                   Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
@@ -123,7 +123,7 @@ contentView apiUrl route = case route of
 
   ResolvedKDMonCat kdmoncatInput ->
      div [ classes [ ClassName "w-full", ClassName "pl-4" ] ]
-         [ slot _kdmoncatApp unit KDMonCat.App.appView kdmoncatInput (const Nothing) ]
+         [ slot _kdmoncatApp unit KDMonCat.App.appView kdmoncatInput (Just <<< HandleKDMonCatAppMsg) ]
 
   ResolvedUberRoot url ->
     text $ "Service über-root " <> url

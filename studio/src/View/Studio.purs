@@ -30,7 +30,7 @@ import View.Petrinet.Model (Msg(NetUpdated))
 import View.KDMonCat.App as KDMonCat.Bricks
 import View.KDMonCat.Bricks as KDMonCat.Bricks
 import View.Model (Project, emptyProject)
-import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo)
+import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo, modifyKDMonCat)
 import View.Studio.Model.Route as Route
 import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
@@ -147,12 +147,22 @@ handleAction = case _ of
         _ -> Nothing
     maybe (pure unit) (\projects -> H.modify_ (_ { projects = projects }) ) projectsUpdatedMaybe
 
-  HandleKDMonCatMsg diagramInfo (KDMonCat.Bricks.SelectionChanged selBox) -> do
+  HandleKDMonCatBricksMsg diagramInfo (KDMonCat.Bricks.SelectionChanged selBox) -> do
     let boxes = (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) selBox).selectedBoxes
     maybe (pure unit) (handleAction <<< HandleDiagramEditorMsg <<< DiagramEditor.OperatorClicked) $ do
       box <- Set.findMin boxes
       op <- DiagramV2.fromPixel diagramInfo.ops box.bid
       pure op.identifier
+
+  HandleKDMonCatAppMsg kdmoncatInput -> do
+    state <- H.get
+    let
+      projectsUpdatedMaybe :: Maybe (Array Project)
+      projectsUpdatedMaybe = case state.route of
+        KDMonCatR pname kdName ->
+          modifyProject pname (\p -> p { kdmoncats = modifyKDMonCat kdName (const kdmoncatInput) p.kdmoncats }) state.projects
+        _ -> Nothing
+    maybe (pure unit) (\projects -> H.modify_ (_ { projects = projects }) ) projectsUpdatedMaybe
 
   HandlePetrinetEditorMsg NetUpdated -> do
     pure unit
