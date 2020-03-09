@@ -1,11 +1,13 @@
 var firebase = require('firebase/app')
 require('firebase/auth')
 require('firebase/analytics')
+require('firebase/firestore')
 var firebaseui = require('firebaseui')
 
 window.Stbx = require('@statebox/stbx-js')
 window.dagre = require("dagre")
 var Main = require("../output/index.js")
+var runHalogenAff = require("../output/Halogen.Aff.Util").runHalogenAff
 
 var firebaseConfig = {
   apiKey: "AIzaSyAhl4uChdRK_yXiYybtXfqG6uUEk1hAB9A",
@@ -20,6 +22,7 @@ var firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig)
 firebase.analytics()
+var db = firebase.firestore();
 
 firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
 
@@ -47,9 +50,24 @@ firebase.auth().onAuthStateChanged(function (user) {
 });
 
 function start(user) {
+  console.log(user)
   document.getElementById('email').innerText = user && user.email || ""
   document.getElementById('firebaseui-auth-container').style.display = 'none'
-  Main.main()
+  const eventHandler = {
+    onProjectCreated: project => () => {
+      db.collection("projects").doc("test").set({
+        userId: user.uid,
+        project
+      })
+    },
+    onProjectDeleted: projectName => () => {
+      console.log("Project deleted", projectName)
+    }
+  }
+  Main.main(user)(eventHandler)(api => () => {
+    window.api = api;
+    // runHalogenAff(api.addProject({}))();
+  })()
 
   document.getElementById('sign-out').onclick = function() {
     firebase.auth().signOut()

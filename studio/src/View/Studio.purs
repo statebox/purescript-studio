@@ -37,9 +37,15 @@ import View.Studio.View (render, ChildSlots)
 
 type Input = State
 
-data Query a = LoadTransactionsThenView URL TxId a
+data Query a
+  = LoadTransactionsThenView URL TxId a
+  | AddProject Project a
 
-ui :: ∀ m. MonadAff m => H.Component HTML Query Input Void m
+data Output
+  = ProjectCreated Project
+  | ProjectDeleted String
+
+ui :: ∀ m. MonadAff m => H.Component HTML Query Input Output m
 ui =
   H.mkComponent
     { initialState: mkInitialState
@@ -50,7 +56,7 @@ ui =
 mkInitialState :: Input -> State
 mkInitialState input = input
 
-handleQuery :: ∀ m a. MonadAff m => Query a -> H.HalogenM State Action ChildSlots Void m (Maybe a)
+handleQuery :: ∀ m a. MonadAff m => Query a -> H.HalogenM State Action ChildSlots Output m (Maybe a)
 handleQuery = case _ of
   LoadTransactionsThenView endpointUrl hash next -> do
     handleAction (LoadTransactions endpointUrl hash)
@@ -62,7 +68,11 @@ handleQuery = case _ of
 
     pure (Just next)
 
-handleAction :: ∀ m. MonadAff m => Action -> HalogenM State Action ChildSlots Void m Unit
+  AddProject project next -> do
+    H.modify_ $ \state -> state { projects = project `cons` state.projects }
+    pure (Just next)
+
+handleAction :: ∀ m. MonadAff m => Action -> HalogenM State Action ChildSlots Output m Unit
 handleAction = case _ of
   ShowDiagramNodeContent route -> do
     handleAction (SelectRoute route)
@@ -90,16 +100,16 @@ handleAction = case _ of
     runProcess txIngester
     where
       -- | This ingests transactions produced from the HTTP API into our transaction storage.
-      txIngester :: Process (HalogenM State Action ChildSlots Void m) Unit
+      txIngester :: Process (HalogenM State Action ChildSlots Output m) Unit
       txIngester = txProducer `connect` txConsumer
 
-      txProducer :: Producer HashTx (HalogenM State Action ChildSlots Void m) Unit
+      txProducer :: Producer HashTx (HalogenM State Action ChildSlots Output m) Unit
       txProducer = Stbx.requestTransactionsToRootM endpointUrl startHash
 
-      txConsumer :: Consumer HashTx (HalogenM State Action ChildSlots Void m) Unit
+      txConsumer :: Consumer HashTx (HalogenM State Action ChildSlots Output m) Unit
       txConsumer = consumer txStorer
         where
-          txStorer :: HashTx -> (HalogenM State Action ChildSlots Void m) (Maybe Unit)
+          txStorer :: HashTx -> (HalogenM State Action ChildSlots Output m) (Maybe Unit)
           txStorer itx@{id, tx} = do
             H.modify_ (\state -> state { hashSpace = AdjacencySpace.update Stbx.getPrevious state.hashSpace id tx })
             H.liftEffect $ log $ show itx
@@ -120,9 +130,11 @@ handleAction = case _ of
   CreateProject -> do
     let newProject = emptyProject { name = "Untitled (TODO)" }
     H.modify_ $ \state -> state { projects = newProject `cons` state.projects }
+    H.raise $ ProjectCreated newProject
 
-  DeleteProject projectName ->
+  DeleteProject projectName -> do
     H.modify_ $ \state -> state { projects = filter (\p -> p.name /= projectName) state.projects }
+    H.raise $ ProjectDeleted projectName
 
   HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) -> do
     H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
