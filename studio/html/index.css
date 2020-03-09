@@ -1,4 +1,5 @@
 @import "@statebox/style/style.min.css";
+@import "firebaseui/dist/firebaseui.css";
 
 @import "./petrinet.css";
 @import "./diagram.css";

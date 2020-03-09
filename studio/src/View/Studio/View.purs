@@ -63,7 +63,7 @@ data VoidF a
 
 render :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 render state =
-  div []
+  div [ classes [ ClassName "studio" ] ]
     [ navBar state.title
     , div [ classes [ ClassName "has-columns" ] ]
           [ nav [ classes [ ClassName "stbx-sidebar" ] ]
