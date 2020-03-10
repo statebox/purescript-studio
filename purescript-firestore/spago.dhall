@@ -10,6 +10,7 @@
     , "functions"
     , "maybe"
     , "precise-datetime"
+    , "psci-support"
     , "spec"
     ]
 , packages =
