@@ -9,17 +9,7 @@ import Data.Function.Uncurried (Fn1, Fn2, Fn3, runFn1, runFn2, runFn3)
 import Data.Maybe (Maybe(..))
 
 import Web.Firestore.DocumentData (DocumentData)
-
-type Options =
-  { apiKey :: Maybe String
-  , appId :: Maybe String
-  , authDomain :: Maybe String
-  , databaseUrl :: Maybe String
-  , measurementId :: Maybe String -- TODO: should this be there or not?
-  , messagingSenderId :: Maybe String
-  , projectId :: String
-  , storageBucket :: Maybe String
-  }
+import Web.Firestore.Options (Options)
 
 data App = App
   { name :: String
