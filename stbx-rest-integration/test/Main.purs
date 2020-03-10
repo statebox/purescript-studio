@@ -21,7 +21,7 @@ import Statebox.Service.Error (TxError(..))
 import Test.Common (succeed)
 
 endpointUrl :: URL
-endpointUrl = "http://127.0.0.1:8080"
+endpointUrl = "http://127.0.0.1:8008"
 
 main :: Effect (Fiber Unit)
 main = launchAff $ runSpec [consoleReporter] do
