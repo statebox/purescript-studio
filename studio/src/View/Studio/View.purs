@@ -270,7 +270,7 @@ projectsDashboard projects =
       li []
          [ a [ href "#", onClick \_ -> Just (SelectRoute (ProjectR p.name)) ]
              [ text p.name ]
-         , a [ href "#", onClick \_ -> Just (DeleteProject p.name) ]
+         , a [ href "#", onClick \_ -> Just (DeleteProject p.projectId) ]
              [ text "☠" ]
          ]
 

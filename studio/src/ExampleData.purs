@@ -42,7 +42,8 @@ projects = [project1, project2]
 
 project1 :: Project
 project1 =
-  { name: "Statebox Examples"
+  { projectId: "Example1"
+  , name: "Statebox Examples"
   , nets: [ netInfo1, netInfo2 ]
   , diagrams: diagrams1
   , kdmoncats: project1KDMonCats
@@ -75,7 +76,8 @@ project1KDMonCats = Map.fromFoldable
 
 project2 :: Project
 project2 =
-  { name: "Erik's examples"
+  { projectId: "Example2"
+  , name: "Erik's examples"
   , nets: pnproNetInfos1
   , diagrams: diagrams2
   , kdmoncats: mempty

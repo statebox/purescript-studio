@@ -134,7 +134,8 @@ modifyKDMonCat diagramId f = spy "kdmoncat" <<< Map.alter (map f) diagramId
 
 fromPNPROProject :: PNPRO.Project -> Project
 fromPNPROProject project =
-  { name:      project.name
+  { projectId: mempty
+  , name:      project.name
   , nets:      PNPRO.toNetInfo <$> project.gspn
   , diagrams:  mempty
   , kdmoncats: mempty

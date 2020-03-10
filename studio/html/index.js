@@ -22,7 +22,7 @@ var firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig)
 firebase.analytics()
-var db = firebase.firestore();
+var db = firebase.firestore()
 
 firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
 
@@ -47,26 +47,27 @@ firebase.auth().onAuthStateChanged(function (user) {
     else
       location.reload()
   }
-});
+})
 
 function start(user) {
-  console.log(user)
+  // console.log(user)
   document.getElementById('email').innerText = user && user.email || ""
   document.getElementById('firebaseui-auth-container').style.display = 'none'
   const eventHandler = {
-    onProjectCreated: project => () => {
-      db.collection("projects").doc("test").set({
-        userId: user.uid,
-        project
-      })
+    onProjectUpserted: project => () => {
+      db.collection("projects").doc(project.projectId).set(project)
     },
-    onProjectDeleted: projectName => () => {
-      console.log("Project deleted", projectName)
+    onProjectDeleted: projectId => () => {
+      db.collection("projects").doc(projectId).delete()
     }
   }
   Main.main(user)(eventHandler)(api => () => {
-    window.api = api;
-    // runHalogenAff(api.addProject({}))();
+    db.collection("projects").where("userId", "==", user.uid)
+    .onSnapshot(querySnapshot => {
+      querySnapshot.forEach(doc => {
+        runHalogenAff(api.addProject(doc.data()))()
+      })
+    })
   })()
 
   document.getElementById('sign-out').onclick = function() {

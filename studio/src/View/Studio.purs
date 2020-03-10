@@ -10,10 +10,13 @@ import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Set as Set
+import Data.String (drop)
 import Data.Traversable (for_)
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
+import Effect.Class (liftEffect)
 import Effect.Console (log)
+import Effect.Random (random)
 import Halogen as H
 import Halogen (mkEval, defaultEval)
 import Halogen.HTML (HTML)
@@ -42,7 +45,7 @@ data Query a
   | AddProject Project a
 
 data Output
-  = ProjectCreated Project
+  = ProjectUpserted Project
   | ProjectDeleted String
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Input Output m
@@ -69,7 +72,7 @@ handleQuery = case _ of
     pure (Just next)
 
   AddProject project next -> do
-    H.modify_ $ \state -> state { projects = project `cons` state.projects }
+    H.modify_ $ \state -> state { projects = project `cons` filter (\p -> p.projectId /= project.projectId) state.projects }
     pure (Just next)
 
 handleAction :: ∀ m. MonadAff m => Action -> HalogenM State Action ChildSlots Output m Unit
@@ -128,13 +131,15 @@ handleAction = case _ of
       )
 
   CreateProject -> do
-    let newProject = emptyProject { name = "Untitled (TODO)" }
-    H.modify_ $ \state -> state { projects = newProject `cons` state.projects }
-    H.raise $ ProjectCreated newProject
+    rnd <- liftEffect random
+    let projectId = "p" <> drop 2 (show rnd)
+    let newProject = emptyProject { projectId = projectId, name = "Untitled (TODO)" }
+    -- H.modify_ $ \state -> state { projects = newProject `cons` state.projects }
+    H.raise $ ProjectUpserted newProject
 
-  DeleteProject projectName -> do
-    H.modify_ $ \state -> state { projects = filter (\p -> p.name /= projectName) state.projects }
-    H.raise $ ProjectDeleted projectName
+  DeleteProject projectId -> do
+    H.modify_ $ \state -> state { projects = filter (\p -> p.projectId /= projectId) state.projects }
+    H.raise $ ProjectDeleted projectId
 
   HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) -> do
     H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
@@ -174,7 +179,10 @@ handleAction = case _ of
         KDMonCatR pname kdName ->
           modifyProject pname (\p -> p { kdmoncats = modifyKDMonCat kdName (const kdmoncatInput) p.kdmoncats }) state.projects
         _ -> Nothing
-    maybe (pure unit) (\projects -> H.modify_ (_ { projects = projects }) ) projectsUpdatedMaybe
+    maybe (pure unit) (\projects -> do
+      H.modify_ (_ { projects = projects })
+      for_ projects \p -> H.raise $ ProjectUpserted p
+    ) projectsUpdatedMaybe
 
   HandlePetrinetEditorMsg NetUpdated -> do
     pure unit
