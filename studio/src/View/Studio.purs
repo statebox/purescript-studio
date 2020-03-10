@@ -9,6 +9,7 @@ import Data.Array (cons, filter)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
+import Data.Map as Map
 import Data.Set as Set
 import Data.String (drop)
 import Data.Traversable (for_)
@@ -170,6 +171,19 @@ handleAction = case _ of
       box <- Set.findMin boxes
       op <- DiagramV2.fromPixel diagramInfo.ops box.bid
       pure op.identifier
+
+  CreateKDMonCat -> do
+    state <- H.get
+    let
+      projectsUpdatedMaybe :: Maybe (Array Project)
+      projectsUpdatedMaybe = case state.route of
+        ProjectR pname ->
+          modifyProject pname (\p -> p { kdmoncats = Map.insert "Untitled" mempty p.kdmoncats }) state.projects
+        _ -> Nothing
+    maybe (pure unit) (\projects -> do
+      H.modify_ (_ { projects = projects })
+      for_ projects \p -> H.raise $ ProjectUpserted p
+    ) projectsUpdatedMaybe
 
   HandleKDMonCatAppMsg kdmoncatInput -> do
     state <- H.get

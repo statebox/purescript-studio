@@ -51,6 +51,7 @@ data Action
 
   | CreateProject
   | DeleteProject ProjectName
+  | CreateKDMonCat
 
 type State =
   { route       :: Route

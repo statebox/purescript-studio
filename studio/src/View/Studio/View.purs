@@ -17,7 +17,7 @@ import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (a, br, div, fieldset, hr, h1, img, input, legend, li, nav, ol, p, slot, span, text, ul)
+import Halogen.HTML (a, br, button, div, fieldset, hr, h1, img, input, legend, li, nav, ol, p, slot, span, text, ul)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, src, href, placeholder, value, tabIndex, type_, InputType(InputText))
@@ -88,7 +88,13 @@ contentView apiUrl route = case route of
         ]
 
   ResolvedProject project ->
-    text $ "Project '" <> project.name <> "'"
+    div []
+        [ p [] [ text $ "Project '" <> project.name <> "'" ]
+        , p []
+            [ button [ onClick \_ -> Just CreateKDMonCat ]
+                     [ text "Create new KDMonCat diagram" ]
+            ]
+        ]
 
   ResolvedTypes project ->
     TypedefsEditor.typedefsTreeView project.types
