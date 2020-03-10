@@ -47,7 +47,7 @@ import Statebox.Store.Types (Actions) as Store
 foreign import stringBodyParser :: Fn3 Request Response (Effect Unit) (Effect Unit)
 
 stbxPort :: Int
-stbxPort = 8080
+stbxPort = 8008
 
 -- application state
 
