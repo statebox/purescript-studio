@@ -1,4 +1,4 @@
-module Test.Web.Firestore where
+module Test.Web.FirestoreSpec where
 
 import Prelude (Unit, bind, discard, show, ($), (#))
 import Control.Promise (toAff)
@@ -21,12 +21,12 @@ suite = do
   describe "Firestore" do
     it "sets and gets data correctly" do
       let fsOptions = options "firestore-test-270209"
-                    # Lens.set apiKey            "AIzaSyBDH92I_Qiv_GHbIOA0MddiOKZpwDaMNoY"
-                    # Lens.set appId             "1:490707848264:web:92683957e61378c9a21c7d"
-                    # Lens.set authDomain        "firestore-test-270209.firebaseapp.com"
-                    # Lens.set databaseUrl       "https://firestore-test-270209.firebaseio.com"
-                    # Lens.set messagingSenderId "490707848264"
-                    # Lens.set storageBucket     "firestore-test-270209.appspot.com"
+                    # Lens.set apiKey            (Just "AIzaSyBDH92I_Qiv_GHbIOA0MddiOKZpwDaMNoY")
+                    # Lens.set appId             (Just "1:490707848264:web:92683957e61378c9a21c7d")
+                    # Lens.set authDomain        (Just "firestore-test-270209.firebaseapp.com")
+                    # Lens.set databaseUrl       (Just "https://firestore-test-270209.firebaseio.com")
+                    # Lens.set messagingSenderId (Just "490707848264")
+                    # Lens.set storageBucket     (Just "firestore-test-270209.appspot.com")
           app = initializeApp fsOptions (Just "firestore-test")
           firestoreInstance = firestore app
           documentReference = doc firestoreInstance "collection/test"
