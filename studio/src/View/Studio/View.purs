@@ -159,7 +159,7 @@ routeBreadcrumbs route =
   where
     crumb str = li [] [ a [ href "#" ] [ text str ] ]
 
-    projectRouteBreadcrumbs :: ProjectRoute DiagramName NetName -> Array _
+    projectRouteBreadcrumbs :: ProjectRoute -> Array _
     projectRouteBreadcrumbs = case _ of
       ProjectHome       -> []
       Types             -> [ "Types" ]

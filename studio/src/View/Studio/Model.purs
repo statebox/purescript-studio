@@ -72,7 +72,7 @@ resolveRoute route state = case route of
   ProjectRoute projectName pr       -> findProject state.projects projectName >>= resolveProjectRoute pr state
   ApiRoute x                        -> resolveApiRoute x state.hashSpace
 
-resolveProjectRoute :: ProjectRoute DiagramName NetName -> State -> Project -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveProjectRoute :: ProjectRoute -> State -> Project -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveProjectRoute route state project = case route of
   ProjectHome           -> pure $ ResolvedProject project
   Types                 -> pure $ ResolvedTypes project
@@ -103,11 +103,6 @@ resolveApiRoute route hashSpace = case route of
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
 
-modifyProject :: ProjectName -> (Project -> Project) -> Array Project -> Maybe (Array Project)
-modifyProject projectName fn projects = do
-  ix <- findIndex (\p -> p.name == projectName) projects
-  modifyAt ix fn projects
-
 findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
 
@@ -129,7 +124,7 @@ findKDMonCat :: Project -> String -> Maybe KDMonCat.App.Input
 findKDMonCat project diagramId = Map.lookup diagramId project.kdmoncats
 
 modifyKDMonCat :: String -> (KDMonCat.App.Input -> KDMonCat.App.Input) -> Map String KDMonCat.App.Input -> Map String KDMonCat.App.Input
-modifyKDMonCat diagramId f = spy "kdmoncat" <<< Map.alter (map f) diagramId
+modifyKDMonCat diagramId f = Map.alter (map f) diagramId
 
 --------------------------------------------------------------------------------
 

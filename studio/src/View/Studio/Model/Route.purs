@@ -13,6 +13,7 @@ import View.Model (ProjectName)
 import View.Studio.Model.TxCache (ExecutionTrace)
 
 type Route = RouteF ProjectName DiagramName NetName
+type ProjectRoute = ProjectRouteF DiagramName NetName
 
 -- | This can:
 -- |
@@ -22,14 +23,14 @@ type Route = RouteF ProjectName DiagramName NetName
 data RouteF p d n
   = Home
   | TxHome
-  | ProjectRoute p (ProjectRoute d n)
+  | ProjectRoute p (ProjectRouteF d n)
   | ApiRoute ApiRoute
 
 derive instance eqRouteF :: (Eq p, Eq d, Eq n) => Eq (RouteF p d n)
 derive instance ordRouteF :: (Ord p, Ord d, Ord n) => Ord (RouteF p d n)
 
 -- Project-related routes
-data ProjectRoute d n
+data ProjectRouteF d n
   = ProjectHome
   | Types
   | Auths
@@ -38,8 +39,8 @@ data ProjectRoute d n
   | Diagram   d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
   | KDMonCatR String
 
-derive instance eqProjectRouteF :: (Eq d, Eq n) => Eq (ProjectRoute d n)
-derive instance ordProjectRouteF :: (Ord d, Ord n) => Ord (ProjectRoute d n)
+derive instance eqProjectRouteF :: (Eq d, Eq n) => Eq (ProjectRouteF d n)
+derive instance ordProjectRouteF :: (Ord d, Ord n) => Ord (ProjectRouteF d n)
 
 -- | Statebox Core/API-related routes
 data ApiRoute

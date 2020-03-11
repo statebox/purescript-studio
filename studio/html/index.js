@@ -55,6 +55,7 @@ function start(user) {
   document.getElementById('firebaseui-auth-container').style.display = 'none'
   const eventHandler = {
     onProjectUpserted: project => () => {
+      console.log("upsert", project)
       db.collection("projects").doc(project.projectId).set(project)
     },
     onProjectDeleted: projectId => () => {
@@ -64,8 +65,11 @@ function start(user) {
   Main.main(user)(eventHandler)(api => () => {
     db.collection("projects").where("userId", "==", user.uid)
     .onSnapshot(querySnapshot => {
-      querySnapshot.forEach(doc => {
-        runHalogenAff(api.addProject(doc.data()))()
+      querySnapshot.docChanges().forEach(change => {
+        console.log("change", change.type, change.doc.data())
+        if (change.type !== "removed") {
+          runHalogenAff(api.addProject(change.doc.data()))()
+        }
       })
     })
   })()

@@ -13,7 +13,6 @@ import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 import Routing.Hash as Routing
-import Debug.Trace (spy)
 
 import View.Model
 import View.Studio as Studio
@@ -38,7 +37,7 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
   body <- awaitBody
   io <- runUI Studio.ui initialState body
   io.subscribe $ consumer $ \output -> do
-    _ <- liftEffect $ case spy "event" output of
+    _ <- liftEffect $ case output of
       Studio.ProjectUpserted project -> eventHandler.onProjectUpserted $ toProjectJS user project
       Studio.ProjectDeleted projectName -> eventHandler.onProjectDeleted projectName
     pure Nothing
