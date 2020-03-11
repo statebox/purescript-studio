@@ -101,7 +101,7 @@ index :: Handler
 index = sendJson
   { name        : "Statebox REST API"
   , description : "collection of endpoints to interact with the Statebox protocol"
-  , endpoints   : { ping            : "/ping"
+  , endpoints   : { ping            : "/tx/ping"
                   , getTransactions : "/tx"
                   , getTransaction  : "/tx/:hash"
                   }
@@ -200,7 +200,7 @@ app state = do
   useExternal         stringBodyParser
   use                 logger
   get  "/"            index
-  get  "/ping"        ping
+  get  "/tx/ping"     ping
   get  "/tx"          (getTransactionsHandler state)
   get  "/tx/:hash"    (getTransactionHandler state)
   post "/tx"          (postTransactionHandler state)
