@@ -2,7 +2,12 @@
 
 const firebase = require('firebase')
 
-exports.initializeAppImpl = firebase.initializeApp
+exports.initializeAppImpl = function (options, name) {
+  // optional arguments should be passed as `undefined` and not as `null`
+  name = name === null ? undefined : name
+
+  return firebase.initializeApp(options, name)
+}
 
 exports.firestoreImpl = firebase.firestore
 

@@ -18,10 +18,10 @@ data App = App
 
 data Firestore = Firestore
 
-foreign import initializeAppImpl :: Fn2 Options (Maybe String) App
+foreign import initializeAppImpl :: Fn2 Json Json App
 
 initializeApp :: Options -> Maybe String -> App
-initializeApp = runFn2 initializeAppImpl
+initializeApp options name = runFn2 initializeAppImpl (encodeJson options) (encodeJson name)
 
 foreign import firestoreImpl :: Fn1 App Firestore
 
