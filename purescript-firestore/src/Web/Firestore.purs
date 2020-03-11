@@ -10,18 +10,16 @@ import Data.Maybe (Maybe(..))
 
 import Web.Firestore.DocumentData (DocumentData)
 import Web.Firestore.Options (Options)
+import Web.Firestore.Path (Path)
 
-data App = App
-  { name :: String
-  , options :: Options
-  }
-
-data Firestore = Firestore
+foreign import data App :: Type
 
 foreign import initializeAppImpl :: Fn2 Json Json App
 
 initializeApp :: Options -> Maybe String -> App
 initializeApp options name = runFn2 initializeAppImpl (encodeJson options) (encodeJson name)
+
+foreign import data Firestore :: Type
 
 foreign import firestoreImpl :: Fn1 App Firestore
 
@@ -32,8 +30,8 @@ newtype DocumentReference a = DocumentReference a
 
 foreign import docImpl :: Fn2 Firestore String (DocumentReference DocumentData)
 
-doc :: Firestore -> String -> DocumentReference DocumentData
-doc = runFn2 docImpl
+doc :: Firestore -> Path -> DocumentReference DocumentData
+doc firestore path = runFn2 docImpl firestore (show path)
 
 type Merge = Boolean
 

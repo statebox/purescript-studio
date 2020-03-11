@@ -9,7 +9,9 @@ exports.initializeAppImpl = function (options, name) {
   return firebase.initializeApp(options, name)
 }
 
-exports.firestoreImpl = firebase.firestore
+exports.firestoreImpl = function (app) {
+  return app.firestore()
+}
 
 exports.docImpl = function (firestore, documentPath) {
   return firestore.doc(documentPath)
