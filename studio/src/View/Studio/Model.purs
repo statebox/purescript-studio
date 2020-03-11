@@ -25,7 +25,7 @@ import Statebox.Core.Lenses (_wiringTx, _firingTx)
 import View.Diagram.Model (DiagramInfo)
 import View.Model (Project, ProjectName, NetInfoWithTypesAndRoles)
 import View.Petrinet.Model (NetInfo)
-import View.Studio.Model.Route (ApiRoute(..), Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
+import View.Studio.Model.Route
 import View.Studio.Model.TxCache as TxCache
 import View.Studio.Model.TxCache (ExecutionTrace)
 
@@ -60,30 +60,30 @@ type State =
   , title       :: String
   , msg         :: String
   , apiUrl      :: URL
+  , menuItems   :: Array (String /\ Maybe Route)
   }
 
 --------------------------------------------------------------------------------
 
-resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveRoute :: Route -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveRoute route state = case route of
   Home                              -> pure $ ResolvedHome state.projects
-  ProjectR  projectName             -> ResolvedProject <$> findProject state.projects projectName
-  Types     projectName             -> ResolvedTypes <$> findProject state.projects projectName
-  Auths     projectName             -> ResolvedAuths <$> findProject state.projects projectName
-  Net       projectName name        -> do project <- findProject state.projects projectName
-                                          net     <- findNetInfoWithTypesAndRoles project name
-                                          pure $ ResolvedNet net
-  Diagram   projectName name nodeId -> do project <- findProject state.projects projectName
-                                          diagram <- findDiagramInfo project name
-                                          let node = nodeId >>= case _ of
-                                                       DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
-                                                       NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
-                                          pure $ ResolvedDiagram diagram node
-  KDMonCatR  projectName str        -> do project <- findProject state.projects projectName
-                                          diagram <- findKDMonCat project str
-                                          pure $ ResolvedKDMonCat diagram
+  TxHome                            -> pure $ ResolvedTxHome state.projects
+  ProjectRoute projectName pr       -> findProject state.projects projectName >>= resolveProjectRoute pr state
+  ApiRoute x                        -> resolveApiRoute x state.hashSpace
 
-  ApiThing x -> resolveApiRoute x state.hashSpace
+resolveProjectRoute :: ProjectRoute DiagramName NetName -> State -> Project -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveProjectRoute route state project = case route of
+  ProjectHome           -> pure $ ResolvedProject project
+  Types                 -> pure $ ResolvedTypes project
+  Auths                 -> pure $ ResolvedAuths project
+  Net       name        -> ResolvedNet <$> findNetInfoWithTypesAndRoles project name
+  Diagram   name nodeId -> do diagram <- findDiagramInfo project name
+                              let node = nodeId >>= case _ of
+                                           DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
+                                           NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
+                              pure $ ResolvedDiagram diagram node
+  KDMonCatR str         -> ResolvedKDMonCat <$> findKDMonCat project str
 
 resolveApiRoute :: ApiRoute -> AdjacencySpace HashStr TxSum -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveApiRoute route hashSpace = case route of

@@ -13,7 +13,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
 import Data.String.CodePoints (take)
 import Data.Symbol (SProxy(..))
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML)
@@ -37,7 +37,7 @@ import View.Model (Project, NetInfoWithTypesAndRoles)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
 import View.Studio.Model (Action(..), State, resolveRoute)
-import View.Studio.Model.Route (ApiRoute(..), Route, RouteF(..), ResolvedRouteF(..), NodeIdent(..))
+import View.Studio.Model.Route
 import View.Transaction (firingTxView, wiringTxView)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
 
@@ -64,7 +64,7 @@ data VoidF a
 render :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 render state =
   div [ classes [ ClassName "studio" ] ]
-    [ navBar state.title
+    [ navBar state.title state.menuItems
     , div [ classes [ ClassName "has-columns" ] ]
           [ nav [ classes [ ClassName "stbx-sidebar" ] ]
                 [ slot _objectTree unit (TreeMenu.menuComponent (_ == state.route)) (stateMenu state) ((\(TreeMenu.Clicked menuNodeId route) -> ShowDiagramNodeContent route) >>> Just) ]
@@ -83,8 +83,11 @@ contentView apiUrl route = case route of
   ResolvedHome projects ->
     div []
         [ projectsDashboard projects
-        , hr []
-        , homeForm apiUrl
+        ]
+
+  ResolvedTxHome projects ->
+    div []
+        [ homeForm apiUrl
         ]
 
   ResolvedProject project ->
@@ -149,18 +152,23 @@ routeBreadcrumbs route =
       [ ol [] $
            crumb <$> case route of
                        Home                          -> [ "Home" ]
-                       ProjectR   projectName        -> [ projectName ]
-                       Types      projectName        -> [ projectName, "Types" ]
-                       Auths      projectName        -> [ projectName, "Authorisation" ]
-                       Net        projectName name   -> [ projectName, name ]
-                       Diagram    projectName name _ -> [ projectName, name ]
-                       KDMonCatR  projectName name   -> [ projectName, name ]
-                       ApiThing   apiRoute           -> apiRouteBreadcrumbs apiRoute
+                       TxHome                        -> [ "Home" ]
+                       ProjectRoute projectName pr   -> [ projectName ] <> projectRouteBreadcrumbs pr
+                       ApiRoute     apiRoute         -> apiRouteBreadcrumbs apiRoute
       ]
   where
     crumb str = li [] [ a [ href "#" ] [ text str ] ]
 
-    apiRouteBreadcrumbs :: ∀ m. ApiRoute -> Array _
+    projectRouteBreadcrumbs :: ProjectRoute DiagramName NetName -> Array _
+    projectRouteBreadcrumbs = case _ of
+      ProjectHome       -> []
+      Types             -> [ "Types" ]
+      Auths             -> [ "Authorisation" ]
+      Net        name   -> [ name ]
+      Diagram    name _ -> [ name ]
+      KDMonCatR  name   -> [ name ]
+
+    apiRouteBreadcrumbs :: ApiRoute -> Array _
     apiRouteBreadcrumbs = case _ of
       UberRootR  url                -> [ "über-namespace", url ]
       NamespaceR hash               -> [ "namespace", shortHash hash ]
@@ -169,16 +177,13 @@ routeBreadcrumbs route =
       DiagramR   hash ix name       -> [ shortHash hash, "diagram " <> show ix <> " " <> name ]
       NetR       hash ix name       -> [ shortHash hash, "net "     <> show ix <> " " <> name ]
 
-navBar :: ∀ m. String -> ComponentHTML Action ChildSlots m
-navBar title =
+navBar :: ∀ m. String -> Array (String /\ Maybe Route) -> ComponentHTML Action ChildSlots m
+navBar title menuItems =
   nav [ classes [ ClassName "stbx-menu" ], tabIndex 0 ]
       [ span [ classes [ ClassName "stbx-menu-close" ], tabIndex 0 ] []
       , ul [] $
            [ li [] [ h1 [] [ text title ] ] ]
-           <> (menuItem <$> [ "Home"    /\ Just Home
-                            , "Project" /\ Nothing
-                            , "Help"    /\ Nothing
-                            ])
+           <> (menuItem <$> menuItems)
       , a [ href "https://statebox.org", classes [ ClassName "stbx-logo" ] ] []
       ]
   where
@@ -202,17 +207,17 @@ stateMenu { projects, apiUrl, hashSpace } =
 
 projectMenu :: Project -> MenuTree Route
 projectMenu p =
-  mkItem p.name (Just $ ProjectR p.name) :<
-    [ mkItem "Types"          (Just $ Types p.name) :< []
-    , mkItem "Authorisations" (Just $ Auths p.name) :< []
+  mkItem p.name (Just $ ProjectRoute p.name $ ProjectHome) :<
+    [ mkItem "Types"          (Just $ ProjectRoute p.name $ Types) :< []
+    , mkItem "Authorisations" (Just $ ProjectRoute p.name $ Auths) :< []
     , mkItem "Nets"           (Nothing)             :< fromNets     p p.nets
     , mkItem "Diagrams"       (Nothing)             :< fromDiagrams p p.diagrams
     , mkItem "KDMonCats"      (Nothing)             :< fromKDMonCats  (p.kdmoncats # Map.toUnfoldable)
     ]
   where
-    fromNets      p nets  = (\n            -> mkItem n.name (Just $ Net       p.name n.name        ) :< []) <$> nets
-    fromDiagrams  p diags = (\d            -> mkItem d.name (Just $ Diagram   p.name d.name Nothing) :< []) <$> diags
-    fromKDMonCats   diags = (\(dname /\ d) -> mkItem dname  (Just $ KDMonCatR p.name dname         ) :< []) <$> diags
+    fromNets      p nets  = (\n            -> mkItem n.name (Just $ ProjectRoute p.name $ Net       n.name        ) :< []) <$> nets
+    fromDiagrams  p diags = (\d            -> mkItem d.name (Just $ ProjectRoute p.name $ Diagram   d.name Nothing) :< []) <$> diags
+    fromKDMonCats   diags = (\(dname /\ d) -> mkItem dname  (Just $ ProjectRoute p.name $ KDMonCatR dname         ) :< []) <$> diags
 
 -- It's not terribly efficient to construct a Cofree (sub)tree first only to subsequently flatten it, as we do with firings.
 transactionMenu :: URL -> AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Route) -> MenuTree Route
@@ -224,25 +229,25 @@ transactionMenu apiUrl t hash valueMaybe itemKids =
     mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
     mkItem2 hash tx itemKids = evalTxSum
       (\x -> mkItem ("☁️ "  <> shortHash hash)
-                    (Just $ ApiThing $ UberRootR apiUrl)
+                    (Just $ ApiRoute $ UberRootR apiUrl)
                     :< itemKids
       )
       (\x -> mkItem ("🌐 "  <> shortHash hash)
-                    (Just $ ApiThing $ NamespaceR x.root.message)
+                    (Just $ ApiRoute $ NamespaceR x.root.message)
                     :< itemKids
       )
       (\w -> mkItem ("🥨 " <> shortHash hash)
-                    (Just $ ApiThing $ WiringR { name: hash, endpointUrl: apiUrl, hash: hash })
+                    (Just $ ApiRoute $ WiringR { name: hash, endpointUrl: apiUrl, hash: hash })
                     :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
       )
       (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash hash)
-                    (Just $ ApiThing $ FiringR { name: hash, endpointUrl: apiUrl, hash: hash })
+                    (Just $ ApiRoute $ FiringR { name: hash, endpointUrl: apiUrl, hash: hash })
                     :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
       )
       tx
       where
-        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ ApiThing $ NetR     hash (NetsAndDiagramsIndex ix) n.name) :< []) nets
-        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ ApiThing $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) :< []) diags
+        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ ApiRoute $ NetR     hash (NetsAndDiagramsIndex ix) n.name) :< []) nets
+        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ ApiRoute $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) :< []) diags
 
         flattenTree :: MenuTree Route -> Array (MenuTree Route)
         flattenTree = treeifyElems <<< flattenTree'
@@ -274,7 +279,7 @@ projectsDashboard projects =
   where
     mkProjectLink p =
       li []
-         [ a [ href "#", onClick \_ -> Just (SelectRoute (ProjectR p.name)) ]
+         [ a [ href "#", onClick \_ -> Just (SelectRoute (ProjectRoute p.name ProjectHome)) ]
              [ text p.name ]
          , a [ href "#", onClick \_ -> Just (DeleteProject p.projectId) ]
              [ text "☠" ]

@@ -36,7 +36,7 @@ import View.KDMonCat.Bricks as KDMonCat.Bricks
 import View.Model (Project, emptyProject)
 import View.Studio.Model (Action(..), State, fromPNPROProject, modifyProject, modifyDiagramInfo, modifyKDMonCat)
 import View.Studio.Model.Route as Route
-import View.Studio.Model.Route (Route, RouteF(..), NodeIdent(..))
+import View.Studio.Model.Route (Route, RouteF(..), ProjectRoute(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
 
 type Input = State
@@ -149,8 +149,8 @@ handleAction = case _ of
       -- TODO #87 we hardcode the assumption here that opId is a net (NetNode opId) but it could be (LeDiagram opId)
       newRouteMaybe :: Maybe Route
       newRouteMaybe = case state.route of
-        Diagram pname dname _ -> Just (Diagram pname dname (Just (NetNode opId)))
-        _                     -> Nothing
+        ProjectRoute pname (Diagram dname _) -> Just (ProjectRoute pname (Diagram dname (Just (NetNode opId))))
+        _                                    -> Nothing
     maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
   HandleDiagramEditorMsg (DiagramEditor.OperatorsChanged ops) -> do
@@ -158,7 +158,7 @@ handleAction = case _ of
     let
       projectsUpdatedMaybe :: Maybe (Array Project)
       projectsUpdatedMaybe = case state.route of
-        Diagram pname dname _ ->
+        ProjectRoute pname (Diagram dname _) ->
           modifyProject pname (\p ->
               p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (_ {ops = ops}) p.diagrams) }
             ) state.projects
@@ -177,7 +177,7 @@ handleAction = case _ of
     let
       projectsUpdatedMaybe :: Maybe (Array Project)
       projectsUpdatedMaybe = case state.route of
-        ProjectR pname ->
+        ProjectRoute pname _ ->
           modifyProject pname (\p -> p { kdmoncats = Map.insert "Untitled" mempty p.kdmoncats }) state.projects
         _ -> Nothing
     maybe (pure unit) (\projects -> do
@@ -190,7 +190,7 @@ handleAction = case _ of
     let
       projectsUpdatedMaybe :: Maybe (Array Project)
       projectsUpdatedMaybe = case state.route of
-        KDMonCatR pname kdName ->
+        ProjectRoute pname (KDMonCatR kdName) ->
           modifyProject pname (\p -> p { kdmoncats = modifyKDMonCat kdName (const kdmoncatInput) p.kdmoncats }) state.projects
         _ -> Nothing
     maybe (pure unit) (\projects -> do

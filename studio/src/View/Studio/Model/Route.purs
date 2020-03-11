@@ -21,21 +21,25 @@ type Route = RouteF ProjectName DiagramName NetName
 -- | - be rendered into a menu entry
 data RouteF p d n
   = Home
-
-  | ProjectR   p
-  | Types      p
-  | Auths      p
-
-  -- Project-related constructors
-  | Net        p n
-  | Diagram    p d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
-  | KDMonCatR  p String
-
-  -- Statebox API-related constructors
-  | ApiThing ApiRoute
+  | TxHome
+  | ProjectRoute p (ProjectRoute d n)
+  | ApiRoute ApiRoute
 
 derive instance eqRouteF :: (Eq p, Eq d, Eq n) => Eq (RouteF p d n)
 derive instance ordRouteF :: (Ord p, Ord d, Ord n) => Ord (RouteF p d n)
+
+-- Project-related routes
+data ProjectRoute d n
+  = ProjectHome
+  | Types
+  | Auths
+
+  | Net       n
+  | Diagram   d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
+  | KDMonCatR String
+
+derive instance eqProjectRouteF :: (Eq d, Eq n) => Eq (ProjectRoute d n)
+derive instance ordProjectRouteF :: (Ord d, Ord n) => Ord (ProjectRoute d n)
 
 -- | Statebox Core/API-related routes
 data ApiRoute
@@ -57,6 +61,7 @@ type NetName = String
 
 data ResolvedRouteF p d n
   = ResolvedHome      (Array p)
+  | ResolvedTxHome    (Array p)
 
   | ResolvedProject   p
   | ResolvedTypes     p
@@ -76,7 +81,7 @@ data ResolvedRouteF p d n
 --------------------------------------------------------------------------------
 
 fromTxSum :: ∀ p d n. URL -> HashStr -> TxSum -> RouteF p d n
-fromTxSum endpointUrl hash tx = tx # ApiThing <<< evalTxSum
+fromTxSum endpointUrl hash tx = tx # ApiRoute <<< evalTxSum
   (\x -> UberRootR endpointUrl)
   (\x -> NamespaceR x.root.message)
   (\w -> WiringR { name: hash, endpointUrl, hash })

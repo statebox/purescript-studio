@@ -4,6 +4,7 @@ import Prelude
 import Control.Coroutine
 import Data.Either (either)
 import Data.Maybe
+import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff
 import Effect.Class (liftEffect)
@@ -55,4 +56,8 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
       , hashSpace:   mempty
       , apiUrl:      Ex.endpointUrl
       , route:       Home
+      , menuItems:   [ "Home"    /\ Just Home
+                     , "Project" /\ Nothing
+                     , "Help"    /\ Nothing
+                     ]
       }

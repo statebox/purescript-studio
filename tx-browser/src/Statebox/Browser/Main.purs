@@ -1,6 +1,8 @@
 module Statebox.Browser.Main where
 
 import Prelude
+import Data.Maybe
+import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
@@ -11,7 +13,7 @@ import Routing.Hash as Routing
 
 import View.Studio as Studio
 import View.Studio (Query(LoadTransactionsThenView))
-import View.Studio.Model.Route (RouteF(Home))
+import View.Studio.Model.Route (RouteF(TxHome))
 
 import ExampleData as Ex
 
@@ -31,5 +33,6 @@ main = runHalogenAff do
       , projects:    mempty
       , hashSpace:   mempty
       , apiUrl:      Ex.endpointUrl
-      , route:       Home
+      , route:       TxHome
+      , menuItems:   [ "Home" /\ Just TxHome ]
       }
