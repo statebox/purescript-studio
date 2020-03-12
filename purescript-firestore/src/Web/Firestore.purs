@@ -17,10 +17,10 @@ import Web.Firestore.SnapshotOptions (SnapshotOptions)
 
 foreign import data App :: Type
 
-foreign import initializeAppImpl :: Fn2 Json Json App
+foreign import initializeAppImpl :: Fn2 Json (Nullable String) App
 
 initializeApp :: Options -> Maybe String -> App
-initializeApp options name = runFn2 initializeAppImpl (encodeJson options) (encodeJson name)
+initializeApp options name = runFn2 initializeAppImpl (encodeJson options) (toNullable name)
 
 foreign import data Firestore :: Type
 
@@ -49,15 +49,15 @@ set docRef a options = runFn3 setImpl docRef (encodeJson a) (toNullable options)
 
 foreign import data DocumentSnapshot :: Type -> Type
 
-foreign import getImpl :: forall a. Fn2 (DocumentReference a) Json (Promise (DocumentSnapshot a))
+foreign import getImpl :: forall a. Fn2 (DocumentReference a) (Nullable GetOptions) (Promise (DocumentSnapshot a))
 
 get :: forall a. DocumentReference a -> Maybe GetOptions -> Promise (DocumentSnapshot a)
-get docRef options = (runFn2 getImpl) docRef (encodeJson options)
+get docRef options = (runFn2 getImpl) docRef (toNullable options)
 
-foreign import dataImpl :: forall a. Fn2 (DocumentSnapshot a) Json Json
+foreign import dataImpl :: forall a. Fn2 (DocumentSnapshot a) (Nullable SnapshotOptions) Json
 
 snapshotData :: forall a. DecodeJson a => DocumentSnapshot a -> Maybe SnapshotOptions -> Maybe a
 snapshotData docSnapshot options = either
   (const Nothing)
   identity
-  (decodeJson $ runFn2 dataImpl docSnapshot (encodeJson options))
+  (decodeJson $ runFn2 dataImpl docSnapshot (toNullable options))
