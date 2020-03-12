@@ -53,6 +53,9 @@ type Item r = { label :: String, route :: Maybe r }
 mkItem :: forall r. String -> Maybe r -> Item r
 mkItem label route = { label, route }
 
+mapMenuTreeRoutes :: forall ra rb. (ra -> rb) -> MenuTree ra -> MenuTree rb
+mapMenuTreeRoutes f = map (\{ label, route } -> { label, route: map f route })
+
 -- TODO this is a list because it stores the path down to the current node, but we could just scan the tree instead
 type NodeId = Array Int
 
@@ -106,7 +109,7 @@ menuComponent isSelected =
             leaf = [ a ([ href "#" ] <> onClickVisitRoute)
                        [ activated [ text treeNode.label ] ]
                    ]
-            activated = if state.activeItem == pure treeNodeId then b [] else span []
+            activated = if state.activeItem == pure treeNodeId || map isSelected treeNode.route == pure true then b [] else span []
             onClickVisitRoute = treeNode.route #
               maybe [] (\r -> pure <<< onClick $ Just <<< PreventDefault (VisitRoute treeNodeId r) <<< toEvent)
 

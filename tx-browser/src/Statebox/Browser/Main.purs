@@ -15,7 +15,7 @@ import Routing.PushState (makeInterface)
 
 import View.Studio as Studio
 import View.Studio (Query(LoadTransactionsThenView))
-import View.Studio.Model.Route (RouteF(TxHome), codex)
+import View.Studio.Model.Route
 
 import ExampleData as Ex
 
@@ -25,19 +25,27 @@ main = runHalogenAff do
 
   nav <- liftEffect $ makeInterface
   { path } <- liftEffect $ nav.locationState
-  let initialRoute = either (const $ TxHome Nothing) identity $ parse codex path
+  let initialRoute' = either (const $ TxHome Nothing) identity $ parse codex path
+  let initialRoute = if initialRoute' == Home then TxHome Nothing else initialRoute'
 
   io <- runUI Studio.ui (initialState initialRoute nav) body
 
   case initialRoute of
-    TxHome (Just urlHash) -> do
-      liftEffect $ log $ "tx browser: transaction hash to be visited: " <> urlHash
-      _ <- io.query $ H.tell (LoadTransactionsThenView Ex.endpointUrl urlHash)
-      pure unit
+    TxHome (Just hash) -> loadTransactionsThenView io Ex.endpointUrl hash
+    ApiRoute (NamespaceR hash) endpointUrl -> loadTransactionsThenView io endpointUrl hash
+    ApiRoute (WiringR    hash) endpointUrl -> loadTransactionsThenView io endpointUrl hash
+    ApiRoute (FiringR    hash) endpointUrl -> loadTransactionsThenView io endpointUrl hash
+    ApiRoute (DiagramR   hash _ _) endpointUrl -> loadTransactionsThenView io endpointUrl hash
+    ApiRoute (NetR       hash _ _) endpointUrl -> loadTransactionsThenView io endpointUrl hash
     _ -> pure unit
 
   pure io
   where
+    loadTransactionsThenView io endpointUrl hash = do
+      liftEffect $ log $ "tx browser: transaction hash to be visited: " <> hash
+      _ <- io.query $ H.tell (LoadTransactionsThenView endpointUrl hash)
+      pure unit
+
     initialState route nav =
       { title:       "Statebox Transaction Browser"
       , msg:         "Welcome to the Statebox Transaction Browser!"

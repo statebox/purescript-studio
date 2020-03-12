@@ -1,7 +1,7 @@
 module View.Studio.Main where
 
 import Prelude
-import Control.Coroutine
+import Control.Coroutine (consumer)
 import Data.Either (either)
 import Data.Maybe
 import Data.Tuple.Nested ((/\))
@@ -10,15 +10,14 @@ import Effect.Aff
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Halogen as H
-import Halogen.Aff (awaitBody, runHalogenAff)
+import Halogen.Aff (awaitBody)
 import Halogen.VDom.Driver (runUI)
 import Routing.Duplex (parse)
 import Routing.PushState (makeInterface)
 
 import View.Model
 import View.Studio as Studio
-import View.Studio (Query(LoadTransactionsThenView))
-import View.Studio.Model.Route (RouteF(Home), Route, codex)
+import View.Studio.Model.Route (RouteF(Home), codex)
 
 import ExampleData as Ex
 

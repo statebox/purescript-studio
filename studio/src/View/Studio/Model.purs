@@ -72,7 +72,7 @@ resolveRoute route state = case route of
   Home                        -> pure $ ResolvedHome state.projects
   TxHome       _              -> pure $ ResolvedTxHome state.projects
   ProjectRoute projectName pr -> findProject state.projects projectName >>= resolveProjectRoute pr state
-  ApiRoute     x              -> resolveApiRoute x state.hashSpace
+  ApiRoute     x endpointUrl  -> resolveApiRoute endpointUrl x state.hashSpace
 
 resolveProjectRoute :: ProjectRoute -> State -> Project -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveProjectRoute route state project = case route of
@@ -87,16 +87,16 @@ resolveProjectRoute route state project = case route of
                               pure $ ResolvedDiagram diagram node
   KDMonCatR str         -> ResolvedKDMonCat <$> findKDMonCat project str
 
-resolveApiRoute :: ApiRoute -> AdjacencySpace HashStr TxSum -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
-resolveApiRoute route hashSpace = case route of
-  UberRootR  url                    -> pure $ ResolvedUberRoot url
+resolveApiRoute :: URL -> ApiRoute -> AdjacencySpace HashStr TxSum -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveApiRoute endpointUrl route hashSpace = case route of
+  UberRootR                         -> pure $ ResolvedUberRoot endpointUrl
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
-  WiringR    x                      -> ResolvedWiring x <$> TxCache.findWiringTx hashSpace x.hash
-  FiringR    x                      -> ResolvedFiring x <$> firingTxM <*> pure execTrace
+  WiringR    hash                   -> ResolvedWiring { hash, endpointUrl } <$> TxCache.findWiringTx hashSpace hash
+  FiringR    hash                   -> ResolvedFiring { hash, endpointUrl } <$> firingTxM <*> pure execTrace
     where
-      firingTxM = TxCache.findFiringTx hashSpace x.hash
-      execTrace = TxCache.findExecutionTrace hashSpace x.hash execHash
-      execHash  = firingTxM >>= _.firing.execution # fromMaybe x.hash
+      firingTxM = TxCache.findFiringTx hashSpace hash
+      execTrace = TxCache.findExecutionTrace hashSpace hash execHash
+      execHash  = firingTxM >>= _.firing.execution # fromMaybe hash
   DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> TxCache.findDiagramInfo hashSpace wiringHash ix
   NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> TxCache.findNetInfo     hashSpace wiringHash ix
 

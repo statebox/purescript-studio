@@ -17,14 +17,14 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (a, br, button, div, fieldset, hr, h1, img, input, legend, li, nav, ol, p, slot, span, text, ul)
+import Halogen.HTML (a, button, div, fieldset, h1, input, legend, li, nav, ol, p_, slot, span, text, ul)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
-import Halogen.HTML.Properties (classes, src, href, placeholder, value, tabIndex, type_, InputType(InputText))
+import Halogen.HTML.Properties (classes, href, placeholder, value, tabIndex, type_, InputType(InputText))
 
 import Language.Statebox.Wiring.Generator.DiagramV2.Operators (fromOperators, toPixel) as DiagramV2
 import TreeMenu as TreeMenu
-import TreeMenu (mkItem, MenuTree, Item)
+import TreeMenu (mkItem, MenuTree, Item, mapMenuTreeRoutes)
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
 import Statebox.Core.Types (NetsAndDiagramsIndex(..))
 import View.Auth.RolesEditor as RolesEditor
@@ -92,11 +92,10 @@ contentView apiUrl route = case route of
 
   ResolvedProject project ->
     div []
-        [ p [] [ text $ "Project '" <> project.name <> "'" ]
-        , p []
-            [ button [ onClick \_ -> Just CreateKDMonCat ]
-                     [ text "Create new KDMonCat diagram" ]
-            ]
+        [ p_ [ text $ "Project '" <> project.name <> "'" ]
+        , p_ [ button [ onClick \_ -> Just CreateKDMonCat ]
+                      [ text "Create new KDMonCat diagram" ]
+             ]
         ]
 
   ResolvedTypes project ->
@@ -151,10 +150,10 @@ routeBreadcrumbs route =
   nav [ classes [ ClassName "stbx-breadcrumbs" ] ]
       [ ol [] $
            crumb <$> case route of
-                       Home                          -> [ "Home" ]
-                       TxHome       _                -> [ "Home" ]
-                       ProjectRoute projectName pr   -> [ projectName ] <> projectRouteBreadcrumbs pr
-                       ApiRoute     apiRoute         -> apiRouteBreadcrumbs apiRoute
+                       Home                              -> [ "Home" ]
+                       TxHome       _                    -> [ "Home" ]
+                       ProjectRoute projectName pr       -> [ projectName ] <> projectRouteBreadcrumbs pr
+                       ApiRoute     apiRoute endpointUrl -> apiRouteBreadcrumbs endpointUrl apiRoute
       ]
   where
     crumb str = li [] [ a [ href "#" ] [ text str ] ]
@@ -168,12 +167,12 @@ routeBreadcrumbs route =
       Diagram    name _ -> [ name ]
       KDMonCatR  name   -> [ name ]
 
-    apiRouteBreadcrumbs :: ApiRoute -> Array _
-    apiRouteBreadcrumbs = case _ of
-      UberRootR  url                -> [ "über-namespace", url ]
+    apiRouteBreadcrumbs :: URL -> ApiRoute -> Array _
+    apiRouteBreadcrumbs endpointUrl = case _ of
+      UberRootR                     -> [ "über-namespace", endpointUrl ]
       NamespaceR hash               -> [ "namespace", shortHash hash ]
-      WiringR    x                  -> [ x.endpointUrl, "wiring " <> shortHash x.hash ]
-      FiringR    x                  -> [ x.endpointUrl, shortHash x.hash ]
+      WiringR    x                  -> [ endpointUrl, "wiring " <> shortHash x ]
+      FiringR    x                  -> [ endpointUrl, shortHash x ]
       DiagramR   hash ix name       -> [ shortHash hash, "diagram " <> show ix <> " " <> name ]
       NetR       hash ix name       -> [ shortHash hash, "net "     <> show ix <> " " <> name ]
 
@@ -200,66 +199,64 @@ navBar title menuItems =
 
 stateMenu :: State -> MenuTree Route
 stateMenu { projects, apiUrl, hashSpace } =
-  mkItem "Studio" Nothing :< (txItems <> projectItems)
+  mkItem "Studio" Nothing :< (map (mapMenuTreeRoutes (\x -> ApiRoute x apiUrl)) txItems <> projectItems)
   where
     txItems        = AdjacencySpace.unsafeToTree (transactionMenu apiUrl) hashSpace <$> Set.toUnfoldable (AdjacencySpace.rootKeys hashSpace)
     projectItems   = projectMenu <$> projects
 
 projectMenu :: Project -> MenuTree Route
-projectMenu p =
-  mkItem p.name (Just $ ProjectRoute p.name $ ProjectHome) :<
-    [ mkItem "Types"          (Just $ ProjectRoute p.name $ Types) :< []
-    , mkItem "Authorisations" (Just $ ProjectRoute p.name $ Auths) :< []
-    , mkItem "Nets"           (Nothing)             :< fromNets     p p.nets
-    , mkItem "Diagrams"       (Nothing)             :< fromDiagrams p p.diagrams
-    , mkItem "KDMonCats"      (Nothing)             :< fromKDMonCats  (p.kdmoncats # Map.toUnfoldable)
+projectMenu p = mapMenuTreeRoutes (ProjectRoute p.name) $
+  mkItem p.name (Just ProjectHome) :<
+    [ mkItem "Types"          (Just Types) :< []
+    , mkItem "Authorisations" (Just Auths) :< []
+    , mkItem "Nets"           (Nothing)    :< fromNets      p.nets
+    , mkItem "Diagrams"       (Nothing)    :< fromDiagrams  p.diagrams
+    , mkItem "KDMonCats"      (Nothing)    :< fromKDMonCats (p.kdmoncats # Map.toUnfoldable)
     ]
   where
-    fromNets      p nets  = (\n            -> mkItem n.name (Just $ ProjectRoute p.name $ Net       n.name        ) :< []) <$> nets
-    fromDiagrams  p diags = (\d            -> mkItem d.name (Just $ ProjectRoute p.name $ Diagram   d.name Nothing) :< []) <$> diags
-    fromKDMonCats   diags = (\(dname /\ d) -> mkItem dname  (Just $ ProjectRoute p.name $ KDMonCatR dname         ) :< []) <$> diags
+    fromNets      nets  = (\n            -> mkItem n.name (Just $ Net       n.name        ) :< []) <$> nets
+    fromDiagrams  diags = (\d            -> mkItem d.name (Just $ Diagram   d.name Nothing) :< []) <$> diags
+    fromKDMonCats diags = (\(dname /\ d) -> mkItem dname  (Just $ KDMonCatR dname         ) :< []) <$> diags
 
 -- It's not terribly efficient to construct a Cofree (sub)tree first only to subsequently flatten it, as we do with firings.
-transactionMenu :: URL -> AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Route) -> MenuTree Route
-transactionMenu apiUrl t hash valueMaybe itemKids =
-  maybe (mkUnloadedItem itemKids)
-        (\tx -> mkItem2 hash tx itemKids)
-        valueMaybe
+transactionMenu :: URL -> AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree ApiRoute) -> MenuTree ApiRoute
+transactionMenu endpointUrl t hash valueMaybe itemKids =
+  maybe mkUnloadedItem mkItem2 valueMaybe
   where
-    mkItem2 :: HashStr -> TxSum -> Array (MenuTree Route) -> MenuTree Route
-    mkItem2 hash tx itemKids = evalTxSum
+    mkItem2 :: TxSum -> MenuTree ApiRoute
+    mkItem2 tx = evalTxSum
       (\x -> mkItem ("☁️ "  <> shortHash hash)
-                    (Just $ ApiRoute $ UberRootR apiUrl)
+                    (Just UberRootR)
                     :< itemKids
       )
       (\x -> mkItem ("🌐 "  <> shortHash hash)
-                    (Just $ ApiRoute $ NamespaceR x.root.message)
+                    (Just $ NamespaceR x.root.message)
                     :< itemKids
       )
       (\w -> mkItem ("🥨 " <> shortHash hash)
-                    (Just $ ApiRoute $ WiringR { name: hash, endpointUrl: apiUrl, hash: hash })
+                    (Just $ WiringR hash)
                     :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
       )
       (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash hash)
-                    (Just $ ApiRoute $ FiringR { name: hash, endpointUrl: apiUrl, hash: hash })
+                    (Just $ FiringR hash)
                     :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
       )
       tx
       where
-        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ ApiRoute $ NetR     hash (NetsAndDiagramsIndex ix) n.name) :< []) nets
-        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ ApiRoute $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) :< []) diags
+        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash (NetsAndDiagramsIndex ix) n.name) :< []) nets
+        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) :< []) diags
 
-        flattenTree :: MenuTree Route -> Array (MenuTree Route)
+        flattenTree :: MenuTree ApiRoute -> Array (MenuTree ApiRoute)
         flattenTree = treeifyElems <<< flattenTree'
           where
-            treeifyElems :: Array (Item Route) -> Array (MenuTree Route)
+            treeifyElems :: Array (Item ApiRoute) -> Array (MenuTree ApiRoute)
             treeifyElems = map pure
 
-            flattenTree' :: MenuTree Route -> Array (Item Route)
+            flattenTree' :: MenuTree ApiRoute -> Array (Item ApiRoute)
             flattenTree' = foldr cons []
 
-    mkUnloadedItem :: Array (MenuTree Route) -> MenuTree Route
-    mkUnloadedItem itemKids = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
+    mkUnloadedItem :: MenuTree ApiRoute
+    mkUnloadedItem = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
       where
         -- TODO we need to return an ApiRoute currently, but we may want to return a (LoadTransaction ... :: Query) instead,
         -- so we could load unloaded hashes from the menu.
@@ -290,20 +287,18 @@ homeForm apiUrl =
   div []
       [ fieldset []
                  [ legend [] [ text "Please select an object from the menu, or enter a transaction hash below." ]
-                 , p []
-                     [ input [ value ""
-                             , type_ InputText
-                             , placeholder "Enter Statebox Cloud transaction hash"
-                             , onValueInput $ Just <<< LoadTransactions apiUrl
-                             ]
-                     ]
-                 , p []
-                     [ input [ value apiUrl
-                             , type_ InputText
-                             , placeholder "Statebox API URL"
-                             , onValueInput $ Just <<< SetApiUrl
-                             ]
-                     ]
+                 , p_ [ input [ value ""
+                              , type_ InputText
+                              , placeholder "Enter Statebox Cloud transaction hash"
+                              , onValueInput $ Just <<< LoadTransactions apiUrl
+                              ]
+                      ]
+                 , p_ [ input [ value apiUrl
+                              , type_ InputText
+                              , placeholder "Statebox API URL"
+                              , onValueInput $ Just <<< SetApiUrl
+                              ]
+                      ]
                  ]
               --  , fieldset []
               --             [ legend [] [ text "Alternatively, you can load a PNPRO file." ]

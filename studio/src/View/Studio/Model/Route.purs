@@ -5,7 +5,7 @@ import Affjax (URL)
 import Data.Either.Nested (type (\/))
 import Data.Maybe (Maybe)
 import Data.Newtype
-import Data.Profunctor (dimap)
+import Data.Lens.Iso.Newtype
 import Data.Tuple.Nested (type (/\))
 import Data.Generic.Rep
 import Routing.Duplex (RouteDuplex', path, root, segment, string, int, optional, param, params)
@@ -30,7 +30,7 @@ data RouteF p d n
   = Home
   | TxHome (Maybe HashStr)
   | ProjectRoute p (ProjectRouteF d n)
-  | ApiRoute ApiRoute
+  | ApiRoute ApiRoute URL
 
 derive instance eqRouteF :: (Eq p, Eq d, Eq n) => Eq (RouteF p d n)
 derive instance ordRouteF :: (Ord p, Ord d, Ord n) => Ord (RouteF p d n)
@@ -41,7 +41,7 @@ codex = root $ sum
   { "Home": noArgs
   , "TxHome" : "tx" / optional segment
   , "ProjectRoute": "project" / segment / projectCodex
-  , "ApiRoute": "api" / apiCodex
+  , "ApiRoute": "api" / apiCodex / param "endpointUrl"
   }
 
 -- Project-related routes
@@ -70,10 +70,10 @@ projectCodex = sum
 
 -- | Statebox Core/API-related routes
 data ApiRoute
-  = UberRootR  URL
+  = UberRootR
   | NamespaceR HashStr
-  | WiringR    WiringFiringInfo
-  | FiringR    WiringFiringInfo
+  | WiringR    HashStr
+  | FiringR    HashStr
   | DiagramR   HashStr NetsAndDiagramsIndex String
   | NetR       HashStr NetsAndDiagramsIndex String
 
@@ -83,10 +83,10 @@ derive instance genericApiRoute :: Generic ApiRoute _
 
 apiCodex ∷ RouteDuplex' ApiRoute
 apiCodex = sum
-  { "UberRootR": path "uber" $ param "url"
+  { "UberRootR": noArgs
   , "NamespaceR": path "namespace" $ param "hash"
-  , "WiringR": path "wiring" $ params { name: string, endpointUrl: string, hash: string }
-  , "FiringR": path "firing" $ params { name: string, endpointUrl: string, hash: string }
+  , "WiringR": "wiring" / segment
+  , "FiringR": "firing" / segment
   , "DiagramR": "diagram" / segment / newtype_ (int segment) / segment
   , "NetR": "netr" / segment / newtype_ (int segment) / segment
   }
@@ -119,11 +119,11 @@ data ResolvedRouteF p d n
 --------------------------------------------------------------------------------
 
 fromTxSum :: ∀ p d n. URL -> HashStr -> TxSum -> RouteF p d n
-fromTxSum endpointUrl hash tx = tx # ApiRoute <<< evalTxSum
-  (\x -> UberRootR endpointUrl)
+fromTxSum endpointUrl hash tx = tx # (\x -> ApiRoute x endpointUrl) <<< evalTxSum
+  (\x -> UberRootR)
   (\x -> NamespaceR x.root.message)
-  (\w -> WiringR { name: hash, endpointUrl, hash })
-  (\f -> FiringR { name: hash, endpointUrl, hash })
+  (\w -> WiringR hash)
+  (\f -> FiringR hash)
 
 --------------------------------------------------------------------------------
 
@@ -142,8 +142,7 @@ nodeIdentCodex = root $ sum
 --------------------------------------------------------------------------------
 
 type WiringFiringInfo =
-  { name        :: String
-  , endpointUrl :: URL
+  { endpointUrl :: URL
   , hash        :: HashStr
   }
 
@@ -153,4 +152,4 @@ type NamespaceInfo =
   }
 
 newtype_ :: forall a b. Newtype a b => RouteDuplex' b -> RouteDuplex' a
-newtype_ = dimap unwrap wrap
+newtype_ = _Newtype
