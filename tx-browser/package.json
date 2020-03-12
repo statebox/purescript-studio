@@ -15,7 +15,7 @@
     "docs": "spago docs",
     "repl": "spago repl",
     "serve": "parcel html/index.html",
-    "bundle": "npm run build && rm -rf dist && parcel build html/index.html --public-url . --no-source-maps"
+    "bundle": "npm run build && rm -rf dist && parcel build html/index.html --no-source-maps"
   },
   "keywords": [
     "statebox",
