@@ -34,7 +34,9 @@ suite = do
         Nothing                -> fail "invalid path"
         Just documentReference ->
           let document = DocumentData (fromFoldable [ "text"    /\ (PrimitiveDocument (PVText    "some text"))
-                                                    , "integer" /\ (PrimitiveDocument (PVInteger 42         ))])
+                                                    , "integer" /\ (PrimitiveDocument (PVInteger 42         ))
+                                                    , "float"   /\ (PrimitiveDocument (PVFloat   273.15     ))
+                                                    , "bool"    /\ (PrimitiveDocument (PVBoolean true       ))])
               setPromise = set documentReference document Nothing
               getPromise = get documentReference Nothing
           in do
