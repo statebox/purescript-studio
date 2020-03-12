@@ -11,3 +11,6 @@ instance encodeJsonFSByteString :: EncodeJson FSByteString where
 
 instance showFSByteString :: Show FSByteString where
   show (FSByteString bs) = show bs
+
+instance eqFSByteString :: Eq FSByteString where
+  eq (FSByteString bs1) (FSByteString bs2) = eq bs1 bs2

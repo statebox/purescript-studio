@@ -16,3 +16,6 @@ instance decodeJsonDocumentData :: DecodeJson DocumentData where
 
 instance showDocumentData :: Show DocumentData where
   show (DocumentData obj) = show obj
+
+instance eqDocumentData :: Eq DocumentData where
+  eq (DocumentData obj1) (DocumentData obj2) = eq obj1 obj2

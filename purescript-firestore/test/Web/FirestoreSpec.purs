@@ -2,10 +2,9 @@ module Test.Web.FirestoreSpec where
 
 import Prelude
 import Control.Promise (toAff)
+import Data.Either (Either(..))
 import Data.Lens as Lens
 import Data.Maybe (Maybe(..))
-import Effect.Class (liftEffect)
-import Effect.Console (log)
 import Foreign.Object (singleton)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
@@ -16,6 +15,7 @@ import Web.Firestore.DocumentValue (DocumentValue(..))
 import Web.Firestore.Options (apiKey, appId, authDomain, databaseUrl, messagingSenderId, options, storageBucket)
 import Web.Firestore.Path (pathFromString)
 import Web.Firestore.PrimitiveValue (PrimitiveValue(..))
+import Web.Firestore.SetOptions (MergeFields(..), SetOptions(..), buildFieldPath)
 
 suite :: Spec Unit
 suite = do
@@ -35,12 +35,11 @@ suite = do
         Nothing                -> fail "invalid path"
         Just documentReference ->
           let document = DocumentData (singleton "foo" (PrimitiveDocument (PVText "bar")))
-              setPromise = set documentReference document Nothing
+              setPromise = set documentReference document (Just $ MergeFieldsOption (MergeFields [Right (buildFieldPath ["foo"])]))
               getPromise = get documentReference Nothing
           in do
             toAff setPromise
             snapshot <- toAff getPromise
-            let result = show $ snapshotData snapshot Nothing
-            liftEffect $ log $ show (snapshotData snapshot Nothing)
+            let result = snapshotData snapshot Nothing
 
-            1 `shouldEqual` 1
+            result `shouldEqual` Just document

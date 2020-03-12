@@ -14,6 +14,9 @@ instance decodeJsonLat :: DecodeJson Lat where
 instance showLat :: Show Lat where
   show (Lat n) = show n
 
+instance eqLat :: Eq Lat where
+  eq (Lat n1) (Lat n2) = eq n1 n2
+
 newtype Lon = Lon Number
 
 instance encodeJsonLon :: EncodeJson Lon where
@@ -24,3 +27,6 @@ instance decodeJsonLon :: DecodeJson Lon where
 
 instance showLon :: Show Lon where
   show (Lon n) = show n
+
+instance eqLon :: Eq Lon where
+  eq (Lon n1) (Lon n2) = eq n1 n2

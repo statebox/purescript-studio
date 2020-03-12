@@ -42,7 +42,7 @@ instance decodeJsonPrimitiveValue :: DecodeJson PrimitiveValue where
     <|> ((\({lat: lat, lon: lon} :: {lat:: Lat, lon:: Lon}) -> PVGeographicalPoint lat lon) <$> decodeJson json)
     <|> (PVInteger           <$> decodeJson json)
     <|> (caseJsonNull (Left "not null") (const $ Right PVNull) json)
-    <|> (PVReference         <$> decodeJson json) -- TODO: parse only strings with the correct format
+    -- <|> (PVReference         <$> decodeJson json) -- TODO: parse only strings with the correct format
     <|> (PVText              <$> decodeJson json)
 
 instance showPrimitiveValue :: Show PrimitiveValue where
@@ -56,3 +56,15 @@ instance showPrimitiveValue :: Show PrimitiveValue where
     PVNull                      -> "null"
     PVReference         s       -> show s
     PVText              s       -> show s
+
+instance eqPrimitiveValue :: Eq PrimitiveValue where
+  eq (PVBoolean           b1       ) (PVBoolean           b2       ) = eq b1  b2
+  eq (PVBytes             bs1      ) (PVBytes             bs2      ) = eq bs1 bs2
+  eq (PVDateTime          dt1      ) (PVDateTime          dt2      ) = eq dt1 dt2
+  eq (PVFloat             f1       ) (PVFloat             f2       ) = eq f1  f2
+  eq (PVGeographicalPoint lat1 lon1) (PVGeographicalPoint lat2 lon2) = eq lat1 lat2 && eq lon1 lon2
+  eq (PVInteger           i1       ) (PVInteger           i2       ) = eq i1  i2
+  eq (PVNull                       ) (PVNull                       ) = true
+  eq (PVReference         r1       ) (PVReference         r2       ) = eq r1  r2
+  eq (PVText              t1       ) (PVText              t2       ) = eq t1  t2
+  eq _                               _                               = false

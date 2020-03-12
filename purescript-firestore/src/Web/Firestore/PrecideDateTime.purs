@@ -11,3 +11,6 @@ instance encodeJsonFSPreciseDateTime :: EncodeJson FSPreciseDateTime where
 
 instance showFSPreciseDateTime :: Show FSPreciseDateTime where
   show (FSPreciseDateTime dt) = show dt
+
+instance eqFSPreciseDateTime :: Eq FSPreciseDateTime where
+  eq (FSPreciseDateTime dt1) (FSPreciseDateTime dt2) = eq dt1 dt2
