@@ -35,10 +35,18 @@ const wrapSetOptionsInFieldPath = function (setOptions) {
 }
 
 exports.setImpl = function (documentReference, data, setOptions) {
+  let ret = undefined
+
   // optional arguments should be passed as `undefined` and not as `null`
   setOptions = setOptions === null ? undefined : wrapSetOptionsInFieldPath(setOptions)
 
-  return documentReference.set(data, setOptions)
+  try {
+    ret = documentReference.set(data, setOptions)
+  } catch (firestoreError) {
+    ret = Promise.reject(firestoreError)
+  }
+
+  return ret
 }
 
 exports.getImpl = function (documentReference, getOptions) {
