@@ -16,6 +16,7 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested (type (/\), (/\))
 import Debug.Trace (spy)
 import Record as Record
+import Routing.PushState (PushStateInterface)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
@@ -61,16 +62,17 @@ type State =
   , msg         :: String
   , apiUrl      :: URL
   , menuItems   :: Array (String /\ Maybe Route)
+  , nav         :: PushStateInterface
   }
 
 --------------------------------------------------------------------------------
 
 resolveRoute :: Route -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveRoute route state = case route of
-  Home                              -> pure $ ResolvedHome state.projects
-  TxHome                            -> pure $ ResolvedTxHome state.projects
-  ProjectRoute projectName pr       -> findProject state.projects projectName >>= resolveProjectRoute pr state
-  ApiRoute x                        -> resolveApiRoute x state.hashSpace
+  Home                        -> pure $ ResolvedHome state.projects
+  TxHome       _              -> pure $ ResolvedTxHome state.projects
+  ProjectRoute projectName pr -> findProject state.projects projectName >>= resolveProjectRoute pr state
+  ApiRoute     x              -> resolveApiRoute x state.hashSpace
 
 resolveProjectRoute :: ProjectRoute -> State -> Project -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveProjectRoute route state project = case route of

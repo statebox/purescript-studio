@@ -22,10 +22,12 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Effect.Random (random)
+import Foreign (unsafeToForeign)
 import Halogen as H
 import Halogen (mkEval, defaultEval)
 import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
+import Routing.Duplex (print)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Language.Statebox.Wiring.Generator.DiagramV2.Operators as DiagramV2
@@ -86,7 +88,8 @@ handleAction = case _ of
     handleAction (SelectRoute route)
 
   SelectRoute route -> do
-    -- H.liftEffect $ log $ "route = " <> show route
+    { nav } <- H.get
+    H.liftEffect $ nav.pushState (unsafeToForeign {}) $ print Route.codex route
     H.modify_ \state -> state { route = route }
 
   SetApiUrl url -> do
@@ -192,7 +195,7 @@ modifyProject fn = do
           tell $ Disj true
           let newProject = fn proute p
           lift $ H.raise $ ProjectUpserted newProject
-          pure $ newProject
+          pure newProject
         else pure p
       guard changed $ H.modify_ (_ { projects = projects })
     _ -> pure unit

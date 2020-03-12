@@ -12,12 +12,13 @@ import Effect.Console (log)
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
-import Routing.Hash as Routing
+import Routing.Duplex (parse)
+import Routing.PushState (makeInterface)
 
 import View.Model
 import View.Studio as Studio
 import View.Studio (Query(LoadTransactionsThenView))
-import View.Studio.Model.Route (RouteF(Home))
+import View.Studio.Model.Route (RouteF(Home), Route, codex)
 
 import ExampleData as Ex
 
@@ -35,7 +36,13 @@ main :: User -> EventHandler -> (API -> Effect Unit) -> Effect Unit
 main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) do
   -- liftEffect $ log $ "studio: ex project: " <> Ex.project1
   body <- awaitBody
-  io <- runUI Studio.ui initialState body
+
+  nav <- liftEffect $ makeInterface
+  { path } <- liftEffect $ nav.locationState
+  let initialRoute = either (const Home) identity $ parse codex path
+
+  io <- runUI Studio.ui (initialState initialRoute nav) body
+
   io.subscribe $ consumer $ \output -> do
     _ <- liftEffect $ case output of
       Studio.ProjectUpserted project -> eventHandler.onProjectUpserted $ toProjectJS user project
@@ -47,14 +54,14 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
     { addProject: \project -> io.query $ H.tell (Studio.AddProject $ fromProjectJS project)
     }
   where
-    initialState :: Studio.Input
-    initialState =
+    initialState route nav =
       { title:       "Statebox Studio"
       , msg:         "Welcome to Statebox Studio!"
       , projects:    mempty
       , hashSpace:   mempty
       , apiUrl:      Ex.endpointUrl
-      , route:       Home
+      , route
+      , nav
       , menuItems:   [ "Home"    /\ Just Home
                      , "Project" /\ Nothing
                      , "Help"    /\ Nothing

@@ -152,7 +152,7 @@ routeBreadcrumbs route =
       [ ol [] $
            crumb <$> case route of
                        Home                          -> [ "Home" ]
-                       TxHome                        -> [ "Home" ]
+                       TxHome       _                -> [ "Home" ]
                        ProjectRoute projectName pr   -> [ projectName ] <> projectRouteBreadcrumbs pr
                        ApiRoute     apiRoute         -> apiRouteBreadcrumbs apiRoute
       ]
@@ -305,16 +305,16 @@ homeForm apiUrl =
                              ]
                      ]
                  ]
-               , fieldset []
-                          [ legend [] [ text "Alternatively, you can load a PNPRO file." ]
-                          , p []
-                              [ input [ value ""
-                                      , type_ InputText
-                                      , placeholder "Enter http URL to PNPRO file"
-                                      , onValueInput $ Just <<< LoadPNPRO
-                                      ]
-                              ]
-                          ]
+              --  , fieldset []
+              --             [ legend [] [ text "Alternatively, you can load a PNPRO file." ]
+              --             , p []
+              --                 [ input [ value ""
+              --                         , type_ InputText
+              --                         , placeholder "Enter http URL to PNPRO file"
+              --                         , onValueInput $ Just <<< LoadPNPRO
+              --                         ]
+              --                 ]
+              --             ]
       ]
 
 --------------------------------------------------------------------------------
