@@ -6,6 +6,7 @@ import Data.Argonaut (class DecodeJson, class EncodeJson, Json, decodeJson, enco
 import Data.Either (either)
 import Data.Function.Uncurried (Fn1, Fn2, Fn3, runFn1, runFn2, runFn3)
 import Data.Maybe (Maybe(..))
+import Data.Nullable (Nullable, toNullable)
 
 import Web.Firestore.DocumentData (DocumentData)
 import Web.Firestore.GetOptions (GetOptions)
@@ -38,10 +39,10 @@ foreign import docImpl :: Fn2 Firestore String (DocumentReference DocumentData)
 doc :: Firestore -> Path -> DocumentReference DocumentData
 doc fs path = runFn2 docImpl fs (show path)
 
-foreign import setImpl :: forall a. Fn3 (DocumentReference a) Json Json (Promise Unit)
+foreign import setImpl :: forall a. Fn3 (DocumentReference a) Json (Nullable SetOptions) (Promise Unit)
 
 set :: forall a. EncodeJson a => DocumentReference a -> a -> Maybe SetOptions -> Promise Unit
-set docRef a options = runFn3 setImpl docRef (encodeJson a) (encodeJson options)
+set docRef a options = runFn3 setImpl docRef (encodeJson a) (toNullable options)
 
 -- TODO: should this be a newtype or a foreign import?
 -- newtype DocumentSnapshot a = DocumentSnapshot a

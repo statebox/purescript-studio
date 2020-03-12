@@ -10,6 +10,7 @@
     , "foreign-object"
     , "functions"
     , "maybe"
+    , "nullable"
     , "precise-datetime"
     , "psci-support"
     , "spec"

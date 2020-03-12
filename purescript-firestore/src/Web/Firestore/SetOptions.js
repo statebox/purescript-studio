@@ -2,10 +2,22 @@
 
 const firebase = require('firebase')
 
-exports.buildFieldPath = function (fieldNames) {
+exports.stringMergeField = function (field) {
+  return field
+}
+
+exports.fieldPathMergeField = function (fieldNames) {
   return new firebase.firestore.FieldPath(...fieldNames)
 }
 
-exports.fieldNames = function (fieldPath) {
-  return fieldPath._internalPath.segments
+exports.mergeOption = function (merge) {
+  return {
+    merge: merge
+  }
+}
+
+exports.mergeFieldsOption = function (mergeFields) {
+  return {
+    mergeFields: mergeFields
+  }
 }

@@ -1,31 +1,17 @@
 module Web.Firestore.SetOptions where
 
-import Prelude
-import Data.Argonaut (class EncodeJson, encodeJson, fromArray, jsonEmptyObject, (:=), (~>))
-import Data.Either (either)
-import Data.Either.Nested (type (\/))
-
 type Merge = Boolean
 
-foreign import data FieldPath :: Type
+foreign import data MergeField :: Type
 
-foreign import buildFieldPath :: Array String -> FieldPath
+foreign import stringMergeField :: String -> MergeField
 
-foreign import fieldNames :: FieldPath -> Array String
+foreign import fieldPathMergeField :: Array String -> MergeField
 
-instance encodeJsonFieldPath :: EncodeJson FieldPath where
-  encodeJson fieldPath = encodeJson $ fieldNames fieldPath
+type MergeFields = Array MergeField
 
-newtype MergeFields = MergeFields (Array (String \/ FieldPath))
+foreign import data SetOptions :: Type
 
-instance encodeJsonMergeFields :: EncodeJson MergeFields where
-  encodeJson (MergeFields fields) = fromArray $ either encodeJson encodeJson <$> fields
+foreign import mergeOption :: Merge -> SetOptions
 
-data SetOptions
-  = MergeOption Merge
-  | MergeFieldsOption MergeFields
-
-instance encodeJsonSetOptions :: EncodeJson SetOptions where
-  encodeJson = case _ of
-    MergeOption       merge       -> "merge"       := encodeJson merge       ~> jsonEmptyObject
-    MergeFieldsOption mergeFields -> "mergeFields" := encodeJson mergeFields ~> jsonEmptyObject
+foreign import mergeFieldsOption :: MergeFields -> SetOptions

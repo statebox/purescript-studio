@@ -17,28 +17,11 @@ exports.docImpl = function (firestore, documentPath) {
   return firestore.doc(documentPath)
 }
 
-// TODO: such an approach looks very brittle
-const wrapSetOptionsInFieldPath = function (setOptions) {
-  if (setOptions.mergeFields !== undefined) {
-    const mergeFields = setOptions.mergeFields.map(function (element) {
-      if (Array.isArray(element)) {
-        element = new firebase.firestore.FieldPath(...element)
-      }
-
-      return element
-    })
-
-    setOptions.mergeFields = mergeFields
-  }
-
-  return setOptions
-}
-
 exports.setImpl = function (documentReference, data, setOptions) {
   let ret = undefined
 
   // optional arguments should be passed as `undefined` and not as `null`
-  setOptions = setOptions === null ? undefined : wrapSetOptionsInFieldPath(setOptions)
+  setOptions = setOptions === null ? undefined : setOptions
 
   try {
     ret = documentReference.set(data, setOptions)

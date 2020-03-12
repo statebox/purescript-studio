@@ -15,6 +15,7 @@ import Web.Firestore.DocumentValue (DocumentValue(..))
 import Web.Firestore.Options (apiKey, appId, authDomain, databaseUrl, messagingSenderId, options, storageBucket)
 import Web.Firestore.Path (pathFromString)
 import Web.Firestore.PrimitiveValue (PrimitiveValue(..))
+import Web.Firestore.SetOptions (mergeFieldsOption, stringMergeField, fieldPathMergeField)
 
 suite :: Spec Unit
 suite = do
@@ -37,7 +38,7 @@ suite = do
                                                     , "integer" /\ (PrimitiveDocument (PVInteger 42         ))
                                                     , "float"   /\ (PrimitiveDocument (PVFloat   273.15     ))
                                                     , "bool"    /\ (PrimitiveDocument (PVBoolean true       ))])
-              setPromise = set documentReference document Nothing
+              setPromise = set documentReference document (Just $ mergeFieldsOption [stringMergeField "text", fieldPathMergeField ["float"]])
               getPromise = get documentReference Nothing
           in do
             toAff setPromise
