@@ -2,10 +2,10 @@ module Test.Web.FirestoreSpec where
 
 import Prelude
 import Control.Promise (toAff)
-import Data.Either (Either(..))
 import Data.Lens as Lens
 import Data.Maybe (Maybe(..))
-import Foreign.Object (singleton)
+import Data.Tuple.Nested ((/\))
+import Foreign.Object (fromFoldable)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (fail, shouldEqual)
 
@@ -15,7 +15,6 @@ import Web.Firestore.DocumentValue (DocumentValue(..))
 import Web.Firestore.Options (apiKey, appId, authDomain, databaseUrl, messagingSenderId, options, storageBucket)
 import Web.Firestore.Path (pathFromString)
 import Web.Firestore.PrimitiveValue (PrimitiveValue(..))
-import Web.Firestore.SetOptions (MergeFields(..), SetOptions(..), buildFieldPath)
 
 suite :: Spec Unit
 suite = do
@@ -34,8 +33,9 @@ suite = do
       case maybeDocumentReference of
         Nothing                -> fail "invalid path"
         Just documentReference ->
-          let document = DocumentData (singleton "foo" (PrimitiveDocument (PVText "bar")))
-              setPromise = set documentReference document (Just $ MergeFieldsOption (MergeFields [Right (buildFieldPath ["foo"])]))
+          let document = DocumentData (fromFoldable [ "text"    /\ (PrimitiveDocument (PVText    "some text"))
+                                                    , "integer" /\ (PrimitiveDocument (PVInteger 42         ))])
+              setPromise = set documentReference document Nothing
               getPromise = get documentReference Nothing
           in do
             toAff setPromise

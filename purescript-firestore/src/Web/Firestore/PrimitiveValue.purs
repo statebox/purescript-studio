@@ -38,9 +38,9 @@ instance decodeJsonPrimitiveValue :: DecodeJson PrimitiveValue where
     =   (PVBoolean           <$> decodeJson json)
     -- <|> (PVBytes             <$> decodeJson json) -- TODO: how do I decode bytes?
     -- <|> (PVDateTime          <$> decodeJson json) -- TODO: how doe we parse a DateTime? how is it represented in Firestore?
+    <|> (PVInteger           <$> decodeJson json)
     <|> (PVFloat             <$> decodeJson json)
     <|> ((\({lat: lat, lon: lon} :: {lat:: Lat, lon:: Lon}) -> PVGeographicalPoint lat lon) <$> decodeJson json)
-    <|> (PVInteger           <$> decodeJson json)
     <|> (caseJsonNull (Left "not null") (const $ Right PVNull) json)
     -- <|> (PVReference         <$> decodeJson json) -- TODO: parse only strings with the correct format
     <|> (PVText              <$> decodeJson json)
