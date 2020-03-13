@@ -1,0 +1,14 @@
+body > div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+body > div > .has-columns {
+    flex: 1;
+}
+tr.css-tx-execution {
+    background: orange;
+}
+tr.css-tx-current {
+    background: pink;
+}

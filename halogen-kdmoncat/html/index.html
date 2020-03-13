@@ -1,0 +1,276 @@
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../../halogen-grid-kit/src/GridKit/KeyHandler.css">
+<style>
+@import "../node_modules/firebaseui/dist/firebaseui.css";
+
+* { box-sizing: border-box; }
+*:focus {
+  outline: none;
+}
+html, body {
+  font-family: sans-serif;
+  background: #eee;
+  color: #444;
+  margin: 0;
+  padding: 0;
+}
+
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 20px;
+}
+.app > a {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  right: 0;
+  bottom: 0;
+  background-image: url(logo-statebox.svg);
+  background-size: 100% 100%;
+  background-origin: content-box;
+  background-repeat: no-repeat;
+  padding: 20px;
+}
+.main {
+  flex: 1;
+  display: flex;
+}
+aside {
+  display: flex;
+  flex-direction: column;
+  width: 25vw;
+  margin: -10px 0 0 20px;
+}
+h2 {
+  font-size: inherit;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+footer {
+  overflow: auto;
+  margin-right: 80px;
+}
+
+
+.kdmoncat-bricks {
+  position: relative;
+  justify-self: stretch;
+  flex: 1;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.kdmoncat-bricks svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.box > rect:first-child {
+  fill: rgba(0, 0, 0, .07);
+  transition: fill 0.3s;
+}
+.kdmoncat-bricks:focus .box.selected > rect:first-child {
+  fill: rgba(0, 112, 204, 0.2);
+}
+.kdmoncat-bricks.show-wires:not(:focus) .box > rect:first-child {
+  fill: rgba(221, 221, 221, 0) !important;
+}
+.inner-box {
+  fill: rgba(255, 255, 255, 0);
+  stroke: rgba(68, 68, 68, 0);
+  stroke-width: 0.01;
+  transition: fill 0.3s, stroke 0.3s;
+}
+.inner-box-text {
+  fill: white;
+  font-size: .4px;
+  font-weight: bold;
+  transition: fill 0.3s;
+}
+.kdmoncat-bricks.show-wires .inner-box {
+  fill: white;
+  stroke: #444;
+}
+.kdmoncat-bricks.show-wires .inner-box-text {
+  fill: #444;
+}
+.selection {
+  fill: none;
+  stroke: rgba(112, 112, 112, 0);
+  stroke-width: 0.02;
+  pointer-events: none;
+  transition: stroke 0.3s;
+}
+.kdmoncat-bricks:focus .selection {
+  stroke: rgba(0, 112, 204, 0.7);
+}
+.object {
+  fill: #444;
+  stroke-width: 0;
+  transition: opacity 0.3s;
+  font-family: 'Times New Roman', Times, serif;
+  font-style: italic;
+  font-size: 0.13px;
+}
+.object.invalid {
+  fill: rgba(204, 0, 0, 1);
+}
+.show-wires path, .show-wires .object circle {
+  opacity: 0;
+}
+.object.equal.valid span.output {
+  display: none;
+}
+.line {
+  stroke: #444;
+  stroke-width: 0.01;
+  fill: none;
+  transition: opacity 0.3s, stroke 0.3s, stroke-width 0.3s;
+}
+.arrowhead {
+  fill: #444;
+}
+.object.invalid .line, .object.invalid .arrowhead {
+  stroke: rgba(204, 0, 0, 1);
+}
+.show-wires .line, .show-wires .arrowhead {
+  opacity: 1;
+}
+.show-bricks .box .line {
+  stroke: rgba(68, 68, 68, 0);
+}
+.kdmoncat-bricks:focus::after {
+  content: 'Press alt to toggle between bricks and wires.';
+  position: absolute;
+  right: 0;
+  top: 100%;
+  font-family: 'Times New Roman', Times, serif;
+  font-style: italic;
+  padding-top: 5px;
+}
+.wires {
+  fill: #444;
+}
+.wires > rect:first-child {
+  opacity: 0;
+}
+.wires .node {
+  stroke: #444;
+  stroke-width: 0.01;
+  z-index: 1;
+}
+.wires .node.white {
+  fill: #fff;
+}
+.kdmoncat-bricks:focus .wires.selected > rect:first-child {
+  fill: rgba(0, 112, 204, 0.1);
+  opacity: 1;
+}
+text.object[text-anchor=start] {
+  transform: translate(0.05px, -0.05px);
+}
+text.object[text-anchor=end] {
+  transform: translate(-0.05px, -0.05px);
+}
+text.object.centered {
+  text-anchor: middle !important;
+  transform: translate(0, -0.07px);
+}
+
+.fieldset {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-gap: 10px;
+  align-items: center;
+}
+.inputs {
+  display: grid;
+  grid-gap: 0 10px;
+}
+textarea, input {
+  border: none;
+  border-radius: 3px;
+  width: 100%;
+  font-family: 'Fira Code', 'Courier New', Courier, monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: inherit;
+  padding: 8px;
+}
+textarea {
+  flex: 1;
+}
+
+
+.term {
+  line-height: 20px;
+  margin-top: -10px;
+}
+.tc, .tt {
+  display: flex;
+  border-top: 20px solid rgba(0, 0, 0, .1);
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+.selected.tc, .selected.tt, .selected .tc, .selected .tt {
+  border-top-color: rgba(0, 112, 204, 0.3);
+}
+.term > .tc, .term > .tt {
+  border-top: none;
+}
+.term span, .term i {
+  display: inline-block;
+  background: rgba(0, 0, 0, .2);
+  color: white;
+  min-width: 20px;
+  padding: 0 3px;
+  border-radius: 5px;
+  text-align: center;
+  font-family: 'Times New Roman', Times, serif;
+  transition: background-color 0.3s;
+}
+.term .selected span, .term .selected i {
+  background: rgba(0, 112, 204, 0.7);
+  color: white;
+}
+.term i {
+  background: rgba(0, 0, 0, .1);
+  color: inherit;
+}
+.term div {
+  margin: 5px 1px 0 1px;
+}
+
+.dialog {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,.8);
+    display: flex;
+    align-items: center;
+}
+
+.firebaseui-auth-container {
+  min-width: 22%;
+}
+
+#user {
+  position: absolute;
+  right: 0;
+}
+#sign-out {
+  margin: 3px;
+}
+</style>
+<body>
+  <div id="user"><span id="email"></span><button id="sign-out">Sign Out</button></div>
+  <div id="firebaseui-auth-container" class="dialog"></div>
+</body>
+<script src="index.js"></script>

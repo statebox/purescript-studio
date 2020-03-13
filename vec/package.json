@@ -1,0 +1,16 @@
+{
+  "name": "purescript-vec",
+  "version": "1.0.0",
+  "description": "Purescript vector library",
+  "scripts": {
+    "postinstall": "spago install",
+    "build": "spago build --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "test": "spago test --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "repl": "spago repl"
+  },
+  "devDependencies": {
+    "purescript": "^0.13.5",
+    "purescript-psa": "^0.7.3",
+    "spago": "^0.13"
+  }
+}
