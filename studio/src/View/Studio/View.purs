@@ -17,10 +17,10 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (a, button, div, fieldset, h1, input, legend, li, nav, ol, p_, slot, span, text, ul)
+import Halogen.HTML (a, button, div, fieldset, h1, input, legend, li, nav, ol, p_, slot, span, text, ul, datalist, option)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
-import Halogen.HTML.Properties (classes, href, placeholder, value, tabIndex, type_, InputType(InputText))
+import Halogen.HTML.Properties (classes, id_, href, placeholder, value, tabIndex, list, type_, InputType(InputText))
 
 import Language.Statebox.Wiring.Generator.DiagramV2.Operators (fromOperators, toPixel) as DiagramV2
 import TreeMenu as TreeMenu
@@ -297,7 +297,10 @@ homeForm apiUrl =
                               , type_ InputText
                               , placeholder "Statebox API URL"
                               , onValueInput $ Just <<< SetApiUrl
+                              , list "endpoint-urls"
                               ]
+                      , datalist [ id_ "endpoint-urls" ]
+                                 [ option [ value "https://testapi.statebox.io" ] [] ]
                       ]
                  ]
               --  , fieldset []
