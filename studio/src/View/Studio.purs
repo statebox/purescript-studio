@@ -70,12 +70,6 @@ handleQuery :: ∀ m a. MonadAff m => Query a -> H.HalogenM State Action ChildSl
 handleQuery = case _ of
   LoadTransactionsThenView endpointUrl hash next -> do
     handleAction (LoadTransactions endpointUrl hash)
-
-    -- after the transaction and its history have been loaded, display it
-    state <- H.get
-    let txSumMaybe = AdjacencySpace.lookup hash state.hashSpace
-    for_ txSumMaybe $ handleAction <<< SelectRoute <<< Route.fromTxSum endpointUrl hash
-
     pure (Just next)
 
   AddProject project next -> do
@@ -109,6 +103,12 @@ handleAction = case _ of
   LoadTransactions endpointUrl startHash -> do
     H.liftEffect $ log $ "LoadTransactions: requesting transactions up to root, starting at " <> startHash <> " from " <> endpointUrl
     runProcess txIngester
+
+    -- after the transaction and its history have been loaded, display it
+    state <- H.get
+    let txSumMaybe = AdjacencySpace.lookup startHash state.hashSpace
+    for_ txSumMaybe $ handleAction <<< SelectRoute <<< Route.fromTxSum endpointUrl startHash
+
     where
       -- | This ingests transactions produced from the HTTP API into our transaction storage.
       txIngester :: Process (HalogenM State Action ChildSlots Output m) Unit

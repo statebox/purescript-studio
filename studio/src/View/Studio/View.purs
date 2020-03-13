@@ -6,10 +6,11 @@ import Control.Comonad.Cofree ((:<))
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
 import Data.Array (cons)
-import Data.Foldable (foldMap, foldr)
+import Data.Foldable (foldMap, foldr, length)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
+import Data.Monoid (guard)
 import Data.Set as Set
 import Data.String.CodePoints (take)
 import Data.Symbol (SProxy(..))
@@ -65,18 +66,25 @@ render :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 render state =
   div [ classes [ ClassName "studio" ] ]
     [ navBar state.title state.menuItems
-    , div [ classes [ ClassName "has-columns" ] ]
-          [ nav [ classes [ ClassName "stbx-sidebar" ] ]
-                [ slot _objectTree unit (TreeMenu.menuComponent (_ == state.route)) (stateMenu state) ((\(TreeMenu.Clicked menuNodeId route) -> ShowDiagramNodeContent route) >>> Just) ]
-          , div []
-                [ div [ classes $ ClassName <$> [ "container", "is-fluid" ] ]
-                      [ routeBreadcrumbs state.route
-                      , resolveRoute state.route state # maybe (text "Couldn't find project/net/diagram.")
-                                                               (contentView state.apiUrl)
-                      ]
-                ]
-          ]
+    , div [ classes [ ClassName "has-columns" ] ] (sidebar <> main)
     ]
+  where
+    menu = stateMenu state
+    showSidebar = length menu > 1
+    sidebar = guard showSidebar $
+      [ nav [ classes [ ClassName "stbx-sidebar" ] ]
+            [ slot _objectTree unit (TreeMenu.menuComponent) { tree: menu, isSelected: (_ == state.route) }
+                ((\(TreeMenu.Clicked route) -> ShowDiagramNodeContent route) >>> Just) ]
+      ]
+    main =
+      [ div []
+            [ div [ classes $ ClassName <$> [ "container" ] <> guard showSidebar [ "is-fluid" ] ]
+                  [ routeBreadcrumbs state.route
+                  , resolveRoute state.route state # maybe (text "Couldn't find project/net/diagram.")
+                                                            (contentView state.apiUrl)
+                  ]
+            ]
+      ]
 
 contentView :: ∀ m. MonadAff m => URL -> ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ComponentHTML Action ChildSlots m
 contentView apiUrl route = case route of
