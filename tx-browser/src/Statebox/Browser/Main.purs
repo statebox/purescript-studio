@@ -11,6 +11,7 @@ import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 import Routing.Duplex (parse)
+import Routing.Hash as Routing
 import Routing.PushState (makeInterface)
 
 import View.Studio as Studio
@@ -21,12 +22,13 @@ import ExampleData as Ex
 
 main :: Effect Unit
 main = runHalogenAff do
+  urlHash <- liftEffect Routing.getHash
   body <- awaitBody
 
   nav <- liftEffect $ makeInterface
   { path } <- liftEffect $ nav.locationState
   let initialRoute' = either (const $ TxHome Nothing) identity $ parse codex path
-  let initialRoute = if initialRoute' == Home then TxHome Nothing else initialRoute'
+  let initialRoute = if initialRoute' == Home then TxHome (Just urlHash) else initialRoute'
 
   io <- runUI Studio.ui (initialState initialRoute nav) body
 
