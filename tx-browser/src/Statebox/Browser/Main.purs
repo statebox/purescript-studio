@@ -1,10 +1,11 @@
 module Statebox.Browser.Main where
 
 import Prelude
-import Data.Either (either)
+import Data.Either (Either(..))
 import Data.Maybe
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
+import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Halogen as H
@@ -12,7 +13,7 @@ import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.VDom.Driver (runUI)
 import Routing.Duplex (parse)
 import Routing.Hash as Routing
-import Routing.PushState (makeInterface)
+import Routing.PushState (makeInterface, matchesWith)
 
 import View.Studio as Studio
 import View.Studio (Query(LoadTransactionsThenView))
@@ -22,23 +23,25 @@ import ExampleData as Ex
 
 main :: Effect Unit
 main = runHalogenAff do
-  urlHash <- liftEffect Routing.getHash
   body <- awaitBody
-
   nav <- liftEffect $ makeInterface
+  io <- runUI Studio.ui (initialState (TxHome Nothing) nav) body
+
+  -- listen to changes in the url (from f.e. back button)
+  _ <- liftEffect $ nav # matchesWith (parse codex)
+    \_ newRoute -> launchAff_ $ io.query $ H.tell $ Studio.Navigate newRoute
+
   { path } <- liftEffect $ nav.locationState
-  let initialRoute' = either (const $ TxHome Nothing) identity $ parse codex path
-  let initialRoute = if initialRoute' == Home then TxHome (Just urlHash) else initialRoute'
-
-  io <- runUI Studio.ui (initialState initialRoute nav) body
-
-  case initialRoute of
-    TxHome (Just hash) -> loadTransactionsThenView io Ex.endpointUrl hash
-    ApiRoute (NamespaceR hash) endpointUrl -> loadTransactionsThenView io endpointUrl hash
-    ApiRoute (WiringR    hash) endpointUrl -> loadTransactionsThenView io endpointUrl hash
-    ApiRoute (FiringR    hash) endpointUrl -> loadTransactionsThenView io endpointUrl hash
-    ApiRoute (DiagramR   hash _ _) endpointUrl -> loadTransactionsThenView io endpointUrl hash
-    ApiRoute (NetR       hash _ _) endpointUrl -> loadTransactionsThenView io endpointUrl hash
+  case parse codex path of
+    Right Home -> do
+      urlHash <- liftEffect $ Routing.getHash
+      loadTransactionsThenView io Ex.endpointUrl urlHash
+    Right (TxHome (Just hash)) -> loadTransactionsThenView io Ex.endpointUrl hash
+    Right (ApiRoute (NamespaceR hash) endpointUrl) -> loadTransactionsThenView io endpointUrl hash
+    Right (ApiRoute (WiringR    hash) endpointUrl) -> loadTransactionsThenView io endpointUrl hash
+    Right (ApiRoute (FiringR    hash) endpointUrl) -> loadTransactionsThenView io endpointUrl hash
+    Right (ApiRoute (DiagramR   hash _ _) endpointUrl) -> loadTransactionsThenView io endpointUrl hash
+    Right (ApiRoute (NetR       hash _ _) endpointUrl) -> loadTransactionsThenView io endpointUrl hash
     _ -> pure unit
 
   pure io
