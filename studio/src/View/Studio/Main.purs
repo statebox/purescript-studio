@@ -48,11 +48,13 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
 
   io.subscribe $ consumer $ \output -> do
     _ <- liftEffect $ case output of
-      Studio.ProjectUpserted projectId project -> eventHandler.onProjectUpserted projectId $ toProjectJS user project
-      Studio.ProjectDeleted projectId -> eventHandler.onProjectDeleted projectId
+      Studio.ProjectChanged projectId (Just project) -> eventHandler.onProjectUpserted projectId $ toProjectJS user project
+      Studio.ProjectChanged projectId Nothing        -> eventHandler.onProjectDeleted projectId
     pure Nothing
-  -- liftEffect $ eventHandler.onProjectUpserted $ toProjectJS user Ex.project1
-  -- liftEffect $ eventHandler.onProjectUpserted $ toProjectJS user Ex.project2
+
+  -- liftEffect $ eventHandler.onProjectUpserted "Example1" $ toProjectJS user Ex.project1
+  -- liftEffect $ eventHandler.onProjectUpserted "Example2" $ toProjectJS user Ex.project2
+
   pure
     { addProject: \projectId project -> io.query $ H.tell (Studio.AddProject projectId $ fromProjectJS project)
     }

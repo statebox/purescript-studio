@@ -5,18 +5,21 @@ import Affjax as Affjax
 import Affjax (URL)
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
+import Control.Monad.State.Class
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
-import Data.Lens (Setter', set, over, _Just)
+import Data.Lens ((.=), preview, _Just, Optic)
 import Data.Lens.At
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Map as Map
+import Data.Profunctor.Choice
+import Data.Profunctor.Strong
 import Data.Set as Set
 import Data.String (drop)
 import Data.Traversable (for_)
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
-import Effect.Class (liftEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Console (log)
 import Effect.Random (random)
 import Foreign (unsafeToForeign)
@@ -50,9 +53,7 @@ data Query a
   | AddProject ProjectId Project a
   | Navigate Route a
 
-data Output
-  = ProjectUpserted String Project
-  | ProjectDeleted String
+data Output = ProjectChanged String (Maybe Project)
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Input Output m
 ui =
@@ -141,20 +142,7 @@ handleAction = case _ of
              (\pnproDoc -> handleAction $ CRUDProject $ CreateAction $ fromPNPROProject pnproDoc.project)
       )
 
-  CRUDProject (CreateAction project) -> do
-    rnd <- liftEffect random
-    let projectId = "p" <> drop 2 (show rnd)
-    H.modify_ $ \state -> state { projects = Map.insert projectId project state.projects }
-    H.raise $ ProjectUpserted projectId project
-
-  CRUDProject (UpdateAction projectId change) -> do
-    H.modify_ $ \state -> state { projects = Map.update (change >>> Just) projectId state.projects }
-    { projects } <- H.get
-    for_ (Map.lookup projectId projects) (ProjectUpserted projectId >>> H.raise)
-
-  CRUDProject (DeleteAction projectId) -> do
-    H.modify_ $ \state -> state { projects = Map.delete projectId state.projects }
-    H.raise $ ProjectDeleted projectId
+  CRUDProject action -> handleCRUDAction _projects action \id mProject -> H.raise $ ProjectChanged id mProject
 
   CRUDKDMonCat action -> handleCRUDActionInProject _kdmoncats action
 
@@ -196,25 +184,36 @@ handleAction = case _ of
     H.liftEffect $ Event.stopPropagation event
     for_ mAction handleAction
 
-handleCRUDAction :: ∀ m s a. MonadAff m => Setter' s (Map.Map String a) -> CRUDAction a -> HalogenM s Action ChildSlots Output m Unit
-handleCRUDAction l = case _ of
-  CreateAction a -> do
-    rnd <- liftEffect random
-    let id = "id" <> drop 2 (show rnd)
-    H.modify_ $ set (l <<< at id) $ Just a
-  UpdateAction id f ->
-    H.modify_ $ over (l <<< at id) (map f)
-  DeleteAction id ->
-    H.modify_ $ set (l <<< at id) Nothing
+type Affine s t a b = forall p. Strong p => Choice p => Optic p s t a b
+type Affine' s a = Affine s s a a
 
-handleCRUDActionInProject :: ∀ m a. MonadAff m => Setter' Project (Map.Map String a) -> CRUDAction a -> HalogenM State Action ChildSlots Output m Unit
+handleCRUDAction :: ∀ m s t a. MonadEffect m => MonadState s m => At t String a => Affine' s t -> CRUDAction a -> (String -> Maybe a -> m Unit) -> m Unit
+handleCRUDAction l action eventHandler =
+  case action of
+    CreateAction a -> do
+      rnd <- liftEffect random
+      let id = "id" <> drop 2 (show rnd)
+      handle id $ Just a
+    UpdateAction id f -> do
+      s <- get
+      handle id (map f (join (preview (l <<< at id) s)))
+    DeleteAction id -> do
+      handle id Nothing
+  where
+    handle :: String -> Maybe a -> m Unit
+    handle id mValue = do
+      l <<< at id .= mValue
+      eventHandler id mValue
+
+handleCRUDActionInProject :: ∀ m t a. MonadAff m => At t String a => Affine' Project t -> CRUDAction a -> HalogenM State Action ChildSlots Output m Unit
 handleCRUDActionInProject l action = do
   state <- H.get
   case state.route of
     ProjectRoute pid proute -> do
       handleCRUDAction (_projects <<< at pid <<< _Just <<< l) action
-      state' <- H.get
-      for_ (Map.lookup pid state'.projects) (ProjectUpserted pid >>> H.raise)
+        \_ _ -> do
+          state' <- H.get
+          for_ (Map.lookup pid state'.projects) (Just >>> ProjectChanged pid >>> H.raise)
     _ -> pure unit
 
 modifyProject :: ∀ m. MonadAff m => (ProjectRoute -> Project -> Project) -> HalogenM State Action ChildSlots Output m Unit
@@ -224,6 +223,6 @@ modifyProject fn = do
     ProjectRoute pid proute -> do
       for_ (Map.lookup pid state.projects) \p -> do
         let newProject = fn proute p
-        H.raise $ ProjectUpserted pid newProject
+        H.raise $ ProjectChanged pid $ Just newProject
         H.modify_ (_ { projects = Map.insert pid newProject state.projects })
     _ -> pure unit
