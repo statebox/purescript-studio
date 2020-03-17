@@ -51,7 +51,7 @@ type Item r = { label :: String, route :: Maybe r }
 mkItem :: forall r. String -> Maybe r -> Item r
 mkItem label route = { label, route }
 
-mapMenuTreeRoutes :: forall ra rb. (ra -> rb) -> MenuTree ra -> MenuTree rb
+mapMenuTreeRoutes :: ∀ ra rb. (ra -> rb) -> MenuTree ra -> MenuTree rb
 mapMenuTreeRoutes f = map \{ label, route } -> { label, route: map f route }
 
 --------------------------------------------------------------------------------
