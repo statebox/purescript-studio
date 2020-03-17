@@ -13,7 +13,7 @@ import Halogen as H
 import Halogen.Aff (awaitBody)
 import Halogen.VDom.Driver (runUI)
 import Routing.Duplex (parse)
-import Routing.PushState (makeInterface)
+import Routing.PushState (makeInterface, matchesWith)
 
 import View.Model
 import View.Studio as Studio
@@ -22,11 +22,11 @@ import View.Studio.Model.Route (RouteF(Home), codex)
 import ExampleData as Ex
 
 type API =
-  { addProject :: ProjectJS -> Aff (Maybe Unit)
+  { addProject :: String -> ProjectJS -> Aff (Maybe Unit)
   }
 
 type EventHandler =
-  { onProjectUpserted :: ProjectJS -> Effect Unit
+  { onProjectUpserted :: String -> ProjectJS -> Effect Unit
   , onProjectDeleted :: String -> Effect Unit
   }
 
@@ -42,15 +42,19 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
 
   io <- runUI Studio.ui (initialState initialRoute nav) body
 
+  -- listen to changes in the url (from f.e. back button)
+  _ <- liftEffect $ nav # matchesWith (parse codex)
+    \_ newRoute -> launchAff_ $ io.query $ H.tell $ Studio.Navigate newRoute
+
   io.subscribe $ consumer $ \output -> do
     _ <- liftEffect $ case output of
-      Studio.ProjectUpserted project -> eventHandler.onProjectUpserted $ toProjectJS user project
-      Studio.ProjectDeleted projectName -> eventHandler.onProjectDeleted projectName
+      Studio.ProjectUpserted projectId project -> eventHandler.onProjectUpserted projectId $ toProjectJS user project
+      Studio.ProjectDeleted projectId -> eventHandler.onProjectDeleted projectId
     pure Nothing
   -- liftEffect $ eventHandler.onProjectUpserted $ toProjectJS user Ex.project1
   -- liftEffect $ eventHandler.onProjectUpserted $ toProjectJS user Ex.project2
   pure
-    { addProject: \project -> io.query $ H.tell (Studio.AddProject $ fromProjectJS project)
+    { addProject: \projectId project -> io.query $ H.tell (Studio.AddProject projectId $ fromProjectJS project)
     }
   where
     initialState route nav =

@@ -2,33 +2,28 @@ module View.Studio.Model where
 
 import Prelude
 import Affjax (URL) -- TODO introduce URL alias in Client so we can abstract Affjax away
-import Data.Array (index, findIndex, modifyAt)
-import Data.AdjacencySpace as AdjacencySpace
+import Data.Array (findIndex, modifyAt)
 import Data.AdjacencySpace (AdjacencySpace)
-import Data.Bifunctor (bimap)
-import Data.Either (hush)
-import Data.Either.Nested (type (\/))
 import Data.Foldable (find)
-import Data.Lens (preview)
+import Data.Lens (Lens')
+import Data.Lens.Record
 import Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Tuple.Nested (type (/\), (/\))
-import Debug.Trace (spy)
+import Data.Symbol
+import Data.Tuple.Nested (type (/\))
 import Record as Record
 import Routing.PushState (PushStateInterface)
+import Web.Event.Event (Event)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
-import Statebox.Core.Types (Diagram)
-import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, WiringTx)
-import Statebox.Core.Lenses (_wiringTx, _firingTx)
+import Statebox.Core.Transaction (HashStr, TxSum)
 import View.Diagram.Model (DiagramInfo)
-import View.Model (Project, ProjectName, NetInfoWithTypesAndRoles)
+import View.Model (Project, ProjectId, NetInfoWithTypesAndRoles)
 import View.Petrinet.Model (NetInfo)
 import View.Studio.Model.Route
 import View.Studio.Model.TxCache as TxCache
-import View.Studio.Model.TxCache (ExecutionTrace)
 
 -- deps needed for Action, for now
 import View.Petrinet.Model as PetrinetEditor
@@ -50,13 +45,19 @@ data Action
   | HandleKDMonCatBricksMsg DiagramInfo KDMonCat.Bricks.Output
   | HandleKDMonCatAppMsg KDMonCat.App.Output
 
-  | CreateProject
-  | DeleteProject ProjectName
-  | CreateKDMonCat
+  | CRUDProject (CRUDAction Project)
+  | CRUDKDMonCat (CRUDAction KDMonCat.App.Input)
+
+  | StopEvent (Maybe Action) Event
+
+data CRUDAction a
+  = CreateAction a
+  | UpdateAction String (a -> a)
+  | DeleteAction String
 
 type State =
   { route       :: Route
-  , projects    :: Array Project
+  , projects    :: Map ProjectId Project
   , hashSpace   :: AdjacencySpace HashStr TxSum -- ^ Hashes and their (tree of) links.
   , title       :: String
   , msg         :: String
@@ -65,16 +66,21 @@ type State =
   , nav         :: PushStateInterface
   }
 
+_projects :: Lens' State (Map ProjectId Project)
+_projects = prop (SProxy :: SProxy "projects")
+
 --------------------------------------------------------------------------------
 
-resolveRoute :: Route -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
-resolveRoute route state = case route of
-  Home                        -> pure $ ResolvedHome state.projects
-  TxHome       _              -> pure $ ResolvedTxHome state.projects
-  ProjectRoute projectName pr -> findProject state.projects projectName >>= resolveProjectRoute pr state
-  ApiRoute     x endpointUrl  -> resolveApiRoute endpointUrl x state.hashSpace
+type ResolvedRoute = ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles
 
-resolveProjectRoute :: ProjectRoute -> State -> Project -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveRoute :: Route -> State -> Maybe ResolvedRoute
+resolveRoute route state = case route of
+  Home                       -> pure $ ResolvedHome state.projects
+  TxHome       _             -> pure $ ResolvedTxHome state.projects
+  ProjectRoute projectId pr  -> findProject state.projects projectId >>= resolveProjectRoute pr state
+  ApiRoute     x endpointUrl -> resolveApiRoute endpointUrl x state.hashSpace
+
+resolveProjectRoute :: ProjectRoute -> State -> Project -> Maybe ResolvedRoute
 resolveProjectRoute route state project = case route of
   ProjectHome           -> pure $ ResolvedProject project
   Types                 -> pure $ ResolvedTypes project
@@ -87,7 +93,7 @@ resolveProjectRoute route state project = case route of
                               pure $ ResolvedDiagram diagram node
   KDMonCatR str         -> ResolvedKDMonCat <$> findKDMonCat project str
 
-resolveApiRoute :: URL -> ApiRoute -> AdjacencySpace HashStr TxSum -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveApiRoute :: URL -> ApiRoute -> AdjacencySpace HashStr TxSum -> Maybe ResolvedRoute
 resolveApiRoute endpointUrl route hashSpace = case route of
   UberRootR                         -> pure $ ResolvedUberRoot endpointUrl
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
@@ -102,8 +108,8 @@ resolveApiRoute endpointUrl route hashSpace = case route of
 
 --------------------------------------------------------------------------------
 
-findProject :: Array Project -> ProjectName -> Maybe Project
-findProject projects projectName = find (\p -> p.name == projectName) projects
+findProject :: Map ProjectId Project -> String -> Maybe Project
+findProject projects projectId = Map.lookup projectId projects
 
 findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
@@ -132,8 +138,7 @@ modifyKDMonCat diagramId f = Map.alter (map f) diagramId
 
 fromPNPROProject :: PNPRO.Project -> Project
 fromPNPROProject project =
-  { projectId: mempty
-  , name:      project.name
+  { name:      project.name
   , nets:      PNPRO.toNetInfo <$> project.gspn
   , diagrams:  mempty
   , kdmoncats: mempty

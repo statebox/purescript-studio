@@ -54,9 +54,9 @@ function start(user) {
   document.getElementById('email').innerText = user && user.email || ""
   document.getElementById('firebaseui-auth-container').style.display = 'none'
   const eventHandler = {
-    onProjectUpserted: project => () => {
+    onProjectUpserted: projectId => project => () => {
       console.log("upsert", project)
-      db.collection("projects").doc(project.projectId).set(project)
+      db.collection("projects").doc(projectId).set(project)
     },
     onProjectDeleted: projectId => () => {
       db.collection("projects").doc(projectId).delete()
@@ -66,9 +66,9 @@ function start(user) {
     db.collection("projects").where("userId", "==", user.uid)
     .onSnapshot(querySnapshot => {
       querySnapshot.docChanges().forEach(change => {
-        console.log("change", change.type, change.doc.data())
+        console.log("change", change, change.doc.data())
         if (change.type !== "removed") {
-          runHalogenAff(api.addProject(change.doc.data()))()
+          runHalogenAff(api.addProject(change.doc.id)(change.doc.data()))()
         }
       })
     })

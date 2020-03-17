@@ -7,6 +7,7 @@ import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
 import Data.Array (cons)
 import Data.Foldable (foldMap, foldr, length)
+import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
@@ -18,10 +19,11 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (a, button, div, fieldset, h1, input, legend, li, nav, ol, p_, slot, span, text, ul, datalist, option)
+import Halogen.HTML (a, button, div, fieldset, h1, h3, input, legend, li, nav, ol, p_, slot, span, text, ul, datalist, option)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (classes, id_, href, placeholder, value, tabIndex, list, type_, InputType(InputText))
+import Web.UIEvent.MouseEvent (toEvent)
 
 import Language.Statebox.Wiring.Generator.DiagramV2.Operators (fromOperators, toPixel) as DiagramV2
 import TreeMenu as TreeMenu
@@ -30,14 +32,13 @@ import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
 import Statebox.Core.Types (NetsAndDiagramsIndex(..))
 import View.Auth.RolesEditor as RolesEditor
 import View.Diagram.DiagramEditor as DiagramEditor
-import View.Diagram.Model (DiagramInfo)
 import View.Diagram.Update as DiagramEditor
 import View.KDMonCat.App as KDMonCat.App
 import View.KDMonCat.Bricks as KDMonCat.Bricks
-import View.Model (Project, NetInfoWithTypesAndRoles)
+import View.Model (Project, ProjectId, emptyProject)
 import View.Petrinet.PetrinetEditor as PetrinetEditor
 import View.Petrinet.Model as PetrinetEditor
-import View.Studio.Model (Action(..), State, resolveRoute)
+import View.Studio.Model
 import View.Studio.Model.Route
 import View.Transaction (firingTxView, wiringTxView)
 import View.Typedefs.TypedefsEditor as TypedefsEditor
@@ -78,15 +79,16 @@ render state =
       ]
     main =
       [ div []
-            [ div [ classes $ ClassName <$> [ "container" ] <> guard showSidebar [ "is-fluid" ] ]
-                  [ routeBreadcrumbs state.route
-                  , resolveRoute state.route state # maybe (text "Couldn't find project/net/diagram.")
-                                                            (contentView state.apiUrl)
-                  ]
+            [ div [ classes $ ClassName <$> [ "container" ] <> guard showSidebar [ "is-fluid" ] ] $
+                  resolveRoute state.route state
+                    # maybe [ text "Couldn't find project/net/diagram." ] \resolved ->
+                        [ routeBreadcrumbs state.route resolved
+                        , contentView state.apiUrl resolved
+                        ]
             ]
       ]
 
-contentView :: ∀ m. MonadAff m => URL -> ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles -> ComponentHTML Action ChildSlots m
+contentView :: ∀ m. MonadAff m => URL -> ResolvedRoute -> ComponentHTML Action ChildSlots m
 contentView apiUrl route = case route of
   ResolvedHome projects ->
     div []
@@ -101,7 +103,7 @@ contentView apiUrl route = case route of
   ResolvedProject project ->
     div []
         [ p_ [ text $ "Project '" <> project.name <> "'" ]
-        , p_ [ button [ onClick \_ -> Just CreateKDMonCat ]
+        , p_ [ button [ onClick \_ -> Just $ CRUDKDMonCat $ CreateAction mempty ]
                       [ text "Create new KDMonCat diagram" ]
              ]
         ]
@@ -153,15 +155,16 @@ contentView apiUrl route = case route of
   ResolvedFiring wfi firingTx executionTraceE ->
     firingTxView wfi firingTx executionTraceE
 
-routeBreadcrumbs :: ∀ m. Route -> ComponentHTML Action ChildSlots m
-routeBreadcrumbs route =
+routeBreadcrumbs :: ∀ m. Route -> ResolvedRoute -> ComponentHTML Action ChildSlots m
+routeBreadcrumbs route resolvedRoute =
   nav [ classes [ ClassName "stbx-breadcrumbs" ] ]
       [ ol [] $
-           crumb <$> case route of
-                       Home                              -> [ "Home" ]
-                       TxHome       _                    -> [ "Home" ]
-                       ProjectRoute projectName pr       -> [ projectName ] <> projectRouteBreadcrumbs pr
-                       ApiRoute     apiRoute endpointUrl -> apiRouteBreadcrumbs endpointUrl apiRoute
+           crumb <$> case route /\ resolvedRoute of
+                       Home                              /\ _ -> [ "Home" ]
+                       TxHome       _                    /\ _ -> [ "Home" ]
+                       ProjectRoute _ pr                 /\ ResolvedProject project -> [ "Home", project.name ] <> projectRouteBreadcrumbs pr
+                       ApiRoute     apiRoute endpointUrl /\ _ -> apiRouteBreadcrumbs endpointUrl apiRoute
+                       _                                      -> []
       ]
   where
     crumb str = li [] [ a [ href "#" ] [ text str ] ]
@@ -206,14 +209,16 @@ navBar title menuItems =
 --------------------------------------------------------------------------------
 
 stateMenu :: State -> MenuTree Route
-stateMenu { projects, apiUrl, hashSpace } =
+stateMenu { projects, apiUrl, hashSpace, route } =
   mkItem "Studio" Nothing :< (map (mapMenuTreeRoutes (\x -> ApiRoute x apiUrl)) txItems <> projectItems)
   where
     txItems        = AdjacencySpace.unsafeToTree (transactionMenu apiUrl) hashSpace <$> Set.toUnfoldable (AdjacencySpace.rootKeys hashSpace)
-    projectItems   = projectMenu <$> projects
+    projectItems   = case route of
+      ProjectRoute pid _ -> findProject projects pid # foldMap (projectMenu >>> mapMenuTreeRoutes (ProjectRoute pid) >>> pure)
+      _ -> []
 
-projectMenu :: Project -> MenuTree Route
-projectMenu p = mapMenuTreeRoutes (ProjectRoute p.name) $
+projectMenu :: Project -> MenuTree ProjectRoute
+projectMenu p =
   mkItem p.name (Just ProjectHome) :<
     [ mkItem "Types"          (Just Types) :< []
     , mkItem "Authorisations" (Just Auths) :< []
@@ -272,22 +277,31 @@ transactionMenu endpointUrl t hash valueMaybe itemKids =
 
 --------------------------------------------------------------------------------
 
-projectsDashboard :: ∀ m. Array Project -> ComponentHTML Action ChildSlots m
+projectsDashboard :: ∀ m. Map.Map ProjectId Project -> ComponentHTML Action ChildSlots m
 projectsDashboard projects =
   div []
-      [ ul [] $
-          li [] [ a [ href "#", onClick \_ -> Just CreateProject ]
-                    [ text "Create new project" ]
-                ]
-          `cons` (projects <#> mkProjectLink)
+      [ ul [ classes [ ClassName "stbx-cards" ] ] $
+          (projects # foldMapWithIndex mkProjectLink) <>
+          [ li [ classes [ ClassName "stbx-add-card" ] ]
+               [ button [ onClick \_ -> Just $ CRUDProject $ CreateAction $ emptyProject { name = "Untitled (TODO)" } ]
+                        [ text "Create new project" ]
+               ]
+          ]
         ]
   where
-    mkProjectLink p =
-      li []
-         [ a [ href "#", onClick \_ -> Just (SelectRoute (ProjectRoute p.name ProjectHome)) ]
-             [ text p.name ]
-         , a [ href "#", onClick \_ -> Just (DeleteProject p.projectId) ]
-             [ text "☠" ]
+    mkProjectLink projectId p = pure $
+      li [ onClick \_ -> Just (SelectRoute (ProjectRoute projectId ProjectHome))]
+         [ h3 [] [ input [ value p.name
+                         , type_ InputText
+                         , onValueInput \v -> Just $ CRUDProject $ UpdateAction projectId _ { name = v }
+                         , onClick $ Just <<< StopEvent Nothing <<< toEvent
+                         , classes [ ClassName "is"]
+                         ]
+                 ]
+         , div [ classes [ ClassName "hover-controls" ] ]
+               [ button [ onClick $ Just <<< StopEvent (Just $ CRUDProject $ DeleteAction projectId) <<< toEvent ]
+                       [ text "Delete" ]
+               ]
          ]
 
 homeForm :: ∀ m. URL -> ComponentHTML Action ChildSlots m

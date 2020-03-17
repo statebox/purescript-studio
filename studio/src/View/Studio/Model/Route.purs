@@ -3,6 +3,7 @@ module View.Studio.Model.Route where
 import Prelude hiding ((/))
 import Affjax (URL)
 import Data.Either.Nested (type (\/))
+import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Data.Newtype
 import Data.Lens.Iso.Newtype
@@ -15,10 +16,10 @@ import Routing.Duplex.Generic.Syntax
 import View.KDMonCat.App (Input) as KDMonCat.App
 import Statebox.Core.Types (NetsAndDiagramsIndex)
 import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
-import View.Model (ProjectName)
+import View.Model (ProjectId)
 import View.Studio.Model.TxCache (ExecutionTrace)
 
-type Route = RouteF ProjectName DiagramName NetName
+type Route = RouteF ProjectId DiagramName NetName
 type ProjectRoute = ProjectRouteF DiagramName NetName
 
 -- | This can:
@@ -98,8 +99,8 @@ type NetName = String
 --------------------------------------------------------------------------------
 
 data ResolvedRouteF p d n
-  = ResolvedHome      (Array p)
-  | ResolvedTxHome    (Array p)
+  = ResolvedHome      (Map ProjectId p)
+  | ResolvedTxHome    (Map ProjectId p)
 
   | ResolvedProject   p
   | ResolvedTypes     p
