@@ -61,11 +61,11 @@ derive instance genericProjectRouteF :: Generic (ProjectRouteF d n) _
 projectCodex :: RouteDuplex' ProjectRoute
 projectCodex = sum
   { "ProjectHome": noArgs
-  , "Types": "types" / noArgs
-  , "Auths": "auths" / noArgs
-  , "Net": "net" / segment
-  , "Diagram": "diagram" / segment / optional nodeIdentCodex
-  , "KDMonCatR": "kdmoncat" / segment
+  , "Types":       "types" / noArgs
+  , "Auths":       "auths" / noArgs
+  , "Net":         "net" / segment
+  , "Diagram":     "diagram" / segment / optional nodeIdentCodex
+  , "KDMonCatR":   "kdmoncat" / segment
   }
 
 -- | Statebox Core/API-related routes
