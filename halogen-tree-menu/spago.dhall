@@ -3,7 +3,7 @@
 , name =
     "halogen-tree-menu"
 , dependencies =
-    [ "halogen", "psci-support" ]
+    [ "halogen", "halogen-grid-kit", "psci-support" ]
 , packages =
-    ./packages.dhall
+    ../packages.dhall
 }
