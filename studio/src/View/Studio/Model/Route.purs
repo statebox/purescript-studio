@@ -136,7 +136,7 @@ derive instance genericNodeIdent :: Generic (NodeIdent d n) _
 nodeIdentCodex ∷ RouteDuplex' (NodeIdent DiagramName NetName)
 nodeIdentCodex = root $ sum
   { "DiagramNode": param "diagram"
-  , "NetNode": param "net"
+  , "NetNode":     param "net"
   }
 
 --------------------------------------------------------------------------------
