@@ -16,8 +16,9 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURIComponent)
 import Halogen as H
 import Halogen.HTML hiding (map, head, i, prop)
-import Halogen.HTML.Properties (classes, value, readOnly, href)
+import Halogen.HTML.Properties (classes, value, readOnly, href, type_, InputType(InputText))
 import Halogen.HTML.Events (onValueInput, onClick)
+import View.ReactiveInput as ReactiveInput
 import Web.HTML (window)
 import Web.HTML.Location (setHash)
 import Web.HTML.Window (location)
@@ -26,7 +27,7 @@ import KDMonCat.Bricks as Bricks
 import KDMonCat.InferType
 import KDMonCat.Model
 
-import KDMoncat.Input.String as String
+import KDMonCat.Input.String as String
 import KDMonCat.Output.Haskell (haskellCode)
 import KDMonCat.Output.JSON (json)
 
@@ -35,6 +36,7 @@ import View.KDMonCat.Term as Term
 import View.KDMonCat.CopyToClipboard (copyToClipboard)
 
 type Input = String.Input
+type Output = String.Input
 
 type State =
   { input :: Input
@@ -54,6 +56,8 @@ _selectionBox :: ∀ a b r. Lens { selectionBox :: a | r } { selectionBox :: b |
 _selectionBox = prop (SProxy :: SProxy "selectionBox")
 
 
+type Slot = H.Slot Query Output
+
 data Action
   = UpdatePixels String
   | UpdateContext String
@@ -72,26 +76,28 @@ _bricks = SProxy :: SProxy "bricks"
 _term = SProxy :: SProxy "term"
 
 
-appView :: ∀ o m. MonadEffect m => H.Component HTML Query Input o m
+appView :: ∀ m. MonadEffect m => H.Component HTML Query Input Output m
 appView =
-  H.mkComponent
+  ReactiveInput.mkComponentWithQuery
     { initialState
     , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction, handleQuery = handleQuery }
+    , handleAction: \_ -> handleAction
+    , handleQuery
+    , handleInput
     }
 
-initialState :: Input -> State
-initialState input = { input, selectionBox: { topLeft: zero, bottomRight: zero } }
+initialState :: State
+initialState = { input: mempty, selectionBox: { topLeft: zero, bottomRight: zero } }
 
-render :: ∀ m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
-render st = div [ classes [ ClassName "app" ] ]
+render :: ∀ m. MonadEffect m => Input -> State -> H.ComponentHTML Action ChildSlots m
+render _ st = div [ classes [ ClassName "kdmoncat-app" ] ]
   [ div [ classes [ ClassName "main"] ]
     [ slot _bricks unit Bricks.bricksView bricksInput (Just <<< BricksMessage)
     , aside []
       [ h2_ [ text "Inferred type" ]
       , div [ classes [ ClassName "fieldset" ]] $
-        [ label_ [ text "Whole" ], input [ value termTypeStr, readOnly true ] ]
-        <> (selectionType # maybe [] \s -> [ label_ [ text "Selection" ], input [ value s, readOnly true ] ])
+        [ label_ [ text "Whole" ], input [ type_ InputText, value termTypeStr, readOnly true ] ]
+        <> (selectionType # maybe [] \s -> [ label_ [ text "Selection" ], input [ type_ InputText, value s, readOnly true ] ])
       , h2_ [ text "Pixels"]
       , textarea [ value st.input.pixels, onValueInput (Just <<< UpdatePixels) ]
       , h2_ [ text "Context"]
@@ -137,25 +143,32 @@ toBricksInput input selectionBox =
     selectedBoxes = either (const Set.empty) (getSubTerm selectionPath >>> foldMap f) (inferredType <#> _.term) where
       f { box, bid } = Set.singleton { box, bid }
 
-handleAction :: ∀ o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit
+handleInput :: ∀ m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots Output m Unit
+handleInput input = do
+  H.put $ initialState { input = input }
+  updateWindowLocation input
+
+handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots Output m Unit
 handleAction = case _ of
   UpdatePixels p -> do
     st <- H.modify $ set (_input <<< _pixels) p
+    H.raise st.input
     updateWindowLocation st.input
   UpdateContext c -> do
     st <- H.modify $ set (_input <<< _context) c
+    H.raise st.input
     updateWindowLocation st.input
   BricksMessage (Bricks.SelectionChanged sel) ->
     H.modify_ $ set _selectionBox sel
   CopyToClipboard s ->
     liftEffect (copyToClipboard s)
 
-handleQuery :: ∀ o m a. MonadEffect m => Query a -> H.HalogenM State Action ChildSlots o m (Maybe a)
+handleQuery :: ∀ m a. MonadEffect m => Query a -> H.HalogenM State Action ChildSlots Output m (Maybe a)
 handleQuery (DoAction x next) = do
   handleAction x
   pure (Just next)
 
-updateWindowLocation :: ∀ o m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots o m Unit
+updateWindowLocation :: ∀ m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots Output m Unit
 updateWindowLocation { pixels, context } =
   liftEffect do
     w <- window

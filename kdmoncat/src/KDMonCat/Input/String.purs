@@ -1,4 +1,4 @@
-module KDMoncat.Input.String where
+module KDMonCat.Input.String where
 
 import Prelude
 

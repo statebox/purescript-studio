@@ -10,10 +10,13 @@ import Data.Either (hush)
 import Data.Either.Nested (type (\/))
 import Data.Foldable (find)
 import Data.Lens (preview)
+import Data.Map as Map
+import Data.Map (Map)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple.Nested (type (/\), (/\))
 import Debug.Trace (spy)
 import Record as Record
+import Routing.PushState (PushStateInterface)
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
@@ -23,13 +26,14 @@ import Statebox.Core.Lenses (_wiringTx, _firingTx)
 import View.Diagram.Model (DiagramInfo)
 import View.Model (Project, ProjectName, NetInfoWithTypesAndRoles)
 import View.Petrinet.Model (NetInfo)
-import View.Studio.Model.Route (ApiRoute(..), Route, RouteF(..), ResolvedRouteF(..), NetName, DiagramName, NodeIdent(..))
+import View.Studio.Model.Route
 import View.Studio.Model.TxCache as TxCache
 import View.Studio.Model.TxCache (ExecutionTrace)
 
 -- deps needed for Action, for now
 import View.Petrinet.Model as PetrinetEditor
 import View.Diagram.Update as DiagramEditor
+import View.KDMonCat.App as KDMonCat.App
 import View.KDMonCat.Bricks as KDMonCat.Bricks
 
 --------------------------------------------------------------------------------
@@ -43,7 +47,12 @@ data Action
   | ShowDiagramNodeContent Route
   | HandlePetrinetEditorMsg PetrinetEditor.Msg
   | HandleDiagramEditorMsg DiagramEditor.Msg
-  | HandleKDMonCatMsg DiagramInfo KDMonCat.Bricks.Output
+  | HandleKDMonCatBricksMsg DiagramInfo KDMonCat.Bricks.Output
+  | HandleKDMonCatAppMsg KDMonCat.App.Output
+
+  | CreateProject
+  | DeleteProject ProjectName
+  | CreateKDMonCat
 
 type State =
   { route       :: Route
@@ -52,46 +61,49 @@ type State =
   , title       :: String
   , msg         :: String
   , apiUrl      :: URL
+  , menuItems   :: Array (String /\ Maybe Route)
+  , nav         :: PushStateInterface
   }
 
 --------------------------------------------------------------------------------
 
-resolveRoute :: RouteF ProjectName DiagramName NetName -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveRoute :: Route -> State -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 resolveRoute route state = case route of
-  Home                              -> pure ResolvedHome
-  Types     projectName             -> ResolvedTypes <$> findProject state.projects projectName
-  Auths     projectName             -> ResolvedAuths <$> findProject state.projects projectName
-  Net       projectName name        -> do project <- findProject state.projects projectName
-                                          net     <- findNetInfoWithTypesAndRoles project name
-                                          pure $ ResolvedNet net
-  Diagram   projectName name nodeId -> do project <- findProject state.projects projectName
-                                          diagram <- findDiagramInfo project name
-                                          let node = nodeId >>= case _ of
-                                                       DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
-                                                       NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
-                                          pure $ ResolvedDiagram diagram node
-  ApiThing x -> resolveApiRoute x state.hashSpace
+  Home                        -> pure $ ResolvedHome state.projects
+  TxHome       _              -> pure $ ResolvedTxHome state.projects
+  ProjectRoute projectName pr -> findProject state.projects projectName >>= resolveProjectRoute pr state
+  ApiRoute     x endpointUrl  -> resolveApiRoute endpointUrl x state.hashSpace
 
-resolveApiRoute :: ApiRoute -> AdjacencySpace HashStr TxSum -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
-resolveApiRoute route hashSpace = case route of
-  UberRootR  url                    -> pure $ ResolvedUberRoot url
+resolveProjectRoute :: ProjectRoute -> State -> Project -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveProjectRoute route state project = case route of
+  ProjectHome           -> pure $ ResolvedProject project
+  Types                 -> pure $ ResolvedTypes project
+  Auths                 -> pure $ ResolvedAuths project
+  Net       name        -> ResolvedNet <$> findNetInfoWithTypesAndRoles project name
+  Diagram   name nodeId -> do diagram <- findDiagramInfo project name
+                              let node = nodeId >>= case _ of
+                                           DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
+                                           NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
+                              pure $ ResolvedDiagram diagram node
+  KDMonCatR str         -> ResolvedKDMonCat <$> findKDMonCat project str
+
+resolveApiRoute :: URL -> ApiRoute -> AdjacencySpace HashStr TxSum -> Maybe (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
+resolveApiRoute endpointUrl route hashSpace = case route of
+  UberRootR                         -> pure $ ResolvedUberRoot endpointUrl
   NamespaceR hash                   -> pure $ ResolvedNamespace hash
-  WiringR    x                      -> ResolvedWiring x <$> TxCache.findWiringTx hashSpace x.hash
-  FiringR    x                      -> ResolvedFiring x <$> firingTxM <*> pure execTrace
+  WiringR    hash                   -> ResolvedWiring { hash, endpointUrl } <$> TxCache.findWiringTx hashSpace hash
+  FiringR    hash                   -> ResolvedFiring { hash, endpointUrl } <$> firingTxM <*> pure execTrace
     where
-      firingTxM = TxCache.findFiringTx hashSpace x.hash
-      execTrace = TxCache.findExecutionTrace hashSpace x.hash execHash
-      execHash  = firingTxM >>= _.firing.execution # fromMaybe x.hash
+      firingTxM = TxCache.findFiringTx hashSpace hash
+      execTrace = TxCache.findExecutionTrace hashSpace hash execHash
+      execHash  = firingTxM >>= _.firing.execution # fromMaybe hash
   DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> TxCache.findDiagramInfo hashSpace wiringHash ix
   NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> TxCache.findNetInfo     hashSpace wiringHash ix
 
+--------------------------------------------------------------------------------
+
 findProject :: Array Project -> ProjectName -> Maybe Project
 findProject projects projectName = find (\p -> p.name == projectName) projects
-
-modifyProject :: ProjectName -> (Project -> Project) -> Array Project -> Maybe (Array Project)
-modifyProject projectName fn projects = do
-  ix <- findIndex (\p -> p.name == projectName) projects
-  modifyAt ix fn projects
 
 findNetInfo :: Project -> NetName -> Maybe NetInfo
 findNetInfo project netName = find (\n -> n.name == netName) project.nets
@@ -110,11 +122,21 @@ modifyDiagramInfo diagramName fn diagrams = do
 
 --------------------------------------------------------------------------------
 
+findKDMonCat :: Project -> String -> Maybe KDMonCat.App.Input
+findKDMonCat project diagramId = Map.lookup diagramId project.kdmoncats
+
+modifyKDMonCat :: String -> (KDMonCat.App.Input -> KDMonCat.App.Input) -> Map String KDMonCat.App.Input -> Map String KDMonCat.App.Input
+modifyKDMonCat diagramId f = Map.alter (map f) diagramId
+
+--------------------------------------------------------------------------------
+
 fromPNPROProject :: PNPRO.Project -> Project
 fromPNPROProject project =
-  { name:      project.name
+  { projectId: mempty
+  , name:      project.name
   , nets:      PNPRO.toNetInfo <$> project.gspn
   , diagrams:  mempty
+  , kdmoncats: mempty
   , roleInfos: mempty
   , types:     mempty
   }

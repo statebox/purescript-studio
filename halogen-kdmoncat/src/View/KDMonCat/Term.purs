@@ -36,7 +36,7 @@ termView =
     }
 
 render :: ∀ m. Input -> {} -> H.ComponentHTML Void () m
-render { term, selection: { path, count } } _ = div [ classes [ ClassName "term" ] ] (rec (Just path) term) where
+render { term, selection: { path, count } } _ = div [ classes [ ClassName "kdmoncat-term" ] ] (rec (Just path) term) where
   rec :: Maybe Path -> TTerm -> Array (H.ComponentHTML Void () m)
   rec p (Fix (Ann _ TUnit)) = [ div [ clsSel p "tunit" ] [ i_ [ text "I" ] ] ]
   rec p (Fix (Ann ty (TBox { name, decl }))) = [ div [ clsSel p "tbox" ] [ format ty decl name ] ]
