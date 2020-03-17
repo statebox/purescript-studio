@@ -179,7 +179,7 @@ handleAction = case _ of
     modifyProject \proute p ->
       case proute of
         KDMonCatR kdName -> p { kdmoncats = modifyKDMonCat kdName (const kdmoncatInput) p.kdmoncats }
-        _ -> p
+        _                -> p
 
   HandlePetrinetEditorMsg NetUpdated -> do
     pure unit
