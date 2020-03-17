@@ -38,10 +38,10 @@ derive instance genericRouteF :: Generic (RouteF p d n) _
 
 codex :: RouteDuplex' Route
 codex = root $ sum
-  { "Home": noArgs
-  , "TxHome" : "tx" / optional segment
+  { "Home":         noArgs
+  , "TxHome" :      "tx" / optional segment
   , "ProjectRoute": "project" / segment / projectCodex
-  , "ApiRoute": "api" / apiCodex / param "endpointUrl"
+  , "ApiRoute":     "api" / apiCodex / param "endpointUrl"
   }
 
 -- Project-related routes
