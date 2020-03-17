@@ -83,12 +83,12 @@ derive instance genericApiRoute :: Generic ApiRoute _
 
 apiCodex ∷ RouteDuplex' ApiRoute
 apiCodex = sum
-  { "UberRootR": noArgs
+  { "UberRootR":  noArgs
   , "NamespaceR": path "namespace" $ param "hash"
-  , "WiringR": "wiring" / segment
-  , "FiringR": "firing" / segment
-  , "DiagramR": "diagram" / segment / newtype_ (int segment) / segment
-  , "NetR": "netr" / segment / newtype_ (int segment) / segment
+  , "WiringR":    "wiring" / segment
+  , "FiringR":    "firing" / segment
+  , "DiagramR":   "diagram" / segment / newtype_ (int segment) / segment
+  , "NetR":       "net" / segment / newtype_ (int segment) / segment
   }
 
 type DiagramName = String
