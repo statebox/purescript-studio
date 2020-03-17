@@ -31,7 +31,7 @@ type ComponentSpec surface state action slots input output m =
 
 type ComponentSpecQuery surface state query action slots input output m =
   Record (ComponentSpecRow surface state action slots input output m
-           (handleQuery :: forall a. query a -> H.HalogenM state action slots output m (Maybe a)))
+         (handleQuery :: forall a. query a -> H.HalogenM state action slots output m (Maybe a)))
 
 mkComponentWithQuery
   :: ∀ surface state query action slots input output m
