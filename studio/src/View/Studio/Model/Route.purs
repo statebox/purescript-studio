@@ -39,10 +39,10 @@ derive instance genericRouteF :: Generic (RouteF p d n) _
 
 codex :: RouteDuplex' Route
 codex = root $ sum
-  { "Home": noArgs
-  , "TxHome" : "tx" / optional segment
+  { "Home":         noArgs
+  , "TxHome" :      "tx" / optional segment
   , "ProjectRoute": "project" / segment / projectCodex
-  , "ApiRoute": "api" / apiCodex / param "endpointUrl"
+  , "ApiRoute":     "api" / apiCodex / param "endpointUrl"
   }
 
 -- Project-related routes
@@ -62,11 +62,11 @@ derive instance genericProjectRouteF :: Generic (ProjectRouteF d n) _
 projectCodex :: RouteDuplex' ProjectRoute
 projectCodex = sum
   { "ProjectHome": noArgs
-  , "Types": "types" / noArgs
-  , "Auths": "auths" / noArgs
-  , "Net": "net" / segment
-  , "Diagram": "diagram" / segment / optional nodeIdentCodex
-  , "KDMonCatR": "kdmoncat" / segment
+  , "Types":       "types" / noArgs
+  , "Auths":       "auths" / noArgs
+  , "Net":         "net" / segment
+  , "Diagram":     "diagram" / segment / optional nodeIdentCodex
+  , "KDMonCatR":   "kdmoncat" / segment
   }
 
 -- | Statebox Core/API-related routes
@@ -84,12 +84,12 @@ derive instance genericApiRoute :: Generic ApiRoute _
 
 apiCodex ∷ RouteDuplex' ApiRoute
 apiCodex = sum
-  { "UberRootR": noArgs
+  { "UberRootR":  noArgs
   , "NamespaceR": path "namespace" $ param "hash"
-  , "WiringR": "wiring" / segment
-  , "FiringR": "firing" / segment
-  , "DiagramR": "diagram" / segment / newtype_ (int segment) / segment
-  , "NetR": "netr" / segment / newtype_ (int segment) / segment
+  , "WiringR":    "wiring" / segment
+  , "FiringR":    "firing" / segment
+  , "DiagramR":   "diagram" / segment / newtype_ (int segment) / segment
+  , "NetR":       "net" / segment / newtype_ (int segment) / segment
   }
 
 type DiagramName = String
@@ -137,7 +137,7 @@ derive instance genericNodeIdent :: Generic (NodeIdent d n) _
 nodeIdentCodex ∷ RouteDuplex' (NodeIdent DiagramName NetName)
 nodeIdentCodex = root $ sum
   { "DiagramNode": param "diagram"
-  , "NetNode": param "net"
+  , "NetNode":     param "net"
   }
 
 --------------------------------------------------------------------------------
