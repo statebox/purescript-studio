@@ -5,7 +5,7 @@ import Affjax (URL) -- TODO introduce URL alias in Client so we can abstract Aff
 import Control.Comonad.Cofree ((:<))
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
-import Data.Array (cons)
+import Data.Array (cons, last)
 import Data.Foldable (foldMap, foldr, length)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.FunctorWithIndex (mapWithIndex)
@@ -80,112 +80,111 @@ render state =
     main =
       [ div []
             [ div [ classes $ ClassName <$> [ "container" ] <> guard showSidebar [ "is-fluid" ] ] $
-                  resolveRoute state.route state
-                    # maybe [ text "Couldn't find project/net/diagram." ] \resolved ->
-                        [ routeBreadcrumbs state.route resolved
-                        , contentView state.apiUrl resolved
-                        ]
+                  resolveRoute state.route state # \resolved ->
+                    [ routeBreadcrumbs state.route resolved
+                    , contentView state.apiUrl resolved
+                    ]
             ]
       ]
 
 contentView :: ∀ m. MonadAff m => URL -> ResolvedRoute -> ComponentHTML Action ChildSlots m
-contentView apiUrl route = case route of
-  ResolvedHome projects ->
-    div []
-        [ projectsDashboard projects
-        ]
+contentView apiUrl route = last route # maybe (text "Couldn't find project/net/diagram.") view
+  where
+    view = case _ of
+      ResolvedHome projects ->
+        div []
+            [ projectsDashboard projects
+            ]
 
-  ResolvedTxHome projects ->
-    div []
-        [ homeForm apiUrl
-        ]
+      ResolvedTxHome projects ->
+        div []
+            [ homeForm apiUrl
+            ]
 
-  ResolvedProject project ->
-    div []
-        [ p_ [ text $ "Project '" <> project.name <> "'" ]
-        , p_ [ button [ onClick \_ -> Just $ CRUDKDMonCat $ CreateAction mempty ]
-                      [ text "Create new KDMonCat diagram" ]
-             ]
-        ]
+      ResolvedProject project ->
+        div []
+            [ p_ [ text $ "Project '" <> project.name <> "'" ]
+            , p_ [ button [ onClick \_ -> Just $ CRUDKDMonCat $ CreateAction mempty ]
+                          [ text "Create new KDMonCat diagram" ]
+                ]
+            ]
 
-  ResolvedTypes project ->
-    TypedefsEditor.typedefsTreeView project.types
+      ResolvedTypes project ->
+        TypedefsEditor.typedefsTreeView project.types
 
-  ResolvedAuths project ->
-    RolesEditor.roleInfosHtml project.roleInfos
+      ResolvedAuths project ->
+        RolesEditor.roleInfosHtml project.roleInfos
 
-  ResolvedNet netInfo ->
-    slot _petrinetEditor unit (PetrinetEditor.ui (Just "main_net")) netInfo (Just <<< HandlePetrinetEditorMsg)
+      ResolvedNet netInfo ->
+        slot _petrinetEditor unit (PetrinetEditor.ui (Just "main_net")) netInfo (Just <<< HandlePetrinetEditorMsg)
 
-  ResolvedDiagram diagramInfo nodeMaybe ->
-    div [ classes [ ClassName "has-columns" ] ]
-        [ div []
-              [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
-        , div []
-              [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (Just <<< HandleKDMonCatBricksMsg diagramInfo)
-              , case nodeMaybe of
-                  Just (NetNode netInfo)          -> slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
-                  Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
-                  Nothing                         -> text "Click a node to show the corresponding net or diagram."
-              ]
-        ]
-    where
-      bricksInput =
-        (KDMonCat.App.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) zero)
-        { renderBoxContent = \name bid ->
-            (KDMonCat.Bricks.defaultRenderBoxContent name bid)
-            { className = if maybeSelectedBid == Just bid then "selected" else "" } }
-      maybeSelectedBid = case nodeMaybe of
-        Just (NetNode netInfo) -> DiagramV2.toPixel diagramInfo.ops (\{ identifier } -> netInfo.name == identifier)
-        _ -> Nothing
+      ResolvedDiagram diagramInfo nodeMaybe ->
+        div [ classes [ ClassName "has-columns" ] ]
+            [ div []
+                  [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
+            , div []
+                  [ slot _kdmoncatBricks unit KDMonCat.Bricks.bricksView bricksInput (Just <<< HandleKDMonCatBricksMsg diagramInfo)
+                  , case nodeMaybe of
+                      Just (NetNode netInfo)          -> slot _petrinetEditor unit (PetrinetEditor.ui (Just "diagram_node")) netInfo (Just <<< HandlePetrinetEditorMsg)
+                      Just (DiagramNode diagramInfo2) -> text "TODO viewing internal diagrams is not supported yet."
+                      Nothing                         -> text "Click a node to show the corresponding net or diagram."
+                  ]
+            ]
+        where
+          bricksInput =
+            (KDMonCat.App.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) zero)
+            { renderBoxContent = \name bid ->
+                (KDMonCat.Bricks.defaultRenderBoxContent name bid)
+                { className = if maybeSelectedBid == Just bid then "selected" else "" } }
+          maybeSelectedBid = case nodeMaybe of
+            Just (NetNode netInfo) -> DiagramV2.toPixel diagramInfo.ops (\{ identifier } -> netInfo.name == identifier)
+            _ -> Nothing
 
-  ResolvedKDMonCat kdmoncatInput ->
-     div [ classes [ ClassName "w-full", ClassName "pl-4" ] ]
-         [ slot _kdmoncatApp unit KDMonCat.App.appView kdmoncatInput (Just <<< HandleKDMonCatAppMsg) ]
+      ResolvedKDMonCat kdmoncatInput ->
+        div [ classes [ ClassName "w-full", ClassName "pl-4" ] ]
+            [ slot _kdmoncatApp unit KDMonCat.App.appView kdmoncatInput (Just <<< HandleKDMonCatAppMsg) ]
 
-  ResolvedUberRoot url ->
-    text $ "Service über-root " <> url
+      ResolvedUberRoot url ->
+        text $ "Service über-root " <> url
 
-  ResolvedNamespace hash ->
-    text $ "Namespace " <> hash
+      ResolvedNamespace hash ->
+        text $ "Namespace " <> hash
 
-  ResolvedWiring wfi wiringTx ->
-    wiringTxView wfi wiringTx
+      ResolvedWiring wfi wiringTx ->
+        wiringTxView wfi wiringTx
 
-  ResolvedFiring wfi firingTx executionTraceE ->
-    firingTxView wfi firingTx executionTraceE
+      ResolvedFiring wfi firingTx executionTraceE ->
+        firingTxView wfi firingTx executionTraceE
 
 routeBreadcrumbs :: ∀ m. Route -> ResolvedRoute -> ComponentHTML Action ChildSlots m
 routeBreadcrumbs route resolvedRoute =
   nav [ classes [ ClassName "stbx-breadcrumbs" ] ]
-      [ ol [] $
-           crumb <$> case route /\ resolvedRoute of
-                       Home                              /\ _ -> [ "Home" ]
-                       TxHome       _                    /\ _ -> [ "Home" ]
-                       ProjectRoute _ pr                 /\ ResolvedProject project -> [ "Home", project.name ] <> projectRouteBreadcrumbs pr
-                       ApiRoute     apiRoute endpointUrl /\ _ -> apiRouteBreadcrumbs endpointUrl apiRoute
-                       _                                      -> []
-      ]
+      [ ol [] $ toBreadcrumb <$> resolvedRoute ]
   where
-    crumb str = li [] [ a [ href "#" ] [ text str ] ]
+    crumb r str = li [] [ a [ onClick \_ -> Just (SelectRoute r) ] [ text str ] ]
 
-    projectRouteBreadcrumbs :: ProjectRoute -> Array _
-    projectRouteBreadcrumbs = case _ of
-      ProjectHome       -> []
-      Types             -> [ "Types" ]
-      Auths             -> [ "Authorisation" ]
-      Net        name   -> [ name ]
-      Diagram    name _ -> [ name ]
-      KDMonCatR  name   -> [ name ]
+    sub = case route of
+      Home -> Home
+      TxHome h -> TxHome h
+      ProjectRoute id _ -> ProjectRoute id ProjectHome
+      ApiRoute _ url -> ApiRoute UberRootR url
 
-    apiRouteBreadcrumbs :: URL -> ApiRoute -> Array _
-    apiRouteBreadcrumbs endpointUrl = case _ of
-      UberRootR                     -> [ "über-namespace", endpointUrl ]
-      NamespaceR hash               -> [ "namespace", shortHash hash ]
-      WiringR    x                  -> [ endpointUrl, "wiring " <> shortHash x ]
-      FiringR    x                  -> [ endpointUrl, shortHash x ]
-      DiagramR   hash ix name       -> [ shortHash hash, "diagram " <> show ix <> " " <> name ]
-      NetR       hash ix name       -> [ shortHash hash, "net "     <> show ix <> " " <> name ]
+    toBreadcrumb = case _ of
+      ResolvedHome      _ -> crumb Home "Home"
+      ResolvedTxHome    _ -> crumb (TxHome Nothing) "Home"
+
+      ResolvedProject   p -> crumb sub p.name
+      ResolvedTypes     p -> crumb route "Types"
+      ResolvedAuths     p -> crumb route "Authorisation"
+
+      ResolvedNet       n -> crumb route n.name
+      ResolvedDiagram   d _ -> crumb route d.name
+      ResolvedKDMonCat  k -> crumb route "TODO"
+
+      ResolvedUberRoot  u -> crumb sub u
+      ResolvedNamespace h -> crumb route $ shortHash h
+      ResolvedWiring    w _ -> crumb route $ "wiring " <> shortHash w.hash
+      ResolvedFiring    f _ _ -> crumb route $ "firing " <> shortHash f.hash
 
 navBar :: ∀ m. String -> Array (String /\ Maybe Route) -> ComponentHTML Action ChildSlots m
 navBar title menuItems =
@@ -283,7 +282,7 @@ projectsDashboard projects =
       [ ul [ classes [ ClassName "stbx-cards" ] ] $
           (projects # foldMapWithIndex mkProjectLink) <>
           [ li [ classes [ ClassName "stbx-add-card" ] ]
-               [ button [ onClick \_ -> Just $ CRUDProject $ CreateAction $ emptyProject { name = "Untitled (TODO)" } ]
+               [ button [ onClick $ Just <<< StopEvent (Just $ CRUDProject $ CreateAction $ emptyProject { name = "Untitled (TODO)" }) <<< toEvent ]
                         [ text "Create new project" ]
                ]
           ]
@@ -300,7 +299,7 @@ projectsDashboard projects =
                  ]
          , div [ classes [ ClassName "hover-controls" ] ]
                [ button [ onClick $ Just <<< StopEvent (Just $ CRUDProject $ DeleteAction projectId) <<< toEvent ]
-                       [ text "Delete" ]
+                        [ text "Delete" ]
                ]
          ]
 

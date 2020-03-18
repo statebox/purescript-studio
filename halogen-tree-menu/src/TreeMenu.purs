@@ -4,12 +4,10 @@ import Prelude hiding (div)
 import Effect.Aff.Class (class MonadAff)
 import Control.Comonad.Cofree
 import Data.Foldable (null)
-import Data.FunctorWithIndex (class FunctorWithIndex, mapWithIndex)
-import Data.Maybe (Maybe(..), maybe, fromMaybe)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Maybe (Maybe(..), maybe)
 import Halogen as H
-import Halogen (Component, ComponentHTML, HalogenM, mkEval, defaultEval)
-import Halogen.HTML (HTML, a, b, details, div, li, nav, span, summary, text, ul)
+import Halogen (Component, ComponentHTML, HalogenM)
+import Halogen.HTML (HTML, a, b, details, li, nav, span, summary, text, ul)
 import Halogen.HTML.Core (ClassName(..), AttrName(..))
 import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (IProp, attr, classes, href)
@@ -20,6 +18,7 @@ import Web.UIEvent.MouseEvent (toEvent)
 
 --------------------------------------------------------------------------------
 
+componentCssClassNameStr :: String
 componentCssClassNameStr = "css-object-chooser"
 
 --------------------------------------------------------------------------------

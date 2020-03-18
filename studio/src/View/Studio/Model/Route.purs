@@ -7,15 +7,14 @@ import Data.Map (Map)
 import Data.Maybe (Maybe)
 import Data.Newtype
 import Data.Lens.Iso.Newtype
-import Data.Tuple.Nested (type (/\))
 import Data.Generic.Rep
-import Routing.Duplex (RouteDuplex', path, root, segment, string, int, optional, param, params)
+import Routing.Duplex (RouteDuplex', path, root, segment, int, optional, param)
 import Routing.Duplex.Generic (sum, noArgs)
 import Routing.Duplex.Generic.Syntax
 
 import View.KDMonCat.App (Input) as KDMonCat.App
 import Statebox.Core.Types (NetsAndDiagramsIndex)
-import Statebox.Core.Transaction (HashStr, Tx, TxSum(..), WiringTx, FiringTx, evalTxSum)
+import Statebox.Core.Transaction (HashStr, TxSum, WiringTx, FiringTx, evalTxSum)
 import View.Model (ProjectId)
 import View.Studio.Model.TxCache (ExecutionTrace)
 

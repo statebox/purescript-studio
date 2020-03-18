@@ -2,7 +2,7 @@ module View.Studio.Model where
 
 import Prelude
 import Affjax (URL) -- TODO introduce URL alias in Client so we can abstract Affjax away
-import Data.Array (findIndex, modifyAt)
+import Data.Array (findIndex, modifyAt, fromFoldable, cons)
 import Data.AdjacencySpace (AdjacencySpace)
 import Data.Foldable (find)
 import Data.Lens (Lens')
@@ -71,40 +71,41 @@ _projects = prop (SProxy :: SProxy "projects")
 
 --------------------------------------------------------------------------------
 
-type ResolvedRoute = ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles
+type ResolvedRoute = Array (ResolvedRouteF Project DiagramInfo NetInfoWithTypesAndRoles)
 
-resolveRoute :: Route -> State -> Maybe ResolvedRoute
+resolveRoute :: Route -> State -> ResolvedRoute
 resolveRoute route state = case route of
-  Home                       -> pure $ ResolvedHome state.projects
-  TxHome       _             -> pure $ ResolvedTxHome state.projects
-  ProjectRoute projectId pr  -> findProject state.projects projectId >>= resolveProjectRoute pr state
-  ApiRoute     x endpointUrl -> resolveApiRoute endpointUrl x state.hashSpace
+  Home                       -> [ ResolvedHome state.projects ]
+  TxHome       _             -> [ ResolvedTxHome state.projects ]
+  ProjectRoute projectId pr  -> ResolvedHome state.projects `cons` (fromFoldable (findProject state.projects projectId) >>= resolveProjectRoute pr state)
+  ApiRoute     x endpointUrl -> ResolvedTxHome state.projects `cons` resolveApiRoute endpointUrl x state.hashSpace
 
-resolveProjectRoute :: ProjectRoute -> State -> Project -> Maybe ResolvedRoute
-resolveProjectRoute route state project = case route of
-  ProjectHome           -> pure $ ResolvedProject project
-  Types                 -> pure $ ResolvedTypes project
-  Auths                 -> pure $ ResolvedAuths project
-  Net       name        -> ResolvedNet <$> findNetInfoWithTypesAndRoles project name
-  Diagram   name nodeId -> do diagram <- findDiagramInfo project name
+resolveProjectRoute :: ProjectRoute -> State -> Project -> ResolvedRoute
+resolveProjectRoute route state project = ResolvedProject project `cons` case route of
+  ProjectHome           -> []
+  Types                 -> [ ResolvedTypes project ]
+  Auths                 -> [ ResolvedAuths project ]
+  Net       name        -> fromFoldable $ ResolvedNet <$> findNetInfoWithTypesAndRoles project name
+  Diagram   name nodeId -> fromFoldable do
+                              diagram <- findDiagramInfo project name
                               let node = nodeId >>= case _ of
                                            DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
                                            NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                               pure $ ResolvedDiagram diagram node
-  KDMonCatR str         -> ResolvedKDMonCat <$> findKDMonCat project str
+  KDMonCatR str         -> fromFoldable $ ResolvedKDMonCat <$> findKDMonCat project str
 
-resolveApiRoute :: URL -> ApiRoute -> AdjacencySpace HashStr TxSum -> Maybe ResolvedRoute
-resolveApiRoute endpointUrl route hashSpace = case route of
-  UberRootR                         -> pure $ ResolvedUberRoot endpointUrl
-  NamespaceR hash                   -> pure $ ResolvedNamespace hash
-  WiringR    hash                   -> ResolvedWiring { hash, endpointUrl } <$> TxCache.findWiringTx hashSpace hash
-  FiringR    hash                   -> ResolvedFiring { hash, endpointUrl } <$> firingTxM <*> pure execTrace
+resolveApiRoute :: URL -> ApiRoute -> AdjacencySpace HashStr TxSum -> ResolvedRoute
+resolveApiRoute endpointUrl route hashSpace = ResolvedUberRoot endpointUrl `cons` case route of
+  UberRootR                         -> []
+  NamespaceR hash                   -> [ ResolvedNamespace hash ]
+  WiringR    hash                   -> fromFoldable $ ResolvedWiring { hash, endpointUrl } <$> TxCache.findWiringTx hashSpace hash
+  FiringR    hash                   -> fromFoldable $ ResolvedFiring { hash, endpointUrl } <$> firingTxM <*> pure execTrace
     where
       firingTxM = TxCache.findFiringTx hashSpace hash
       execTrace = TxCache.findExecutionTrace hashSpace hash execHash
       execHash  = firingTxM >>= _.firing.execution # fromMaybe hash
-  DiagramR   wiringHash ix name     -> (\d -> ResolvedDiagram d Nothing) <$> TxCache.findDiagramInfo hashSpace wiringHash ix
-  NetR       wiringHash ix name     -> (\n -> ResolvedNet     n)         <$> TxCache.findNetInfo     hashSpace wiringHash ix
+  DiagramR   wiringHash ix name     -> fromFoldable $ (\d -> ResolvedDiagram d Nothing) <$> TxCache.findDiagramInfo hashSpace wiringHash ix
+  NetR       wiringHash ix name     -> fromFoldable $ (\n -> ResolvedNet     n)         <$> TxCache.findNetInfo     hashSpace wiringHash ix
 
 --------------------------------------------------------------------------------
 

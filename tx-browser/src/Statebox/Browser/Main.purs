@@ -16,7 +16,7 @@ import Routing.Hash as Routing
 import Routing.PushState (makeInterface, matchesWith)
 
 import View.Studio as Studio
-import View.Studio (Query(LoadTransactionsThenView))
+import View.Studio (Query(..))
 import View.Studio.Model.Route
 
 import ExampleData as Ex
@@ -34,6 +34,7 @@ main = runHalogenAff do
   { path } <- liftEffect $ nav.locationState
   case parse codex path of
     Right Home -> do
+      _ <- io.query $ H.tell (Navigate (TxHome Nothing))
       urlHash <- liftEffect $ Routing.getHash
       loadTransactionsThenView io Ex.endpointUrl urlHash
     Right (TxHome (Just hash)) -> loadTransactionsThenView io Ex.endpointUrl hash

@@ -186,7 +186,9 @@ handleAction = case _ of
 type Affine s t a b = forall p. Strong p => Choice p => Optic p s t a b
 type Affine' s a = Affine s s a a
 
-handleCRUDAction :: ∀ m s t a. MonadEffect m => MonadState s m => At t String a => Affine' s t -> CRUDAction a -> (String -> Maybe a -> m Unit) -> m Unit
+handleCRUDAction
+  :: ∀ m s t a. MonadEffect m => MonadState s m => At t String a
+  => Affine' s t -> CRUDAction a -> (String -> Maybe a -> m Unit) -> m Unit
 handleCRUDAction l action eventHandler =
   case action of
     CreateAction a -> do
