@@ -2,12 +2,6 @@ module Stripe where
 
 import Data.Maybe (Maybe)
 
-
--- | Stripe populates this with things like `"customer"`, `"object"`, `"list"` and so on.
-type ObjectTag = String
-
---------------------------------------------------------------------------------
-
 -- | https://stripe.com/docs/api/customers/object
 type Customer =
   { object           :: ObjectTag
@@ -20,8 +14,10 @@ type Customer =
   , currency         :: Currency
   , invoice_prefix   :: String
   , invoice_settings :: InvoiceSettings
-  , subscriptions    :: SubscriptionsInfo
+  , subscriptions    :: { | ArrayWrapperRow Subscription ( total_count :: Int ) }
   , delinquent       :: Boolean
+  , tax_ids          :: ArrayWrapper TaxIdData
+  , tax_exempt       :: TaxExemptType
   }
 
 type CustomerId = String
@@ -94,16 +90,6 @@ type InvoiceId = String
 
 --------------------------------------------------------------------------------
 
-type SubscriptionsInfo =
-  { object      :: ObjectTag
-  , has_more    :: Boolean
-  , total_count :: Int
-  , url         :: URLSuffix -- ^ e.g. "/v1/customers/:customerId:/subscriptions"
-  , data        :: Array Subscription
-  }
-
---------------------------------------------------------------------------------
-
 type Subscription =
   { id                   :: SubscriptionId
   , customer             :: CustomerId
@@ -112,11 +98,7 @@ type Subscription =
   , current_period_start :: Timestamp
   , current_period_end   :: Timestamp
   , latest_invoice       :: Maybe InvoiceId
-  , items                :: { object    :: ObjectTag
-                            , data      :: Array SubscriptionItem
-                            , url       :: URLSuffix
-                            , has_more  :: Boolean
-                            }
+  , items                :: ArrayWrapper SubscriptionItem
   }
 
 type SubscriptionId = String
@@ -158,6 +140,23 @@ type BillingScheme = String
 type Interval = String
 
 type ProductId = String
+
+--------------------------------------------------------------------------------
+
+type TaxIdData =
+  { type  :: TaxIdType
+  , value :: String
+  }
+
+-- | One of `"eu_vat"` | `"nz_gst"` | `"au_abn"` | `"in_gst"` | `"no_vat"` |
+-- |        `"za_vat"` | `"ch_vat"` | `"mx_rfc"` | `"sg_uen"` | `"ru_inn"` |
+-- |        `"ca_bn"` | `"hk_br"` | `"es_cif"` | `"tw_vat"` | `"th_vat"` |
+-- |        `"jp_cn"` | `"li_uid"` | `"my_itn"` | `"us_ein"` | `"kr_brn"` |
+-- |        `"ca_qst"` | `"my_sst"`.
+type TaxIdType = String
+
+-- | One of `"none"`, `"exempt"`, or `"reverse`".
+type TaxExemptType = String
 
 --------------------------------------------------------------------------------
 
@@ -203,3 +202,19 @@ type MonthNr = Int
 
 -- | Year, starting from zero, i.e. the year 2020 is represented as `2020`.
 type Year = Int
+
+--------------------------------------------------------------------------------
+
+-- | Stripe populates this with things like `"customer"`, `"object"`,
+-- | `"list"` and so on.
+type ObjectTag = String
+
+type ArrayWrapperRow a r =
+  ( object   :: ObjectTag
+  , data     :: Array a
+  , has_more :: Boolean
+  , url      :: URLSuffix
+  | r
+  )
+
+type ArrayWrapper a = { | ArrayWrapperRow a () }

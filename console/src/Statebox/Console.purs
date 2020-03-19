@@ -133,6 +133,19 @@ customerHtml c =
         , tr [] [ th [] [ text "balance" ]
                 , td [] [ text $ c.currency <> " " <> show c.balance <> " cents" ]
                 ]
+        , tr [] [ th [] [ text "tax" ]
+                , td [] [ taxIdsHtml c.tax_ids ]
+                ]
+        ]
+
+taxIdsHtml :: ∀ m. MonadAff m => Stripe.ArrayWrapper Stripe.TaxIdData -> ComponentHTML Action ChildSlots m
+taxIdsHtml x =
+  table [] (taxIdDataHtml <$> x.data)
+
+taxIdDataHtml :: ∀ m. MonadAff m => Stripe.TaxIdData -> ComponentHTML Action ChildSlots m
+taxIdDataHtml x =
+  tr [] [ td [] [ text x.value ]
+        , td [] [ text x.type ]
         ]
 
 --------------------------------------------------------------------------------

@@ -19,12 +19,7 @@ mkUrl suffix = "http://localhost" <> suffix
 
 --------------------------------------------------------------------------------
 
-type InvoicesResponse =
-  { object :: String
-  , "data" :: Array Stripe.Invoice
-  }
-
-listInvoices :: Aff (Affjax.Error \/ String \/ InvoicesResponse)
+listInvoices :: Aff (Affjax.Error \/ String \/ Stripe.ArrayWrapper Stripe.Invoice)
 listInvoices = listInvoices' # map (map (_.body >>> spy "invoices body dump" >>> decodeJson))
 
 listInvoices' :: Aff (Affjax.Error \/ Response Json)
@@ -48,14 +43,7 @@ fetchCustomer' =
 
 --------------------------------------------------------------------------------
 
-type PaymentMethodsResponse =
-  { object   :: Stripe.ObjectTag
-  , "data"   :: Array Stripe.PaymentMethod
-  , has_more :: Boolean
-  , url      :: Stripe.URLSuffix
-  }
-
-listPaymentMethods :: Aff (Affjax.Error \/ String \/ PaymentMethodsResponse)
+listPaymentMethods :: Aff (Affjax.Error \/ String \/ Stripe.ArrayWrapper Stripe.PaymentMethod)
 listPaymentMethods = listPaymentMethods' # map (map (_.body >>> spy "paymentMethods dump" >>> decodeJson))
 
 listPaymentMethods' :: Aff (Affjax.Error \/ Response Json)
