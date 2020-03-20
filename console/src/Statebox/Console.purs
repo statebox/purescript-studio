@@ -124,9 +124,12 @@ invoiceSummaries invoices =
 
 customerHtml :: ∀ m. MonadAff m => Stripe.Customer -> ComponentHTML Action ChildSlots m
 customerHtml c =
-  table []
+  table [] $
         [ tr [] [ th [] [ text "name" ]
                 , td [] [ text $ fold c.name ]
+                ]
+        , tr [] [ th [] [ text "description" ]
+                , td [] [ text $ fold c.description ]
                 ]
         , tr [] [ th [] [ text "email" ]
                 , td [] [ text $ fold c.email ]
@@ -134,13 +137,9 @@ customerHtml c =
         , tr [] [ th [] [ text "phone" ]
                 , td [] [ text $ fold c.phone ]
                 ]
-        , tr [] [ th [] [ text "description" ]
-                , td [] [ text $ fold c.description ]
-                ]
-        , tr [] [ th [] [ text "address" ]
-                , td [] [ maybe (text "no address") addressHtml c.address ]
-                ]
-        , tr [] [ th [] [ text "balance" ]
+        ] <>
+        foldMap addressRowsHtml c.address <>
+        [ tr [] [ th [] [ text "balance" ]
                 , td [] [ text $ c.currency <> " " <> show c.balance <> " cents" ]
                 ]
         , tr [] [ th [] [ text "tax ids" ]
@@ -174,7 +173,7 @@ billingDetailsHtml bd = nameAddressPhoneHtml bd
 
 nameAddressPhoneHtml :: ∀ r m. MonadAff m => { | Stripe.NameAddressPhoneRow () } -> ComponentHTML Action ChildSlots m
 nameAddressPhoneHtml x =
-  table []
+  table [] $
         [ tr [] [ th [] [ text "name" ]
                 , td [] [ text $ fold x.name ]
                 ]
@@ -184,30 +183,31 @@ nameAddressPhoneHtml x =
         , tr [] [ th [] [ text "phone" ]
                 , td [] [ text $ fold x.phone ]
                 ]
-        , tr [] [ th [] [ text "address" ]
-                , td [] [ maybe (text "no address") addressHtml x.address ]
-                ]
-        ]
+        ] <>
+        foldMap addressRowsHtml x.address
 
 addressHtml :: ∀ m. MonadAff m => Stripe.Address -> ComponentHTML Action ChildSlots m
-addressHtml a =
-  table []
-        [ tr [] [ th [] [ text "address" ]
-                , td [] [ text $ fold a.line1, br [], text $ fold a.line2 ]
-                ]
-        , tr [] [ th [] [ text "city" ]
-                , td [] [ text $ fold a.city ]
-                ]
-        , tr [] [ th [] [ text "postal code" ]
-                , td [] [ text $ fold a.postal_code ]
-                ]
-        , tr [] [ th [] [ text "state" ]
-                , td [] [ text $ fold a.state ]
-                ]
-        , tr [] [ th [] [ text "country" ]
-                , td [] [ text $ fold a.country ]
-                ]
-        ]
+addressHtml a = table [] (addressRowsHtml a)
+
+addressRowsHtml :: ∀ m. MonadAff m => Stripe.Address -> Array (ComponentHTML Action ChildSlots m)
+addressRowsHtml a =
+  [ tr [] [ th [] [ text "address" ]
+          , td [] [ text $ fold a.line1, br [], text $ fold a.line2 ]
+          ]
+  , tr [] [ th [] [ text "city" ]
+          , td [] [ text $ fold a.city ]
+          ]
+  , tr [] [ th [] [ text "postal code" ]
+          , td [] [ text $ fold a.postal_code ]
+          ]
+  , tr [] [ th [] [ text "state" ]
+          , td [] [ text $ fold a.state ]
+          ]
+  , tr [] [ th [] [ text "country" ]
+          , td [] [ text $ fold a.country ]
+          ]
+  ]
+
 
 cardHtml :: ∀ m. MonadAff m => Stripe.Card -> ComponentHTML Action ChildSlots m
 cardHtml c =
