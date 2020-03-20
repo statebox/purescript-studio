@@ -72,7 +72,7 @@ type CardFingerprint = String
 -- | One of `"amex"` | `"diners"` | `"discover"` | `"jcb"` | `"mastercard"` | `"unionpay"` | `"visa"` | `"unknown"`.
 type CardBrand = String
 
--- | One of `"credit"` | `"debit"` | `"prepeaid"` | `"unknown"`.
+-- | One of `"credit"` | `"debit"` | `"prepaid"` | `"unknown"`.
 type Funding = String
 
 -- | If a CVC was provided, results of the check: `"pass"` | `"fail"` | `"unavailable"` | `"unchecked"`.
