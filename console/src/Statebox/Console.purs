@@ -72,18 +72,22 @@ handleAction :: ∀ m. MonadAff m => Action -> HalogenM State Action ChildSlots 
 handleAction = case _ of
   FetchStuff -> do
     H.liftEffect $ log "handling action FetchStuff..."
-    invoicesEE <- H.liftAff $ DAO.listInvoices
-    invoicesEE # either (\e ->         H.modify_ $ _ { status = ErrorStatus "Failed to fetch invoices." })
-                        (either (\e -> H.modify_ $ _ { status = ErrorStatus "Decoding invoices failed."})
-                                (\x -> H.modify_ $ _ { accounts = [ { invoices: x.data } ] }))
-    spyM "invoicesEE" $ invoicesEE
 
+    -- fetch the customer
     customerEE <- H.liftAff $ DAO.fetchCustomer
     customerEE # either (\e ->         H.modify_ $ _ { customer = Nothing, status = ErrorStatus "Failed to fetch customer." })
                         (either (\e -> H.modify_ $ _ { customer = Nothing, status = ErrorStatus "Decoding customer failed."})
                                 (\x -> H.modify_ $ _ { customer = Just x }))
     spyM "customerEE" $ customerEE
 
+    -- fetch some invoices for the customer
+    invoicesEE <- H.liftAff $ DAO.listInvoices
+    invoicesEE # either (\e ->         H.modify_ $ _ { status = ErrorStatus "Failed to fetch invoices." })
+                        (either (\e -> H.modify_ $ _ { status = ErrorStatus "Decoding invoices failed."})
+                                (\x -> H.modify_ $ _ { accounts = [ { invoices: x.data } ] }))
+    spyM "invoicesEE" $ invoicesEE
+
+    -- fetch the payment methods for this customer
     paymentMethodsEE <- H.liftAff $ DAO.listPaymentMethods
     paymentMethodsEE # either (\e ->   H.modify_ $ _ { status = ErrorStatus "Failed to fetch payment methods." })
                         (either (\e -> H.modify_ $ _ { status = ErrorStatus "Decoding payment methods failed."})
