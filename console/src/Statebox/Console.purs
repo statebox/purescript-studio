@@ -11,7 +11,7 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, p, text, div, ul, li, h2, table, tr, th, td)
+import Halogen.HTML (HTML, p, text, br, div, ul, li, h2, h3, table, tr, th, td)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Statebox.Console.DAO as DAO
@@ -100,6 +100,8 @@ render state =
       [ p [] [ text $ if state.status == Ok then "" else "status: " <> show state.status ]
       , h2 [] [ text "Customer" ]
       , div [] (maybe [] (pure <<< customerHtml) state.customer)
+      , h3 [] [ text "Customer's payment methods" ]
+      , div [] (state.paymentMethods <#> paymentMethodHtml)
       , h2 [] [ text "Invoices" ]
       , div []
             (state.accounts <#> \account -> table []
@@ -122,13 +124,16 @@ customerHtml c =
                 , td [] [ text $ fold c.name ]
                 ]
         , tr [] [ th [] [ text "email" ]
-                , td [] [ text $ c.email ]
+                , td [] [ text $ fold c.email ]
                 ]
         , tr [] [ th [] [ text "phone" ]
                 , td [] [ text $ fold c.phone ]
                 ]
         , tr [] [ th [] [ text "description" ]
                 , td [] [ text $ fold c.description ]
+                ]
+        , tr [] [ th [] [ text "address" ]
+                , td [] [ maybe (text "no address") addressHtml c.address ]
                 ]
         , tr [] [ th [] [ text "balance" ]
                 , td [] [ text $ c.currency <> " " <> show c.balance <> " cents" ]
@@ -147,6 +152,67 @@ taxIdDataHtml x =
   tr [] [ td [] [ text x.value ]
         , td [] [ text x.type ]
         ]
+
+paymentMethodHtml :: ∀ m. MonadAff m => Stripe.PaymentMethod -> ComponentHTML Action ChildSlots m
+paymentMethodHtml pm =
+  table []
+        [ tr [] [ td [] [ text "type" ]
+                , td [] [ text pm.type ]
+                ]
+        , tr [] [ td [] [ text "card" ]
+                , td [] [ maybe (text "no card") cardHtml pm.card ]
+                ]
+        ]
+
+billingDetailsHtml :: ∀ m. MonadAff m => Stripe.BillingDetails -> ComponentHTML Action ChildSlots m
+billingDetailsHtml bd =
+  table []
+        [ tr [] [ th [] [ text "name" ]
+                , td [] [ text $ fold bd.name ]
+                ]
+        , tr [] [ th [] [ text "email" ]
+                , td [] [ text $ fold bd.email ]
+                ]
+        , tr [] [ th [] [ text "phone" ]
+                , td [] [ text $ fold bd.phone ]
+                ]
+        , tr [] [ th [] [ text "address" ]
+                , td [] [ maybe (text "no address") addressHtml bd.address ]
+                ]
+        ]
+
+addressHtml :: ∀ m. MonadAff m => Stripe.Address -> ComponentHTML Action ChildSlots m
+addressHtml a =
+  table []
+        [ tr [] [ th [] [ text "address" ]
+                , td [] [ text $ fold a.line1, br [], text $ fold a.line2 ]
+                ]
+        , tr [] [ th [] [ text "city" ]
+                , td [] [ text $ fold a.city ]
+                ]
+        , tr [] [ th [] [ text "postal code" ]
+                , td [] [ text $ fold a.postal_code ]
+                ]
+        , tr [] [ th [] [ text "state" ]
+                , td [] [ text $ fold a.state ]
+                ]
+        , tr [] [ th [] [ text "country" ]
+                , td [] [ text $ fold a.country ]
+                ]
+        ]
+
+cardHtml :: ∀ m. MonadAff m => Stripe.Card -> ComponentHTML Action ChildSlots m
+cardHtml c =
+  text $ c.country <> " " <> c.brand <> " " <>
+         formatCCNumber c <>
+         " EXP " <> formatExpiryDate c <>
+         " (" <> c.funding <> ")"
+  where
+    formatCCNumber :: Stripe.Card -> String
+    formatCCNumber card = "**** **** **** " <> card.last4
+
+    formatExpiryDate :: Stripe.Card -> String
+    formatExpiryDate card = show c.exp_month <> "/" <> show c.exp_year
 
 --------------------------------------------------------------------------------
 

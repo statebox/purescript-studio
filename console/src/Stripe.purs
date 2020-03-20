@@ -8,8 +8,9 @@ type Customer =
   , id               :: CustomerId
   , name             :: Maybe String
   , description      :: Maybe String
-  , email            :: Email
+  , email            :: Maybe Email
   , phone            :: Maybe String
+  , address          :: Maybe Address
   , balance          :: Amount
   , currency         :: Currency
   , invoice_prefix   :: String
@@ -44,21 +45,25 @@ type PaymentMethodId = String
 type PaymentMethodType = String
 
 type BillingDetails =
-  { name    :: Maybe String
-  , phone   :: Maybe Phone
-  , email   :: Maybe Email
-  , address :: Maybe Address
+  { name     :: Maybe String
+  , phone    :: Maybe Phone
+  , email    :: Maybe Email
+  , address  :: Maybe Address
   }
 
+type BillingDetailsId = String
+
+-- | https://stripe.com/docs/api/cards
 type Card =
- { fingerprint :: String
- , brand       :: CardBrand
- , last4       :: String -- ^ last four digits of the card number.
- , exp_month   :: MonthNr
- , exp_year    :: Year
- , country     :: Country
- , funding     :: String
- }
+  { fingerprint :: String
+  , brand       :: CardBrand
+  , last4       :: String -- ^ last four digits of the card number.
+  , exp_month   :: MonthNr
+  , exp_year    :: Year
+  , country     :: Country
+  , funding     :: String
+  }
+
 
 -- | Uniquely identifies this particular card number. You can use this attribute to check whether two
 -- | customers who’ve signed up with you are using the same card number, for example.
@@ -69,6 +74,9 @@ type CardBrand = String
 
 -- | One of `"credit"` | `"debit"` | `"prepeaid"` | `"unknown"`.
 type Funding = String
+
+-- | If a CVC was provided, results of the check: `"pass"` | `"fail"` | `"unavailable"` | `"unchecked"`.
+type CVCCheckType = String
 
 --------------------------------------------------------------------------------
 
