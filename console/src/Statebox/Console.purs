@@ -103,19 +103,20 @@ render state =
       , h3 [] [ text "Customer's payment methods" ]
       , div [] (state.paymentMethods <#> paymentMethodHtml)
       , h2 [] [ text "Invoices" ]
-      , div []
-            (state.accounts <#> \account -> table []
-                                                  (account.invoices <#> invoiceSummaryLineHtml)
-            )
+      , div [] (state.accounts <#> \account -> invoiceSummaries account.invoices)
       ]
 
-invoiceSummaryLineHtml :: ∀ m. MonadAff m => Stripe.Invoice -> ComponentHTML Action ChildSlots m
-invoiceSummaryLineHtml i =
-  tr [] [ td [] [ text $ i.customer_email ]
-        , td [] [ text $ i.account_name ]
-        , td [] [ text $ i.currency ]
-        , td [] [ text $ show i.amount_due ]
-        ]
+invoiceSummaries :: ∀ m. MonadAff m => Array Stripe.Invoice -> ComponentHTML Action ChildSlots m
+invoiceSummaries invoices =
+  table [] (invoices <#> invoiceSummaryLineHtml)
+  where
+    invoiceSummaryLineHtml :: ∀ m. MonadAff m => Stripe.Invoice -> ComponentHTML Action ChildSlots m
+    invoiceSummaryLineHtml i =
+      tr [] [ td [] [ text $ i.customer_email ]
+            , td [] [ text $ i.account_name ]
+            , td [] [ text $ i.currency ]
+            , td [] [ text $ show i.amount_due ]
+            ]
 
 customerHtml :: ∀ m. MonadAff m => Stripe.Customer -> ComponentHTML Action ChildSlots m
 customerHtml c =
@@ -138,7 +139,7 @@ customerHtml c =
         , tr [] [ th [] [ text "balance" ]
                 , td [] [ text $ c.currency <> " " <> show c.balance <> " cents" ]
                 ]
-        , tr [] [ th [] [ text "tax" ]
+        , tr [] [ th [] [ text "tax ids" ]
                 , td [] [ taxIdsHtml c.tax_ids ]
                 ]
         ]
