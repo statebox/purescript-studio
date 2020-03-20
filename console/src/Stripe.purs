@@ -6,11 +6,7 @@ import Data.Maybe (Maybe)
 type Customer =
   { object           :: ObjectTag
   , id               :: CustomerId
-  , name             :: Maybe String
   , description      :: Maybe String
-  , email            :: Maybe Email
-  , phone            :: Maybe String
-  , address          :: Maybe Address
   , balance          :: Amount
   , currency         :: Currency
   , invoice_prefix   :: String
@@ -19,6 +15,7 @@ type Customer =
   , delinquent       :: Boolean
   , tax_ids          :: ArrayWrapper TaxIdData
   , tax_exempt       :: TaxExemptType
+  | NameAddressPhoneRow ()
   }
 
 type CustomerId = String
@@ -44,12 +41,7 @@ type PaymentMethodId = String
 -- | One of `"card"` | `"fpx"` | `"ideal"` | `"sepa_debit"`. See https://stripe.com/docs/api/payment_methods/object.
 type PaymentMethodType = String
 
-type BillingDetails =
-  { name     :: Maybe String
-  , phone    :: Maybe Phone
-  , email    :: Maybe Email
-  , address  :: Maybe Address
-  }
+type BillingDetails = { | NameAddressPhoneRow () }
 
 type BillingDetailsId = String
 
@@ -165,6 +157,17 @@ type TaxIdType = String
 
 -- | One of `"none"`, `"exempt"`, or `"reverse`".
 type TaxExemptType = String
+
+--------------------------------------------------------------------------------
+
+-- TODO include or exclude 'name' field?
+type NameAddressPhoneRow r =
+  ( name     :: Maybe String
+  , phone    :: Maybe Phone
+  , email    :: Maybe Email
+  , address  :: Maybe Address
+  | r
+  )
 
 --------------------------------------------------------------------------------
 

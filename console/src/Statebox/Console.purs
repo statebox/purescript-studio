@@ -170,19 +170,22 @@ paymentMethodHtml pm =
         ]
 
 billingDetailsHtml :: ∀ m. MonadAff m => Stripe.BillingDetails -> ComponentHTML Action ChildSlots m
-billingDetailsHtml bd =
+billingDetailsHtml bd = nameAddressPhoneHtml bd
+
+nameAddressPhoneHtml :: ∀ r m. MonadAff m => { | Stripe.NameAddressPhoneRow () } -> ComponentHTML Action ChildSlots m
+nameAddressPhoneHtml x =
   table []
         [ tr [] [ th [] [ text "name" ]
-                , td [] [ text $ fold bd.name ]
+                , td [] [ text $ fold x.name ]
                 ]
         , tr [] [ th [] [ text "email" ]
-                , td [] [ text $ fold bd.email ]
+                , td [] [ text $ fold x.email ]
                 ]
         , tr [] [ th [] [ text "phone" ]
-                , td [] [ text $ fold bd.phone ]
+                , td [] [ text $ fold x.phone ]
                 ]
         , tr [] [ th [] [ text "address" ]
-                , td [] [ maybe (text "no address") addressHtml bd.address ]
+                , td [] [ maybe (text "no address") addressHtml x.address ]
                 ]
         ]
 
