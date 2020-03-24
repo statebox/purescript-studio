@@ -60,5 +60,6 @@ main = runHalogenAff do
       , apiUrl:      Ex.endpointUrl
       , route
       , nav
+      , navEditMode: false
       , menuItems:   [ "Home" /\ Just (TxHome Nothing) ]
       }

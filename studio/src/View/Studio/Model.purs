@@ -19,8 +19,9 @@ import Web.Event.Event (Event)
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Statebox.Core.Transaction (HashStr, TxSum)
+import View.CRUDAction
 import View.Diagram.Model (DiagramInfo)
-import View.Model (Project, ProjectId, NetInfoWithTypesAndRoles)
+import View.Model (Project, ProjectId, NetInfoWithTypesAndRoles, KDMonCatData)
 import View.Petrinet.Model (NetInfo)
 import View.Studio.Model.Route
 import View.Studio.Model.TxCache as TxCache
@@ -44,16 +45,12 @@ data Action
   | HandleDiagramEditorMsg DiagramEditor.Msg
   | HandleKDMonCatBricksMsg DiagramInfo KDMonCat.Bricks.Output
   | HandleKDMonCatAppMsg KDMonCat.App.Output
+  | ToggleEditMode
 
   | CRUDProject (CRUDAction Project)
-  | CRUDKDMonCat (CRUDAction KDMonCat.App.Input)
+  | CRUDKDMonCat (CRUDAction KDMonCatData)
 
   | StopEvent (Maybe Action) Event
-
-data CRUDAction a
-  = CreateAction a
-  | UpdateAction String (a -> a)
-  | DeleteAction String
 
 type State =
   { route       :: Route
@@ -64,6 +61,7 @@ type State =
   , apiUrl      :: URL
   , menuItems   :: Array (String /\ Maybe Route)
   , nav         :: PushStateInterface
+  , navEditMode :: Boolean
   }
 
 _projects :: Lens' State (Map ProjectId Project)
@@ -129,10 +127,10 @@ modifyDiagramInfo diagramName fn diagrams = do
 
 --------------------------------------------------------------------------------
 
-findKDMonCat :: Project -> String -> Maybe KDMonCat.App.Input
+findKDMonCat :: Project -> String -> Maybe KDMonCatData
 findKDMonCat project diagramId = Map.lookup diagramId project.kdmoncats
 
-modifyKDMonCat :: String -> (KDMonCat.App.Input -> KDMonCat.App.Input) -> Map String KDMonCat.App.Input -> Map String KDMonCat.App.Input
+modifyKDMonCat :: String -> (KDMonCatData -> KDMonCatData) -> Map String KDMonCatData -> Map String KDMonCatData
 modifyKDMonCat diagramId f = Map.alter (map f) diagramId
 
 --------------------------------------------------------------------------------

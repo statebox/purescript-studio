@@ -13,24 +13,18 @@ module ExampleData
 import Prelude
 import Data.Array ((..), length)
 import Data.Map as Map
-import Data.Map (Map)
-import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Monoid.Additive (Additive(..))
-import Data.Newtype (un, over)
-import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Ring
 import Data.Vec3.Box (Box(..))
-import Data.Vec3 (Vec2D, Vec2(..), vec2, vec3, _x, _y, _z)
+import Data.Vec3 (vec2, vec3)
 
-import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
+import Data.Auth (CSSColor(..), Role(..), rolesFromFoldable)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Data.Typedef (Typedef(..))
 import Data.Typedef.Typedef2 (Typedef2(..))
 import View.Model (Project)
-import View.Petrinet.Model (PID, TID, Tokens, Transition, Marking, PlaceMarking, NetRep, mkNetRepUsingLayout, mkNetApi, NetApi, NetInfo, NetInfoFRow, NetLayout, TextBox)
+import View.Petrinet.Model (Marking, NetInfo, NetLayout, NetRep, PID, TextBox, Transition, mkNetApi, mkNetRepUsingLayout)
 import View.Diagram.Model (DiagramInfo)
 
 -- TODO hardcoded for now, but we should decide how we want to come by this
@@ -67,8 +61,8 @@ project1Typedefs =
     person = TProd [TRef "String", TRef "Date"]
 
 project1KDMonCats = Map.fromFoldable
-  [ "beep" /\ { pixels: "pq", context: "p: -> a\nq: a ->" }
-  , "boop" /\ { pixels: "hij", context: "h: -> a\ni: a -> b\nj: b ->" }
+  [ "beep" /\ { name: "beep", input: { pixels: "pq", context: "p: -> a\nq: a ->" } }
+  , "boop" /\ { name: "beep", input: { pixels: "hij", context: "h: -> a\ni: a -> b\nj: b ->" } }
   ]
 
 --------------------------------------------------------------------------------

@@ -5,23 +5,17 @@ import Affjax as Affjax
 import Affjax (URL)
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
-import Control.Monad.State.Class
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
-import Data.Lens ((.=), preview, _Just, Optic)
+import Data.Lens (_Just)
 import Data.Lens.At
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Map as Map
-import Data.Profunctor.Choice
-import Data.Profunctor.Strong
 import Data.Set as Set
-import Data.String (drop)
 import Data.Traversable (for_)
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Console (log)
-import Effect.Random (random)
 import Foreign (unsafeToForeign)
 import Halogen as H
 import Halogen (mkEval, defaultEval)
@@ -36,6 +30,7 @@ import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
 import Statebox.Core.Transaction (HashTx, TxId)
+import View.CRUDAction
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
 import View.KDMonCat.App as KDMonCat.Bricks
@@ -169,42 +164,22 @@ handleAction = case _ of
       op <- DiagramV2.fromPixel diagramInfo.ops box.bid
       pure op.identifier
 
-  HandleKDMonCatAppMsg kdmoncatInput -> do
+  HandleKDMonCatAppMsg input -> do
     modifyProject \proute p ->
       case proute of
-        KDMonCatR kdName -> p { kdmoncats = modifyKDMonCat kdName (const kdmoncatInput) p.kdmoncats }
-        _                -> p
+        KDMonCatR kid -> p { kdmoncats = modifyKDMonCat kid (\{ name } -> { name, input }) p.kdmoncats }
+        _             -> p
 
   HandlePetrinetEditorMsg NetUpdated -> do
     pure unit
+
+  ToggleEditMode -> do
+    H.modify_ $ \state -> state { navEditMode = not state.navEditMode }
 
   StopEvent mAction event -> do
     H.liftEffect $ Event.preventDefault event
     H.liftEffect $ Event.stopPropagation event
     for_ mAction handleAction
-
-type Affine s t a b = forall p. Strong p => Choice p => Optic p s t a b
-type Affine' s a = Affine s s a a
-
-handleCRUDAction
-  :: ∀ m s t a. MonadEffect m => MonadState s m => At t String a
-  => Affine' s t -> CRUDAction a -> (String -> Maybe a -> m Unit) -> m Unit
-handleCRUDAction l action eventHandler =
-  case action of
-    CreateAction a -> do
-      rnd <- liftEffect random
-      let id = "id" <> drop 2 (show rnd)
-      handle id $ Just a
-    UpdateAction id f -> do
-      s <- get
-      handle id (map f (join (preview (l <<< at id) s)))
-    DeleteAction id -> do
-      handle id Nothing
-  where
-    handle :: String -> Maybe a -> m Unit
-    handle id mValue = do
-      l <<< at id .= mValue
-      eventHandler id mValue
 
 handleCRUDActionInProject :: ∀ m t a. MonadAff m => At t String a => Affine' Project t -> CRUDAction a -> HalogenM State Action ChildSlots Output m Unit
 handleCRUDActionInProject l action = do

@@ -20,18 +20,19 @@ type Project =
   { name         :: ProjectName
   , nets         :: Array NetInfo
   , diagrams     :: Array DiagramInfo
-  , kdmoncats    :: Map String KDMonCat.App.Input
+  , kdmoncats    :: Map String KDMonCatData
   , roleInfos    :: Array RoleInfo
   , types        :: Array (String /\ Typedef2)
   }
 
 type ProjectName = String
 type ProjectId = String
+type KDMonCatData = { name :: String, input :: KDMonCat.App.Input }
 
 emptyProject :: Project
 emptyProject = mempty
 
-_kdmoncats :: Lens' Project (Map String KDMonCat.App.Input)
+_kdmoncats :: Lens' Project (Map String KDMonCatData)
 _kdmoncats = prop (SProxy :: SProxy "kdmoncats")
 
 --------------------------------------------------------------------------------
@@ -49,7 +50,7 @@ type ProjectJS =
   { name         :: String
   , nets         :: Array NetInfo
   , diagrams     :: Array DiagramInfo
-  , kdmoncats    :: Array { name :: String, input :: KDMonCat.App.Input }
+  , kdmoncats    :: Array { id :: String, name :: String, input :: KDMonCat.App.Input }
   , roleInfos    :: Array RoleInfo
   , types        :: Array { name :: String, typedef :: Typedef2 }
   , userId       :: String
@@ -60,7 +61,7 @@ toProjectJS user { name, kdmoncats } =
   { name
   , nets: mempty
   , diagrams: mempty
-  , kdmoncats: kdmoncats # foldMapWithIndex (\kdName input -> [{name: kdName, input}])
+  , kdmoncats: kdmoncats # foldMapWithIndex (\id {name: kdName, input} -> [{id, name: kdName, input}])
   , roleInfos: mempty
   , types: mempty
   , userId: user.uid
@@ -71,7 +72,7 @@ fromProjectJS { name, kdmoncats } =
   { name
   , nets: mempty
   , diagrams: mempty
-  , kdmoncats: kdmoncats # map (\{name: kdName, input} -> kdName /\ input) # fromFoldable
+  , kdmoncats: kdmoncats # map (\{id, name: kdName, input} -> id /\ { name: kdName, input }) # fromFoldable
   , roleInfos: mempty
   , types: mempty
   }

@@ -67,6 +67,7 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
       , apiUrl:      Ex.endpointUrl
       , route
       , nav
+      , navEditMode: false
       , menuItems:   [ "Home"    /\ Just Home
                      , "Project" /\ Nothing
                      , "Help"    /\ Nothing

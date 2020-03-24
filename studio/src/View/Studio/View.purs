@@ -27,10 +27,11 @@ import Web.UIEvent.MouseEvent (toEvent)
 
 import Language.Statebox.Wiring.Generator.DiagramV2.Operators (fromOperators, toPixel) as DiagramV2
 import TreeMenu as TreeMenu
-import TreeMenu (mkItem, MenuTree, Item, mapMenuTreeRoutes)
+import TreeMenu (mkItem, MenuTree, Item, mapMenuTreeRoutes, WrapAction(..))
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
 import Statebox.Core.Types (NetsAndDiagramsIndex(..))
 import View.Auth.RolesEditor as RolesEditor
+import View.CRUDAction
 import View.Diagram.DiagramEditor as DiagramEditor
 import View.Diagram.Update as DiagramEditor
 import View.KDMonCat.App as KDMonCat.App
@@ -46,7 +47,7 @@ import View.Typedefs.TypedefsEditor as TypedefsEditor
 --------------------------------------------------------------------------------
 
 type ChildSlots =
-  ( objectTree     :: H.Slot VoidF (TreeMenu.Msg Route) Unit
+  ( objectTree     :: H.Slot VoidF Action Unit
   , petrinetEditor :: H.Slot VoidF PetrinetEditor.Msg Unit
   , diagramEditor  :: H.Slot VoidF DiagramEditor.Msg Unit
   , kdmoncatApp    :: KDMonCat.App.Slot Unit
@@ -74,8 +75,13 @@ render state =
     showSidebar = length menu > 1
     sidebar = guard showSidebar $
       [ nav [ classes [ ClassName "stbx-sidebar" ] ]
-            [ slot _objectTree unit (TreeMenu.menuComponent) { tree: menu, isSelected: (_ == state.route) }
-                ((\(TreeMenu.Clicked route) -> ShowDiagramNodeContent route) >>> Just) ]
+            [ slot _objectTree unit (TreeMenu.menuComponent)
+                { tree: menu
+                , isSelected: (_ == state.route)
+                , editMode: state.navEditMode
+                , onVisit: ShowDiagramNodeContent
+                } Just
+            , sidebarButtons state ]
       ]
     main =
       [ div []
@@ -104,7 +110,7 @@ contentView apiUrl route = last route # maybe (text "Couldn't find project/net/d
       ResolvedProject project ->
         div []
             [ p_ [ text $ "Project '" <> project.name <> "'" ]
-            , p_ [ button [ onClick \_ -> Just $ CRUDKDMonCat $ CreateAction mempty ]
+            , p_ [ button [ onClick \_ -> Just $ CRUDKDMonCat $ CreateAction { name: "Untitled", input: mempty } ]
                           [ text "Create new KDMonCat diagram" ]
                 ]
             ]
@@ -140,9 +146,9 @@ contentView apiUrl route = last route # maybe (text "Couldn't find project/net/d
             Just (NetNode netInfo) -> DiagramV2.toPixel diagramInfo.ops (\{ identifier } -> netInfo.name == identifier)
             _ -> Nothing
 
-      ResolvedKDMonCat kdmoncatInput ->
+      ResolvedKDMonCat { input } ->
         div [ classes [ ClassName "w-full", ClassName "pl-4" ] ]
-            [ slot _kdmoncatApp unit KDMonCat.App.appView kdmoncatInput (Just <<< HandleKDMonCatAppMsg) ]
+            [ slot _kdmoncatApp unit KDMonCat.App.appView input (Just <<< HandleKDMonCatAppMsg) ]
 
       ResolvedUberRoot url ->
         text $ "Service über-root " <> url
@@ -179,7 +185,7 @@ routeBreadcrumbs route resolvedRoute =
 
       ResolvedNet       n -> crumb route n.name
       ResolvedDiagram   d _ -> crumb route d.name
-      ResolvedKDMonCat  k -> crumb route "TODO"
+      ResolvedKDMonCat  k -> crumb route k.name
 
       ResolvedUberRoot  u -> crumb sub u
       ResolvedNamespace h -> crumb route $ shortHash h
@@ -207,72 +213,81 @@ navBar title menuItems =
 
 --------------------------------------------------------------------------------
 
-stateMenu :: State -> MenuTree Route
+stateMenu :: State -> MenuTree Action Route
 stateMenu { projects, apiUrl, hashSpace, route } =
-  mkItem "Studio" Nothing :< (map (mapMenuTreeRoutes (\x -> ApiRoute x apiUrl)) txItems <> projectItems)
+  mkItem "Studio" Nothing Nothing :< (map (mapMenuTreeRoutes (\x -> ApiRoute x apiUrl)) txItems <> projectItems)
   where
     txItems        = AdjacencySpace.unsafeToTree (transactionMenu apiUrl) hashSpace <$> Set.toUnfoldable (AdjacencySpace.rootKeys hashSpace)
     projectItems   = case route of
       ProjectRoute pid _ -> findProject projects pid # foldMap (projectMenu >>> mapMenuTreeRoutes (ProjectRoute pid) >>> pure)
       _ -> []
 
-projectMenu :: Project -> MenuTree ProjectRoute
+projectMenu :: Project -> MenuTree Action ProjectRoute
 projectMenu p =
-  mkItem p.name (Just ProjectHome) :<
-    [ mkItem "Types"          (Just Types) :< []
-    , mkItem "Authorisations" (Just Auths) :< []
-    , mkItem "Nets"           (Nothing)    :< fromNets      p.nets
-    , mkItem "Diagrams"       (Nothing)    :< fromDiagrams  p.diagrams
-    , mkItem "KDMonCats"      (Nothing)    :< fromKDMonCats (p.kdmoncats # Map.toUnfoldable)
+  mkItem p.name (Just ProjectHome) Nothing :<
+    [ mkItem "Types"          (Just Types) Nothing :< []
+    , mkItem "Authorisations" (Just Auths) Nothing :< []
+    , mkItem "Nets"           (Nothing)    Nothing :< fromNets      p.nets
+    , mkItem "Diagrams"       (Nothing)    Nothing :< fromDiagrams  p.diagrams
+    , mkItem "KDMonCats"      (Nothing)    Nothing :< fromKDMonCats (p.kdmoncats # Map.toUnfoldable)
     ]
   where
-    fromNets      nets  = (\n            -> mkItem n.name (Just $ Net       n.name        ) :< []) <$> nets
-    fromDiagrams  diags = (\d            -> mkItem d.name (Just $ Diagram   d.name Nothing) :< []) <$> diags
-    fromKDMonCats diags = (\(dname /\ d) -> mkItem dname  (Just $ KDMonCatR dname         ) :< []) <$> diags
+    fromNets      nets  = (\n          -> mkItem n.name (Just $ Net       n.name        ) Nothing :< []) <$> nets
+    fromDiagrams  diags = (\d          -> mkItem d.name (Just $ Diagram   d.name Nothing) Nothing :< []) <$> diags
+    fromKDMonCats diags = (\(kid /\ k) -> mkItem k.name (Just $ KDMonCatR kid           ) (Just \(WrapAction f) -> CRUDKDMonCat $ f kid) :< []) <$> diags
 
 -- It's not terribly efficient to construct a Cofree (sub)tree first only to subsequently flatten it, as we do with firings.
-transactionMenu :: URL -> AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree ApiRoute) -> MenuTree ApiRoute
+transactionMenu :: URL -> AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Action ApiRoute) -> MenuTree Action ApiRoute
 transactionMenu endpointUrl t hash valueMaybe itemKids =
   maybe mkUnloadedItem mkItem2 valueMaybe
   where
-    mkItem2 :: TxSum -> MenuTree ApiRoute
+    mkItem2 :: TxSum -> MenuTree Action ApiRoute
     mkItem2 tx = evalTxSum
       (\x -> mkItem ("☁️ "  <> shortHash hash)
                     (Just UberRootR)
+                    Nothing
                     :< itemKids
       )
       (\x -> mkItem ("🌐 "  <> shortHash hash)
                     (Just $ NamespaceR x.root.message)
+                    Nothing
                     :< itemKids
       )
       (\w -> mkItem ("🥨 " <> shortHash hash)
                     (Just $ WiringR hash)
+                    Nothing
                     :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
       )
       (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash hash)
                     (Just $ FiringR hash)
+                    Nothing
                     :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
       )
       tx
       where
-        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash (NetsAndDiagramsIndex ix) n.name) :< []) nets
-        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) :< []) diags
+        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash (NetsAndDiagramsIndex ix) n.name) Nothing :< []) nets
+        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) Nothing :< []) diags
 
-        flattenTree :: MenuTree ApiRoute -> Array (MenuTree ApiRoute)
+        flattenTree :: MenuTree Action ApiRoute -> Array (MenuTree Action ApiRoute)
         flattenTree = treeifyElems <<< flattenTree'
           where
-            treeifyElems :: Array (Item ApiRoute) -> Array (MenuTree ApiRoute)
+            treeifyElems :: Array (Item Action ApiRoute) -> Array (MenuTree Action ApiRoute)
             treeifyElems = map pure
 
-            flattenTree' :: MenuTree ApiRoute -> Array (Item ApiRoute)
+            flattenTree' :: MenuTree Action ApiRoute -> Array (Item Action ApiRoute)
             flattenTree' = foldr cons []
 
-    mkUnloadedItem :: MenuTree ApiRoute
-    mkUnloadedItem = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
+    mkUnloadedItem :: MenuTree Action ApiRoute
+    mkUnloadedItem = mkItem ("👻 " <> shortHash hash) unloadedRoute Nothing :< itemKids
       where
         -- TODO we need to return an ApiRoute currently, but we may want to return a (LoadTransaction ... :: Query) instead,
         -- so we could load unloaded hashes from the menu.
         unloadedRoute = Nothing
+
+sidebarButtons :: ∀ m. State -> ComponentHTML Action ChildSlots m
+sidebarButtons state = div [] $ case state.route of
+  (ProjectRoute _ _) -> [ button [ onClick $ const $ Just $ ToggleEditMode ] [ text $ if state.navEditMode then "Done" else "Edit" ] ]
+  _ -> []
 
 --------------------------------------------------------------------------------
 
@@ -292,9 +307,8 @@ projectsDashboard projects =
       li [ onClick \_ -> Just (SelectRoute (ProjectRoute projectId ProjectHome))]
          [ h3 [] [ input [ value p.name
                          , type_ InputText
-                         , onValueInput \v -> Just $ CRUDProject $ UpdateAction projectId _ { name = v }
+                         , onValueInput \v -> Just $ CRUDProject $ UpdateAction _{ name = v } projectId
                          , onClick $ Just <<< StopEvent Nothing <<< toEvent
-                         , classes [ ClassName "is"]
                          ]
                  ]
          , div [ classes [ ClassName "hover-controls" ] ]
