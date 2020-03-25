@@ -108,7 +108,7 @@ data ResolvedRouteF p d n
   -- Project-related *and* Statebox API-related constructors
   | ResolvedNet       n
   | ResolvedDiagram   d (Maybe (NodeIdent d n))
-  | ResolvedKDMonCat  KDMonCatData
+  | ResolvedKDMonCat  String KDMonCatData
 
   -- Statebox API transaction constructors
   | ResolvedUberRoot  URL

@@ -44,7 +44,7 @@ data Action
   | HandlePetrinetEditorMsg PetrinetEditor.Msg
   | HandleDiagramEditorMsg DiagramEditor.Msg
   | HandleKDMonCatBricksMsg DiagramInfo KDMonCat.Bricks.Output
-  | HandleKDMonCatAppMsg KDMonCat.App.Output
+  | HandleKDMonCatAppMsg String KDMonCat.App.Output
   | ToggleEditMode
 
   | CRUDProject (CRUDAction Project)
@@ -90,7 +90,7 @@ resolveProjectRoute route state project = ResolvedProject project `cons` case ro
                                            DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
                                            NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                               pure $ ResolvedDiagram diagram node
-  KDMonCatR str         -> fromFoldable $ ResolvedKDMonCat <$> findKDMonCat project str
+  KDMonCatR kid         -> fromFoldable $ ResolvedKDMonCat kid <$> findKDMonCat project kid
 
 resolveApiRoute :: URL -> ApiRoute -> AdjacencySpace HashStr TxSum -> ResolvedRoute
 resolveApiRoute endpointUrl route hashSpace = ResolvedUberRoot endpointUrl `cons` case route of

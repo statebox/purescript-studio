@@ -49,8 +49,11 @@ data WrapAction = WrapAction (forall t. String -> CRUDAction { name :: String | 
 type Edit act = Maybe (WrapAction -> act)
 type Item act r = { label :: String, route :: Maybe r, onEdit :: Edit act }
 
-mkItem :: ∀ act r. String -> Maybe r -> Edit act -> Item act r
-mkItem label route onEdit = { label, route, onEdit }
+mkItem :: ∀ act r. String -> Maybe r -> Item act r
+mkItem label route = mkEditItem label route Nothing
+
+mkEditItem :: ∀ act r. String -> Maybe r -> Edit act -> Item act r
+mkEditItem label route onEdit = { label, route, onEdit }
 
 mapMenuTreeRoutes :: ∀ act ra rb. (ra -> rb) -> MenuTree act ra -> MenuTree act rb
 mapMenuTreeRoutes f = map \{ label, route, onEdit } -> { label, route: map f route, onEdit }

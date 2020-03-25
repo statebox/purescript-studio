@@ -5,8 +5,8 @@ import Affjax (URL) -- TODO introduce URL alias in Client so we can abstract Aff
 import Control.Comonad.Cofree ((:<))
 import Data.AdjacencySpace as AdjacencySpace
 import Data.AdjacencySpace (AdjacencySpace)
-import Data.Array (cons, last)
-import Data.Foldable (foldMap, foldr, length)
+import Data.Array (concat, cons, last)
+import Data.Foldable (class Foldable, foldMap, foldr, length, null)
 import Data.FoldableWithIndex (foldMapWithIndex)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
@@ -27,7 +27,7 @@ import Web.UIEvent.MouseEvent (toEvent)
 
 import Language.Statebox.Wiring.Generator.DiagramV2.Operators (fromOperators, toPixel) as DiagramV2
 import TreeMenu as TreeMenu
-import TreeMenu (mkItem, MenuTree, Item, mapMenuTreeRoutes, WrapAction(..))
+import TreeMenu (mkItem, mkEditItem, MenuTree, Item, mapMenuTreeRoutes, WrapAction(..))
 import Statebox.Core.Transaction (HashStr, TxSum, evalTxSum, isExecutionTx)
 import Statebox.Core.Types (NetsAndDiagramsIndex(..))
 import View.Auth.RolesEditor as RolesEditor
@@ -72,7 +72,8 @@ render state =
     ]
   where
     menu = stateMenu state
-    showSidebar = length menu > 1
+    buttons = sidebarButtons state
+    showSidebar = length menu > 1 || length buttons > 0
     sidebar = guard showSidebar $
       [ nav [ classes [ ClassName "stbx-sidebar" ] ]
             [ slot _objectTree unit (TreeMenu.menuComponent)
@@ -81,7 +82,7 @@ render state =
                 , editMode: state.navEditMode
                 , onVisit: ShowDiagramNodeContent
                 } Just
-            , sidebarButtons state ]
+            , div [] buttons ]
       ]
     main =
       [ div []
@@ -110,9 +111,6 @@ contentView apiUrl route = last route # maybe (text "Couldn't find project/net/d
       ResolvedProject project ->
         div []
             [ p_ [ text $ "Project '" <> project.name <> "'" ]
-            , p_ [ button [ onClick \_ -> Just $ CRUDKDMonCat $ CreateAction { name: "Untitled", input: mempty } ]
-                          [ text "Create new KDMonCat diagram" ]
-                ]
             ]
 
       ResolvedTypes project ->
@@ -146,9 +144,8 @@ contentView apiUrl route = last route # maybe (text "Couldn't find project/net/d
             Just (NetNode netInfo) -> DiagramV2.toPixel diagramInfo.ops (\{ identifier } -> netInfo.name == identifier)
             _ -> Nothing
 
-      ResolvedKDMonCat { input } ->
-        div [ classes [ ClassName "w-full", ClassName "pl-4" ] ]
-            [ slot _kdmoncatApp unit KDMonCat.App.appView input (Just <<< HandleKDMonCatAppMsg) ]
+      ResolvedKDMonCat kid { input } ->
+        slot _kdmoncatApp unit KDMonCat.App.appView input (Just <<< HandleKDMonCatAppMsg kid)
 
       ResolvedUberRoot url ->
         text $ "Service über-root " <> url
@@ -185,7 +182,7 @@ routeBreadcrumbs route resolvedRoute =
 
       ResolvedNet       n -> crumb route n.name
       ResolvedDiagram   d _ -> crumb route d.name
-      ResolvedKDMonCat  k -> crumb route k.name
+      ResolvedKDMonCat  _ k -> crumb route k.name
 
       ResolvedUberRoot  u -> crumb sub u
       ResolvedNamespace h -> crumb route $ shortHash h
@@ -215,26 +212,27 @@ navBar title menuItems =
 
 stateMenu :: State -> MenuTree Action Route
 stateMenu { projects, apiUrl, hashSpace, route } =
-  mkItem "Studio" Nothing Nothing :< (map (mapMenuTreeRoutes (\x -> ApiRoute x apiUrl)) txItems <> projectItems)
+  case route of
+    ProjectRoute pid _ -> findProject projects pid # maybe (mkItem "Studio" Nothing :< []) (projectMenu >>> mapMenuTreeRoutes (ProjectRoute pid))
+    _ -> mkItem "Studio" Nothing :< map (mapMenuTreeRoutes (\x -> ApiRoute x apiUrl)) txItems
   where
     txItems        = AdjacencySpace.unsafeToTree (transactionMenu apiUrl) hashSpace <$> Set.toUnfoldable (AdjacencySpace.rootKeys hashSpace)
-    projectItems   = case route of
-      ProjectRoute pid _ -> findProject projects pid # foldMap (projectMenu >>> mapMenuTreeRoutes (ProjectRoute pid) >>> pure)
-      _ -> []
 
 projectMenu :: Project -> MenuTree Action ProjectRoute
 projectMenu p =
-  mkItem p.name (Just ProjectHome) Nothing :<
-    [ mkItem "Types"          (Just Types) Nothing :< []
-    , mkItem "Authorisations" (Just Auths) Nothing :< []
-    , mkItem "Nets"           (Nothing)    Nothing :< fromNets      p.nets
-    , mkItem "Diagrams"       (Nothing)    Nothing :< fromDiagrams  p.diagrams
-    , mkItem "KDMonCats"      (Nothing)    Nothing :< fromKDMonCats (p.kdmoncats # Map.toUnfoldable)
+  mkItem p.name (Just ProjectHome) :< concat
+    [ when p.types     (mkItem "Types"          (Just Types) :< [])
+    , when p.roleInfos $ mkItem "Authorisations" (Just Auths) :< []
+    , when p.nets      $ mkItem "Nets"           (Nothing)    :< fromNets      p.nets
+    , when p.diagrams  $ mkItem "Wirings"        (Nothing)    :< fromDiagrams  p.diagrams
+    , when p.kdmoncats $ mkItem "Diagrams"       (Nothing)    :< fromKDMonCats (p.kdmoncats # Map.toUnfoldable)
     ]
   where
-    fromNets      nets  = (\n          -> mkItem n.name (Just $ Net       n.name        ) Nothing :< []) <$> nets
-    fromDiagrams  diags = (\d          -> mkItem d.name (Just $ Diagram   d.name Nothing) Nothing :< []) <$> diags
-    fromKDMonCats diags = (\(kid /\ k) -> mkItem k.name (Just $ KDMonCatR kid           ) (Just \(WrapAction f) -> CRUDKDMonCat $ f kid) :< []) <$> diags
+    when :: ∀ f a. Foldable f => f a -> MenuTree Action ProjectRoute -> Array (MenuTree Action ProjectRoute)
+    when xs item = if null xs then [] else [item]
+    fromNets      nets  = (\n          -> mkItem n.name (Just $ Net       n.name        ) :< []) <$> nets
+    fromDiagrams  diags = (\d          -> mkItem d.name (Just $ Diagram   d.name Nothing) :< []) <$> diags
+    fromKDMonCats diags = (\(kid /\ k) -> mkEditItem k.name (Just $ KDMonCatR kid) (Just \(WrapAction f) -> CRUDKDMonCat $ f kid) :< []) <$> diags
 
 -- It's not terribly efficient to construct a Cofree (sub)tree first only to subsequently flatten it, as we do with firings.
 transactionMenu :: URL -> AdjacencySpace HashStr TxSum -> HashStr -> Maybe TxSum -> Array (MenuTree Action ApiRoute) -> MenuTree Action ApiRoute
@@ -245,28 +243,24 @@ transactionMenu endpointUrl t hash valueMaybe itemKids =
     mkItem2 tx = evalTxSum
       (\x -> mkItem ("☁️ "  <> shortHash hash)
                     (Just UberRootR)
-                    Nothing
                     :< itemKids
       )
       (\x -> mkItem ("🌐 "  <> shortHash hash)
                     (Just $ NamespaceR x.root.message)
-                    Nothing
                     :< itemKids
       )
       (\w -> mkItem ("🥨 " <> shortHash hash)
                     (Just $ WiringR hash)
-                    Nothing
                     :< (fromNets w.wiring.nets <> fromDiagrams w.wiring.diagrams <> itemKids)
       )
       (\f -> mkItem ((if isExecutionTx f then "🔫 " else "🔥 ") <> shortHash hash)
                     (Just $ FiringR hash)
-                    Nothing
                     :< (flattenTree =<< itemKids) -- for nested firings, just drop the 'flattenTree' part
       )
       tx
       where
-        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash (NetsAndDiagramsIndex ix) n.name) Nothing :< []) nets
-        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) Nothing :< []) diags
+        fromNets     nets  = mapWithIndex (\ix n -> mkItem ("🔗 " <> n.name) (Just $ NetR     hash (NetsAndDiagramsIndex ix) n.name) :< []) nets
+        fromDiagrams diags = mapWithIndex (\ix d -> mkItem ("⛓ " <> d.name) (Just $ DiagramR hash (NetsAndDiagramsIndex ix) d.name) :< []) diags
 
         flattenTree :: MenuTree Action ApiRoute -> Array (MenuTree Action ApiRoute)
         flattenTree = treeifyElems <<< flattenTree'
@@ -278,15 +272,20 @@ transactionMenu endpointUrl t hash valueMaybe itemKids =
             flattenTree' = foldr cons []
 
     mkUnloadedItem :: MenuTree Action ApiRoute
-    mkUnloadedItem = mkItem ("👻 " <> shortHash hash) unloadedRoute Nothing :< itemKids
+    mkUnloadedItem = mkItem ("👻 " <> shortHash hash) unloadedRoute :< itemKids
       where
         -- TODO we need to return an ApiRoute currently, but we may want to return a (LoadTransaction ... :: Query) instead,
         -- so we could load unloaded hashes from the menu.
         unloadedRoute = Nothing
 
-sidebarButtons :: ∀ m. State -> ComponentHTML Action ChildSlots m
-sidebarButtons state = div [] $ case state.route of
-  (ProjectRoute _ _) -> [ button [ onClick $ const $ Just $ ToggleEditMode ] [ text $ if state.navEditMode then "Done" else "Edit" ] ]
+sidebarButtons :: ∀ m. State -> Array (ComponentHTML Action ChildSlots m)
+sidebarButtons state = case state.route of
+  (ProjectRoute _ _) ->
+    [ button [ onClick \_ -> Just $ CRUDKDMonCat $ CreateAction { name: "Untitled", input: mempty } ]
+             [ text "＋" ]
+    , button [ onClick $ const $ Just $ ToggleEditMode ]
+             [ text $ if state.navEditMode then "Done" else "Edit" ]
+    ]
   _ -> []
 
 --------------------------------------------------------------------------------
@@ -297,7 +296,7 @@ projectsDashboard projects =
       [ ul [ classes [ ClassName "stbx-cards" ] ] $
           (projects # foldMapWithIndex mkProjectLink) <>
           [ li [ classes [ ClassName "stbx-add-card" ] ]
-               [ button [ onClick $ Just <<< StopEvent (Just $ CRUDProject $ CreateAction $ emptyProject { name = "Untitled (TODO)" }) <<< toEvent ]
+               [ button [ onClick $ Just <<< StopEvent (Just $ CRUDProject $ CreateAction $ emptyProject { name = "New Project" }) <<< toEvent ]
                         [ text "Create new project" ]
                ]
           ]

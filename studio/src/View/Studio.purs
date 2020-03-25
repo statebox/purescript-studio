@@ -157,6 +157,7 @@ handleAction = case _ of
       case proute of
         Diagram dname _ -> p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (_ {ops = ops}) p.diagrams) }
         _               -> p
+
   HandleKDMonCatBricksMsg diagramInfo (KDMonCat.Bricks.SelectionChanged selBox) -> do
     let boxes = (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) selBox).selectedBoxes
     maybe (pure unit) (handleAction <<< HandleDiagramEditorMsg <<< DiagramEditor.OperatorClicked) $ do
@@ -164,11 +165,8 @@ handleAction = case _ of
       op <- DiagramV2.fromPixel diagramInfo.ops box.bid
       pure op.identifier
 
-  HandleKDMonCatAppMsg input -> do
-    modifyProject \proute p ->
-      case proute of
-        KDMonCatR kid -> p { kdmoncats = modifyKDMonCat kid (\{ name } -> { name, input }) p.kdmoncats }
-        _             -> p
+  HandleKDMonCatAppMsg kid input -> do
+    handleAction $ CRUDKDMonCat $ UpdateAction (\{ name } -> { name, input }) kid
 
   HandlePetrinetEditorMsg NetUpdated -> do
     pure unit

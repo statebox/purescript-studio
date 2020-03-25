@@ -69,7 +69,7 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
       , nav
       , navEditMode: false
       , menuItems:   [ "Home"    /\ Just Home
-                     , "Project" /\ Nothing
-                     , "Help"    /\ Nothing
+                    --  , "Project" /\ Nothing
+                    --  , "Help"    /\ Nothing
                      ]
       }

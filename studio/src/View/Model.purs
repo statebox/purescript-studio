@@ -44,6 +44,10 @@ type NetInfoWithTypesAndRoles = Record (NetInfoWithTypesAndRolesFRow PID TID Typ
 type User =
   { email :: String
   , uid :: String
+  , metadata ::
+    { lastSignInTime :: String
+    , creationTime :: String
+    }
   }
 
 type ProjectJS =
