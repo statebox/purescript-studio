@@ -3,6 +3,7 @@ module View.Studio.Main where
 import Prelude
 import Control.Coroutine (consumer)
 import Data.Either (either)
+import Data.Map as Map
 import Data.Maybe
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
@@ -15,14 +16,15 @@ import Halogen.VDom.Driver (runUI)
 import Routing.Duplex (parse)
 import Routing.PushState (makeInterface, matchesWith)
 
+import KDMonCat.Main (initialPixels, initialContext)
 import View.Model
 import View.Studio as Studio
-import View.Studio.Model.Route (RouteF(Home), codex)
+import View.Studio.Model.Route
 
 import ExampleData as Ex
 
 type API =
-  { addProject :: String -> ProjectJS -> Aff (Maybe Unit)
+  { addProject :: String -> ProjectJS -> Aff Unit
   }
 
 type EventHandler =
@@ -30,6 +32,11 @@ type EventHandler =
   , onProjectDeleted :: String -> Effect Unit
   }
 
+starterProject :: Project
+starterProject = emptyProject
+  { name = "My Project"
+  , kdmoncats = Map.fromFoldable [ "starter" /\ { name: "Example", input: { pixels: initialPixels, context: initialContext }} ]
+  }
 
 main :: User -> EventHandler -> (API -> Effect Unit) -> Effect Unit
 main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) do
@@ -52,11 +59,17 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
       Studio.ProjectChanged projectId Nothing        -> eventHandler.onProjectDeleted projectId
     pure Nothing
 
-  -- liftEffect $ eventHandler.onProjectUpserted "Example1" $ toProjectJS user Ex.project1
-  -- liftEffect $ eventHandler.onProjectUpserted "Example2" $ toProjectJS user Ex.project2
+  -- liftEffect $ eventHandler.onProjectUpserted (user.uid <> "Example1") $ toProjectJS user Ex.project1
+  -- liftEffect $ eventHandler.onProjectUpserted (user.uid <> "Example2") $ toProjectJS user Ex.project2
 
   pure
-    { addProject: \projectId project -> io.query $ H.tell (Studio.AddProject projectId $ fromProjectJS project)
+    { addProject: \projectId project ->
+        if project.name == "emptyStarter"
+          then do
+            void $ io.query $ H.tell (Studio.AddProject projectId starterProject)
+            void $ io.query $ H.tell (Studio.Navigate $ ProjectRoute projectId $ KDMonCatR "starter")
+          else do
+            void $ io.query $ H.tell (Studio.AddProject projectId $ fromProjectJS project)
     }
   where
     initialState route nav =
