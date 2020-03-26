@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@statebox/stbx-js": "0.0.31",
-    "@statebox/style": "0.0.7",
+    "@statebox/style": "0.0.8",
     "dagre": "^0.8.4",
     "firebase": "^7.9.1",
     "firebaseui": "^4.4.0"

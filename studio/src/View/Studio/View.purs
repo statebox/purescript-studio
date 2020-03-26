@@ -86,7 +86,7 @@ render state =
       ]
     main =
       [ div []
-            [ div [ classes $ ClassName <$> [ "container" ] <> guard showSidebar [ "is-fluid" ] ] $
+            [ div [ classes $ ClassName <$> [ "container", "is-flex", "has-rows" ] <> guard showSidebar [ "is-fluid" ] ] $
                   resolveRoute state.route state # \resolved ->
                     [ routeBreadcrumbs state.route resolved
                     , contentView state.apiUrl resolved
@@ -123,7 +123,7 @@ contentView apiUrl route = last route # maybe (text "Couldn't find project/net/d
         slot _petrinetEditor unit (PetrinetEditor.ui (Just "main_net")) netInfo (Just <<< HandlePetrinetEditorMsg)
 
       ResolvedDiagram diagramInfo nodeMaybe ->
-        div [ classes [ ClassName "has-columns" ] ]
+        div [ classes [ ClassName "diagram-editor", ClassName "has-columns" ] ]
             [ div []
                   [ slot _diagramEditor unit DiagramEditor.ui diagramInfo.ops (Just <<< HandleDiagramEditorMsg) ]
             , div []

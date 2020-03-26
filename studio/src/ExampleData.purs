@@ -62,7 +62,7 @@ project1Typedefs =
 
 project1KDMonCats = Map.fromFoldable
   [ "beep" /\ { name: "beep", input: { pixels: "pq", context: "p: -> a\nq: a ->" } }
-  , "boop" /\ { name: "beep", input: { pixels: "hij", context: "h: -> a\ni: a -> b\nj: b ->" } }
+  , "boop" /\ { name: "boop", input: { pixels: "hij", context: "h: -> a\ni: a -> b\nj: b ->" } }
   ]
 
 --------------------------------------------------------------------------------

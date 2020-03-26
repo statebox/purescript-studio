@@ -59,8 +59,8 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
       Studio.ProjectChanged projectId Nothing        -> eventHandler.onProjectDeleted projectId
     pure Nothing
 
-  -- liftEffect $ eventHandler.onProjectUpserted (user.uid <> "Example1") $ toProjectJS user Ex.project1
-  -- liftEffect $ eventHandler.onProjectUpserted (user.uid <> "Example2") $ toProjectJS user Ex.project2
+  -- void $ io.query $ H.tell (Studio.AddProject (user.uid <> "Example1") Ex.project1)
+  -- void $ io.query $ H.tell (Studio.AddProject (user.uid <> "Example2") Ex.project2)
 
   pure
     { addProject: \projectId project ->
