@@ -44,6 +44,7 @@ type NetInfoWithTypesAndRoles = Record (NetInfoWithTypesAndRolesFRow PID TID Typ
 type User =
   { email :: String
   , uid :: String
+  , isNew :: Boolean
   , metadata ::
     { lastSignInTime :: String
     , creationTime :: String

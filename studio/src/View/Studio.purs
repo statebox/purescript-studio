@@ -45,7 +45,7 @@ type Input = State
 
 data Query a
   = LoadTransactionsThenView URL TxId a
-  | AddProject ProjectId Project a
+  | LoadProject ProjectId Project a
   | Navigate Route a
 
 data Output = ProjectChanged String (Maybe Project)
@@ -67,7 +67,7 @@ handleQuery = case _ of
     handleAction (LoadTransactions endpointUrl hash)
     pure (Just next)
 
-  AddProject projectId project next -> do
+  LoadProject projectId project next -> do
     H.modify_ $ \state -> state { projects = Map.insert projectId project state.projects }
     pure (Just next)
 

@@ -10,10 +10,11 @@ import Effect (Effect)
 import Effect.Aff
 import Effect.Class (liftEffect)
 import Effect.Console (log)
+import Foreign (unsafeToForeign)
 import Halogen as H
 import Halogen.Aff (awaitBody)
 import Halogen.VDom.Driver (runUI)
-import Routing.Duplex (parse)
+import Routing.Duplex (parse, print)
 import Routing.PushState (makeInterface, matchesWith)
 
 import KDMonCat.Main (initialPixels, initialContext)
@@ -45,7 +46,12 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
 
   nav <- liftEffect $ makeInterface
   { path } <- liftEffect $ nav.locationState
-  let initialRoute = either (const Home) identity $ parse codex path
+  let initialRoute = if user.isNew
+    then ProjectRoute (user.uid <> "Starter") $ KDMonCatR "starter"
+    else either (const Home) identity $ parse codex path
+
+  -- make sure the url matches the initialRoute
+  liftEffect $ nav.pushState (unsafeToForeign {}) $ print codex initialRoute
 
   io <- runUI Studio.ui (initialState initialRoute nav) body
 
@@ -59,17 +65,13 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
       Studio.ProjectChanged projectId Nothing        -> eventHandler.onProjectDeleted projectId
     pure Nothing
 
-  -- void $ io.query $ H.tell (Studio.AddProject (user.uid <> "Example1") Ex.project1)
-  -- void $ io.query $ H.tell (Studio.AddProject (user.uid <> "Example2") Ex.project2)
+  -- void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example1") Ex.project1)
+  -- void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example2") Ex.project2)
 
   pure
     { addProject: \projectId project ->
-        if project.name == "emptyStarter"
-          then do
-            void $ io.query $ H.tell (Studio.AddProject projectId starterProject)
-            void $ io.query $ H.tell (Studio.Navigate $ ProjectRoute projectId $ KDMonCatR "starter")
-          else do
-            void $ io.query $ H.tell (Studio.AddProject projectId $ fromProjectJS project)
+        void $ io.query $ H.tell $ Studio.LoadProject projectId $
+          if project.name == "emptyStarter" then starterProject else fromProjectJS project
     }
   where
     initialState route nav =

@@ -37,9 +37,9 @@ var uiConfig = {
 }
 
 var loggedIn = false
-firebase.auth().onAuthStateChanged(function (user) {
+firebase.auth().onAuthStateChanged(async function (user) {
   if (user) {
-    start(user)
+    await start(user)
     loggedIn = true
   } else {
     if (!loggedIn)
@@ -49,7 +49,7 @@ firebase.auth().onAuthStateChanged(function (user) {
   }
 })
 
-function start(user) {
+async function start(user) {
   // console.log(user)
   document.getElementById('email').innerText = user && user.email || ""
   document.getElementById('firebaseui-auth-container').style.display = 'none'
@@ -62,6 +62,13 @@ function start(user) {
       db.collection("projects").doc(projectId).delete()
     }
   }
+
+  user.isNew = !(await db.collection("users").doc(user.uid).get()).exists
+  if (user.isNew) {
+    await db.collection("users").doc(user.uid).set({ initialized: true })
+    await db.collection("projects").doc(`${user.uid}Starter`).set({ userId: user.uid, name: "emptyStarter" })
+  }
+
   Main.main(user)(eventHandler)(api => () => {
     db.collection("projects").where("userId", "==", user.uid)
     .onSnapshot(querySnapshot => {
