@@ -46,16 +46,15 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
 
   nav <- liftEffect $ makeInterface
   { path } <- liftEffect $ nav.locationState
-  let initialRoute = if user.isNew
-    then ProjectRoute (user.uid <> "Starter") $ KDMonCatR "starter"
-    else either (const Home) identity $ parse codex path
+  let initialRoute = if user.isNew then ProjectRoute (user.uid <> "Starter") (KDMonCatR "starter")
+                                   else either (const Home) identity (parse codex path)
 
   -- make sure the url matches the initialRoute
   liftEffect $ nav.pushState (unsafeToForeign {}) $ print codex initialRoute
 
   io <- runUI Studio.ui (initialState initialRoute nav) body
 
-  -- listen to changes in the url (from f.e. back button)
+  -- listen to changes in the url, e.g. from the back button
   _ <- liftEffect $ nav # matchesWith (parse codex)
     \_ newRoute -> launchAff_ $ io.query $ H.tell $ Studio.Navigate newRoute
 
