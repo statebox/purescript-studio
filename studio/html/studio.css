@@ -31,7 +31,7 @@ tr.css-tx-current {
 }
 
 #user {
-  position: absolute;
+  position: fixed;
   z-index: 2;
   right: 70px;
 }

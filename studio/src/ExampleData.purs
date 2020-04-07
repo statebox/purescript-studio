@@ -1,5 +1,6 @@
 module ExampleData
   ( endpointUrl
+  , starterDiagramId
   , starterProject
   , projects
   , project1
@@ -33,10 +34,13 @@ import View.Diagram.Model (DiagramInfo)
 endpointUrl :: String
 endpointUrl = "https://testapi.statebox.io"
 
+starterDiagramId :: String
+starterDiagramId = "starter"
+
 starterProject :: Project
 starterProject = emptyProject
   { name = "My Project"
-  , kdmoncats = Map.fromFoldable [ "starter" /\ { name: "Example", input: { pixels: initialPixels, context: initialContext }} ]
+  , kdmoncats = Map.fromFoldable [ starterDiagramId /\ { name: "Example", input: { pixels: initialPixels, context: initialContext }} ]
   }
 
 projects :: Array Project

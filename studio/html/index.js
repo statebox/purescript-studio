@@ -64,12 +64,14 @@ async function start(user) {
   }
 
   user.isNew = !(await db.collection("users").doc(user.uid).get()).exists
-  if (user.isNew) {
-    await db.collection("users").doc(user.uid).set({ initialized: true })
-    await db.collection("projects").doc(`${user.uid}Starter`).set({ userId: user.uid, name: "emptyStarter" })
-  }
 
   Main.main(user)(eventHandler)(api => () => {
+
+    if (user.isNew) {
+      db.collection("users").doc(user.uid).set({ initialized: true })
+      db.collection("projects").doc(api.starterProjectId).set(api.starterProject)
+    }
+
     db.collection("projects").where("userId", "==", user.uid)
     .onSnapshot(querySnapshot => {
       querySnapshot.docChanges().forEach(change => {
@@ -79,6 +81,7 @@ async function start(user) {
         }
       })
     })
+
   })()
 
   document.getElementById('sign-out').onclick = function() {

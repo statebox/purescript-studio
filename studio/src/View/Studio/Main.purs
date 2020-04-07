@@ -24,8 +24,10 @@ import View.Studio.Model.Route
 
 import ExampleData as Ex
 
-type JSAPI =
+type APIJS =
   { addProject :: String -> ProjectJS -> Aff Unit
+  , starterProjectId :: String
+  , starterProject :: ProjectJS
   }
 
 type EventHandler =
@@ -33,14 +35,14 @@ type EventHandler =
   , onProjectDeleted :: String -> Effect Unit
   }
 
-main :: User -> EventHandler -> (JSAPI -> Effect Unit) -> Effect Unit
+main :: User -> EventHandler -> (APIJS -> Effect Unit) -> Effect Unit
 main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) do
-  -- liftEffect $ log $ "studio: ex project: " <> Ex.project1
   body <- awaitBody
 
   nav <- liftEffect $ makeInterface
   { path } <- liftEffect $ nav.locationState
-  let initialRoute = if user.isNew then ProjectRoute (user.uid <> "Starter") (KDMonCatR "starter")
+  let starterProjectId = user.uid <> "Starter"
+  let initialRoute = if user.isNew then ProjectRoute starterProjectId (KDMonCatR Ex.starterDiagramId)
                                    else either (const Home) identity (parse codex path)
 
   -- make sure the url matches the initialRoute
@@ -65,8 +67,9 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
 
   pure
     { addProject: \projectId project ->
-        void $ io.query $ H.tell $ Studio.LoadProject projectId $
-          if project.name == "emptyStarter" then Ex.starterProject else fromProjectJS project
+        void $ io.query $ H.tell $ Studio.LoadProject projectId $ fromProjectJS project
+    , starterProjectId
+    , starterProject: toProjectJS user Ex.starterProject
     }
   where
     initialState route nav =
