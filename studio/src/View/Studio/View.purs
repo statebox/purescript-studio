@@ -76,7 +76,7 @@ render state =
     showSidebar = length menu > 1 || length buttons > 0
     sidebar = guard showSidebar $
       [ nav [ classes [ ClassName "stbx-sidebar" ] ]
-            [ slot _objectTree unit (TreeMenu.menuComponent)
+            [ slot _objectTree unit TreeMenu.menuComponent
                 { tree: menu
                 , isSelected: (_ == state.route)
                 , editMode: state.navEditMode
