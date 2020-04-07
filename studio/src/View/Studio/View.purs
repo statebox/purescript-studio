@@ -280,7 +280,7 @@ transactionMenu endpointUrl t hash valueMaybe itemKids =
 
 sidebarButtons :: ∀ m. State -> Array (ComponentHTML Action ChildSlots m)
 sidebarButtons state = case state.route of
-  (ProjectRoute _ _) ->
+  ProjectRoute _ _ ->
     [ button [ onClick \_ -> Just $ CRUDKDMonCat $ CreateAction { name: "Untitled", input: mempty } ]
              [ text "＋" ]
     , button [ onClick $ const $ Just $ ToggleEditMode ]
