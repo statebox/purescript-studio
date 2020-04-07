@@ -1,5 +1,6 @@
 module ExampleData
   ( endpointUrl
+  , starterProject
   , projects
   , project1
   , project2
@@ -23,13 +24,20 @@ import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Data.Typedef (Typedef(..))
 import Data.Typedef.Typedef2 (Typedef2(..))
-import View.Model (Project)
+import KDMonCat.Main (initialPixels, initialContext)
+import View.Model (Project, emptyProject)
 import View.Petrinet.Model (Marking, NetInfo, NetLayout, NetRep, PID, TextBox, Transition, mkNetApi, mkNetRepUsingLayout)
 import View.Diagram.Model (DiagramInfo)
 
 -- TODO hardcoded for now, but we should decide how we want to come by this
 endpointUrl :: String
 endpointUrl = "https://testapi.statebox.io"
+
+starterProject :: Project
+starterProject = emptyProject
+  { name = "My Project"
+  , kdmoncats = Map.fromFoldable [ "starter" /\ { name: "Example", input: { pixels: initialPixels, context: initialContext }} ]
+  }
 
 projects :: Array Project
 projects = [project1, project2]

@@ -5,6 +5,7 @@ import Control.Coroutine (consumer)
 import Data.Either (either)
 import Data.Map as Map
 import Data.Maybe
+import Data.Monoid (guard)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff
@@ -17,14 +18,13 @@ import Halogen.VDom.Driver (runUI)
 import Routing.Duplex (parse, print)
 import Routing.PushState (makeInterface, matchesWith)
 
-import KDMonCat.Main (initialPixels, initialContext)
 import View.Model
 import View.Studio as Studio
 import View.Studio.Model.Route
 
 import ExampleData as Ex
 
-type API =
+type JSAPI =
   { addProject :: String -> ProjectJS -> Aff Unit
   }
 
@@ -33,13 +33,7 @@ type EventHandler =
   , onProjectDeleted :: String -> Effect Unit
   }
 
-starterProject :: Project
-starterProject = emptyProject
-  { name = "My Project"
-  , kdmoncats = Map.fromFoldable [ "starter" /\ { name: "Example", input: { pixels: initialPixels, context: initialContext }} ]
-  }
-
-main :: User -> EventHandler -> (API -> Effect Unit) -> Effect Unit
+main :: User -> EventHandler -> (JSAPI -> Effect Unit) -> Effect Unit
 main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) do
   -- liftEffect $ log $ "studio: ex project: " <> Ex.project1
   body <- awaitBody
@@ -64,13 +58,15 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
       Studio.ProjectChanged projectId Nothing        -> eventHandler.onProjectDeleted projectId
     pure Nothing
 
-  -- void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example1") Ex.project1)
-  -- void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example2") Ex.project2)
+  -- optionally load example data
+  guard false $ do
+    void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example1") Ex.project1)
+    void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example2") Ex.project2)
 
   pure
     { addProject: \projectId project ->
         void $ io.query $ H.tell $ Studio.LoadProject projectId $
-          if project.name == "emptyStarter" then starterProject else fromProjectJS project
+          if project.name == "emptyStarter" then Ex.starterProject else fromProjectJS project
     }
   where
     initialState route nav =
@@ -82,8 +78,5 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
       , route
       , nav
       , navEditMode: false
-      , menuItems:   [ "Home"    /\ Just Home
-                    --  , "Project" /\ Nothing
-                    --  , "Help"    /\ Nothing
-                     ]
+      , menuItems:   [ "Projects" /\ Just Home ]
       }
