@@ -45,7 +45,7 @@ type MenuTree act r = RoseTree (Item act r)
 
 type RoseTree a = Cofree Array a
 
-data WrapAction = WrapAction (forall t. String -> CRUDAction { name :: String | t })
+data WrapAction = WrapAction (forall t. String -> CRUDAction String { name :: String | t })
 type Edit act = Maybe (WrapAction -> act)
 type Item act r = { label :: String, route :: Maybe r, onEdit :: Edit act }
 

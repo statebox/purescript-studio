@@ -47,8 +47,8 @@ data Action
   | HandleKDMonCatAppMsg String KDMonCat.App.Output
   | ToggleEditMode
 
-  | CRUDProject (CRUDAction Project)
-  | CRUDKDMonCat (CRUDAction KDMonCatData)
+  | CRUDProject (CRUDAction String Project)
+  | CRUDKDMonCat (CRUDAction String KDMonCatData)
 
   | StopEvent (Maybe Action) Event
 

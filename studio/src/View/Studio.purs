@@ -137,7 +137,7 @@ handleAction = case _ of
              (\pnproDoc -> handleAction $ CRUDProject $ CreateAction $ fromPNPROProject pnproDoc.project)
       )
 
-  CRUDProject action -> handleCRUDAction _projects action \id mProject -> H.raise $ ProjectChanged id mProject
+  CRUDProject action -> handleCRUDAction (getRandomId "p") _projects action \id mProject -> H.raise $ ProjectChanged id mProject
 
   CRUDKDMonCat action -> handleCRUDActionInProject _kdmoncats action
 
@@ -179,12 +179,12 @@ handleAction = case _ of
     H.liftEffect $ Event.stopPropagation event
     for_ mAction handleAction
 
-handleCRUDActionInProject :: ∀ m t a. MonadAff m => At t String a => Affine' Project t -> CRUDAction a -> HalogenM State Action ChildSlots Output m Unit
+handleCRUDActionInProject :: ∀ m t a. MonadAff m => At t String a => Affine' Project t -> CRUDAction String a -> HalogenM State Action ChildSlots Output m Unit
 handleCRUDActionInProject l action = do
   state <- H.get
   case state.route of
     ProjectRoute pid proute -> do
-      handleCRUDAction (_projects <<< at pid <<< _Just <<< l) action
+      handleCRUDAction (getRandomId "id") (_projects <<< at pid <<< _Just <<< l) action
         \_ _ -> do
           state' <- H.get
           for_ (Map.lookup pid state'.projects) (Just >>> ProjectChanged pid >>> H.raise)
