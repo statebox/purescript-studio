@@ -3,7 +3,6 @@ module View.Studio.Main where
 import Prelude
 import Control.Coroutine (consumer)
 import Data.Either (either)
-import Data.Map as Map
 import Data.Maybe
 import Data.Monoid (guard)
 import Data.Tuple.Nested ((/\))
@@ -61,7 +60,7 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
     pure Nothing
 
   -- optionally load example data
-  guard false $ do
+  guard false do
     void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example1") Ex.project1)
     void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example2") Ex.project2)
 

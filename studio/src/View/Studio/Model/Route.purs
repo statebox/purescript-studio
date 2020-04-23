@@ -12,10 +12,9 @@ import Routing.Duplex (RouteDuplex', path, root, segment, int, optional, param)
 import Routing.Duplex.Generic (sum, noArgs)
 import Routing.Duplex.Generic.Syntax
 
-import View.KDMonCat.App (Input) as KDMonCat.App
 import Statebox.Core.Types (NetsAndDiagramsIndex)
 import Statebox.Core.Transaction (HashStr, TxSum, WiringTx, FiringTx, evalTxSum)
-import View.Model (ProjectId, KDMonCatData)
+import View.Model (ProjectId, KDMonCatId, KDMonCatData)
 import View.Studio.Model.TxCache (ExecutionTrace)
 
 type Route = RouteF ProjectId DiagramName NetName
@@ -52,7 +51,7 @@ data ProjectRouteF d n
 
   | Net       n
   | Diagram   d (Maybe (NodeIdent d n)) -- ^ A diagram with maybe one of its 'child' nodes.
-  | KDMonCatR String
+  | KDMonCatR KDMonCatId
 
 derive instance eqProjectRouteF :: (Eq d, Eq n) => Eq (ProjectRouteF d n)
 derive instance ordProjectRouteF :: (Ord d, Ord n) => Ord (ProjectRouteF d n)
@@ -108,7 +107,7 @@ data ResolvedRouteF p d n
   -- Project-related *and* Statebox API-related constructors
   | ResolvedNet       n
   | ResolvedDiagram   d (Maybe (NodeIdent d n))
-  | ResolvedKDMonCat  String KDMonCatData
+  | ResolvedKDMonCat  KDMonCatId KDMonCatData
 
   -- Statebox API transaction constructors
   | ResolvedUberRoot  URL

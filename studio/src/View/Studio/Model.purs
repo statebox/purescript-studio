@@ -21,7 +21,7 @@ import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Statebox.Core.Transaction (HashStr, TxSum)
 import View.CRUDAction
 import View.Diagram.Model (DiagramInfo)
-import View.Model (Project, ProjectId, NetInfoWithTypesAndRoles, KDMonCatData)
+import View.Model (Project, ProjectId, NetInfoWithTypesAndRoles, KDMonCatId, KDMonCatData)
 import View.Petrinet.Model (NetInfo)
 import View.Studio.Model.Route
 import View.Studio.Model.TxCache as TxCache
@@ -47,8 +47,8 @@ data Action
   | HandleKDMonCatAppMsg String KDMonCat.App.Output
   | ToggleEditMode
 
-  | CRUDProject (CRUDAction String Project)
-  | CRUDKDMonCat (CRUDAction String KDMonCatData)
+  | CRUDProject (CRUDAction ProjectId Project)
+  | CRUDKDMonCat (CRUDAction KDMonCatId KDMonCatData)
 
   | StopEvent (Maybe Action) Event
 
@@ -90,7 +90,7 @@ resolveProjectRoute route state project = ResolvedProject project `cons` case ro
                                            DiagramNode dn -> DiagramNode <$> findDiagramInfo              project dn
                                            NetNode     nn -> NetNode     <$> findNetInfoWithTypesAndRoles project nn
                               pure $ ResolvedDiagram diagram node
-  KDMonCatR kid         -> fromFoldable $ ResolvedKDMonCat kid <$> findKDMonCat project kid
+  KDMonCatR kid         -> fromFoldable $ ResolvedKDMonCat kid <$> Map.lookup kid project.kdmoncats
 
 resolveApiRoute :: URL -> ApiRoute -> AdjacencySpace HashStr TxSum -> ResolvedRoute
 resolveApiRoute endpointUrl route hashSpace = ResolvedUberRoot endpointUrl `cons` case route of
@@ -124,14 +124,6 @@ modifyDiagramInfo :: DiagramName -> (DiagramInfo -> DiagramInfo) -> Array Diagra
 modifyDiagramInfo diagramName fn diagrams = do
   ix <- findIndex (\d -> d.name == diagramName) diagrams
   modifyAt ix fn diagrams
-
---------------------------------------------------------------------------------
-
-findKDMonCat :: Project -> String -> Maybe KDMonCatData
-findKDMonCat project diagramId = Map.lookup diagramId project.kdmoncats
-
-modifyKDMonCat :: String -> (KDMonCatData -> KDMonCatData) -> Map String KDMonCatData -> Map String KDMonCatData
-modifyKDMonCat diagramId f = Map.alter (map f) diagramId
 
 --------------------------------------------------------------------------------
 

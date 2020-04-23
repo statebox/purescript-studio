@@ -68,7 +68,7 @@ handleQuery = case _ of
     pure (Just next)
 
   LoadProject projectId project next -> do
-    H.modify_ $ \state -> state { projects = Map.insert projectId project state.projects }
+    H.modify_ \state -> state { projects = Map.insert projectId project state.projects }
     pure (Just next)
 
   Navigate newRoute next -> do

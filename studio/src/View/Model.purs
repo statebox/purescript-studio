@@ -20,19 +20,20 @@ type Project =
   { name         :: ProjectName
   , nets         :: Array NetInfo
   , diagrams     :: Array DiagramInfo
-  , kdmoncats    :: Map String KDMonCatData
+  , kdmoncats    :: Map KDMonCatId KDMonCatData
   , roleInfos    :: Array RoleInfo
   , types        :: Array (String /\ Typedef2)
   }
 
 type ProjectName = String
 type ProjectId = String
+type KDMonCatId = String
 type KDMonCatData = { name :: String, input :: KDMonCat.App.Input }
 
 emptyProject :: Project
 emptyProject = mempty
 
-_kdmoncats :: Lens' Project (Map String KDMonCatData)
+_kdmoncats :: Lens' Project (Map KDMonCatId KDMonCatData)
 _kdmoncats = prop (SProxy :: SProxy "kdmoncats")
 
 --------------------------------------------------------------------------------
@@ -55,7 +56,7 @@ type ProjectJS =
   { name         :: String
   , nets         :: Array NetInfo
   , diagrams     :: Array DiagramInfo
-  , kdmoncats    :: Array { id :: String, name :: String, input :: KDMonCat.App.Input }
+  , kdmoncats    :: Array { id :: KDMonCatId, name :: String, input :: KDMonCat.App.Input }
   , roleInfos    :: Array RoleInfo
   , types        :: Array { name :: String, typedef :: Typedef2 }
   , userId       :: String
