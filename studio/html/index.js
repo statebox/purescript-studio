@@ -37,9 +37,9 @@ var uiConfig = {
 }
 
 var loggedIn = false
-firebase.auth().onAuthStateChanged(function (user) {
+firebase.auth().onAuthStateChanged(async function (user) {
   if (user) {
-    start(user)
+    await start(user)
     loggedIn = true
   } else {
     if (!loggedIn)
@@ -49,29 +49,39 @@ firebase.auth().onAuthStateChanged(function (user) {
   }
 })
 
-function start(user) {
+async function start(user) {
   // console.log(user)
   document.getElementById('email').innerText = user && user.email || ""
   document.getElementById('firebaseui-auth-container').style.display = 'none'
   const eventHandler = {
-    onProjectUpserted: project => () => {
+    onProjectUpserted: projectId => project => () => {
       console.log("upsert", project)
-      db.collection("projects").doc(project.projectId).set(project)
+      db.collection("projects").doc(projectId).set(project)
     },
     onProjectDeleted: projectId => () => {
       db.collection("projects").doc(projectId).delete()
     }
   }
+
+  user.isNew = !(await db.collection("users").doc(user.uid).get()).exists
+
   Main.main(user)(eventHandler)(api => () => {
+
+    if (user.isNew) {
+      db.collection("users").doc(user.uid).set({ initialized: true })
+      db.collection("projects").doc(api.starterProjectId).set(api.starterProject)
+    }
+
     db.collection("projects").where("userId", "==", user.uid)
     .onSnapshot(querySnapshot => {
       querySnapshot.docChanges().forEach(change => {
-        console.log("change", change.type, change.doc.data())
+        console.log("change", change, change.doc.data())
         if (change.type !== "removed") {
-          runHalogenAff(api.addProject(change.doc.data()))()
+          runHalogenAff(api.addProject(change.doc.id)(change.doc.data()))()
         }
       })
     })
+
   })()
 
   document.getElementById('sign-out').onclick = function() {

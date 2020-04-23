@@ -5,29 +5,24 @@ import Affjax as Affjax
 import Affjax (URL)
 import Affjax.ResponseFormat as ResponseFormat
 import Control.Coroutine (Consumer, Producer, Process, runProcess, consumer, connect)
-import Control.Monad.Writer.Trans
-import Data.Array (cons, filter)
 import Data.AdjacencySpace as AdjacencySpace
 import Data.Either (either)
+import Data.Lens (_Just)
+import Data.Lens.At
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
-import Data.Monoid (guard)
-import Data.Monoid.Disj
 import Data.Map as Map
 import Data.Set as Set
-import Data.String (drop)
-import Data.Traversable (for_, for)
-import Data.Tuple.Nested ((/\))
+import Data.Traversable (for_)
 import Effect.Exception (try)
 import Effect.Aff.Class (class MonadAff)
-import Effect.Class (liftEffect)
 import Effect.Console (log)
-import Effect.Random (random)
 import Foreign (unsafeToForeign)
 import Halogen as H
 import Halogen (mkEval, defaultEval)
 import Halogen.HTML (HTML)
 import Halogen.Query.HalogenM (HalogenM)
 import Routing.Duplex (print)
+import Web.Event.Event as Event
 
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Language.Statebox.Wiring.Generator.DiagramV2.Operators as DiagramV2
@@ -35,12 +30,13 @@ import Statebox.Client as Stbx
 import Statebox.Client (evalTransactionResponse)
 import Statebox.Core.Transaction as Stbx
 import Statebox.Core.Transaction (HashTx, TxId)
+import View.CRUDAction
 import View.Diagram.Update as DiagramEditor
 import View.Petrinet.Model (Msg(NetUpdated))
 import View.KDMonCat.App as KDMonCat.Bricks
 import View.KDMonCat.Bricks as KDMonCat.Bricks
-import View.Model (Project, emptyProject)
-import View.Studio.Model (Action(..), State, fromPNPROProject, modifyDiagramInfo, modifyKDMonCat)
+import View.Model (Project, ProjectId, _kdmoncats)
+import View.Studio.Model
 import View.Studio.Model.Route as Route
 import View.Studio.Model.Route (Route, RouteF(..), ProjectRoute, ProjectRouteF(..), NodeIdent(..))
 import View.Studio.View (render, ChildSlots)
@@ -49,11 +45,10 @@ type Input = State
 
 data Query a
   = LoadTransactionsThenView URL TxId a
-  | AddProject Project a
+  | LoadProject ProjectId Project a
+  | Navigate Route a
 
-data Output
-  = ProjectUpserted Project
-  | ProjectDeleted String
+data Output = ProjectChanged String (Maybe Project)
 
 ui :: ∀ m. MonadAff m => H.Component HTML Query Input Output m
 ui =
@@ -72,8 +67,12 @@ handleQuery = case _ of
     handleAction (LoadTransactions endpointUrl hash)
     pure (Just next)
 
-  AddProject project next -> do
-    H.modify_ $ \state -> state { projects = project `cons` filter (\p -> p.projectId /= project.projectId) state.projects }
+  LoadProject projectId project next -> do
+    H.modify_ \state -> state { projects = Map.insert projectId project state.projects }
+    pure (Just next)
+
+  Navigate newRoute next -> do
+    H.modify_ _ { route = newRoute }
     pure (Just next)
 
 handleAction :: ∀ m. MonadAff m => Action -> HalogenM State Action ChildSlots Output m Unit
@@ -135,19 +134,12 @@ handleAction = case _ of
            pnproDocumentE <- H.liftEffect $ try $ PNPRO.fromString res.body
            pnproDocumentE # either
              (\err      -> H.liftEffect $ log $ "Error decoding PNPRO document: " <> show err)
-             (\pnproDoc -> H.modify_ $ \state -> state { projects = fromPNPROProject pnproDoc.project `cons` state.projects })
+             (\pnproDoc -> handleAction $ CRUDProject $ CreateAction $ fromPNPROProject pnproDoc.project)
       )
 
-  CreateProject -> do
-    rnd <- liftEffect random
-    let projectId = "p" <> drop 2 (show rnd)
-    let newProject = emptyProject { projectId = projectId, name = "Untitled (TODO)" }
-    -- H.modify_ $ \state -> state { projects = newProject `cons` state.projects }
-    H.raise $ ProjectUpserted newProject
+  CRUDProject action -> handleCRUDAction (getRandomId "p") _projects action \id mProject -> H.raise $ ProjectChanged id mProject
 
-  DeleteProject projectId -> do
-    H.modify_ $ \state -> state { projects = filter (\p -> p.projectId /= projectId) state.projects }
-    H.raise $ ProjectDeleted projectId
+  CRUDKDMonCat action -> handleCRUDActionInProject _kdmoncats action
 
   HandleDiagramEditorMsg (DiagramEditor.OperatorClicked opId) -> do
     H.liftEffect $ log $ "DiagramEditor.OperatorClicked: " <> opId
@@ -156,8 +148,8 @@ handleAction = case _ of
       -- TODO #87 we hardcode the assumption here that opId is a net (NetNode opId) but it could be (LeDiagram opId)
       newRouteMaybe :: Maybe Route
       newRouteMaybe = case state.route of
-        ProjectRoute pname (Diagram dname _) -> Just (ProjectRoute pname (Diagram dname (Just (NetNode opId))))
-        _                                    -> Nothing
+        ProjectRoute pid (Diagram dname _) -> Just (ProjectRoute pid (Diagram dname (Just (NetNode opId))))
+        _                                  -> Nothing
     maybe (pure unit) (handleAction <<< SelectRoute) newRouteMaybe
 
   HandleDiagramEditorMsg (DiagramEditor.OperatorsChanged ops) -> do
@@ -165,6 +157,7 @@ handleAction = case _ of
       case proute of
         Diagram dname _ -> p { diagrams = fromMaybe p.diagrams (modifyDiagramInfo dname (_ {ops = ops}) p.diagrams) }
         _               -> p
+
   HandleKDMonCatBricksMsg diagramInfo (KDMonCat.Bricks.SelectionChanged selBox) -> do
     let boxes = (KDMonCat.Bricks.toBricksInput (DiagramV2.fromOperators diagramInfo.ops) selBox).selectedBoxes
     maybe (pure unit) (handleAction <<< HandleDiagramEditorMsg <<< DiagramEditor.OperatorClicked) $ do
@@ -172,29 +165,38 @@ handleAction = case _ of
       op <- DiagramV2.fromPixel diagramInfo.ops box.bid
       pure op.identifier
 
-  CreateKDMonCat -> do
-    modifyProject \_ p -> p { kdmoncats = Map.insert "Untitled" mempty p.kdmoncats }
-
-  HandleKDMonCatAppMsg kdmoncatInput -> do
-    modifyProject \proute p ->
-      case proute of
-        KDMonCatR kdName -> p { kdmoncats = modifyKDMonCat kdName (const kdmoncatInput) p.kdmoncats }
-        _                -> p
+  HandleKDMonCatAppMsg kid input -> do
+    handleAction $ CRUDKDMonCat $ UpdateAction (\{ name } -> { name, input }) kid
 
   HandlePetrinetEditorMsg NetUpdated -> do
     pure unit
+
+  ToggleEditMode -> do
+    H.modify_ $ \state -> state { navEditMode = not state.navEditMode }
+
+  StopEvent mAction event -> do
+    H.liftEffect $ Event.preventDefault event
+    H.liftEffect $ Event.stopPropagation event
+    for_ mAction handleAction
+
+handleCRUDActionInProject :: ∀ m t a. MonadAff m => At t String a => Affine' Project t -> CRUDAction String a -> HalogenM State Action ChildSlots Output m Unit
+handleCRUDActionInProject l action = do
+  state <- H.get
+  case state.route of
+    ProjectRoute pid proute -> do
+      handleCRUDAction (getRandomId "id") (_projects <<< at pid <<< _Just <<< l) action
+        \_ _ -> do
+          state' <- H.get
+          for_ (Map.lookup pid state'.projects) (Just >>> ProjectChanged pid >>> H.raise)
+    _ -> pure unit
 
 modifyProject :: ∀ m. MonadAff m => (ProjectRoute -> Project -> Project) -> HalogenM State Action ChildSlots Output m Unit
 modifyProject fn = do
   state <- H.get
   case state.route of
-    ProjectRoute pname proute -> do
-      (projects /\ Disj changed) <- runWriterT $ for state.projects \p ->
-        if p.name == pname then do
-          tell $ Disj true
-          let newProject = fn proute p
-          lift $ H.raise $ ProjectUpserted newProject
-          pure newProject
-        else pure p
-      guard changed $ H.modify_ (_ { projects = projects })
+    ProjectRoute pid proute -> do
+      for_ (Map.lookup pid state.projects) \p -> do
+        let newProject = fn proute p
+        H.raise $ ProjectChanged pid $ Just newProject
+        H.modify_ (_ { projects = Map.insert pid newProject state.projects })
     _ -> pure unit
