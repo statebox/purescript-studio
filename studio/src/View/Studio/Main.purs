@@ -60,6 +60,7 @@ main user eventHandler onAPIReady = runAff_ (either (show >>> log) onAPIReady) d
     pure Nothing
 
   -- optionally load example data
+  -- you only need to turn this on once, when you make changes the project will be stored in firestore
   guard false do
     void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example1") Ex.project1)
     void $ io.query $ H.tell (Studio.LoadProject (user.uid <> "Example2") Ex.project2)
