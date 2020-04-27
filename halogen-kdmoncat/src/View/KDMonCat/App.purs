@@ -12,16 +12,21 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Set as Set
 import Data.String (replaceAll, Pattern(..), Replacement(..))
 import Data.Symbol (SProxy(..))
+import Data.Tuple.Nested ((/\))
 import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURIComponent)
 import Halogen as H
-import Halogen.HTML hiding (map, head, i, prop)
-import Halogen.HTML.Properties (classes, value, readOnly, href, type_, InputType(InputText))
-import Halogen.HTML.Events (onValueInput, onClick)
+import Halogen.HTML hiding (map, head, i, prop, title)
+import Halogen.HTML.Properties (classes, value, readOnly, href, type_, InputType(InputText), ref, title)
+import Halogen.HTML.Events (onValueInput, onClick, onMouseDown)
+import Halogen.Query.Input (RefLabel(..))
 import View.ReactiveInput as ReactiveInput
 import Web.HTML (window)
 import Web.HTML.Location (setHash)
 import Web.HTML.Window (location)
+import Web.Event.Event (Event)
+import Web.Event.Event as Event
+import Web.UIEvent.MouseEvent (toEvent)
 
 import KDMonCat.Bricks as Bricks
 import KDMonCat.InferType
@@ -33,7 +38,7 @@ import KDMonCat.Output.JSON (json)
 
 import View.KDMonCat.Bricks as Bricks
 import View.KDMonCat.Term as Term
-import View.KDMonCat.CopyToClipboard (copyToClipboard)
+import View.KDMonCat.EditDomHelpers (copyToClipboard, insertText)
 
 type Input = String.Input
 type Output = String.Input
@@ -63,6 +68,8 @@ data Action
   | UpdateContext String
   | BricksMessage Bricks.Output
   | CopyToClipboard String
+  | InsertPixel String
+  | PreventDefault Action Event
 
 data Query a
   = DoAction Action a
@@ -81,7 +88,7 @@ appView =
   ReactiveInput.mkComponentWithQuery
     { initialState
     , render
-    , handleAction: \_ -> handleAction
+    , handleAction
     , handleQuery
     , handleInput
     }
@@ -99,9 +106,11 @@ render _ st = div [ classes [ ClassName "kdmoncat-app" ] ]
         [ label_ [ text "Whole" ], input [ type_ InputText, value termTypeStr, readOnly true ] ]
         <> (selectionType # maybe [] \s -> [ label_ [ text "Selection" ], input [ type_ InputText, value s, readOnly true ] ])
       , h2_ [ text "Pixels"]
-      , textarea [ value st.input.pixels, onValueInput (Just <<< UpdatePixels) ]
+      , textarea [ value st.input.pixels, onValueInput (Just <<< UpdatePixels), ref (RefLabel "pixels") ]
+      , div_ pixelButtons
       , h2_ [ text "Context"]
-      , textarea [ value st.input.context, onValueInput (Just <<< UpdateContext) ]
+      , textarea [ value st.input.context, onValueInput (Just <<< UpdateContext), ref (RefLabel "context") ]
+      , div_ [ text "F.e.: ", code_ [ text "a b -> c d, [4 2 3 1] (Wire swaps), 3.5, 4o2 (Spiders)" ] ]
       , h2_ [ text "Copy serialized output to clipboard"]
       , div_ $ inferredType # either (const []) (\{ term } ->
           [ button [ onClick \_ -> Just (CopyToClipboard $ json term) ]
@@ -127,6 +136,22 @@ render _ st = div [ classes [ ClassName "kdmoncat-app" ] ]
     selectionPath = Bricks.toSelection st.selectionBox bricksInput.bricks.term Nil
     selectionType = hush inferredType <#> \{ errors, term } -> showInferred { errors, term: getSubTerm selectionPath term }
 
+    predefined =
+      [ "-" /\ "id, type [1]"
+      , "=" /\ "id ⊗ id, type [1 2]"
+      , "σ" /\ "Swap, type [2 1]"
+      , "ε" /\ "Counit (discard), type 1.0"
+      , "δ" /\ "Comultiply (copy), type 1.2"
+      , "η" /\ "Unit (zero), type 1o0"
+      , "μ" /\ "Multiply (sum), type 1o2"
+      , "(" /\ "Cup"
+      , ")" /\ "Cap"
+      ]
+    pixelButtons = predefined <#> \(pixel /\ help) ->
+      button [ onMouseDown $ Just <<< PreventDefault (InsertPixel pixel) <<< toEvent
+             , title help ]
+             [ text pixel ]
+
 toBricksInput :: Input -> Box -> Bricks.Input
 toBricksInput input selectionBox =
   { bricks, matches, context, selectedBoxes, renderBoxContent: Bricks.defaultRenderBoxContent }
@@ -148,8 +173,8 @@ handleInput input = do
   H.put $ initialState { input = input }
   updateWindowLocation input
 
-handleAction :: ∀ m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots Output m Unit
-handleAction = case _ of
+handleAction :: ∀ m. MonadEffect m => Input -> Action -> H.HalogenM State Action ChildSlots Output m Unit
+handleAction inp = case _ of
   UpdatePixels p -> do
     st <- H.modify $ set (_input <<< _pixels) p
     H.raise st.input
@@ -162,10 +187,15 @@ handleAction = case _ of
     H.modify_ $ set _selectionBox sel
   CopyToClipboard s ->
     liftEffect (copyToClipboard s)
+  InsertPixel s ->
+    liftEffect (insertText s)
+  PreventDefault action event -> do
+    H.liftEffect $ Event.preventDefault event
+    handleAction inp action
 
-handleQuery :: ∀ m a. MonadEffect m => Query a -> H.HalogenM State Action ChildSlots Output m (Maybe a)
-handleQuery (DoAction x next) = do
-  handleAction x
+handleQuery :: ∀ m a. MonadEffect m => Input -> Query a -> H.HalogenM State Action ChildSlots Output m (Maybe a)
+handleQuery inp (DoAction x next) = do
+  handleAction inp x
   pure (Just next)
 
 updateWindowLocation :: ∀ m. MonadEffect m => Input -> H.HalogenM State Action ChildSlots Output m Unit
