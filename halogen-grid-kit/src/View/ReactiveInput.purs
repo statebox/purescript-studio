@@ -31,7 +31,7 @@ type ComponentSpec surface state action slots input output m =
 
 type ComponentSpecQuery surface state query action slots input output m =
   Record (ComponentSpecRow surface state action slots input output m
-         (handleQuery :: forall a. query a -> H.HalogenM state action slots output m (Maybe a)))
+         (handleQuery :: forall a. input -> query a -> H.HalogenM state action slots output m (Maybe a)))
 
 mkComponentWithQuery
   :: ∀ surface state query action slots input output m
@@ -45,7 +45,7 @@ mkComponentWithQuery spec@{ initialState, render } =
     , render: \{ input, rest } -> render input rest # mapAction Rest
     , eval: H.mkEval $ H.defaultEval
       { handleAction = handle spec
-      , handleQuery = \q -> H.get >>= \{ input } -> mapHalogenM input (spec.handleQuery q)
+      , handleQuery = \q -> H.get >>= \{ input } -> mapHalogenM input (spec.handleQuery input q)
       , receive = Just <<< Update
       , initialize = Just Initialize
       }
@@ -58,7 +58,7 @@ mkComponent
   => ComponentSpec surface state action slots input output m
   -> H.Component surface query input output m
 mkComponent { initialState, render, handleInput, handleAction } =
-  mkComponentWithQuery { initialState, render, handleInput, handleAction, handleQuery: H.defaultEval.handleQuery }
+  mkComponentWithQuery { initialState, render, handleInput, handleAction, handleQuery: \_ -> H.defaultEval.handleQuery }
 
 handle
   :: ∀ surface state query action slots input output m
