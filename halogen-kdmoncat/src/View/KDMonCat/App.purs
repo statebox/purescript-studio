@@ -17,7 +17,7 @@ import Effect.Class (class MonadEffect, liftEffect)
 import Global (encodeURIComponent)
 import Halogen as H
 import Halogen.HTML hiding (map, head, i, prop, title)
-import Halogen.HTML.Properties (classes, value, readOnly, href, type_, InputType(InputText), ref, title)
+import Halogen.HTML.Properties (classes, value, readOnly, href, type_, InputType(InputText), ref, target, title)
 import Halogen.HTML.Events (onValueInput, onClick, onMouseDown)
 import Halogen.Query.Input (RefLabel(..))
 import View.ReactiveInput as ReactiveInput
@@ -105,7 +105,11 @@ render _ st = div [ classes [ ClassName "kdmoncat-app" ] ]
       , div [ classes [ ClassName "fieldset" ]] $
         [ label_ [ text "Whole" ], input [ type_ InputText, value termTypeStr, readOnly true ] ]
         <> (selectionType # maybe [] \s -> [ label_ [ text "Selection" ], input [ type_ InputText, value s, readOnly true ] ])
-      , h2_ [ text "Pixels"]
+      , h2_ [ text "Pixels"
+            , a [ href "https://hackmd.io/PUj5yVt8R4mxz8jH0TNNQQ"
+                , target "_blank"
+                , attr (AttrName "style") "float: right"]
+                [ text "help" ] ]
       , textarea [ value st.input.pixels, onValueInput (Just <<< UpdatePixels), ref (RefLabel "pixels") ]
       , div_ pixelButtons
       , h2_ [ text "Context"]
@@ -122,7 +126,7 @@ render _ st = div [ classes [ ClassName "kdmoncat-app" ] ]
     ]
     , h2_ [ text "Term view" ]
     , footer_ $ inferredType # either (const []) (\{ term } -> [slot _term unit Term.termView { term, selection: selectionPath } \_ -> Nothing])
-    , a [ href "https://statebox.org" ] []
+    , a [ href "https://statebox.org", target "_blank" ] []
   ]
   where
     bricksInput :: Bricks.Input
