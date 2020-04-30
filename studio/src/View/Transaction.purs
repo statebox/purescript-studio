@@ -4,25 +4,25 @@ import Prelude hiding (div)
 import Affjax (URL) -- TODO eliminate
 import Data.Array (mapMaybe)
 import Data.String.CodePoints (take)
-import Data.Lens (over, preview, _Just, second, view)
-import Data.Maybe (Maybe, maybe)
+import Data.Lens (preview, _Just, second, view)
+import Data.Maybe (maybe)
 import Data.Newtype (un)
 import Data.Either (either)
 import Data.Either.Nested (type (\/))
 import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, slot, div, table, tr, th, td, a, text, h2, br, pre)
+import Halogen.HTML (div, table, tr, th, td, a, text, h2, pre)
 import Halogen.HTML.Core (ClassName(..))
 import Halogen.HTML.Properties (classes, href)
 
-import View.Studio.Model (Action(..))
+import View.Studio.Model (Action)
 import View.Studio.Model.Route (WiringFiringInfo)
 import View.Studio.Model.TxCache (ExecutionTrace)
 import Statebox.Client (txUrl)
 import Statebox.Core.Lenses (_firingTx, _firing, _firingPath, _GluedTransitionId)
-import Statebox.Core.Transaction (HashStr, TxSum, FiringTx, TxId, WiringTx, evalTxSum, isExecution)
-import Statebox.Core.Types (TID, GluedTransitionId(..))
+import Statebox.Core.Transaction (HashStr, FiringTx, TxId, WiringTx, evalTxSum, isExecution)
+import Statebox.Core.Types (GluedTransitionId(..))
 
 
 firingTxView :: ∀ s m. MonadAff m => WiringFiringInfo -> FiringTx -> String \/ ExecutionTrace -> ComponentHTML Action s m
@@ -53,12 +53,12 @@ txWrapperRows wfi tx =
   [ row "service URL"     $ a [ href $ wfi.endpointUrl ]                [ text $ wfi.endpointUrl ]
   , row "transaction URL" $ a [ href $ txUrl wfi.endpointUrl wfi.hash ] [ text $ txUrl wfi.endpointUrl wfi.hash ]
   , row "hash"            $ text $ wfi.hash
-  , row "previous"        $ previousTxLink wfi.endpointUrl tx
+  , row "previous"        $ previousTxLink wfi.endpointUrl
   ]
   where
     -- TODO hack, eliminate; here because the 'previous' field is in the decoded tx body instead of the tx wrapper
-    previousTxLink :: ∀ r s m. MonadAff m => URL -> { previous :: HashStr | r } -> ComponentHTML Action s m
-    previousTxLink url tx =
+    previousTxLink :: URL -> ComponentHTML Action s m
+    previousTxLink url =
       a [ href $ txUrl wfi.endpointUrl tx.previous ] [ text $ txUrl wfi.endpointUrl tx.previous ]
 
 --------------------------------------------------------------------------------

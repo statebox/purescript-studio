@@ -18,6 +18,7 @@
     , "prelude"
     , "psci-support"
     , "routing"
+    , "routing-duplex"
     , "stbx-core"
     , "stbx-lang"
     , "stbx-client-rest"
