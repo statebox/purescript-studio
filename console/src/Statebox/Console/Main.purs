@@ -19,6 +19,8 @@ main = runHalogenAff do
     initialState :: Console.State
     initialState = { customer: Nothing
                    , paymentMethods: mempty
+                   , subscriptions: mempty
+                   , plans: mempty
                    , accounts: [ { invoices: mempty } ]
                    , status: Console.Ok
                    }

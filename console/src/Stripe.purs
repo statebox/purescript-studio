@@ -95,10 +95,17 @@ type Subscription =
   , customer             :: CustomerId
   , object               :: ObjectTag
   , created              :: Timestamp
+  , status               :: SubscriptionStatusString
+  , start_date           :: Timestamp
+  , trial_start          :: Timestamp
+  , trial_end            :: Timestamp
   , current_period_start :: Timestamp
   , current_period_end   :: Timestamp
+  , collection_method    :: CollectionMethodString
   , latest_invoice       :: Maybe InvoiceId
+  , quantity             :: Int
   , items                :: ArrayWrapper SubscriptionItem
+  , livemode             :: Boolean
   }
 
 type SubscriptionId = String
@@ -106,7 +113,6 @@ type SubscriptionId = String
 type SubscriptionItem =
   { id           :: SubscriptionItemId
   , object       :: ObjectTag
-  , quantity     :: Int
   , subscription :: SubscriptionId
   , plan         :: Plan
   , created      :: Timestamp
@@ -114,14 +120,18 @@ type SubscriptionItem =
 
 type SubscriptionItemId = String
 
--- | E.g. `"charge_automatically"`
-type CollectionMethod = String
+-- | See https://stripe.com/docs/billing/subscriptions/overview#subscription-states.
+-- | One of `"trialing"` | `"active"` | `"incomplete"` | `"incomplete_expired"` | `"past_due"` | `"canceled"` | `"unpaid.
+type SubscriptionStatusString = String
 
-type Plan =
+-- | Either `"charge_automatically"` | `"send_invoice"`.
+type CollectionMethodString = String
+
+type Plan' product =
   { id             :: PlanId
   , object         :: ObjectTag
   , nickname       :: Maybe String
-  , product        :: ProductId
+  , product        :: product
   , amount         :: Amount
   , amount_decimal :: AmountDecimal
   , currency       :: Currency
@@ -131,6 +141,10 @@ type Plan =
   , interval_count :: Int
   }
 
+type Plan = Plan' ProductId
+
+type PlanWithExpandedProduct = Plan' Product
+
 type PlanId = String
 
 -- | E.g. `"per_unit"`
@@ -139,7 +153,26 @@ type BillingScheme = String
 -- | E.g. `"month"`
 type Interval = String
 
+--------------------------------------------------------------------------------
+
+-- | https://stripe.com/docs/api/products/object
+type Product =
+  { id                   :: ProductId
+  , name                 :: String
+  , description          :: Maybe String
+  , unit_label           :: Maybe String
+  , statement_descriptor :: Maybe String -- ^ will appear on a customer's credit card statement
+  , created              :: Timestamp
+  , updated              :: Timestamp
+  , images               :: Array URL
+  , active               :: Boolean
+  , livemode             :: Boolean
+  }
+
 type ProductId = String
+
+-- | One of `"good"` | `"service"`.
+type ProductTypeString = String
 
 --------------------------------------------------------------------------------
 
@@ -216,8 +249,7 @@ type Year = Int
 
 --------------------------------------------------------------------------------
 
--- | Stripe populates this with things like `"customer"`, `"object"`,
--- | `"list"` and so on.
+-- | Stripe populates this with things like `"customer"`, `"object"`, `"list"` and so on.
 type ObjectTag = String
 
 type ArrayWrapperRow a r =

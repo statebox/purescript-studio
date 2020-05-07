@@ -52,3 +52,27 @@ listPaymentMethods' =
                                          , method = Left GET
                                          , responseFormat = ResponseFormat.json
                                          }
+
+--------------------------------------------------------------------------------
+
+listSubscriptions :: Aff (Affjax.Error \/ String \/ Stripe.ArrayWrapper Stripe.Subscription)
+listSubscriptions = listSubscriptions' # map (map (_.body >>> spy "subscriptions dump" >>> decodeJson))
+
+listSubscriptions' :: Aff (Affjax.Error \/ Response Json)
+listSubscriptions' =
+  Affjax.request $ Affjax.defaultRequest { url = mkUrl "/subscriptions"
+                                         , method = Left GET
+                                         , responseFormat = ResponseFormat.json
+                                         }
+
+--------------------------------------------------------------------------------
+
+listPlans :: Aff (Affjax.Error \/ String \/ Stripe.ArrayWrapper Stripe.PlanWithExpandedProduct)
+listPlans = listPlans' # map (map (_.body >>> spy "plans dump" >>> decodeJson))
+
+listPlans' :: Aff (Affjax.Error \/ Response Json)
+listPlans' =
+  Affjax.request $ Affjax.defaultRequest { url = mkUrl "/plans"
+                                         , method = Left GET
+                                         , responseFormat = ResponseFormat.json
+                                         }

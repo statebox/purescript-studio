@@ -11,7 +11,7 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, p, text, br, div, ul, li, h2, h3, table, tr, th, td)
+import Halogen.HTML (HTML, p, text, br, span, div, ul, li, h2, h3, table, tr, th, td)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Statebox.Console.DAO as DAO
@@ -25,6 +25,8 @@ import Debug.Trace (spy)
 type State =
   { customer       :: Maybe Stripe.Customer
   , paymentMethods :: Array Stripe.PaymentMethod
+  , subscriptions  :: Array Stripe.Subscription
+  , plans          :: Array Stripe.PlanWithExpandedProduct
   , accounts       :: Array { invoices :: Array Stripe.Invoice
                             }
   , status         :: AppStatus
@@ -87,6 +89,20 @@ handleAction = case _ of
                                 (\x -> H.modify_ $ _ { accounts = [ { invoices: x.data } ] }))
     spyM "invoicesEE" $ invoicesEE
 
+    -- fetch subscriptions for this customer
+    subscriptionsEE <- H.liftAff $ DAO.listSubscriptions
+    subscriptionsEE # either (\e ->    H.modify_ $ _ { status = ErrorStatus "Failed to fetch subscriptions." })
+                        (either (\e -> H.modify_ $ _ { status = ErrorStatus "Decoding subscriptions failed."})
+                                (\x -> H.modify_ $ _ { subscriptions = x.data }))
+    spyM "subscriptionsEE" $ subscriptionsEE
+
+    -- fetch plans for this customer
+    plansEE <- H.liftAff $ DAO.listPlans
+    plansEE # either (\e ->         H.modify_ $ _ { status = ErrorStatus "Failed to fetch plans." })
+                     (either (\e -> H.modify_ $ _ { status = ErrorStatus "Decoding plans failed."})
+                             (\x -> H.modify_ $ _ { plans = x.data }))
+    spyM "plansEE" $ plansEE
+
     -- fetch the payment methods for this customer
     paymentMethodsEE <- H.liftAff $ DAO.listPaymentMethods
     paymentMethodsEE # either (\e ->   H.modify_ $ _ { status = ErrorStatus "Failed to fetch payment methods." })
@@ -106,6 +122,10 @@ render state =
       , div [] (maybe [] (pure <<< customerHtml) state.customer)
       , h3 [] [ text "Customer's payment methods" ]
       , div [] (state.paymentMethods <#> paymentMethodHtml)
+      , h2 [] [ text "Subscriptions" ]
+      , div [] (state.subscriptions <#> subscriptionHtml)
+      , h2 [] [ text "Plans" ]
+      , div [] (state.plans <#> planWithExpandedProductHtml)
       , h2 [] [ text "Invoices" ]
       , div [] (state.accounts <#> \account -> invoiceSummaries account.invoices)
       ]
@@ -118,8 +138,7 @@ invoiceSummaries invoices =
     invoiceSummaryLineHtml i =
       tr [] [ td [] [ text $ i.customer_email ]
             , td [] [ text $ i.account_name ]
-            , td [] [ text $ i.currency ]
-            , td [] [ text $ show i.amount_due ]
+            , td [] [ text $ formatCurrency i.currency i.amount_due ]
             ]
 
 customerHtml :: ∀ m. MonadAff m => Stripe.Customer -> ComponentHTML Action ChildSlots m
@@ -140,7 +159,7 @@ customerHtml c =
         ] <>
         foldMap addressRowsHtml c.address <>
         [ tr [] [ th [] [ text "balance" ]
-                , td [] [ text $ c.currency <> " " <> show c.balance <> " cents" ]
+                , td [] [ text $ formatCurrency c.currency c.balance ]
                 ]
         , tr [] [ th [] [ text "tax ids" ]
                 , td [] [ taxIdsHtml c.tax_ids ]
@@ -171,7 +190,7 @@ paymentMethodHtml pm =
 billingDetailsHtml :: ∀ m. MonadAff m => Stripe.BillingDetails -> ComponentHTML Action ChildSlots m
 billingDetailsHtml bd = nameAddressPhoneHtml bd
 
-nameAddressPhoneHtml :: ∀ r m. MonadAff m => { | Stripe.NameAddressPhoneRow () } -> ComponentHTML Action ChildSlots m
+nameAddressPhoneHtml :: ∀ m. MonadAff m => { | Stripe.NameAddressPhoneRow () } -> ComponentHTML Action ChildSlots m
 nameAddressPhoneHtml x =
   table [] $
         [ tr [] [ th [] [ text "name" ]
@@ -221,6 +240,125 @@ cardHtml c =
 
     formatExpiryDate :: Stripe.Card -> String
     formatExpiryDate card = show c.exp_month <> "/" <> show c.exp_year
+
+formatCurrency :: Stripe.Currency -> Stripe.Amount -> String
+formatCurrency currency amount =
+  show amount <> " " <> currency <> " cents"
+
+timestampHtml :: ∀ m. MonadAff m => Stripe.Timestamp -> ComponentHTML Action ChildSlots m
+timestampHtml ts = text $ show ts
+
+timestampRangeHtml :: ∀ m. MonadAff m => Stripe.Timestamp -> Stripe.Timestamp -> ComponentHTML Action ChildSlots m
+timestampRangeHtml start end =
+  span [] [ timestampHtml start, text " thru ", timestampHtml end ]
+
+subscriptionHtml :: ∀ m. MonadAff m => Stripe.Subscription -> ComponentHTML Action ChildSlots m
+subscriptionHtml s =
+  table []
+        [ tr [] [ td [] [ text "id" ]
+                , td [] [ text s.id ]
+                ]
+        , tr [] [ td [] [ text "status" ]
+                , td [] [ text s.status ]
+                ]
+        , tr [] [ td [] [ text "quantity" ]
+                , td [] [ text $ show s.quantity ]
+                ]
+        , tr [] [ td [] [ text "start date" ]
+                , td [] [ timestampHtml s.start_date ]
+                ]
+        , tr [] [ td [] [ text "current period" ]
+                , td [] [ timestampRangeHtml s.current_period_start s.current_period_end ]
+                ]
+        , tr [] [ td [] [ text "trial period" ]
+                , td [] [ timestampRangeHtml s.trial_start s.trial_end ]
+                ]
+        , tr [] [ td [] [ text "collection method" ]
+                , td [] [ text s.collection_method ]
+                ]
+        , tr [] [ td [] [ text "live mode" ]
+                , td [] [ text $ show s.livemode ]
+                ]
+        , tr [] [ td [] [ text "items" ]
+                , td [] (s.items.data <#> subscriptionItemHtml)
+                ]
+        ]
+
+subscriptionItemHtml :: ∀ m. MonadAff m => Stripe.SubscriptionItem -> ComponentHTML Action ChildSlots m
+subscriptionItemHtml item =
+  table []
+        [ tr [] [ td [] [ text "plan" ]
+                , td [] [ planHtml item.plan ]
+                ]
+        , tr [] [ td [] [ text "created" ]
+                , td [] [ text $ show item.created ]
+                ]
+        ]
+
+planHtml :: ∀ m. MonadAff m => Stripe.Plan -> ComponentHTML Action ChildSlots m
+planHtml plan =
+  table []
+        [ tr [] [ td [] [ text "nickname" ]
+                , td [] [ text $ fromMaybe "-" plan.nickname ]
+                ]
+        , tr [] [ td [] [ text "product id" ]
+                , td [] [ text plan.product ]
+                ]
+        , tr [] [ td [] [ text "created on" ]
+                , td [] [ timestampHtml plan.created ]
+                ]
+        , tr [] [ td [] [ text "amount" ]
+                , td [] [ text $ formatCurrency plan.currency plan.amount ]
+                ]
+        , tr [] [ td [] [ text "billing scheme" ]
+                , td [] [ text plan.billing_scheme ]
+                ]
+        , tr [] [ td [] [ text "interval" ]
+                , td [] [ text $ plan.interval <> " (" <> show plan.interval_count <> "x)" ]
+                ]
+        ]
+
+--------------------------------------------------------------------------------
+
+planWithExpandedProductHtml :: ∀ m. MonadAff m => Stripe.PlanWithExpandedProduct -> ComponentHTML Action ChildSlots m
+planWithExpandedProductHtml plan =
+  table []
+        [ tr [] [ td [] [ text "nickname" ]
+                , td [] [ text $ fromMaybe "-" plan.nickname ]
+                ]
+        , tr [] [ td [] [ text "product" ]
+                , td [] [ productHtml plan.product ]
+                ]
+        , tr [] [ td [] [ text "created on" ]
+                , td [] [ timestampHtml plan.created ]
+                ]
+        , tr [] [ td [] [ text "amount" ]
+                , td [] [ text $ formatCurrency plan.currency plan.amount ]
+                ]
+        , tr [] [ td [] [ text "billing scheme" ]
+                , td [] [ text plan.billing_scheme ]
+                ]
+        , tr [] [ td [] [ text "interval" ]
+                , td [] [ text $ plan.interval <> " (" <> show plan.interval_count <> "x)" ]
+                ]
+        ]
+
+productHtml :: ∀ m. MonadAff m => Stripe.Product -> ComponentHTML Action ChildSlots m
+productHtml product =
+  table []
+        [ tr [] [ td [] [ text "product id" ]
+                , td [] [ text product.id ]
+                ]
+        , tr [] [ td [] [ text "name" ]
+                , td [] [ text product.name ]
+                ]
+        , tr [] [ td [] [ text "description" ]
+                , td [] [ text $ fromMaybe "-" product.description ]
+                ]
+        , tr [] [ td [] [ text "unit" ]
+                , td [] [ text $ fromMaybe "-" product.unit_label ]
+                ]
+        ]
 
 --------------------------------------------------------------------------------
 
