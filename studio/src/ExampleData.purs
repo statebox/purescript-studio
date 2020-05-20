@@ -1,5 +1,7 @@
 module ExampleData
   ( endpointUrl
+  , starterDiagramId
+  , starterProject
   , projects
   , project1
   , project2
@@ -13,29 +15,33 @@ module ExampleData
 import Prelude
 import Data.Array ((..), length)
 import Data.Map as Map
-import Data.Map (Map)
-import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Monoid.Additive (Additive(..))
-import Data.Newtype (un, over)
-import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Ring
 import Data.Vec3.Box (Box(..))
-import Data.Vec3 (Vec2D, Vec2(..), vec2, vec3, _x, _y, _z)
+import Data.Vec3 (vec2, vec3)
 
-import Data.Auth (Role(..), Roles(..), Privilege(..), rolesFromFoldable, CSSColor(..))
+import Data.Auth (CSSColor(..), Role(..), rolesFromFoldable)
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Petrinet.Representation.PNPRO as PNPRO
 import Data.Petrinet.Representation.PNPROtoDict as PNPRO
 import Data.Typedef (Typedef(..))
 import Data.Typedef.Typedef2 (Typedef2(..))
-import View.Model (Project)
-import View.Petrinet.Model (PID, TID, Tokens, Transition, Marking, PlaceMarking, NetRep, mkNetRepUsingLayout, mkNetApi, NetApi, NetInfo, NetInfoFRow, NetLayout, TextBox)
+import KDMonCat.Main (initialPixels, initialContext)
+import View.Model (Project, emptyProject)
+import View.Petrinet.Model (Marking, NetInfo, NetLayout, NetRep, PID, TextBox, Transition, mkNetApi, mkNetRepUsingLayout)
 import View.Diagram.Model (DiagramInfo)
 
 -- TODO hardcoded for now, but we should decide how we want to come by this
 endpointUrl :: String
 endpointUrl = "https://testapi.statebox.io"
+
+starterDiagramId :: String
+starterDiagramId = "starter"
+
+starterProject :: Project
+starterProject = emptyProject
+  { name = "My Project"
+  , kdmoncats = Map.fromFoldable [ starterDiagramId /\ { name: "Example", input: { pixels: initialPixels, context: initialContext }} ]
+  }
 
 projects :: Array Project
 projects = [project1, project2]
@@ -45,6 +51,7 @@ project1 =
   { name: "Statebox Examples"
   , nets: [ netInfo1, netInfo2 ]
   , diagrams: diagrams1
+  , kdmoncats: project1KDMonCats
   , roleInfos: project1Roles
   , types: project1Typedefs
   }
@@ -65,6 +72,11 @@ project1Typedefs =
   where
     person = TProd [TRef "String", TRef "Date"]
 
+project1KDMonCats = Map.fromFoldable
+  [ "beep" /\ { name: "beep", input: { pixels: "pq", context: "p: -> a\nq: a ->" } }
+  , "boop" /\ { name: "boop", input: { pixels: "hij", context: "h: -> a\ni: a -> b\nj: b ->" } }
+  ]
+
 --------------------------------------------------------------------------------
 
 project2 :: Project
@@ -72,6 +84,7 @@ project2 =
   { name: "Erik's examples"
   , nets: pnproNetInfos1
   , diagrams: diagrams2
+  , kdmoncats: mempty
   , roleInfos: project2Roles
   , types: project2Typedefs
   }

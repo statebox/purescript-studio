@@ -10,7 +10,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import KDMonCat.Bricks as Bricks
 import KDMonCat.InferType
 import KDMonCat.Model
-import KDMoncat.Input.String as String
+import KDMonCat.Input.String as String
 import KDMonCat.Output.JSON
 
 type Error = String

@@ -14,6 +14,7 @@
     , "ordered-collections"
     , "profunctor-lenses"
     , "psci-support"
+    , "random"
     , "strings"
     , "variant"
     , "vec"

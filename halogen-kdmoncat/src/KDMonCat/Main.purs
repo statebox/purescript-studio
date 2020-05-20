@@ -56,7 +56,7 @@ l: e e e -> e
 main :: Effect Unit
 main = log "main: kdmoncat bundle loaded."
 
-run :: ∀ a. App.Input -> String -> Aff (Maybe (HalogenIO App.Query a Aff))
+run :: App.Input -> String -> Aff (Maybe (HalogenIO App.Query App.Output Aff))
 run input selector = do
   elemMaybe <- selectElement (QuerySelector selector)
   runUI App.appView input `traverse` elemMaybe
