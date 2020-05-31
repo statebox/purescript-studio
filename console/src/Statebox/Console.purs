@@ -2,38 +2,65 @@ module Statebox.Console where
 
 import Prelude
 import Data.Either (either)
+import Data.Generic.Rep
 import Data.Lens
 import Data.Lens.Record (prop)
 import Data.Symbol (SProxy(..))
 import Data.Foldable (fold, foldMap)
+import Data.Map as Map
+import Data.Map (Map)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
+import Data.Tuple.Nested ((/\))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, p, text, br, span, div, ul, li, h2, h3, table, tr, th, td)
+import Halogen.HTML (HTML, p, text, br, span, div, ul, li, h2, h3, table, tr, th, td, button)
+import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Statebox.Console.DAO as DAO
+import View.Model (Project(..), ProjectId)
 
 import Stripe as Stripe
 
 import Debug.Trace (spy)
 
+-- TODO
+fakeCustomerId = "TODO"
+
 --------------------------------------------------------------------------------
 
 type State =
-  { customer       :: Maybe Stripe.Customer
+  { route          :: Route
+  , customer       :: Maybe Stripe.Customer
   , paymentMethods :: Array Stripe.PaymentMethod
   , subscriptions  :: Array Stripe.Subscription
   , plans          :: Array Stripe.PlanWithExpandedProduct
   , accounts       :: Array { invoices :: Array Stripe.Invoice
                             }
   , status         :: AppStatus
+  , projects       :: Map ProjectId Project
   }
 
 _accounts = prop (SProxy :: SProxy "accounts")
 _invoices = prop (SProxy :: SProxy "invoices")
+
+--------------------------------------------------------------------------------
+
+data Route
+  = Home
+  | Projects
+  | ProjectR ProjectId
+  | APIKeys
+  | Invoices Stripe.CustomerId
+  | Account
+  | Subscription
+  | Plan
+
+derive instance eqRoute :: Eq Route
+derive instance ordRoute :: Ord Route
+derive instance genericRoute :: Generic Route _
 
 --------------------------------------------------------------------------------
 
@@ -48,9 +75,12 @@ instance showAppStatus :: Show AppStatus where
 
 type Input = State
 
-data Action = FetchStuff
+data Action
+  = SelectRoute Route
+  | FetchStuff
 
-data Query a = DoAction Action a
+data Query a
+  = DoAction Action a
 
 type ChildSlots = ()
 
@@ -66,12 +96,16 @@ mkInitialState :: Input -> State
 mkInitialState input = input
 
 handleQuery = case _ of
-  (DoAction x next) -> do
+  DoAction x next -> do
     handleAction x
     pure (Just next)
 
 handleAction :: ∀ m. MonadAff m => Action -> HalogenM State Action ChildSlots Void m Unit
 handleAction = case _ of
+
+  SelectRoute newRoute -> do
+    H.modify_ \state -> state { route = newRoute }
+
   FetchStuff -> do
     H.liftEffect $ log "handling action FetchStuff..."
 
@@ -117,18 +151,73 @@ handleAction = case _ of
 render :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 render state =
   div []
-      [ p [] [ text $ if state.status == Ok then "" else "status: " <> show state.status ]
-      , h2 [] [ text "Customer" ]
-      , div [] (maybe [] (pure <<< customerHtml) state.customer)
-      , h3 [] [ text "Customer's payment methods" ]
-      , div [] (state.paymentMethods <#> paymentMethodHtml)
-      , h2 [] [ text "Subscriptions" ]
-      , div [] (state.subscriptions <#> subscriptionHtml)
-      , h2 [] [ text "Plans" ]
-      , div [] (state.plans <#> planWithExpandedProductHtml)
-      , h2 [] [ text "Invoices" ]
-      , div [] (state.accounts <#> \account -> invoiceSummaries account.invoices)
+      [ navMenuHtml state
+      , contentHtml state
+      , p [] [ text $ if state.status == Ok then "" else "status: " <> show state.status ]
       ]
+
+navMenuHtml :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
+navMenuHtml state =
+  div []
+      [ button [ onClick \e -> Just $ SelectRoute $ Home                    ] [ text "Home" ]
+      , button [ onClick \e -> Just $ SelectRoute $ Projects                ] [ text "Projects" ]
+      , button [ onClick \e -> Just $ SelectRoute $ Account                 ] [ text "Billing Accounts" ]
+      , button [ onClick \e -> Just $ SelectRoute $ APIKeys                 ] [ text "API Keys" ]
+      , button [ onClick \e -> Just $ SelectRoute $ Invoices fakeCustomerId ] [ text "Invoices" ]
+      , button [ onClick \e -> Just $ SelectRoute $ Subscription            ] [ text "Subscriptions" ]
+      , button [ onClick \e -> Just $ SelectRoute $ Plan                    ] [ text "Plans" ]
+      ]
+
+contentHtml :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
+contentHtml state = case state.route of
+  Home ->
+    div []
+        [ h2 [] [ text "Statebox Cloud Admin Console" ]
+        , text "Welcome!"
+        ]
+  Projects ->
+    div [] $
+        [ h2 [] [ text "Projects" ]
+        , div [] $ Map.toUnfoldable state.projects  <#>
+             (\(projectId /\ project) -> button [ onClick \e -> Just $ SelectRoute $ ProjectR projectId ] [ text project.name ])
+        ]
+  APIKeys ->
+    div [] $
+        [ h2 [] [ text "API keys" ]
+        , p [] [ text "* Create" ]
+        , p [] [ text "* Deprecate" ]
+        , p [] [ text "* Assign to a root" ]
+        ]
+  ProjectR projectId ->
+    div []
+        [ h2 [] [ text $ "Project " <> show projectId ]
+        , h3 [] [ text $ "API keys" ]
+        , h3 [] [ text $ "Roots" ]
+        ]
+  Account ->
+    div []
+        [ h2 [] [ text "Customer" ]
+        , div [] (maybe [] (pure <<< customerHtml) state.customer)
+        , h3 [] [ text "Customer's payment methods" ]
+        , div [] (state.paymentMethods <#> paymentMethodHtml)
+        ]
+  Subscription ->
+    div []
+        [ h2 [] [ text "Subscriptions" ]
+        , div [] (state.subscriptions <#> subscriptionHtml)
+        ]
+  Invoices x ->
+    div []
+        [ h2 [] [ text "Invoices" ]
+        , div [] (state.accounts <#> \account -> invoiceSummaries account.invoices)
+        ]
+  Plan ->
+    div []
+        [ h2 [] [ text "Plans" ]
+        , div [] (state.plans <#> planWithExpandedProductHtml)
+        ]
+
+--------------------------------------------------------------------------------
 
 invoiceSummaries :: ∀ m. MonadAff m => Array Stripe.Invoice -> ComponentHTML Action ChildSlots m
 invoiceSummaries invoices =
