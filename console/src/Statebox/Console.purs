@@ -16,7 +16,9 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
 import Halogen as H
 import Halogen (ComponentHTML)
-import Halogen.HTML (HTML, p, text, br, span, div, ul, li, h2, h3, table, tr, th, td, button)
+import Halogen.HTML (HTML, a, p, text, br, span, div, ul, li, h2, h3, h4, nav, table, tr, th, td, button)
+import Halogen.HTML.Core (ClassName(..))
+import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.Query.HalogenM (HalogenM)
 
@@ -29,10 +31,19 @@ import Debug.Trace (spy)
 -- TODO
 fakeCustomerId = "TODO"
 
-type ApiKey = { hex :: Hex, name :: String }
 type RootId = String -- TODO get from stbx-core
 type TxHash = Hex    -- TODO get from stbx-core
 type Hex = String    -- TODO get from stbx-core
+
+--------------------------------------------------------------------------------
+
+type ApiKey =
+  { name :: String
+  , hex :: Hex
+  , billingAccount :: Maybe BillingAccount
+  }
+
+type BillingAccount = Unit -- TODO tentative
 
 --------------------------------------------------------------------------------
 
@@ -223,35 +234,38 @@ render state =
 
 navMenuHtml :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 navMenuHtml state =
-  div []
-      [ button [ onClick \e -> Just $ SelectRoute $ Home                    ] [ text "Home" ]
-      , button [ onClick \e -> Just $ SelectRoute $ Projects                ] [ text "Projects" ]
-      , button [ onClick \e -> Just $ SelectRoute $ APIKeys                 ] [ text "API Keys" ]
-      , button [ onClick \e -> Just $ SelectRoute $ Invoices fakeCustomerId ] [ text "Invoices" ]
-      , button [ onClick \e -> Just $ SelectRoute $ Subscription            ] [ text "Subscriptions" ]
-      , button [ onClick \e -> Just $ SelectRoute $ Plan                    ] [ text "Plans" ]
+  nav [ classes [ ClassName "stbx-menu" ] ]
+      [ ul []
+           [ text "Statebox Cloud Admin Console"
+           , a [ onClick \e -> Just $ SelectRoute $ Home         ] [ text "Home" ]
+           , a [ onClick \e -> Just $ SelectRoute $ Projects     ] [ text "Projects" ]
+           , a [ onClick \e -> Just $ SelectRoute $ APIKeys      ] [ text "API Keys" ]
+           , a [ onClick \e -> Just $ SelectRoute $ Subscription ] [ text "Subscriptions" ]
+           , a [ onClick \e -> Just $ SelectRoute $ Plan         ] [ text "Plans" ]
+           ]
       ]
 
 contentHtml :: ∀ m. MonadAff m => State -> ComponentHTML Action ChildSlots m
 contentHtml state = case state.route of
   Home ->
-    div []
-        [ h2 [] [ text "Statebox Cloud Admin Console" ]
+    div [ classes [ ClassName "container",  ClassName "is-flex", ClassName "has-rows" ] ]
+        [ h4 [] [ text "Projects" ]
+        , ul [ classes [ ClassName "stbx-cards" ] ] $ Map.toUnfoldable state.projects <#> \(projectId /\ project) ->
+            li [ onClick \e -> Just $ SelectRoute $ ProjectR projectId ]
+            [ h3 [] [ text project.name ] ]
 
-        , h3 [] [ text "Projects" ]
-        , ul [] $ Map.toUnfoldable state.projects <#> (\(projectId /\ project) ->
-                li [] [ button [ onClick \e -> Just $ SelectRoute $ ProjectR projectId ] [ text project.name ] ])
+        , h4 [] [ text "Billing accounts" ]
+        , ul [ classes [ ClassName "stbx-cards" ] ] $ customers <#> \customer ->
+            li [ onClick \e -> Just $ SelectRoute $ Account customer.id ]
+               [ h3 [] [ text $  fold customer.name ]
+               , p [] [ text $ fold customer.description ]
+               ]
 
-        , h3 [] [ text "Billing accounts" ]
-        , ul [] $ customers <#> \customer ->
-            li [] [ button [ onClick \e -> Just $ SelectRoute $ Account customer.id ] [ text $ fold customer.name ]
-                  , text $ fold customer.description
+        , h4 [] [ text "API keys" ]
+        , ul [ classes [ ClassName "stbx-cards" ] ] $ state.apiKeys <#> \key ->
+            li [] [ h3 [] [ text key.name ]
+                  , p [] [ text key.hex ]
                   ]
-
-        , h3 [] [ text "API keys" ]          
-        , ul [] $ state.apiKeys <#> \key -> li [] [ p [] [ text key.name ]
-                                                  , p [] [ text key.hex ]
-                                                  ]
         ]
     where
       -- TODO in reality we should have multiple customers
@@ -281,6 +295,7 @@ contentHtml state = case state.route of
         , p [] [ button [ onClick \e -> Just $ CreateApiKey ] [ text "Create new API key" ] ]
         , ul [] $ state.apiKeys <#> \key -> li [] [ p [] [ text key.name ]
                                                   , p [] [ text key.hex ]
+                                                  , p [] [ text $ show key.billingAccount ]
                                                   , p [] [ button [ onClick \e -> Just $ DeprecateApiKey key ] [ text "Deprecate" ] ]
                                                   ]
         , p [] [ text "* Assign to a root" ]
@@ -296,7 +311,8 @@ contentHtml state = case state.route of
         ]
   Account customerId ->
     div []
-        [ h2 [] [ text "Customer" ]
+        [ button [ onClick \e -> Just $ SelectRoute $ Invoices fakeCustomerId ] [ text "Invoices" ]
+        , h2 [] [ text "Customer" ]
         , div [] (maybe [] (pure <<< customerHtml) state.customer)
         , h3 [] [ text "Customer's payment methods" ]
         , div [] (state.paymentMethods <#> paymentMethodHtml)

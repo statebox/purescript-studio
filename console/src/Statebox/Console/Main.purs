@@ -34,8 +34,8 @@ main = runHalogenAff do
                    , subscriptions: mempty
                    , plans: mempty
                    , accounts: [ { invoices: mempty } ]
-                   , apiKeys : [ { name: "My API key #1", hex: "01010101" }
-                               , { name: "My API key #2", hex: "02020202" }
+                   , apiKeys : [ { name: "My API key #1", hex: "01010101", billingAccount: Nothing }
+                               , { name: "My API key #2", hex: "02020202", billingAccount: Nothing }
                                ]
                    , projects: exampleProjects
                    , rootTransactions: ["00AA00", "00BB00", "00CC00" ]

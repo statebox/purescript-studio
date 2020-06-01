@@ -1,1 +1,5 @@
-background: red;
+#user {
+  position: fixed;
+  z-index: 2;
+  right: 70px;
+}
