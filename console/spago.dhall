@@ -11,7 +11,6 @@
     , "psci-support"
     , "routing"
     , "routing-duplex"
-    , "studio"
     ]
 , packages =
     ../packages.dhall

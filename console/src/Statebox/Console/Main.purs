@@ -17,9 +17,7 @@ import Routing.PushState as Routing.PushState
 
 import Statebox.Console as Console
 import Statebox.Console (Route(..))
-
-import ExampleData as ExampleData
-import View.Model (ProjectId, Project) -- TODO rm, used to define example data
+import Statebox.Console (ProjectId, Project) -- TODO remove, used to define example data
 
 main :: Effect Unit
 main = runHalogenAff do
@@ -36,8 +34,11 @@ main = runHalogenAff do
                    , subscriptions: mempty
                    , plans: mempty
                    , accounts: [ { invoices: mempty } ]
+                   , apiKeys : [ { name: "My API key #1", hex: "01010101" }
+                               , { name: "My API key #2", hex: "02020202" }
+                               ]
                    , projects: exampleProjects
-                   -- , projects: [ ExampleData.project1 ]
+                   , rootTransactions: ["00AA00", "00BB00", "00CC00" ]
                    , status: Console.Ok
                    }
 
@@ -47,8 +48,9 @@ routesCodex = root $ sum
   { "Home":         noArgs
   , "ProjectR":     "project" / segment
   , "Projects":     "project" / noArgs
+  , "RootTx":       "tx" / noArgs
   , "APIKeys":      "key" / noArgs
-  , "Account":      "account" / noArgs
+  , "Account":      "account" / segment
   , "Invoices":     "invoices" / segment
   , "Subscription": "subscriptions" / noArgs
   , "Plan":         "plans" / noArgs
@@ -58,5 +60,13 @@ routesCodex = root $ sum
 
 exampleProjects :: Map ProjectId Project
 exampleProjects = Map.fromFoldable
-  [ "project1" /\ ExampleData.project1
+  [ "project1" /\ { name: "My Project 1"
+                  , rootTransactions: [ "0100ABC123", "0100DEF456", "0100GHI789" ]
+                  }
+  , "project2" /\ { name: "My Project 2"
+                  , rootTransactions: [ "0200ABC123", "0200DEF456", "0200GHI789" ]
+                  }
+  , "project3" /\ { name: "My Project 3"
+                  , rootTransactions: [ "0300ABC123", "0300DEF456", "0300GHI789" ]
+                  }
   ]

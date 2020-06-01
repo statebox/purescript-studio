@@ -1,6 +1,7 @@
 module Statebox.Console where
 
 import Prelude
+import Data.Array (cons, filter)
 import Data.Either (either)
 import Data.Generic.Rep
 import Data.Lens
@@ -20,7 +21,6 @@ import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.Query.HalogenM (HalogenM)
 
 import Statebox.Console.DAO as DAO
-import View.Model (Project(..), ProjectId)
 
 import Stripe as Stripe
 
@@ -29,18 +29,44 @@ import Debug.Trace (spy)
 -- TODO
 fakeCustomerId = "TODO"
 
+type ApiKey = { hex :: Hex, name :: String }
+type RootId = String -- TODO get from stbx-core
+type TxHash = Hex    -- TODO get from stbx-core
+type Hex = String    -- TODO get from stbx-core
+
+--------------------------------------------------------------------------------
+
+-- | projects are collections of root-transactions and are used to manage the public keys associated to those.
+type Project =
+  { name             :: String
+  , rootTransactions :: Array TxHash
+  }
+
+type ProjectId = String
+
+--------------------------------------------------------------------------------
+
+type TxPubInfo =
+  { name    :: String -- TODO seems redundant if we have the hash
+  , message :: String -- TODO seems redundant if we have the hash
+  , hash    :: TxHash
+  , key     :: Unit   -- TODO is this the key of a genesis tx?
+  }
+
 --------------------------------------------------------------------------------
 
 type State =
-  { route          :: Route
-  , customer       :: Maybe Stripe.Customer
-  , paymentMethods :: Array Stripe.PaymentMethod
-  , subscriptions  :: Array Stripe.Subscription
-  , plans          :: Array Stripe.PlanWithExpandedProduct
-  , accounts       :: Array { invoices :: Array Stripe.Invoice
-                            }
-  , status         :: AppStatus
-  , projects       :: Map ProjectId Project
+  { route            :: Route
+  , customer         :: Maybe Stripe.Customer
+  , paymentMethods   :: Array Stripe.PaymentMethod
+  , subscriptions    :: Array Stripe.Subscription
+  , plans            :: Array Stripe.PlanWithExpandedProduct
+  , accounts         :: Array { invoices :: Array Stripe.Invoice
+                              }
+  , projects         :: Map ProjectId Project
+  , apiKeys          :: Array ApiKey
+  , rootTransactions :: Array TxHash
+  , status           :: AppStatus
   }
 
 _accounts = prop (SProxy :: SProxy "accounts")
@@ -53,8 +79,9 @@ data Route
   | Projects
   | ProjectR ProjectId
   | APIKeys
+  | RootTx
   | Invoices Stripe.CustomerId
-  | Account
+  | Account Stripe.CustomerId
   | Subscription
   | Plan
 
@@ -77,6 +104,15 @@ type Input = State
 
 data Action
   = SelectRoute Route
+
+  | CreateRootTx
+  | PublishRootTx TxPubInfo
+
+  | CreateApiKey
+  | DeprecateApiKey ApiKey
+  | AssociateApiKeyWithProject ApiKey ProjectId
+  | AssociateApiKeyWithRoot ApiKey RootId
+
   | FetchStuff
 
 data Query a
@@ -100,11 +136,40 @@ handleQuery = case _ of
     handleAction x
     pure (Just next)
 
+  -- NavigateTo newRoute next -> do
+  --   H.modify_ $ \state -> state -- { route = newRoute }
+  --   pure (Just next)
+
 handleAction :: ∀ m. MonadAff m => Action -> HalogenM State Action ChildSlots Void m Unit
 handleAction = case _ of
 
+  -- NavigateTo newRoute ->
+  --   H.modify_ $ \state -> state { route = newRoute }
+
   SelectRoute newRoute -> do
     H.modify_ \state -> state { route = newRoute }
+
+  CreateRootTx -> do
+    H.modify_ $ _ { status = ErrorStatus "Create root transaction." }
+
+  PublishRootTx txPubInfo -> do
+    H.modify_ $ \state -> state { status = ErrorStatus "Publish root transaction."
+                                , rootTransactions = txPubInfo.hash `cons` state.rootTransactions
+                                }
+
+  CreateApiKey -> do
+    H.modify_ $ _ { status = ErrorStatus "Create API key." }
+
+  AssociateApiKeyWithProject apiKey projectId -> do
+    H.modify_ $ _ { status = ErrorStatus $ "Associate API Key '" <> apiKey.name <> "' (hex: " <> apiKey.hex <> ") with project " <> projectId <> "." }
+
+  AssociateApiKeyWithRoot apiKey rootTxId -> do
+    H.modify_ $ _ { status = ErrorStatus $ "Associate API Key '" <> apiKey.name <> "' (hex: " <> apiKey.hex <> ") with root transaction " <> rootTxId <> "." }
+
+  DeprecateApiKey apiKey -> do
+    H.modify_ $ \state -> state { status = ErrorStatus $ "Successfully deprecated API key '" <> apiKey.name <> "'."
+                                , apiKeys = filter (\k -> k /= apiKey) state.apiKeys
+                                }
 
   FetchStuff -> do
     H.liftEffect $ log "handling action FetchStuff..."
@@ -161,7 +226,6 @@ navMenuHtml state =
   div []
       [ button [ onClick \e -> Just $ SelectRoute $ Home                    ] [ text "Home" ]
       , button [ onClick \e -> Just $ SelectRoute $ Projects                ] [ text "Projects" ]
-      , button [ onClick \e -> Just $ SelectRoute $ Account                 ] [ text "Billing Accounts" ]
       , button [ onClick \e -> Just $ SelectRoute $ APIKeys                 ] [ text "API Keys" ]
       , button [ onClick \e -> Just $ SelectRoute $ Invoices fakeCustomerId ] [ text "Invoices" ]
       , button [ onClick \e -> Just $ SelectRoute $ Subscription            ] [ text "Subscriptions" ]
@@ -173,28 +237,64 @@ contentHtml state = case state.route of
   Home ->
     div []
         [ h2 [] [ text "Statebox Cloud Admin Console" ]
-        , text "Welcome!"
+
+        , h3 [] [ text "Projects" ]
+        , ul [] $ Map.toUnfoldable state.projects <#> (\(projectId /\ project) ->
+                li [] [ button [ onClick \e -> Just $ SelectRoute $ ProjectR projectId ] [ text project.name ] ])
+
+        , h3 [] [ text "Billing accounts" ]
+        , ul [] $ customers <#> \customer ->
+            li [] [ button [ onClick \e -> Just $ SelectRoute $ Account customer.id ] [ text $ fold customer.name ]
+                  , text $ fold customer.description
+                  ]
+
+        , h3 [] [ text "API keys" ]          
+        , ul [] $ state.apiKeys <#> \key -> li [] [ p [] [ text key.name ]
+                                                  , p [] [ text key.hex ]
+                                                  ]
         ]
+    where
+      -- TODO in reality we should have multiple customers
+      customers :: Array Stripe.Customer
+      customers = maybe [] (\c -> [c]) state.customer
   Projects ->
     div [] $
         [ h2 [] [ text "Projects" ]
         , div [] $ Map.toUnfoldable state.projects  <#>
              (\(projectId /\ project) -> button [ onClick \e -> Just $ SelectRoute $ ProjectR projectId ] [ text project.name ])
         ]
+  ProjectR projectId ->
+    projectMaybe # maybe (text $ "project " <> projectId <> " not found.") (\project ->
+      div []
+          [ h2 [] [ text $ "Project " <> show projectId ]
+          , h3 [] [ text $ "API keys" ]
+          , h3 [] [ text $ "Roots" ]
+          , ul [] (project.rootTransactions <#> \txHash -> li [] [ text txHash ])
+          , p [] [ button [ onClick \e -> Just $ SelectRoute $ RootTx ] [ text "Create new root tx" ] ]
+          ]
+      )
+    where
+      projectMaybe = Map.lookup projectId state.projects
   APIKeys ->
     div [] $
         [ h2 [] [ text "API keys" ]
-        , p [] [ text "* Create" ]
-        , p [] [ text "* Deprecate" ]
+        , p [] [ button [ onClick \e -> Just $ CreateApiKey ] [ text "Create new API key" ] ]
+        , ul [] $ state.apiKeys <#> \key -> li [] [ p [] [ text key.name ]
+                                                  , p [] [ text key.hex ]
+                                                  , p [] [ button [ onClick \e -> Just $ DeprecateApiKey key ] [ text "Deprecate" ] ]
+                                                  ]
         , p [] [ text "* Assign to a root" ]
         ]
-  ProjectR projectId ->
+  RootTx ->
     div []
-        [ h2 [] [ text $ "Project " <> show projectId ]
-        , h3 [] [ text $ "API keys" ]
-        , h3 [] [ text $ "Roots" ]
+        [ h2 [] [ text "Create root transaction" ]
+        , p [] [ text "name" ]
+        , p [] [ text "message" ]
+        , p [] [ text "hash" ]
+        , p [] [ text "valid key [key 1] (add)" ]
+        , p [] [ button [ onClick \e -> Just $ PublishRootTx { name: "Example tx", message: "Hi there!", hash: "CAF3CAF3", key: unit } ] [ text "Publish" ] ]
         ]
-  Account ->
+  Account customerId ->
     div []
         [ h2 [] [ text "Customer" ]
         , div [] (maybe [] (pure <<< customerHtml) state.customer)
