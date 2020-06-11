@@ -49,10 +49,10 @@
 	"scripts": {
 		"postinstall": "node ./node_modules/vscode/bin/install && spago install",
 		"vscode:prepublish": "npm run ps:bundle && npm run ts:compile",
-		"ts:compile": "tsc -p ./src ./bundle ./output",
+		"ts:compile": "tsc -p ./",
 		"ps:compile": "spago build",
 		"ps:bundle": "spago bundle-module --main StudioVSCodeApi --to out/StudioVSCodeApi.bundle.js && cp -r output out",
-		"watch": "npm run ts:compile",
+		"watch": "tsc -watch -p ./",
 		"test": "npm run ts:compile && node ./node_modules/vscode/bin/test"
 	},
 	"devDependencies": {
