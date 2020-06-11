@@ -1,7 +1,8 @@
 'use strict'
 import * as path from 'path'
 
-let psRootPath = path.join(__dirname, '..', '..', 'stbx-lang', 'output')
+// This works if we make sure that the '/output' dir containing the compiled PS is copied to '/out/output', where the vscode bundler can find it.
+let psRootPath = path.join(__dirname, 'output')
 
 export const PS = {
   Prelude:       require(path.join(psRootPath, 'Prelude', 'index.js')),

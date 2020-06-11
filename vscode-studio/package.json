@@ -47,17 +47,22 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"postinstall": "node ./node_modules/vscode/bin/install",
-		"test": "npm run compile && node ./node_modules/vscode/bin/test"
+		"postinstall": "node ./node_modules/vscode/bin/install && spago install",
+		"vscode:prepublish": "npm run ps:bundle && npm run ts:compile",
+		"ts:compile": "tsc -p ./src ./bundle ./output",
+		"ps:compile": "spago build",
+		"ps:bundle": "spago bundle-module --main StudioVSCodeApi --to out/StudioVSCodeApi.bundle.js && cp -r output out",
+		"watch": "npm run ts:compile",
+		"test": "npm run ts:compile && node ./node_modules/vscode/bin/test"
 	},
 	"devDependencies": {
-		"typescript": "^3.3.1",
-		"vscode": "^1.1.28",
-		"tslint": "^5.12.1",
+		"@types/mocha": "^2.2.42",
 		"@types/node": "^10.12.21",
-		"@types/mocha": "^2.2.42"
+		"purescript": "^0.13.5",
+		"purescript-psa": "^0.7.3",
+		"spago": "^0.13.0",
+		"tslint": "^5.12.1",
+		"typescript": "^3.3.1",
+		"vscode": "^1.1.28"
 	}
 }
