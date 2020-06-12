@@ -1,5 +1,5 @@
 { sources =
-    [ "src/**/*.purs", "test/**/*.purs" ]
+    [ "src/**/*.purs" ]
 , name =
     "stbx-service-rest"
 , dependencies =
@@ -9,8 +9,8 @@
     , "express"
     , "psci-support"
     , "stbx-core"
-    , "stbx-client-rest"
-    , "stbx-tx-store"
+    , "stbx-protocol"
+    , "stbx-store"
     ]
 , packages =
     ./../packages.dhall

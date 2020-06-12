@@ -3,10 +3,12 @@ module Statebox.Core.Transaction where
 import Prelude
 import Data.Maybe (Maybe(..), isNothing)
 import Statebox.Core.Types (Initial, Firing, Wiring, HexStr)
+import Statebox.Core.Types (TxId) as Core
 
 type HashStr = HexStr
 
-type TxId = HexStr
+-- | TODO We'll probably want to remove this redirect. #331
+type TxId = Core.TxId
 
 type StatusStr = String
 
@@ -20,6 +22,8 @@ type Tx a =
 mapTx :: ∀ a b. (a -> b) -> Tx a -> Tx b
 mapTx f x = x { decoded = f x.decoded }
 
+-- | The `TxId` and the `TxSum` are two representations of the same transaction
+-- | which could turn out to be useful in different places.
 type HashTx = { id :: TxId, tx :: TxSum }
 
 attachTxId :: TxId -> TxSum -> HashTx
@@ -98,3 +102,6 @@ isExecution f = isNothing f.execution
 
 isExecutionTx :: FiringTx -> Boolean
 isExecutionTx f = isExecution f.firing
+
+isInitialTx :: TxSum -> Boolean
+isInitialTx = evalTxSum (const false) (const true) (const false) (const false)

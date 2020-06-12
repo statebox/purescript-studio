@@ -1,0 +1,21 @@
+{
+  "name": "stbx-protocol",
+  "version": "1.0.0",
+  "description": "Statebox protocol",
+  "scripts": {
+    "postinstall": "spago install",
+    "init": "spago init",
+    "build": "spago build",
+    "test": "spago test",
+    "testwatch": "spago test --watch",
+    "repl": "spago repl",
+    "docs": "spago docs",
+    "watch": "spago build --watch"
+  },
+  "author": "Marco Perone <pasafama@gmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "purescript": "^0.13.5",
+    "spago": "^0.13"
+  }
+}

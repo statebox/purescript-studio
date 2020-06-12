@@ -15,6 +15,7 @@ layout :: ∀ pid tid tok ty r. Ord pid => Ord tid => Number -> NetRepF pid tid 
 layout scaleFactor net =
   { placePointsDict:      Map.fromFoldable placePoints
   , transitionPointsDict: Map.fromFoldable transitionPoints
+  , edgeWaypointsDict:    Map.empty
   }
   where
     placePoints      = net.places # mapWithIndex (\i pid -> pid /\ vec2 xLeft  ((_ - halfHeight) <<< scale $ toNumber $ 1+i))

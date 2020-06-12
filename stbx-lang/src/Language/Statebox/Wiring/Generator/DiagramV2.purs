@@ -74,18 +74,18 @@ fromEdges fromEnum name edges = { pixels, context }
     typeStr a m f = mlookup a m <#> f # intercalate " "
 
     pixel :: a -> String
-    pixel a = nextChar 'A' (fromEnum a)
+    pixel a = nextChar 'a' (fromEnum a)
 
     nodeType :: a -> String
-    nodeType a = name a <> "@" <> pixel a <> ": " <> typeStr a predecessors (\b -> name b <> "_" <> name a)
-                                        <> " -> " <> typeStr a successors   (\b -> name a <> "_" <> name b)
+    nodeType a = name a <> "@" <> pixel a <> ": " <> typeStr a predecessors (\b -> pixel b <> pixel a)
+                                        <> " -> " <> typeStr a successors   (\b -> pixel a <> pixel b)
     nodeTypes :: String
     nodeTypes = map nodeType nodes # intercalate "\n"
 
     row :: Int -> String
     row y = grouped # foldMapWithIndex \x g ->
-      ((g !! y) # maybe (if x > 0 && x < width - 1 then nextChar 'n' (x - 1) else " ") pixel) <>
-      if x < width - 1 then nextChar 'a' x else ""
+      ((g !! y) # maybe (if x > 0 && x < width - 1 then nextChar 'N' (x - 1) else " ") pixel) <>
+      if x < width - 1 then nextChar 'A' x else ""
 
     swapTypes :: String
     swapTypes = grouped
@@ -96,8 +96,8 @@ fromEdges fromEnum name edges = { pixels, context }
     mkSwap :: Int -> Array Int -> Array a -> { accum :: Array Int, value :: String }
     mkSwap i edgeIds as = { accum: levelOutputs as <> rest, value }
       where
-        value = nextChar 'a' i <> ": [" <> intercalate " " order <> "]\n" <>
-                nextChar 'n' i <> ": [" <> intercalate " " ((1 ..< (length rest + 1)) <#> show) <> "]"
+        value = nextChar 'A' i <> ": [" <> intercalate " " order <> "]\n" <>
+                nextChar 'N' i <> ": [" <> intercalate " " ((1 ..< (length rest + 1)) <#> show) <> "]"
         ids = foldMap (\a -> mlookup a inputs) as
         order = (ids <> rest) <#> \id -> elemIndex id edgeIds # maybe "?" ((_ + 1) >>> show)
         rest = filter (\id -> id `notElem` ids) edgeIds

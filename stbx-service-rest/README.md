@@ -10,5 +10,5 @@ npm run serve
 We can make request a transaction using [httpie](https://httpie.org) like so:
 
 ```
-http localhost:8080/tx/zFsGM27HNS66qmGp1Y1STK48FUA1F12VHLRB51RGWNYWV
+http localhost:8008/tx/zFsGM27HNS66qmGp1Y1STK48FUA1F12VHLRB51RGWNYWV
 ```

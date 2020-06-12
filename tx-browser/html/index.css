@@ -1,0 +1,9 @@
+@import "@statebox/style/style.min.css";
+
+@import "./petrinet.css";
+@import "./diagram.css";
+@import "./typedefs.css";
+@import "./auths.css";
+@import "./kdmoncat.css";
+@import "./KeyHandler.css";
+@import "./tx-browser.css";

@@ -7,14 +7,15 @@
     "test": "test"
   },
   "scripts": {
-    "prepare": "cp node_modules/@statebox/stbx-js/dist/stbx.min.js dist/ && cp node_modules/dagre/dist/dagre.min.js dist/",
     "postinstall": "spago install",
-    "build": "spago build  -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "watch": "spago bundle-app --watch --main Main --to dist/app.js  -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
-    "bundle": "spago bundle-app --main Main --to dist/app.js  -- --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "start": "npm run build && concurrently --kill-others --handle-input npm:watch npm:serve",
+    "build": "spago bundle-module --main View.Studio.Main --to output/index.js --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago bundle-module --main View.Studio.Main --to output/index.js --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
     "test": "spago test",
     "docs": "spago docs",
-    "repl": "spago repl"
+    "repl": "spago repl",
+    "serve": "parcel html/index.html",
+    "bundle": "npm run build && rm -rf dist && parcel build html/index.html --no-source-maps"
   },
   "keywords": [
     "statebox",
@@ -23,14 +24,22 @@
   "author": "Erik Post <erik@shinsetsu.nl>",
   "license": "Commercial",
   "devDependencies": {
-    "purescript": "^0.13.3",
+    "browserslist": "^4.11.0",
+    "concurrently": "^5.0.2",
+    "parcel-bundler": "^1.12.4",
+    "purescript": "^0.13.5",
     "purescript-psa": "^0.7.3",
-    "spago": "^0.9.0"
+    "spago": "^0.13"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^5.6.3",
     "@statebox/stbx-js": "0.0.31",
+    "@statebox/style": "0.0.9",
     "dagre": "^0.8.4",
-    "tailwindcss": "^0.7.3"
-  }
+    "firebase": "^7.9.1",
+    "firebaseui": "^4.4.0"
+  },
+  "browserslist": [
+    "> 0.5% and last 3 versions",
+    "not IE < 12"
+  ]
 }

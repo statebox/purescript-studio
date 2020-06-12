@@ -1,0 +1,10 @@
+@import "@statebox/style/style.min.css";
+@import "firebaseui/dist/firebaseui.css";
+
+@import "./petrinet.css";
+@import "./diagram.css";
+@import "./typedefs.css";
+@import "./auths.css";
+@import "./kdmoncat.css";
+@import "../../halogen-grid-kit/src/GridKit/KeyHandler.css";
+@import "./studio.css";

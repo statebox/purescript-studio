@@ -5,6 +5,7 @@
     , "effect"
     , "foldable-traversable"
     , "psci-support"
+    , "spec"
     ]
 , packages =
     ../packages.dhall

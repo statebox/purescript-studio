@@ -1,7 +1,7 @@
 module View.Diagram.Common where
 
 import Prelude
-import Data.Int (toNumber, floor, round)
+import Data.Int (toNumber, round)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Core as HC
 

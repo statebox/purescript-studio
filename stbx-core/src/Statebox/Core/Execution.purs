@@ -1,13 +1,14 @@
 module Statebox.Core.Execution where
 
 import Prelude
-import Data.Array (index, length, (..))
+import Data.Array (index, (..), filter)
 import Data.ArrayMultiset (ArrayMultiset)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Unsafe.Coerce (unsafeCoerce)
 
-import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionId(..))
+import Statebox.Core.Types (PID, TID, Wiring, GluedTransitionIdRaw, GluedTransitionId(..))
+import Statebox.Core.Wiring.Tree (Path)
 
 
 -- | ReasonML-encoded representation of a marked net.
@@ -81,11 +82,6 @@ pretty = case _ of
     Glued   -> "glued"
     Final   -> "final"
 
-type PathElem = Int
-
--- | A path to a leaf (i.e. a net) in the diagram tree.
-type Path = Array PathElem
-
 -- TODO Since we already have Path as an isolated type, this PathIndexed may not add much value
 type PathIndexed r = (path :: Path | r)
 
@@ -111,9 +107,9 @@ foreign import placeCount       :: StbxObj -> Int
 --------------------------------------------------------------------------------
 
 -- TODO StbxObj and Marked are distinguished here, which makes things seem less simple and chainable than they are.
-foreign import fireOrDefault :: forall a. (Unit -> a) -> (Marked -> a) -> StbxObj -> TID -> a
+foreign import fireOrDefault :: forall a. (Unit -> a) -> (Marked -> a) -> StbxObj -> GluedTransitionIdRaw -> a
 
-fire :: StbxObj -> TID -> Maybe Marked
+fire :: StbxObj -> GluedTransitionIdRaw -> Maybe Marked
 fire = fireOrDefault (const Nothing) Just
 
 --------------------------------------------------------------------------------
@@ -122,20 +118,19 @@ fire = fireOrDefault (const Nothing) Just
 
 -- TODO TID or GluedTransitionId?
 
-enabledMaybe :: StbxObj -> TID -> Maybe Boolean
+enabledMaybe :: StbxObj -> GluedTransitionIdRaw -> Maybe Boolean
 enabledMaybe = enabledOrDefault (const Nothing) Just
 
-enabled :: StbxObj -> TID -> Boolean
+enabled :: StbxObj -> GluedTransitionIdRaw -> Boolean
 enabled = enabledOrDefault (const false) identity
 
--- TODO eliminate; should take either a GluedTransitionId *or* TID, but not both
 enabledMaybe_glued :: StbxObj -> GluedTransitionId -> Maybe Boolean
 enabledMaybe_glued s (GluedTransitionId i) = enabledMaybe s i
 
--- enabled_glued :: StbxObj -> TID -> Boolean
+-- enabled_glued :: StbxObj -> GluedTransitionIdRaw -> Boolean
 -- enabled_glued = enabledOrDefault (const false) identity
 
-foreign import enabledOrDefault :: forall a. (Unit -> a) -> (Boolean -> a) -> StbxObj -> TID -> a
+foreign import enabledOrDefault :: forall a. (Unit -> a) -> (Boolean -> a) -> StbxObj -> GluedTransitionIdRaw -> a
 
 --------------------------------------------------------------------------------
 
@@ -155,6 +150,12 @@ transitionIdsUpToAndIncluding (GluedTransitionId i) = GluedTransitionId <$> 0 ..
 -- TODO add 'glued' to name?
 transitionIds :: StbxObj -> Array GluedTransitionId
 transitionIds s = transitionIdsUpToAndIncluding (GluedTransitionId $ (transitionCount s) - 1)
+
+--------------------------------------------------------------------------------
+
+-- TODO add 'glued' to name?
+enabledTransitionIds :: StbxObj -> Array GluedTransitionId
+enabledTransitionIds s = filter (enabled s <<< unwrap) (transitionIds s)
 
 --------------------------------------------------------------------------------
 

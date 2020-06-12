@@ -6,12 +6,14 @@ import Data.Array (catMaybes, (..))
 import Data.Newtype (un, unwrap)
 import Data.Bag (BagF)
 import Data.Foldable (fold, foldMap, elem, intercalate)
+import Data.Group (ginverse)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Map as Map
 import Data.Monoid (guard)
 import Data.Set as Set
 import Data.Tuple (uncurry)
+import Data.Tuple.Nested ((/\))
 import Data.Traversable (traverse)
 import Data.Vec3 (Vec2D, vec2, _x, _y)
 import Effect.Aff (delay, Milliseconds(..))
@@ -19,12 +21,12 @@ import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen (ComponentHTML, HalogenM, mkEval, defaultEval)
 import Halogen.HTML as HH
-import Halogen.HTML (HTML, div)
+import Halogen.HTML (HTML, div, br, span, table, tbody, thead, tr, th, td)
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Properties (classes)
 import Halogen.HTML.Core (ClassName(..), ElemName(..), AttrName(..))
 import Halogen.HTML.Core as Core
-import Halogen.HTML.Events as HE
+import Halogen.HTML.Events (onClick, onDoubleClick)
 import Math (sin, cos, pi)
 import Svg.Elements as SE
 import Svg.Attributes as SA
@@ -32,8 +34,7 @@ import Svg.Attributes (CSSLength(..), FillState(..), FontSize(..))
 import Svg.Util as SvgUtil
 
 import Data.Auth (Roles(..))
-import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, fire, preMarking, mkNetApiF)
-import Data.Petrinet.Representation.Layout.Bipartite as Bipartite
+import Data.Petrinet.Representation.Dict (TransitionF, NetLayoutF, PlaceMarkingF, isTransitionEnabled, preMarking, mkNetApiF)
 import Data.Petrinet.Representation.Layout.Dagre as Dagre
 import Data.Petrinet.Representation.Marking as Marking
 import Data.Typedef (Typedef(..))
@@ -57,13 +58,20 @@ disableMarkingsAndLabelVisibilityButtons = true
 type StateF pid tid ty2 =
   { netInfo                 :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 ()
   , msg                     :: String
-  , focusedPlace            :: Maybe pid
-  , focusedTransition       :: Maybe tid
+  , netUIState              :: NetUIStateF pid tid
+  , overrideMarking         :: Maybe (Marking.MarkingF pid Tokens)
   , arcLabelsVisible        :: Boolean
   , placeLabelsVisible      :: Boolean
   , transitionLabelsVisible :: Boolean
-  , overrideMarking         :: Maybe (Marking.MarkingF pid Tokens)
   }
+
+type NetUIStateF pid tid =
+  { focusedPlace            :: Maybe pid
+  , focusedTransition       :: Maybe tid
+  , firingTransition        :: Maybe tid
+  }
+
+--------------------------------------------------------------------------------
 
 type PlaceModelF pid tok label pt =
   { id        :: pid
@@ -79,6 +87,7 @@ type TransitionModelF tid label pt =
   , preArcs   :: Array (ArcModelF tid label pt)
   , postArcs  :: Array (ArcModelF tid label pt)
   , isEnabled :: Boolean
+  , isFiring  :: Boolean
   , label     :: label
   , htmlId    :: HtmlId
   , isFocused :: Boolean
@@ -87,12 +96,13 @@ type TransitionModelF tid label pt =
   }
 
 type ArcModelF tid label pt =
-  { src    :: pt
-  , dest   :: pt
-  , label  :: label -- TODO String?
-  , tid    :: tid
-  , isPost :: Boolean
-  , htmlId :: HtmlId
+  { src       :: pt
+  , dest      :: pt
+  , waypoints :: Array pt
+  , label     :: label -- TODO String?
+  , tid       :: tid
+  , isPost    :: Boolean
+  , htmlId    :: HtmlId
   }
 
 -- TODO drat, we didn't want type parameters here
@@ -124,12 +134,11 @@ ui htmlIdPrefixMaybe =
     initialState netInfo =
       { netInfo:                 netInfo { netApi = mkNetApiF netInfo.net }
       , msg:                     ""
-      , focusedPlace:            empty
-      , focusedTransition:       empty
+      , netUIState:              { firingTransition: empty, focusedPlace: empty, focusedTransition: empty }
+      , overrideMarking:         empty
       , placeLabelsVisible:      true
       , transitionLabelsVisible: true
       , arcLabelsVisible:        true
-      , overrideMarking:         Nothing
       }
 
     render :: StateF pid tid ty2 -> ComponentHTML (Action pid tid ty2) () m
@@ -140,8 +149,8 @@ ui htmlIdPrefixMaybe =
                       , classes [ componentClass, ClassName "css-petrinet-component", ClassName $ arcLabelsVisibilityClass <> " " <> transitionLabelsVisibilityClass <> " " <> placeLabelsVisibilityClass ]
                       ]
                       [ SE.svg [ SA.viewBox (_x sceneTopLeft) (_y sceneTopLeft) (_x sceneSize) (_y sceneSize) ]
-                               (netToSVG netInfo layout state.focusedPlace state.focusedTransition)
-                      , HH.br []
+                               (netToSVG netInfo layout state.netUIState)
+                      , br []
                       , HH.text state.msg
                       ]
                 , div [ classes [ ClassName "w-1/6" ] ] $
@@ -152,11 +161,11 @@ ui htmlIdPrefixMaybe =
                 ]
           , div [ classes [ ClassName "w-1/6", ClassName "px-2" ] ]
                 [ maybe emptyHtml (mapAction UpdatePlace <<< PlaceEditor.form') do
-                    pid <- state.focusedPlace
+                    pid <- state.netUIState.focusedPlace
                     label <- Map.lookup pid state.netInfo.net.placeLabelsDict
                     pure { pid: pid, label: label, typedef: Typedef "Unit", isWriteable: false }
                 , maybe emptyHtml (mapAction UpdateTransition <<< TransitionEditor.form' state.netInfo.roleInfos) do
-                    tid   <- state.focusedTransition
+                    tid   <- state.netUIState.focusedTransition
                     label <- Map.lookup tid state.netInfo.net.transitionLabelsDict
                     typ   <- Map.lookup tid state.netInfo.net.transitionTypesDict
                     let auths = fromMaybe mempty (Map.lookup tid state.netInfo.net.transitionAuthsDict)
@@ -172,7 +181,7 @@ ui htmlIdPrefixMaybe =
                 -- autoLayout = Bipartite.layout Config.bipartiteLayoutScale state.netInfo.net
                 autoLayout = Dagre.layout state.netInfo.net
 
-        netInfo = state.netInfo { textBoxes = textBoxes, net { layout = Just layout }}
+        netInfo = state.netInfo { textBoxes = textBoxes, net { layout = Just layout, marking = marking }}
         sceneSize                       = bounds.max - bounds.min + padding
         sceneTopLeft                    = bounds.min - (padding / pure 2.0)
         bounds                          = NetInfo.boundingBox { layout, textBoxes }
@@ -189,9 +198,9 @@ ui htmlIdPrefixMaybe =
         H.modify_ (\state -> state { netInfo = netInfo })
       FocusPlace pid -> do
         state <- H.get
-        let focusedPlace' = toggleMaybe pid state.focusedPlace
-        H.put $ state { focusedPlace = focusedPlace'
-                      , msg = (maybe "Focused" (const "Unfocused") state.focusedPlace) <>" place " <> show pid <> " (" <> (fold $ Map.lookup pid state.netInfo.net.placeLabelsDict) <> ")."
+        let focusedPlace' = toggleMaybe pid state.netUIState.focusedPlace
+        H.put $ state { netUIState { focusedPlace = focusedPlace' }
+                      , msg = (maybe "Focused" (const "Unfocused") state.netUIState.focusedPlace) <>" place " <> show pid <> " (" <> (fold $ Map.lookup pid state.netInfo.net.placeLabelsDict) <> ")."
                       }
       UpdatePlace (UpdatePlaceLabel pid newLabel) -> do
         H.modify_ $ \state -> state { netInfo = state.netInfo { net = state.netInfo.net {  placeLabelsDict = Map.insert pid newLabel state.netInfo.net.placeLabelsDict } }
@@ -207,26 +216,30 @@ ui htmlIdPrefixMaybe =
                                     }
       FocusTransition tid -> do
         state <- H.get
-        let focusedTransition' = toggleMaybe tid state.focusedTransition
-        H.put $ state { focusedTransition = focusedTransition'
-                      , msg = (maybe "Focused" (const "Unfocused") state.focusedTransition) <> " transition " <> show tid <> " (" <> (fold $ Map.lookup tid state.netInfo.net.transitionLabelsDict) <> ")."
+        let focusedTransition' = toggleMaybe tid state.netUIState.focusedTransition
+        H.put $ state { netUIState { focusedTransition = focusedTransition' }
+                      , msg = (maybe "Focused" (const "Unfocused") state.netUIState.focusedTransition) <> " transition " <> show tid <> " (" <> (fold $ Map.lookup tid state.netInfo.net.transitionLabelsDict) <> ")."
                       }
       FireTransition tid -> do
         state <- H.get
         state.netInfo.netApi.transition tid # maybe (pure unit) \t -> do
-          let marking' = preMarking t <> state.netInfo.net.marking
-          let net' = fire state.netInfo.net t
-          H.put $ state { netInfo = state.netInfo { net = net' }
-                        , overrideMarking = Just marking'
+          let marking' = (ginverse $ preMarking t) <> state.netInfo.net.marking
+          H.put $ state { overrideMarking = Just marking'
+                        , netUIState { firingTransition = Just tid }
                         , msg = "Firing transition " <> show tid
                         }
           preCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid false)
           H.liftAff $ guard (preCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
+
+          marking'' <- H.liftAff $ state.netInfo.netApi.fire state.netInfo.net.marking t
+
           postCount <- H.liftAff $ SvgUtil.beginElements ("#" <> componentHtmlId <> " ." <> arcAnimationClass tid true)
           H.liftAff $ guard (postCount > 0) $ delay (Milliseconds $ arcAnimationDurationSec * 1000.0)
           state' <- H.get
-          H.put $ state' { overrideMarking = Nothing
-                         , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid net'.transitionLabelsDict) <> ")."
+          H.put $ state' { netInfo { net { marking = marking'' } }
+                         , overrideMarking = Nothing
+                         , netUIState { firingTransition = Nothing }
+                         , msg = "Fired transition " <> show tid <> " (" <> (fold $ Map.lookup tid state'.netInfo.net.transitionLabelsDict) <> ")."
                          }
       ToggleLabelVisibility obj -> do
         state <- H.get
@@ -235,8 +248,8 @@ ui htmlIdPrefixMaybe =
           Place ->      state { placeLabelsVisible      = not state.placeLabelsVisible }
           Transition -> state { transitionLabelsVisible = not state.transitionLabelsVisible }
 
-    netToSVG :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> NetLayoutF pid tid -> Maybe pid -> Maybe tid -> Array (ComponentHTML (Action pid tid ty2) () m)
-    netToSVG netInfo@{net, netApi} layout focusedPlace focusedTransition =
+    netToSVG :: NetInfoWithTypesAndRolesF pid tid Typedef ty2 () -> NetLayoutF pid tid -> NetUIStateF pid tid -> Array (ComponentHTML (Action pid tid ty2) () m)
+    netToSVG netInfo@{net, netApi} layout { focusedPlace, focusedTransition, firingTransition } =
       svgDefs <> svgTextBoxes <> svgTransitions <> svgPlaces
       where
         svgDefs        = [ SE.defs [] [ svgArrowheadMarker ] ]
@@ -267,13 +280,30 @@ ui htmlIdPrefixMaybe =
                , htmlId    : mkTransitionIdStr tid
                , point     : trPoint
                , isFocused : focusedTransition == Just tid
+               , isFiring  : firingTransition == Just tid
                }
           where
             mkPostArc :: Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPostArc src tp = { isPost: true, tid: tid, src: src, dest: _, label: arcLabel tp.tokens, htmlId: postArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+            mkPostArc src tp =
+              { isPost: true
+              , tid: tid
+              , src: src
+              , dest: _
+              , label: arcLabel tp.tokens
+              , htmlId: postArcId tid tp.place
+              , waypoints: Map.lookup (tp.place /\ tid) layout.edgeWaypointsDict # fromMaybe []
+              } <$> Map.lookup tp.place layout.placePointsDict
 
             mkPreArc :: Vec2D -> PlaceMarkingF pid Tokens -> Maybe (ArcModel tid)
-            mkPreArc dest tp = { isPost: false, tid: tid, src: _, dest: dest, label: arcLabel tp.tokens, htmlId: preArcId tid tp.place } <$> Map.lookup tp.place layout.placePointsDict
+            mkPreArc dest tp =
+              { isPost: false
+              , tid: tid
+              , src: _
+              , dest: dest
+              , label: arcLabel tp.tokens
+              , htmlId: preArcId tid tp.place
+              , waypoints: Map.lookup (tp.place /\ tid) layout.edgeWaypointsDict # fromMaybe []
+              } <$> Map.lookup tp.place layout.placePointsDict
 
             arcLabel :: Tokens -> String
             arcLabel 1 = ""
@@ -285,8 +315,8 @@ ui htmlIdPrefixMaybe =
     svgTransitionAndArcs t =
       SE.g [ SA.class_ $ "css-transition" <> (guard t.isEnabled " enabled") <> " " <> intercalate " " roleClasses
            , SA.id t.htmlId
-           , HE.onClick (\_ -> Just $ FocusTransition t.id)
-           , HE.onDoubleClick (\_ -> Just $ if t.isEnabled then FireTransition t.id else FocusTransition t.id)
+           , onClick (\_ -> Just $ FocusTransition t.id)
+           , onDoubleClick (\_ -> Just $ if t.isEnabled then FireTransition t.id else FocusTransition t.id)
            ]
            ((svgArc <$> (t.preArcs <> t.postArcs)) <> [svgTransitionRect t] <> [svgTransitionLabel t])
            where
@@ -295,7 +325,7 @@ ui htmlIdPrefixMaybe =
 
     svgTransitionRect :: TransitionModelF tid String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgTransitionRect t =
-      SE.rect [ SA.class_  ("css-transition-rect" <> guard t.isFocused " focused")
+      SE.rect [ SA.class_  ("css-transition-rect" <> guard t.isFocused " focused" <> guard t.isFiring " firing")
               , SA.width   transitionWidth
               , SA.height  transitionHeight
               , SA.x       (_x t.point - transitionWidth / 2.0)
@@ -317,18 +347,18 @@ ui htmlIdPrefixMaybe =
            [ SE.path
                [ SA.class_ $ "css-arc " <> if arc.isPost then "css-post-arc" else "css-pre-arc"
                , SA.id arc.htmlId -- we refer to this as the path of our animation and label, among others
-               , SA.d (svgPath arc.src arc.dest)
+               , SA.d (svgPath arc.src arc.waypoints arc.dest)
                ]
-           , svgArrow arc.src arc.dest arc.isPost
+           , svgArrow arc.src arc.dest arc.waypoints arc.isPost
            , SE.text
               [ SA.class_ "css-arc-name-label"
               , SA.attr (AttrName "dy") "-0.3em"
               , SA.font_size (FontSizeLength $ Em fontSize)
               ]
-              [ SE.element (ElemName "textPath") 
+              [ SE.element (ElemName "textPath")
                 [ SA.attr (AttrName "href") ("#" <> arc.htmlId)
                 , SA.attr (AttrName "startOffset") "50%"
-                ] [ HH.text arc.label ] 
+                ] [ HH.text arc.label ]
               ]
            , svgTokenAnimated arc
            ]
@@ -381,7 +411,7 @@ ui htmlIdPrefixMaybe =
     svgPlace :: PlaceModelF pid Tokens String Vec2D -> ComponentHTML (Action pid tid ty2) () m
     svgPlace { id: id, label: label, point: point, tokens: tokens, isFocused: isFocused } =
       SE.g [ SA.id (mkPlaceIdStr id)
-           , HE.onClick (\_ -> Just $ FocusPlace id)
+           , onClick (\_ -> Just $ FocusPlace id)
            ]
            [ SE.title [] [ Core.text label ]
            , SE.circle
@@ -415,7 +445,7 @@ ui htmlIdPrefixMaybe =
               , SA.class_ "css-token-in-place"
               ]
           else
-            SE.g [] $ (1..tokens) <#> \i -> 
+            SE.g [] $ (1..tokens) <#> \i ->
               SE.circle
               [ SA.r      tokenRadius
               , SA.cx     (_x point + cos (toNumber i / toNumber tokens * 2.0 * pi) * placeRadius * r tokens)
@@ -494,18 +524,18 @@ ui htmlIdPrefixMaybe =
 
 htmlMarking :: ∀ a n pid tid ty2 m. Show a => Show n => BagF a n -> ComponentHTML (Action pid tid ty2) () m
 htmlMarking bag =
-  HH.table [ classes [ ClassName "table", ClassName "is-striped", ClassName "is-narrow", ClassName "is-hoverable" ] ]
-           [ HH.thead []
-                      [ HH.tr [] [ HH.th [] [ HH.text "place" ]
-                                 , HH.th [] [ HH.text "tokens" ]
-                                 ]
-                      ]
-           , HH.tbody [] rows
-           ]
+  table [ classes [ ClassName "table", ClassName "is-striped", ClassName "is-narrow", ClassName "is-hoverable" ] ]
+        [ thead []
+                [ tr [] [ th [] [ HH.text "place" ]
+                        , th [] [ HH.text "tokens" ]
+                        ]
+                ]
+        , tbody [] rows
+        ]
   where
-    rows = map (uncurry tr) <<< Marking.toUnfoldable $ bag
-    tr k v = HH.tr [] [ HH.td [] [ HH.text $ show k ]
-                      , HH.td [] [ HH.text $ show v ]
+    rows = map (uncurry mkRow) <<< Marking.toUnfoldable $ bag
+    mkRow k v = tr [] [ td [] [ HH.text $ show k ]
+                      , td [] [ HH.text $ show v ]
                       ]
 
 --------------------------------------------------------------------------------
@@ -515,25 +545,25 @@ labelVisibilityButtons =
   div [ classes [ ClassName "field has-addons" ] ]
       [ HH.p [ classes [ ClassName "control" ] ]
              [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
-                    , HE.onClick $ \_ -> Just $ ToggleLabelVisibility Place ]
-                    [ HH.span [] [ HH.text "Place labels" ] ]
+                    , onClick $ \_ -> Just $ ToggleLabelVisibility Place ]
+                    [ span [] [ HH.text "Place labels" ] ]
              ]
       , HH.p [ classes [ ClassName "control" ] ]
              [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
-                    , HE.onClick $ \_ -> Just $ ToggleLabelVisibility Transition ]
-                    [ HH.span [] [ HH.text "Transition labels" ] ]
+                    , onClick $ \_ -> Just $ ToggleLabelVisibility Transition ]
+                    [ span [] [ HH.text "Transition labels" ] ]
              ]
       , HH.p [ classes [ ClassName "control" ] ]
              [ HH.a [ classes [ ClassName "button", ClassName "is-small" ]
-                    , HE.onClick $ \_ -> Just $ ToggleLabelVisibility Arc ]
-                    [ HH.span [] [ HH.text "Arc labels" ] ]
+                    , onClick $ \_ -> Just $ ToggleLabelVisibility Arc ]
+                    [ span [] [ HH.text "Arc labels" ] ]
              ]
       ]
 
 --------------------------------------------------------------------------------
 
-svgPath :: Vec2D -> Vec2D -> Array SA.D
-svgPath p q = SA.Abs <$> [ SA.M (_x p) (_y p), SA.L (_x q) (_y q) ]
+svgPath :: Vec2D -> Array Vec2D -> Vec2D -> Array SA.D
+svgPath p qs r = SA.Abs <$> [ SA.M (_x p) (_y p) ] <> ((\q -> SA.L (_x q) (_y q)) <$> qs) <> [ SA.L (_x r) (_y r) ]
 
 toggleMaybe :: ∀ a b. b -> Maybe a -> Maybe b
 toggleMaybe z mx = case mx of

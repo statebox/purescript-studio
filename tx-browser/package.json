@@ -1,0 +1,38 @@
+{
+  "name": "stbx-tx-browser",
+  "version": "1.0.0",
+  "description": "Statebox Transaction Browser",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "postinstall": "spago install",
+    "start": "npm run build && concurrently --kill-others --handle-input npm:watch npm:serve",
+    "build": "spago bundle-module --main Statebox.Browser.Main --to output/index.js --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "watch": "spago bundle-module --main Statebox.Browser.Main --to output/index.js --watch --purs-args --censor-codes=ImplicitImport,ImplicitQualifiedImport,HidingImport",
+    "test": "spago test",
+    "docs": "spago docs",
+    "repl": "spago repl",
+    "serve": "parcel html/index.html",
+    "bundle": "npm run build && rm -rf dist && parcel build html/index.html --no-source-maps"
+  },
+  "keywords": [
+    "statebox",
+    "petrinet"
+  ],
+  "author": "Erik Post <erik@shinsetsu.nl>",
+  "license": "Commercial",
+  "devDependencies": {
+    "concurrently": "^5.0.2",
+    "parcel-bundler": "^1.12.4",
+    "purescript": "^0.13.5",
+    "purescript-psa": "^0.7.3",
+    "spago": "^0.13"
+  },
+  "dependencies": {
+    "@statebox/stbx-js": "0.0.31",
+    "@statebox/style": "0.0.9",
+    "dagre": "^0.8.4"
+  }
+}

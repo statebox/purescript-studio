@@ -3,163 +3,116 @@ module TreeMenu where
 import Prelude hiding (div)
 import Effect.Aff.Class (class MonadAff)
 import Control.Comonad.Cofree
-import Control.Comonad
 import Data.Foldable (null)
-import Data.FunctorWithIndex (class FunctorWithIndex, mapWithIndex)
-import Data.Maybe (Maybe(..), maybe, fromMaybe)
-import Data.Map as Map
-import Data.Map (Map)
-import Data.Monoid (guard)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Maybe (Maybe(..), maybe)
 import Halogen as H
-import Halogen (Component, ComponentHTML, HalogenM, mkEval, defaultEval)
-import Halogen.HTML (HTML, nav, div, p, a, text, ul, li, aside, span, i)
-import Halogen.HTML.Core (ClassName(..))
-import Halogen.HTML.Events (onClick)
-import Halogen.HTML.Properties (classes, src, href, id_)
-import Halogen.HTML.Properties.ARIA as ARIA
+import Halogen (Component, ComponentHTML, HalogenM)
+import Halogen.HTML (HTML, a, b, button, details, input, li, nav, span, summary, text, ul)
+import Halogen.HTML.Core (ClassName(..), AttrName(..))
+import Halogen.HTML.Events (onClick, onValueInput)
+import Halogen.HTML.Properties (IProp, attr, classes, href, type_, value, InputType(InputText))
+import View.CRUDAction
+import View.ReactiveInput as ReactiveInput
+import Web.Event.Event (Event)
+import Web.Event.Event as Event
+import Web.UIEvent.MouseEvent (toEvent)
 
 --------------------------------------------------------------------------------
 
+componentCssClassNameStr :: String
 componentCssClassNameStr = "css-object-chooser"
 
-componentCssClassName = ClassName componentCssClassNameStr
-
 --------------------------------------------------------------------------------
 
-data Action r
-  = VisitRoute NodeId r
-  | ToggleExpandCollapse NodeId
-  | UpdateTree (RoseTree (Item r))
+data Action act
+  = Raise act
+  | PreventDefault (Action act) Event
 
--- | What the component emits to the outside world.
-data Msg r = Clicked NodeId r
+type State =
+  { hideRoot   :: Boolean
+  }
 
-type State r =
-  { tree       :: Maybe (RoseTree (NodeId /\ Item r))
-  , expansion  :: Map NodeId Boolean
-  , activeItem :: Maybe NodeId
-  , hideRoot   :: Boolean
+type Input act r =
+  { tree       :: MenuTree act r
+  , isSelected :: r -> Boolean
+  , editMode   :: Boolean
+  , onVisit    :: r -> act
   }
 
 --------------------------------------------------------------------------------
 
-type MenuTree r = RoseTree (Item r)
+type MenuTree act r = RoseTree (Item act r)
 
 type RoseTree a = Cofree Array a
 
-type Item r = { label :: String, route :: Maybe r }
+data WrapAction = WrapAction (forall t. String -> CRUDAction String { name :: String | t })
+type Edit act = Maybe (WrapAction -> act)
+type Item act r = { label :: String, route :: Maybe r, onEdit :: Edit act }
 
-mkItem :: forall r. String -> Maybe r -> Item r
-mkItem label route = { label, route }
+mkItem :: ∀ act r. String -> Maybe r -> Item act r
+mkItem label route = mkEditItem label route Nothing
 
--- TODO this is a list because it stores the path down to the current node, but we could just scan the tree instead
-type NodeId = Array Int
+mkEditItem :: ∀ act r. String -> Maybe r -> Edit act -> Item act r
+mkEditItem label route onEdit = { label, route, onEdit }
+
+mapMenuTreeRoutes :: ∀ act ra rb. (ra -> rb) -> MenuTree act ra -> MenuTree act rb
+mapMenuTreeRoutes f = map \{ label, route, onEdit } -> { label, route: map f route, onEdit }
 
 --------------------------------------------------------------------------------
 
 menuComponent
-  :: forall m r q
+  :: ∀ m r q act
    . MonadAff m
-  => (r -> Boolean)
-  -> Component HTML q (RoseTree (Item r)) (Msg r) m
-menuComponent isSelected =
-  H.mkComponent { eval: mkEval $ defaultEval { receive = Just <<< UpdateTree, handleAction = handleAction }, initialState, render }
+  => Component HTML q (Input act r) act m
+menuComponent =
+  ReactiveInput.mkComponent { initialState, render, handleAction, handleInput: \_ -> pure unit }
   where
-    initialState :: RoseTree (Item r) -> State r
-    initialState tree =
-      { tree: pure (decorateWithIds tree)
-      , expansion: Map.empty
-      , activeItem: Nothing
-      , hideRoot: true
-      }
+    initialState :: State
+    initialState = { hideRoot: true }
 
-    handleAction :: Action r -> HalogenM (State r) (Action r) () (Msg r) m Unit
-    handleAction = case _ of
-      UpdateTree tree -> do
-        H.modify_ \state -> state { tree = pure $ decorateWithIds tree }
+    handleAction :: Input act r -> Action act -> HalogenM State (Action act) () act m Unit
+    handleAction inp = case _ of
+      Raise act -> do
+        H.raise act
 
-      VisitRoute pathId route -> do
-        H.modify_ (\state -> state { activeItem = Just pathId })
-        H.raise (Clicked pathId route)
+      PreventDefault action event -> do
+        H.liftEffect $ Event.preventDefault event
+        handleAction inp action
 
-      ToggleExpandCollapse pathId -> do
-        state <- H.get
-        let e = Map.lookup pathId state.expansion
-        let e' = not (fromMaybe true e)
-        let state' = state { expansion = Map.insert pathId e' state.expansion }
-        H.put state'
-
-    render :: State r -> ComponentHTML (Action r) () m
-    render state = fromMaybe (div [] []) $ state.tree <#> \tree ->
-      nav [ classesWithNames [ componentCssClassNameStr, "p-4" ] ]
-          [ ul [ classesWithNames [ "list-reset" ] ] $
+    render :: Input act r -> State -> ComponentHTML (Action act) () m
+    render { tree, isSelected, editMode, onVisit } state =
+      nav [ classesWithNames [ componentCssClassNameStr ] ]
+          [ ul [ classesWithNames [ "is-unstyled" ] ] $
                if state.hideRoot then (semifoldCofree menuItemHtml <$> tail tree)
                                  else [semifoldCofree menuItemHtml  $       tree]
           ]
       where
-        menuItemHtml :: (NodeId /\ Item r)  -> Array (ComponentHTML (Action r) () m) -> ComponentHTML (Action r) () m
-        menuItemHtml (treeNodeId /\ treeNode) kids =
-          li [ classesWithNames [ "block", "flex", "cursor-pointer", "pr-2", "text-grey-darkest" ] ]
-             [ div [ classesWithNames [ "inline-flex" ] ]
-                   [ arrowIcon
-                   , div [ classesWithNames [ "flex-1" ] ]
-                         [ div ( [ classesWithNames $ [ "p-1", "rounded" ] <> activeClasses ] <> onClickVisitRoute )
-                               [ text treeNode.label ]
-                         , div []
-                               [ ul [ classesWithNames $ [ "list-reset", if isExpanded then "block" else "hidden" ] ]
-                                    kids
-                               ]
-                         ]
-                     ]
-             ]
+        menuItemHtml :: Item act r -> Array (ComponentHTML (Action act) () m) -> ComponentHTML (Action act) () m
+        menuItemHtml treeNode kids =
+          li [] if null kids then leaf
+                             else [ details [ attr (AttrName "open") "true" ]
+                                            [ summary [] leaf
+                                            , ul [ classesWithNames [ "is-unstyled" ] ] kids
+                                            ]
+                                  ]
           where
-            activeClasses = if isActive then [ "is-active", "bg-purple-darker", "text-purple-lighter" ]
-                                        else [ "hover:bg-grey-lighter" ]
-            arrowIcon     = div ([ classesWithNames [ "fas", "fa-xs"
-                                                    , "pr-1"
-                                                    , "rounded-l"
-                                                    , "text-grey-dark"
-                                                    , "hover:bg-grey-lighter", "hover:text-grey-darker"
-                                                    , if null kids then "fa-fw"
-                                                                   else "fa-caret-" <> if isExpanded then "down"
-                                                                                                     else "right"
-                                                    ]
-                                 ] <> onClickExpandCollapse
-                                )
-                                []
+            leaf = case editMode, treeNode.onEdit of
+              true, Just onEdit ->
+                [ button [ onClick \_ -> Just $ Raise $ onEdit $ WrapAction DeleteAction] [ text "X" ]
+                , input [ type_ InputText
+                        , value treeNode.label
+                        , onValueInput \v -> Just $ Raise $ onEdit $ WrapAction (UpdateAction $ _ { name = v })
+                        ]
+                ]
+              _, _ -> [ a ([ href "#" ] <> onClickVisitRoute) [ selected [ text treeNode.label ] ] ]
+            selected = if map isSelected treeNode.route == pure true then b [] else span []
+            onClickVisitRoute = treeNode.route #
+              maybe [] (\r -> pure <<< onClick $ Just <<< PreventDefault (Raise (onVisit r)) <<< toEvent)
 
-            -- TODO handling of Nothing case of map retrieval is spread over 2 diff places
-            isExpanded = not null kids && (fromMaybe true $ Map.lookup treeNodeId state.expansion)
-            isActive = state.activeItem == pure treeNodeId
-
-            onClickVisitRoute     = maybe [] (pure <<< onClick <<< const <<< Just <<< VisitRoute treeNodeId) treeNode.route
-            onClickExpandCollapse = guard (not null kids) [ onClick <<< const <<< Just $ ToggleExpandCollapse treeNodeId ]
-
-decorateWithIds :: forall r. RoseTree (Item r) -> RoseTree (NodeId /\ Item r)
-decorateWithIds tree = mapWithIndexCofree (/\) tree
-
-semifoldCofree :: forall f a b. Functor f => (a -> f b -> b) -> Cofree f a -> b
+semifoldCofree :: ∀ f a b. Functor f => (a -> f b -> b) -> Cofree f a -> b
 semifoldCofree f1 tree = f1 (head tree) (semifoldCofree f1 <$> tail tree)
-
--- TODO not stack safe, see `Control.Monad.Rec` etc:
--- - https://github.com/dmbfm/purescript-tree/blob/3480a95c938920dcef10997de1782f99f1f272ba/src/Data/Tree.purs#L28
-mapWithIndexCofree :: forall f a b
-   . FunctorWithIndex Int f
-  => Applicative f
-  => Monoid (f Int)
-  => (f Int -> a -> b)
-  -> Cofree f a
-  -> Cofree f b
-mapWithIndexCofree = mapWithIndexCofree' mempty
-  where
-    mapWithIndexCofree' :: f Int -> (f Int -> a -> b) -> Cofree f a -> Cofree f b
-    mapWithIndexCofree' level f cf =
-      f level (head cf) :< f' `mapWithIndex` tail cf
-      where
-        f' :: Int -> Cofree f a -> Cofree f b
-        f' i xs = mapWithIndexCofree' (level <> pure i) f xs
 
 --------------------------------------------------------------------------------
 
+classesWithNames :: ∀ r i. Array String -> IProp (class :: String | r) i
 classesWithNames = classes <<< map ClassName

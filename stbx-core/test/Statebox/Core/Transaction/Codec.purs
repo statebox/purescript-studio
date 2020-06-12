@@ -2,21 +2,17 @@ module Test.Statebox.Core.Transaction.Codec where
 
 import Prelude
 
-import Data.Argonaut.Core (Json)
 import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
 import Data.Either.Nested (type (\/))
-import Data.Either (Either(..), either)
+import Data.Either (either)
 import Data.NonEmpty (singleton) as NonEmpty
 import Debug.Trace (spy)
-import Test.Spec (Spec, pending, describe, it)
+import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
-import Test.Spec.Reporter.Console (consoleReporter)
-import Test.Spec.Runner (run)
 
-import Statebox.Core.Transaction (TxSum(..), Tx, FiringTx, evalTxSum)
-import Statebox.Core.Types (Firing)
-import Statebox.Core.Transaction.Codec (decodeTxTxSum, decodeFiringTx, decodeTxFiringTx, DecodingError)
+import Statebox.Core.Transaction (FiringTx, Tx, TxSum, evalTxSum)
+import Statebox.Core.Transaction.Codec (decodeTxTxSum, decodeFiringTx)
 
 suite :: Spec Unit
 suite = do

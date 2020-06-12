@@ -5,18 +5,22 @@ import Control.Alt ((<|>))
 import Data.Argonaut.Core (Json, jsonEmptyObject)
 import Data.Argonaut.Encode.Combinators ((:=), (~>))
 import Data.Argonaut.Encode.Class (encodeJson)
-import Data.Argonaut.Decode (decodeJson, (.:), (.:?))
+import Data.Argonaut.Decode (decodeJson, (.:), (.:?), (.!=))
 import Data.Argonaut.Decode.Class (decodeJArray)
-import Data.Profunctor.Choice (left)
 import Data.Either (Either(..))
 import Data.Either.Nested (type (\/))
+import Data.Lens (over)
 import Data.Maybe (maybe)
 import Data.NonEmpty (singleton)
+import Data.Profunctor.Choice (left)
 import Data.Traversable (traverse)
 import Foreign.Object (Object, lookup)
 
-import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), mapTx, evalTxSum)
+import Statebox.Core.Lenses (_wiring')
+import Statebox.Core.Transaction (Tx, InitialTx, WiringTx, FiringTx, TxSum(..), mapTx, evalTxSum, uberRootHash)
 import Statebox.Core.Types (Net, Wiring, Firing)
+import Statebox.Core.Wiring as Wiring
+import Statebox.Core.Wiring (WiringRaw)
 
 decodeTxTxSum :: Json -> String \/ Tx TxSum
 decodeTxTxSum json =
@@ -42,8 +46,14 @@ decodeTxFiringTx = decodeTxWith decodeFiringTx <=< decodeJson
 
 --------------------------------------------------------------------------------
 
+-- | A handcrafted decoder that ensures a field "previous": "z" is present in the result, even if "previous" is missing
+-- | from the JSON input. The "z" value is the `uberRootHash`.
 decodeInitialTx :: Json -> String \/ InitialTx
-decodeInitialTx = decodeJson
+decodeInitialTx = decodeJson >=> \x -> do
+  root     <- x .: "root"
+  -- if we encounter JSON without a "previous" field in the root's "decoded" payload, insert it artificially
+  previous <- x .:? "previous" .!=  uberRootHash
+  pure { root, previous }
 
 decodeWiringTx :: Json -> String \/ WiringTx
 decodeWiringTx = decodeJson >=> \x -> do
@@ -83,14 +93,17 @@ decodeFiring :: Json -> String \/ Firing
 decodeFiring = decodeJson >=> \x -> do
   message   <- x .:? "message"
   execution <- x .:? "execution"
-  path      <- x .:  "path" >>= case _ of [x] -> Right (singleton x)
+  path      <- x .:  "path" >>= case _ of [y] -> Right (singleton y)
                                           _   -> Left "The 'path' field in a firing must be a singleton array."
   pure { message, execution, path }
 
 --------------------------------------------------------------------------------
 
 decodeWiring :: Object Json -> String \/ Wiring
-decodeWiring x = do
+decodeWiring = map Wiring.fromWiringRaw <<< decodeWiringRaw
+
+decodeWiringRaw :: Object Json -> String \/ WiringRaw
+decodeWiringRaw x = do
   nets     <- getFieldWith (netsDecoder) x "nets"
   diagrams <- x .: "diagrams"
   labels   <- x .: "labels"
@@ -127,23 +140,11 @@ elaborateFailure s e =
 
 --------------------------------------------------------------------------------
 
--- TODO This is no longer used in this module and should probably be moved into Client
-newtype DecodingError = DecodingError String
-
-instance eqDecodingError :: Eq DecodingError where
-  eq (DecodingError x) (DecodingError y) = x == y
-
-instance showDecodingError :: Show DecodingError where
-  show = case _ of
-    DecodingError e -> "(DecodingError " <> show e <> ")"
-
---------------------------------------------------------------------------------
-
 encodeTxSum :: TxSum -> Json
 encodeTxSum = evalTxSum
   (\_ -> jsonEmptyObject) -- TODO do we want to encode/decode this?
   (\i -> encodeJson i)
-  (\w -> encodeJson w)
+  (\w -> encodeJson <<< over _wiring' Wiring.toWiringRaw $ w)
   (\f -> encodeJson f)
 
 encodeTxWith :: forall a. (a -> Json) -> Tx a -> Json

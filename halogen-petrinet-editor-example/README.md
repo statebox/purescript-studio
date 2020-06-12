@@ -8,10 +8,7 @@ npm install
 
 ## usage
 
-Run these simultaneously:
-
-- `npm run watch`
-- `npm start`
+Run `npm start`
 
 Then open `localhost:1234` in your browser.
 

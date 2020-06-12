@@ -1,0 +1,210 @@
+/* studio specific bricks css */
+.kdmoncat-app .main {
+  flex: 1;
+  display: flex;
+}
+.kdmoncat-app aside {
+  display: flex;
+  flex-direction: column;
+  width: 25vw;
+  margin: -10px 0 0 20px;
+}
+.kdmoncat-app h2 {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+.kdmoncat-app textarea {
+  flex: 1;
+}
+.kdmoncat-bricks {
+  outline: none;
+  height: 50vh;
+  margin-bottom: 2em;
+  background: var(--hiq-color-gray-7);
+}
+
+/* generic bricks css */
+.kdmoncat-bricks {
+  position: relative;
+  justify-self: stretch;
+  flex: 1;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.kdmoncat-bricks svg {
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.kdmoncat-bricks .box > rect:first-child {
+  fill: var(--hiq-color-gray-6);
+  transition: fill 0.3s;
+}
+.kdmoncat-bricks:focus .box.selected > rect:first-child {
+  fill: var(--stbx-color-primary);
+  fill-opacity: 0.2;
+}
+.kdmoncat-bricks.show-wires:not(:focus) .box > rect:first-child {
+  fill: var(--hiq-color-gray-6) !important;
+}
+.kdmoncat-bricks .inner-box {
+  fill: var(--hiq-color-gray-9);
+  fill-opacity: 0;
+  stroke: var(--hiq-color-gray-4);
+  stroke-opacity: 0;
+  stroke-width: 0.01;
+  transition: fill-opacity 0.3s, stroke-opacity 0.3s;
+}
+.kdmoncat-bricks .inner-box-text {
+  fill: var(--hiq-color-gray-9);
+  font-size: .4px;
+  font-weight: bold;
+  transition: fill 0.3s;
+}
+.kdmoncat-bricks.show-wires .inner-box {
+  fill-opacity: 1;
+  stroke-opacity: 1;
+}
+.kdmoncat-bricks.show-wires .inner-box-text {
+  fill: var(--hiq-color-gray-4);
+}
+.kdmoncat-bricks.show-wires .selected .inner-box {
+  fill: var(--stbx-color-primary);
+  stroke: var(--stbx-color-primary);
+}
+.kdmoncat-bricks.show-wires .selected .inner-box-text {
+  fill: white;
+}
+.kdmoncat-bricks .selection {
+  fill: none;
+  stroke: var(--stbx-color-primary);
+  stroke-opacity: 0;
+  stroke-width: 0.02;
+  pointer-events: none;
+  transition: stroke-opacity 0.3s;
+}
+.kdmoncat-bricks:focus .selection {
+  stroke-opacity: 0.7;
+}
+.kdmoncat-bricks .object {
+  fill: var(--hiq-color-gray-4);
+  stroke-width: 0;
+  transition: opacity 0.3s;
+  font-family: 'Times New Roman', Times, serif;
+  font-style: italic;
+  font-size: 0.13px;
+}
+.kdmoncat-bricks .object.invalid {
+  fill: var(--hiq-color-danger);
+  fill-opacity: 1;
+}
+.kdmoncat-bricks.show-wires path, .kdmoncat-bricks.show-wires .object circle {
+  opacity: 0;
+}
+.kdmoncat-bricks .object.equal.valid span.output {
+  display: none;
+}
+.kdmoncat-bricks .line {
+  stroke: var(--hiq-color-gray-4);
+  stroke-width: 0.01;
+  stroke-opacity: 1;
+  fill: none;
+  transition: opacity 0.3s, stroke-opacity 0.3s, stroke-width 0.3s;
+}
+.kdmoncat-bricks .arrowhead {
+  fill: var(--hiq-color-gray-4);
+}
+.kdmoncat-bricks .object.invalid .line, .kdmoncat-bricks .object.invalid .arrowhead {
+  stroke: var(--hiq-color-danger);
+  stroke-opacity: 1;
+}
+.kdmoncat-bricks.show-wires .line, .kdmoncat-bricks.show-wires .arrowhead {
+  opacity: 1;
+}
+.kdmoncat-bricks.show-bricks .box .line {
+  stroke-opacity: 0;
+}
+.kdmoncat-bricks:focus::after {
+  content: 'Press alt to toggle between bricks and wires.';
+  position: absolute;
+  right: 0;
+  top: 100%;
+  font-family: 'Times New Roman', Times, serif;
+  font-style: italic;
+  padding-top: 5px;
+}
+.kdmoncat-bricks .wires {
+  fill: var(--hiq-color-gray-4);
+}
+.kdmoncat-bricks .wires > rect:first-child {
+  opacity: 0;
+}
+.kdmoncat-bricks .wires .node {
+  stroke: var(--hiq-color-gray-4);
+  stroke-width: 0.01;
+  z-index: 1;
+}
+.kdmoncat-bricks .wires .node.white {
+  fill: var(--hiq-color-gray-9);
+}
+.kdmoncat-bricks:focus .wires.selected > rect:first-child {
+  fill: var(--stbx-color-primary);
+  fill-opacity: 0.1;
+  opacity: 1;
+}
+.kdmoncat-bricks text.object[text-anchor=start] {
+  transform: translate(0.05px, -0.05px);
+}
+.kdmoncat-bricks text.object[text-anchor=end] {
+  transform: translate(-0.05px, -0.05px);
+}
+.kdmoncat-bricks text.object.centered {
+  text-anchor: middle !important;
+  transform: translate(0, -0.07px);
+}
+
+.kdmoncat-term {
+  line-height: 20px;
+  margin-top: -10px;
+}
+.kdmoncat-term .tc, .kdmoncat-term .tt {
+  display: flex;
+  border-top: 20px solid var(--hiq-color-gray-6);
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+.kdmoncat-term .selected.tc,
+.kdmoncat-term .selected.tt,
+.kdmoncat-term .selected .tc,
+.kdmoncat-term .selected .tt {
+  border-top-color: var(--stbx-color-primary);
+}
+.kdmoncat-term > .tc, .kdmoncat-term > .tt {
+  border-top: none;
+}
+.kdmoncat-term span, .kdmoncat-term i {
+  display: inline-block;
+  background: var(--hiq-color-gray-5);
+  color: var(--hiq-color-gray-9);
+  min-width: 20px;
+  padding: 0 3px;
+  border-radius: 5px;
+  text-align: center;
+  font-family: 'Times New Roman', Times, serif;
+  transition: background-color 0.3s;
+}
+.kdmoncat-term .selected span, .kdmoncat-term .selected i {
+  background: var(--stbx-color-primary);
+  color: white;
+}
+.kdmoncat-term i {
+  background: var(--hiq-color-gray-6);
+  color: inherit;
+}
+.kdmoncat-term div {
+  margin: 5px 1px 0 1px;
+}

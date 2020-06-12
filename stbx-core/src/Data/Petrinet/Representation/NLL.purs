@@ -11,13 +11,13 @@ import Data.Bifunctor (bimap)
 import Data.Bitraversable (bitraverse)
 import Data.Either (Either(..), hush)
 import Data.Int (even)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe)
 import Data.NLL (mapWindow2, splitOn)
 import Data.Set as Set
 import Data.Set (Set)
 import Data.Tuple (Tuple(..), uncurry)
 import Data.Tuple.Nested (type (/\))
-import Data.Traversable
+import Data.Traversable (traverse)
 
 -- | A Petri net encoding based on NLL (Number List List).
 -- | See https://github.com/statebox/stbx-js/blob/master/spec for more info.

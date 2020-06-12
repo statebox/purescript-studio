@@ -1,5 +1,5 @@
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.13.3-20190818/packages.dhall sha256:c95c4a8b8033a48a350106b759179f68a695c7ea2208228c522866fd43814dc8
+      https://github.com/purescript/package-sets/releases/download/psc-0.13.5-20191215/packages.dhall sha256:fdc5d54cd54213000100fbc13c90dce01668a73fe528d8662430558df3411bee
 
 let overrides = {=}
 
@@ -8,10 +8,16 @@ let additions =
       , stbx-client-rest = ./stbx-client-rest/spago.dhall as Location
       , stbx-example-data = ./stbx-example-data/spago.dhall as Location
       , stbx-lang = ./stbx-lang/spago.dhall as Location
-      , stbx-tx-store = ./stbx-tx-store/spago.dhall as Location
+      , stbx-protocol = ./stbx-protocol/spago.dhall as Location
+      , stbx-service-rest = ./stbx-service-rest/spago.dhall as Location
+      , stbx-store = ./stbx-store/spago.dhall as Location
+      , studio = ./studio/spago.dhall as Location
       , studio-common = ./studio-common/spago.dhall as Location
       , vec = ./vec/spago.dhall as Location
       , halogen-diagram-editor = ./halogen-diagram-editor/spago.dhall as Location
+      , halogen-grid-kit = ./halogen-grid-kit/spago.dhall as Location
+      , halogen-kdmoncat = ./halogen-kdmoncat/spago.dhall as Location
+      , kdmoncat = ./kdmoncat/spago.dhall as Location
       , halogen-petrinet-editor = ./halogen-petrinet-editor/spago.dhall as Location
       , halogen-tree-menu = ./halogen-tree-menu/spago.dhall as Location
       , pnpro = ./pnpro/spago.dhall as Location

@@ -3,10 +3,9 @@ module View.Diagram.View where
 import Prelude
 import Data.Array (snoc)
 import Data.Foldable (elem)
-import Data.Int (toNumber, fromStringAs, hexadecimal)
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Monoid (guard)
-import Data.Tuple.Nested (type (/\), (/\))
 import Data.Ord (abs)
 import Data.Vec3 (Vec3, Vec2, _x, _y, _z, vec3)
 import Halogen as H
@@ -26,8 +25,8 @@ import Web.HTML (HTMLElement)
 import Web.UIEvent.MouseEvent (clientX, clientY)
 
 -- TODO: if there is no HTMLElement it does not make sense to draw anything
-diagramEditorSVG :: ∀ a. Maybe HTMLElement -> Model -> HTML a MouseMsg
-diagramEditorSVG maybeElement model =
+diagramEditorSVG :: ∀ a. Maybe HTMLElement -> Operators -> Model -> HTML a MouseMsg
+diagramEditorSVG maybeElement ops model =
   SE.svg [ SA.viewBox sceneLeft sceneTop w h
          , HP.ref componentRefLabel
          , HE.onMouseMove $ \e -> Just $ MousePos  (svg e maybeElement)
@@ -36,7 +35,7 @@ diagramEditorSVG maybeElement model =
          ]
          (ghosts <> operators `snoc` cursor)
   where
-    operators = operator (_ `elem` model.selectedOpId) s <$> model.ops
+    operators = operator (_ `elem` model.selectedOpId) s <$> ops
     ghosts    = operatorGhosts s model
     cursor    = renderCursor s model.cursorPos
     w         = toNumber model.config.width
@@ -61,9 +60,9 @@ renderCursor s cxy =
     cx = _x cxy
     cy = _y cxy
     p x u = toNumber $ (s / 2) * x + s * u
-    pts = [ SA.Abs $ SA.M (p 0 cx) (p 0 cy)
-          , SA.Abs $ SA.L (p 1 cx) (p 1 cy)
-          , SA.Abs $ SA.L (p 0 cx) (p 2 cy)
+    pts = [ SA.Abs $ SA.M (p 1 cx) (p 0 cy)
+          , SA.Abs $ SA.L (p 2 cx) (p 1 cy)
+          , SA.Abs $ SA.L (p 1 cx) (p 2 cy)
           , SA.Abs SA.Z
           ]
     color  = SA.RGB  90 99 120

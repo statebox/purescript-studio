@@ -1,8 +1,8 @@
 module Data.Auth where
 
 import Prelude
-import Data.Foldable (elem)
-import Data.Newtype (class Newtype, over, un)
+import Data.Foldable (class Foldable, elem)
+import Data.Newtype (class Newtype, un)
 import Data.Set as Set
 import Data.Set (Set)
 
@@ -30,6 +30,7 @@ instance monoidRoles :: Monoid Roles where
 instance showRoles :: Show Roles where
   show (Roles x) = show x
 
+rolesFromFoldable :: forall t. Foldable t => t Role -> Roles
 rolesFromFoldable = Roles <<< Set.fromFoldable
 
 rolesElem :: Role -> Roles -> Boolean

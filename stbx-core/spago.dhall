@@ -1,7 +1,7 @@
 { sources =
     [ "src/**/*.purs", "test/**/*.purs" ]
 , name =
-    "purescript-stbx"
+    "stbx-core"
 , dependencies =
     [ "prelude"
     , "arrays"
@@ -15,6 +15,7 @@
     , "debug"
     , "psci-support"
     , "spec"
+    , "generics-rep"
     ]
 , packages =
     ../packages.dhall

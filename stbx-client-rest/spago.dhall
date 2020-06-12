@@ -11,6 +11,7 @@
     , "console"
     , "psci-support"
     , "stbx-core"
+    , "stbx-service-rest"
     ]
 , packages =
     ../packages.dhall

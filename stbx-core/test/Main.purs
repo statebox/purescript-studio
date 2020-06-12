@@ -5,20 +5,22 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Aff (Aff, launchAff)
+import Effect.Aff (Fiber, launchAff)
 import Test.Spec (pending, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (runSpec)
 
 import Data.Petrinet.Representation.NLL as Net
-import Data.Petrinet.Representation.NLL (NetF, ErrNetEncoding(..))
+import Data.Petrinet.Representation.NLL (ErrNetEncoding(..))
 
 import Test.Statebox.Core as Core
 import Test.Statebox.Core.Execution as Execution
+import Test.Statebox.Core.Marking as Marking
 import Test.Statebox.Core.Transaction.Codec as Transaction.Codec
+import Test.Statebox.Core.WiringTree as WiringTree
 
-main :: Effect _
+main :: Effect (Fiber Unit)
 main = launchAff $ runSpec [consoleReporter] do
   describe "NLL Petri net encoding" do
     it "should accept even length encodings" do
@@ -29,4 +31,6 @@ main = launchAff $ runSpec [consoleReporter] do
 
   Core.suite
   Execution.suite
+  Marking.suite
   Transaction.Codec.suite
+  WiringTree.suite

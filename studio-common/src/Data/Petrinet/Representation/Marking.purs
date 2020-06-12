@@ -8,17 +8,14 @@ module Data.Petrinet.Representation.Marking
   , findTokens
   ) where
 
-import Prelude hiding ((-))
+import Prelude
 import Data.Foldable (class Foldable, foldMap)
 import Data.Unfoldable (class Unfoldable)
-import Data.Map as Map
 import Data.Map (Map)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe)
 import Data.Monoid.Additive (Additive(..))
-import Data.Newtype (class Newtype, un, unwrap, ala)
-import Data.Tuple.Nested (type (/\), (/\))
-import Data.Ring hiding ((-)) -- take (-) from Group.inverse instead TODO why is Group not in Prelude? https://pursuit.purescript.org/packages/purescript-group
-import Data.Group (class Group, ginverse)
+import Data.Newtype (ala)
+import Data.Tuple.Nested (type (/\))
 import Data.Bag (BagF(..))
 import Data.Bag as Bag
 
