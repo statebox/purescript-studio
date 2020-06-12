@@ -14,7 +14,7 @@ import Record (union)
 import Web.DOM.ParentNode (QuerySelector(..))
 
 import View.Petrinet.Model (NetInfoF)
-import View.Petrinet.Model.NLL.CopyHackTodo (toNetInfoWithDefaults) as NLL
+import View.Petrinet.Model.NLL (toNetInfoWithDefaults) as NLL
 import View.Petrinet.PetrinetEditor (ui) as PetrinetEditor
 import Data.Petrinet.Representation.NLL (fromNLLMaybe) as Net
 import Data.Typedef (Typedef)

@@ -1,7 +1,7 @@
 { name =
     "vscode-studio"
 , dependencies =
-    [ "console", "effect", "psci-support", "stbx-lang" ]
+    [ "console", "effect", "psci-support", "stbx-lang", "studio" ]
 , packages =
     ../packages.dhall
 , sources =

@@ -5,12 +5,7 @@
 }
 body {
     padding: 0;
-    /* background: #eee; */
-    /* background-image: linear-gradient(to top, pink, rgba(0,0,255,0.5));*/
-    /* background-image: linear-gradient(to bottom, #eee, #ddd);*/
-    /* background: white; */
-    background: #f1f5f8;
-    /* background: transparent; */
+    background: transparent;
 }
 .css-transition-rect {
     fill: var(--vscode-button-background);
