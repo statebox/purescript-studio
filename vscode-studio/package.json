@@ -1,0 +1,70 @@
+{
+	"name": "statebox",
+	"displayName": "statebox",
+	"description": "Statebox Formal Visual Process and Contract Language",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.39.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:extension.compileNet",
+		"onCommand:extension.viewNet",
+		"onLanguage:statebox"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "extension.compileNet",
+				"title": "Statebox: Compile process definition"
+			},
+			{
+				"command": "extension.viewNet",
+				"title": "Statebox: View Petri net"
+			}
+		],
+		"languages": [
+			{
+				"id": "statebox",
+				"aliases": [
+					"statebox"
+				],
+				"extensions": [
+					".stbx"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "statebox",
+				"scopeName": "text.statebox",
+				"path": "./syntaxes/statebox.tmLanguage.json"
+			}
+		]
+	},
+	"scripts": {
+		"postinstall": "node ./node_modules/vscode/bin/install && spago install",
+		"vscode:prepublish": "npm run ps:bundle && npm run ts:compile",
+		"ts:compile": "tsc -p ./",
+		"ps:compile": "spago build",
+		"ps:bundle": "npm run ps:bundle-extension && npm run ps:bundle-petrinet-editor",
+		"ps:bundle-extension": "spago bundle-module --main StudioVSCodeApi --to out/StudioVSCodeApi.bundle.js && cp -r output out",
+		"ps:bundle-petrinet-editor": "spago bundle-app --main View.Petrinet.JsApi --to bundle/halogen-petrinet-editor-bundle.js",
+		"watch": "tsc -watch -p ./",
+		"test": "npm run ts:compile && node ./node_modules/vscode/bin/test"
+	},
+	"devDependencies": {
+		"@types/mocha": "^2.2.42",
+		"@types/node": "^10.12.21",
+		"purescript": "^0.13.5",
+		"purescript-psa": "^0.7.3",
+		"spago": "^0.15.2",
+		"tslint": "^5.12.1",
+		"typescript": "^3.3.1",
+		"vscode": "^1.1.28"
+	}
+}

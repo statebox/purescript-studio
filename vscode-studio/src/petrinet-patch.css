@@ -1,0 +1,16 @@
+/* temporarily patch petrinet.css */
+.css-petrinet-component svg {
+    width: 100%;
+    background: transparent; /* leave background color up to body */
+}
+body {
+    padding: 0;
+    background: transparent;
+}
+.css-transition-rect {
+    fill: var(--vscode-button-background);
+}
+.css-place-name-label,
+.css-transition-name-label {
+    text-anchor: middle;
+}
