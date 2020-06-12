@@ -14,7 +14,7 @@
 
 ## Usage
 
-Once you built the extension as described above, you can run it by pressing `F5`. (Press it twice if necessary.) Then, from the new vscode instance that opens, running the Statebox extension, you can open a `.stbx` file. Say for example such a file contains a Petri net specification of some traffic lights:
+Once you built the extension as described above, you can run it by pressing `F5`. (Press it twice if necessary. Also, if necessary ignore warnings about alleged errors in the PureScript and run anyway.) Then, from the new vscode instance that opens, running the Statebox extension, you can open a `.stbx` file. Say for example such a file contains a Petri net specification of some traffic lights:
 ```
 t1: green1       -> red1, queue
 t2: red1,  queue -> green1

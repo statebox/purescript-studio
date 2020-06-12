@@ -51,7 +51,9 @@
 		"vscode:prepublish": "npm run ps:bundle && npm run ts:compile",
 		"ts:compile": "tsc -p ./",
 		"ps:compile": "spago build",
-		"ps:bundle": "spago bundle-module --main StudioVSCodeApi --to out/StudioVSCodeApi.bundle.js && cp -r output out",
+		"ps:bundle": "npm run ps:bundle-extension && npm run ps:bundle-petrinet-editor",
+		"ps:bundle-extension": "spago bundle-module --main StudioVSCodeApi --to out/StudioVSCodeApi.bundle.js && cp -r output out",
+		"ps:bundle-petrinet-editor": "spago bundle-app --main View.Petrinet.JsApi --to bundle/halogen-petrinet-editor-bundle.js",
 		"watch": "tsc -watch -p ./",
 		"test": "npm run ts:compile && node ./node_modules/vscode/bin/test"
 	},
